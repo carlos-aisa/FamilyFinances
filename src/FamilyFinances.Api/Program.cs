@@ -1,11 +1,19 @@
 using Asp.Versioning;
-using Asp.Versioning.ApiExplorer;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Serilog (read from configuration)
+builder.Host.UseSerilog((context, services, loggerConfiguration) =>
+{
+    loggerConfiguration
+        .ReadFrom.Configuration(context.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext();
+});
+
 // Controllers + API versioning
-builder.Services
-    .AddControllers();
+builder.Services.AddControllers();
 
 builder.Services
     .AddApiVersioning(options =>
@@ -22,14 +30,20 @@ builder.Services
         options.SubstituteApiVersionInUrl = true;
     });
 
-// Health checks (we'll expand later)
+// Health checks
 builder.Services.AddHealthChecks();
 
-// Swagger (keep it for now, useful during development)
+// Swagger (development only UI)
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+// Serilog request logging (adds useful HTTP logs)
+app.UseSerilogRequestLogging(options =>
+{
+    // Keep defaults for now; we can enrich later (user id, etc.)
+});
 
 if (app.Environment.IsDevelopment())
 {
@@ -40,8 +54,6 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.MapControllers();
-
-// Health endpoint(s)
 app.MapHealthChecks("/health");
 
 app.Run();
