@@ -1,4 +1,4 @@
-namespace FamilyFinances.Domain.Accounts;
+namespace FamilyFinances.Domain.Ledger.Accounts;
 
 /// <summary>
 /// The nature of the account, used for financial reporting and accounting purposes.

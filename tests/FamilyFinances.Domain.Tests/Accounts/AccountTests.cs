@@ -1,5 +1,5 @@
-using FamilyFinances.Domain.Accounts;
 using FamilyFinances.Domain.Common;
+using FamilyFinances.Domain.Ledger.Accounts;
 
 namespace FamilyFinances.Domain.Tests.Accounts;
 

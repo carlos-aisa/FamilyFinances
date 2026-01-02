@@ -1,6 +1,6 @@
 using FamilyFinances.Application.Abstractions;
 using FamilyFinances.Application.Ledger;
-using FamilyFinances.Domain.Ledger;
+using FamilyFinances.Domain.Ledger.Transactions;
 using Microsoft.EntityFrameworkCore;
 
 namespace FamilyFinances.Infrastructure.Persistence.Repositories;

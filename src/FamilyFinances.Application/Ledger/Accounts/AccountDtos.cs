@@ -1,6 +1,6 @@
-using FamilyFinances.Domain.Accounts;
+using FamilyFinances.Domain.Ledger.Accounts;
 
-namespace FamilyFinances.Application.Accounts;
+namespace FamilyFinances.Application.Ledger.Accounts;
 
 public sealed record AccountDto(
     Guid Id,

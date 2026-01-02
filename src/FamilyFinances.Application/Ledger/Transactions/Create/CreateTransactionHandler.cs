@@ -1,16 +1,9 @@
 using FamilyFinances.Application.Abstractions;
-using FamilyFinances.Domain.Accounts;
 using FamilyFinances.Domain.Common;
-using FamilyFinances.Domain.Ledger;
+using FamilyFinances.Domain.Ledger.Accounts;
+using FamilyFinances.Domain.Ledger.Transactions;
 
-namespace FamilyFinances.Application.Ledger;
-
-public sealed record CreateTransactionCommand(
-    DateOnly BookedOn,
-    string Description,
-    IReadOnlyList<TransactionSplitInput> Splits);
-
-public sealed record TransactionSplitInput(Guid AccountId, long AmountCents, string? Memo);
+namespace FamilyFinances.Application.Ledger.Transactions.Create;
 
 public sealed class CreateTransactionHandler
 {

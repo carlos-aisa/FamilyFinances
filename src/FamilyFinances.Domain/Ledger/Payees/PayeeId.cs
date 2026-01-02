@@ -1,4 +1,4 @@
-namespace FamilyFinances.Domain.Ledger;
+namespace FamilyFinances.Domain.Ledger.Payees;
 
 public readonly record struct PayeeId(Guid Value)
 {

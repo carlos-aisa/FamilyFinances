@@ -1,6 +1,7 @@
-using FamilyFinances.Domain.Accounts;
 using FamilyFinances.Domain.Common;
-using FamilyFinances.Domain.Ledger;
+using FamilyFinances.Domain.Ledger.Accounts;
+using FamilyFinances.Domain.Ledger.Payees;
+using FamilyFinances.Domain.Ledger.Transactions;
 
 namespace FamilyFinances.Domain.Tests.Ledger;
 

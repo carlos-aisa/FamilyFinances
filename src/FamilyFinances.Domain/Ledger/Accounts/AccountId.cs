@@ -1,4 +1,4 @@
-namespace FamilyFinances.Domain.Accounts;
+namespace FamilyFinances.Domain.Ledger.Accounts;
 
 public readonly record struct AccountId(Guid Value)
 {

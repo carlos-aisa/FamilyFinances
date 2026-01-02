@@ -1,6 +1,7 @@
 using FamilyFinances.Domain.Common;
+using FamilyFinances.Domain.Ledger.Payees;
 
-namespace FamilyFinances.Domain.Ledger;
+namespace FamilyFinances.Domain.Ledger.Transactions;
 
 public sealed class Transaction
 {

@@ -1,6 +1,6 @@
 using FamilyFinances.Application.Abstractions;
 
-namespace FamilyFinances.Application.Accounts;
+namespace FamilyFinances.Application.Ledger.Accounts.List;
 
 public sealed class ListAccountsHandler
 {

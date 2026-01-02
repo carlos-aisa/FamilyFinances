@@ -1,4 +1,5 @@
 using FamilyFinances.Domain.Ledger;
+using FamilyFinances.Domain.Ledger.Transactions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

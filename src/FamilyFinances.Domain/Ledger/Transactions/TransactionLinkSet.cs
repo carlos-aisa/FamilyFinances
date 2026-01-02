@@ -1,6 +1,6 @@
 using FamilyFinances.Domain.Common;
 
-namespace FamilyFinances.Domain.Ledger;
+namespace FamilyFinances.Domain.Ledger.Transactions;
 
 public static class TransactionLinkSet
 {

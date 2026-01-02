@@ -1,7 +1,7 @@
 using FamilyFinances.Application.Abstractions;
-using FamilyFinances.Application.Ledger;
+using FamilyFinances.Application.Ledger.Transactions.Create;
 using FamilyFinances.Domain.Common;
-using FamilyFinances.Domain.Ledger;
+using FamilyFinances.Domain.Ledger.Transactions;
 using FluentAssertions;
 using Moq;
 

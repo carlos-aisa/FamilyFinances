@@ -1,8 +1,8 @@
 using FamilyFinances.Application.Abstractions;
 using FamilyFinances.Application.Ledger;
-using FamilyFinances.Domain.Accounts;
 using FamilyFinances.Domain.Common;
-using FamilyFinances.Domain.Ledger;
+using FamilyFinances.Domain.Ledger.Accounts;
+using FamilyFinances.Domain.Ledger.Transactions;
 using FluentAssertions;
 using Moq;
 

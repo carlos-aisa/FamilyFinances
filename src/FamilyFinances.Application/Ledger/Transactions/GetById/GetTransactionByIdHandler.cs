@@ -1,5 +1,6 @@
 using FamilyFinances.Application.Abstractions;
-using FamilyFinances.Domain.Ledger;
+using FamilyFinances.Application.Ledger.Transactions;
+using FamilyFinances.Domain.Ledger.Transactions;
 
 namespace FamilyFinances.Application.Ledger;
 

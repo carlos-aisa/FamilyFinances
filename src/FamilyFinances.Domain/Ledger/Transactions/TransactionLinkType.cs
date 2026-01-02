@@ -1,4 +1,4 @@
-namespace FamilyFinances.Domain.Ledger;
+namespace FamilyFinances.Domain.Ledger.Transactions;
 
 public enum TransactionLinkType
 {

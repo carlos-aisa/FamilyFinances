@@ -1,6 +1,6 @@
 using FamilyFinances.Domain.Common;
 
-namespace FamilyFinances.Domain.Accounts;
+namespace FamilyFinances.Domain.Ledger.Accounts;
 
 public sealed class Account
 {

@@ -1,8 +1,10 @@
-﻿// src/FamilyFinances.Infrastructure/DependencyInjection.cs
+﻿
 using System.Text;
 using FamilyFinances.Application.Abstractions;
-using FamilyFinances.Application.Accounts;
 using FamilyFinances.Application.Ledger;
+using FamilyFinances.Application.Ledger.Accounts.Create;
+using FamilyFinances.Application.Ledger.Accounts.List;
+using FamilyFinances.Application.Ledger.Transactions.Create;
 using FamilyFinances.Infrastructure.Persistence;
 using FamilyFinances.Infrastructure.Persistence.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;

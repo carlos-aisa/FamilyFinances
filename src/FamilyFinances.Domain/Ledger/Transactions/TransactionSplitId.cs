@@ -1,4 +1,4 @@
-namespace FamilyFinances.Domain.Ledger;
+namespace FamilyFinances.Domain.Ledger.Transactions;
 
 public readonly record struct TransactionSplitId(Guid Value)
 {

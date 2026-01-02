@@ -1,4 +1,4 @@
-namespace FamilyFinances.Domain.Accounts;
+namespace FamilyFinances.Domain.Ledger.Accounts;
 
 /// <summary>
 /// User-facing classification of the account (UX / intent).
