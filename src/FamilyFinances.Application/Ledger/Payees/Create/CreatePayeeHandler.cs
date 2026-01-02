@@ -28,7 +28,7 @@ public sealed class CreatePayeeHandler
 
         var payee = Payee.Create(command.Name);
 
-        _payees.Add(payee);
+        await _payees.AddAsync(payee, ct);
         await _uow.SaveChangesAsync(ct);
 
         return payee.Id;

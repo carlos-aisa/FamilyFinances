@@ -6,5 +6,5 @@ public interface IPayeeRepository
 {
     Task<Payee?> GetByNormalizedNameAsync(string normalizedName, CancellationToken ct);
     Task<IReadOnlyList<Payee>> ListAsync(CancellationToken ct);
-    void Add(Payee payee);
+    Task AddAsync(Payee payee, CancellationToken ct);
 }

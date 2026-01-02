@@ -18,9 +18,10 @@ public sealed class CreatePayeeHandlerTests
         repo.Setup(r => r.GetByNormalizedNameAsync("NETFLIX", It.IsAny<CancellationToken>()))
             .ReturnsAsync((Payee?)null);
 
-        repo.Setup(r => r.Add(It.Is<Payee>(p =>
+        repo.Setup(r => r.AddAsync(It.Is<Payee>(p =>
                 p.Name == "Netflix" &&
-                p.NormalizedName == "NETFLIX")))
+                p.NormalizedName == "NETFLIX"), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask)
             .Verifiable();
 
         uow.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
@@ -35,7 +36,7 @@ public sealed class CreatePayeeHandlerTests
         id.Value.Should().NotBeEmpty();
 
         repo.Verify(r => r.GetByNormalizedNameAsync("NETFLIX", It.IsAny<CancellationToken>()), Times.Once);
-        repo.Verify(r => r.Add(It.IsAny<Payee>()), Times.Once);
+        repo.Verify(r => r.AddAsync(It.IsAny<Payee>(), It.IsAny<CancellationToken>()), Times.Once);
         uow.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
 
         repo.VerifyNoOtherCalls();
