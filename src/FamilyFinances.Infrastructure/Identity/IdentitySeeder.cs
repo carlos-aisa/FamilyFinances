@@ -7,10 +7,9 @@ public static class IdentitySeeder
 {
     public static async Task SeedAsync(IServiceProvider services)
     {
-        using var scope = services.CreateScope();
-
-        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+        // Do NOT create another scope here - we already receive a scoped provider
+        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+        var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
 
         string[] roles = ["Admin", "Reader"];
 

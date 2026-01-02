@@ -1,7 +1,9 @@
+// src/FamilyFinances.Api/Program.cs
 using Asp.Versioning;
 using FamilyFinances.Infrastructure;
 using FamilyFinances.Infrastructure.Persistence;
 using Serilog;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,27 +34,54 @@ builder.Services
         options.SubstituteApiVersionInUrl = true;
     });
 
-// Infrastructure services
+// Infrastructure services (DbContext, Identity, AuthN, AuthZ policies)
 builder.Services.AddInfrastructure(builder.Configuration);
 
-
-// Health checks
-builder.Services.AddHealthChecks();
+// Health checks (include DB check)
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<AppIdentityDbContext>();
 
 // Swagger (development only UI)
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
+// Swagger with JWT auth support
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "FamilyFinances API", Version = "v1" });
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Enter: Bearer {your JWT token}"
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 var app = builder.Build();
 
-// Initialize database
+// Initialize database (migrations + seed)
 await DependencyInjection.InitializeAsync(app.Services);
 
 // Serilog request logging (adds useful HTTP logs)
-app.UseSerilogRequestLogging(options =>
-{
-    // Keep defaults for now; we can enrich later (user id, etc.)
-});
+app.UseSerilogRequestLogging();
 
 if (app.Environment.IsDevelopment())
 {
@@ -61,6 +90,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// AuthN/AuthZ must be before MapControllers
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 app.MapHealthChecks("/health");
