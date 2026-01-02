@@ -21,7 +21,7 @@ public sealed class ListPayeesHandlerTests
 
         var handler = new ListPayeesHandler(repo.Object);
 
-        var result = await handler.Handle(new ListPayeesQuery(), CancellationToken.None);
+        var result = await handler.HandleAsync(new ListPayeesQuery(), CancellationToken.None);
 
         result.Should().HaveCount(2);
         result[0].Id.Should().Be(p1.Id);

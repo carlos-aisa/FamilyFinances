@@ -31,7 +31,7 @@ public sealed class CreatePayeeHandlerTests
 
         var cmd = new CreatePayeeCommand(Name: "  Netflix  ");
 
-        var id = await handler.Handle(cmd, CancellationToken.None);
+        var id = await handler.HandleAsync(cmd, CancellationToken.None);
 
         id.Value.Should().NotBeEmpty();
 
@@ -58,7 +58,7 @@ public sealed class CreatePayeeHandlerTests
 
         var cmd = new CreatePayeeCommand(Name: "Netflix");
 
-        var act = async () => await handler.Handle(cmd, CancellationToken.None);
+        var act = async () => await handler.HandleAsync(cmd, CancellationToken.None);
 
         await act.Should().ThrowAsync<DomainException>();
 
@@ -82,7 +82,7 @@ public sealed class CreatePayeeHandlerTests
 
         var cmd = new CreatePayeeCommand(Name: "   ");
 
-        var act = async () => await handler.Handle(cmd, CancellationToken.None);
+        var act = async () => await handler.HandleAsync(cmd, CancellationToken.None);
 
         await act.Should().ThrowAsync<DomainException>();
 

@@ -12,6 +12,6 @@ public sealed class ListPayeesHandler
         _payees = payees;
     }
 
-    public Task<IReadOnlyList<Payee>> Handle(ListPayeesQuery _, CancellationToken ct)
+    public Task<IReadOnlyList<Payee>> HandleAsync(ListPayeesQuery _, CancellationToken ct)
         => _payees.ListAsync(ct);
 }

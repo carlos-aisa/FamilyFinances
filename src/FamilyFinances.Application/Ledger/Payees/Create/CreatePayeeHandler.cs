@@ -15,7 +15,7 @@ public sealed class CreatePayeeHandler
         _uow = uow;
     }
 
-    public async Task<PayeeId> Handle(CreatePayeeCommand command, CancellationToken ct)
+    public async Task<PayeeId> HandleAsync(CreatePayeeCommand command, CancellationToken ct)
     {
         if (command is null)
             throw new ArgumentNullException(nameof(command));

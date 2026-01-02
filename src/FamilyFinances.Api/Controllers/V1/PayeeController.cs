@@ -1,0 +1,45 @@
+using Asp.Versioning;
+using FamilyFinances.Application.Ledger.Payees;
+using FamilyFinances.Application.Ledger.Payees.Create;
+using FamilyFinances.Application.Ledger.Payees.List;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FamilyFinances.Api.Controllers.V1;
+
+[ApiController]
+[ApiVersion(1.0)]
+[Route("api/v{version:apiVersion}/payees")]
+public sealed class PayeesController : ControllerBase
+{
+    [HttpPost]
+    [Authorize(Policy = "CanWrite")]
+    public async Task<ActionResult<PayeeDto>> Create(
+        [FromServices] CreatePayeeHandler handler,
+        [FromBody] CreatePayeeCommand command,
+        CancellationToken ct)
+    {
+        var id = await handler.HandleAsync(command, ct);
+
+        // We return the trimmed name to match Domain normalization behavior.
+        var name = (command.Name ?? string.Empty).Trim();
+
+        return Ok(new PayeeDto(id.Value, name));
+    }
+
+    [HttpGet]
+    [Authorize(Policy = "CanRead")]
+    public async Task<ActionResult<IReadOnlyList<PayeeDto>>> List(
+        [FromServices] ListPayeesHandler handler,
+        CancellationToken ct)
+    {
+        var payees = await handler.HandleAsync(new ListPayeesQuery(), ct);
+
+        var result = payees
+            .Select(p => new PayeeDto(p.Id.Value, p.Name))
+            .ToList()
+            .AsReadOnly();
+
+        return Ok(result);
+    }
+}
