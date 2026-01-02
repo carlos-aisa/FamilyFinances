@@ -39,7 +39,8 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 // Health checks (include DB check)
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<AppIdentityDbContext>();
+    .AddDbContextCheck<AppIdentityDbContext>()
+    .AddDbContextCheck<LedgerDbContext>();
 
 // Swagger (development only UI)
 builder.Services.AddEndpointsApiExplorer();
@@ -89,13 +90,20 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// Skip HTTPS redirection in Testing environment to avoid issues with test clients
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    app.UseHttpsRedirection();
+}
 
 // AuthN/AuthZ must be before MapControllers
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseMiddleware<FamilyFinances.Api.Middleware.DomainExceptionMiddleware>();
 app.MapControllers();
 app.MapHealthChecks("/health");
 
 app.Run();
+// Make the implicit Program class accessible to tests
+public partial class Program { }

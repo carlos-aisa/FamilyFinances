@@ -1,6 +1,10 @@
 ﻿// src/FamilyFinances.Infrastructure/DependencyInjection.cs
 using System.Text;
+using FamilyFinances.Application.Abstractions;
+using FamilyFinances.Application.Accounts;
+using FamilyFinances.Application.Ledger;
 using FamilyFinances.Infrastructure.Persistence;
+using FamilyFinances.Infrastructure.Persistence.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +25,15 @@ public static class DependencyInjection
         services.AddIdentityServices();
         services.AddJwtAuthentication(configuration);
         services.AddAuthorizationPolicies();
+        services.AddScoped<ILedgerUnitOfWork, LedgerUnitOfWork>();
+        services.AddScoped<IAccountRepository, AccountRepository>();
+        services.AddScoped<ITransactionRepository, TransactionRepository>();
+
+        services.AddScoped<CreateAccountHandler>();
+        services.AddScoped<ListAccountsHandler>();
+        services.AddScoped<CreateTransactionHandler>();
+        services.AddScoped<GetTransactionByIdHandler>();
+
         return services;
     }
 
@@ -29,6 +42,9 @@ public static class DependencyInjection
         IConfiguration configuration)
     {
         services.AddDbContext<AppIdentityDbContext>(options =>
+            options.UseSqlite(configuration.GetConnectionString("Default")));
+        
+        services.AddDbContext<LedgerDbContext>(options =>
             options.UseSqlite(configuration.GetConnectionString("Default")));
 
         return services;
@@ -109,9 +125,10 @@ public static class DependencyInjection
         var dbContext = scope.ServiceProvider.GetRequiredService<AppIdentityDbContext>();
         await dbContext.Database.MigrateAsync();
 
+        var ledgerDb = scope.ServiceProvider.GetRequiredService<LedgerDbContext>();
+        await ledgerDb.Database.MigrateAsync();
+
         // Seed roles + default admin user
-        // Assumes you already have IdentitySeeder in this namespace:
-        // FamilyFinances.Infrastructure.Identity.IdentitySeeder
         await Infrastructure.Identity.IdentitySeeder.SeedAsync(scope.ServiceProvider);
     }
 }
