@@ -1,4 +1,6 @@
 using Asp.Versioning;
+using FamilyFinances.Infrastructure;
+using FamilyFinances.Infrastructure.Persistence;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -30,6 +32,10 @@ builder.Services
         options.SubstituteApiVersionInUrl = true;
     });
 
+// Infrastructure services
+builder.Services.AddInfrastructure(builder.Configuration);
+
+
 // Health checks
 builder.Services.AddHealthChecks();
 
@@ -38,6 +44,9 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+// Initialize database
+await DependencyInjection.InitializeAsync(app.Services);
 
 // Serilog request logging (adds useful HTTP logs)
 app.UseSerilogRequestLogging(options =>
