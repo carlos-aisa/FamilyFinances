@@ -80,4 +80,41 @@ public sealed class TransactionTests
         Assert.Throws<DomainException>(() =>
             Transaction.Create(new DateOnly(2026, 1, 2), "   ", splits));
     }
+
+    [Fact]
+    public void Create_AllowsPayeeId()
+    {
+        var bank = AccountId.New();
+        var groceries = AccountId.New();
+
+        var splits = new[]
+        {
+            TransactionSplit.Create(bank, new Money(-5000)),
+            TransactionSplit.Create(groceries, new Money(5000))
+        };
+
+        var payeeId = PayeeId.New();
+
+        var tx = Transaction.Create(new DateOnly(2026, 1, 2), "Groceries", splits, payeeId);
+
+        Assert.Equal(payeeId, tx.PayeeId);
+    }
+
+    [Fact]
+    public void Create_RejectsEmptyPayeeId()
+    {
+        var bank = AccountId.New();
+        var groceries = AccountId.New();
+
+        var splits = new[]
+        {
+            TransactionSplit.Create(bank, new Money(-5000)),
+            TransactionSplit.Create(groceries, new Money(5000))
+        };
+
+        var emptyPayeeId = new PayeeId(Guid.Empty);
+
+        Assert.Throws<DomainException>(() =>
+            Transaction.Create(new DateOnly(2026, 1, 2), "Groceries", splits, emptyPayeeId));
+    }
 }
