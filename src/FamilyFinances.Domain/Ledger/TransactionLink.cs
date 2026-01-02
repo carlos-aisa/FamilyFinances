@@ -10,6 +10,10 @@ public sealed class TransactionLink
     public TransactionLinkType Type { get; }
     public DateOnly LinkedOn { get; }
 
+#pragma warning disable CS8618
+    private TransactionLink() { } // For EF Core
+#pragma warning restore CS8618
+
     private TransactionLink(
         Guid id,
         TransactionId sourceTransactionId,

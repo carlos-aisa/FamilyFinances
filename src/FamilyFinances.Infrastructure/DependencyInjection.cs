@@ -30,6 +30,9 @@ public static class DependencyInjection
     {
         services.AddDbContext<AppIdentityDbContext>(options =>
             options.UseSqlite(configuration.GetConnectionString("Default")));
+        
+        services.AddDbContext<LedgerDbContext>(options =>
+            options.UseSqlite(configuration.GetConnectionString("Default")));
 
         return services;
     }
@@ -109,9 +112,10 @@ public static class DependencyInjection
         var dbContext = scope.ServiceProvider.GetRequiredService<AppIdentityDbContext>();
         await dbContext.Database.MigrateAsync();
 
+        var ledgerDb = scope.ServiceProvider.GetRequiredService<LedgerDbContext>();
+        await ledgerDb.Database.MigrateAsync();
+
         // Seed roles + default admin user
-        // Assumes you already have IdentitySeeder in this namespace:
-        // FamilyFinances.Infrastructure.Identity.IdentitySeeder
         await Infrastructure.Identity.IdentitySeeder.SeedAsync(scope.ServiceProvider);
     }
 }

@@ -11,6 +11,10 @@ public sealed class Transaction
     public string Description { get; }
     public IReadOnlyList<TransactionSplit> Splits => _splits;
 
+#pragma warning disable CS8618
+    private Transaction() { } // For EF Core
+#pragma warning restore CS8618
+
     private Transaction(TransactionId id, DateOnly bookedOn, string description, IEnumerable<TransactionSplit> splits)
     {
         Id = id;

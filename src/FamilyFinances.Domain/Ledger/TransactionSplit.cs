@@ -10,6 +10,10 @@ public sealed class TransactionSplit
     public Money Amount { get; }
     public string? Memo { get; }
 
+#pragma warning disable CS8618
+    private TransactionSplit() { } // For EF Core
+#pragma warning restore CS8618
+
     private TransactionSplit(TransactionSplitId id, AccountId accountId, Money amount, string? memo)
     {
         Id = id;

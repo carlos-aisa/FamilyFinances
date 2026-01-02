@@ -20,6 +20,10 @@ public sealed class Account
     // Single-currency ledger (EUR)
     public Currency Currency => Currency.EUR;
 
+#pragma warning disable CS8618
+    private Account() { } // For EF Core
+#pragma warning restore CS8618
+    
     private Account(
         AccountId id,
         string name,

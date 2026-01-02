@@ -39,7 +39,8 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 // Health checks (include DB check)
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<AppIdentityDbContext>();
+    .AddDbContextCheck<AppIdentityDbContext>()
+    .AddDbContextCheck<LedgerDbContext>();
 
 // Swagger (development only UI)
 builder.Services.AddEndpointsApiExplorer();
