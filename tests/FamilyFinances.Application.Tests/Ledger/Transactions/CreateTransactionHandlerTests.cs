@@ -5,7 +5,7 @@ using FamilyFinances.Domain.Ledger.Transactions;
 using FluentAssertions;
 using Moq;
 
-namespace FamilyFinances.Application.Tests.Ledger;
+namespace FamilyFinances.Application.Tests.Ledger.Transactions;
 
 public sealed class CreateTransactionHandlerTests
 {

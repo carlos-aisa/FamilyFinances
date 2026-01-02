@@ -5,7 +5,7 @@ using FamilyFinances.Domain.Ledger.Accounts;
 using FluentAssertions;
 using Moq;
 
-namespace FamilyFinances.Application.Tests.Accounts;
+namespace FamilyFinances.Application.Tests.Ledger.Accounts;
 
 public sealed class CreateAccountHandlerTests
 {

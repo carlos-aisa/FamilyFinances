@@ -1,9 +1,7 @@
-using System;
 using FamilyFinances.Domain.Common;
-using Xunit;
 using FamilyFinances.Domain.Ledger.Payees;
 
-namespace FamilyFinances.Domain.Tests.Payees;
+namespace FamilyFinances.Application.Tests.Ledger.Payees;
 
 public class PayeeTests
 {

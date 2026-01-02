@@ -1,7 +1,7 @@
 using FamilyFinances.Domain.Common;
 using FamilyFinances.Domain.Ledger.Accounts;
 
-namespace FamilyFinances.Domain.Tests.Accounts;
+namespace FamilyFinances.Domain.Tests.Ledger.Accounts;
 
 public sealed class AccountTests
 {

@@ -4,7 +4,7 @@ using FamilyFinances.Domain.Ledger.Payees;
 using FluentAssertions;
 using Moq;
 
-namespace FamilyFinances.Application.Tests.Payees;
+namespace FamilyFinances.Application.Tests.Ledger.Payees;
 
 public sealed class ListPayeesHandlerTests
 {

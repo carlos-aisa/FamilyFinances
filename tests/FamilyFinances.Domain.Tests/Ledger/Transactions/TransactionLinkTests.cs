@@ -1,7 +1,7 @@
 using FamilyFinances.Domain.Common;
 using FamilyFinances.Domain.Ledger.Transactions;
 
-namespace FamilyFinances.Domain.Tests.Ledger;
+namespace FamilyFinances.Domain.Tests.Ledger.Transactions;
 
 public sealed class TransactionLinkTests
 {

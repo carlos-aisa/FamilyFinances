@@ -3,7 +3,7 @@ using FamilyFinances.Domain.Ledger.Accounts;
 using FamilyFinances.Domain.Ledger.Payees;
 using FamilyFinances.Domain.Ledger.Transactions;
 
-namespace FamilyFinances.Domain.Tests.Ledger;
+namespace FamilyFinances.Domain.Tests.Ledger.Transactions;
 
 public sealed class TransactionTests
 {
