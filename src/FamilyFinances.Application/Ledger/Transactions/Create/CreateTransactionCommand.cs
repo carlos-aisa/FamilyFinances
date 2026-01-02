@@ -3,4 +3,5 @@
 public sealed record CreateTransactionCommand(
     DateOnly BookedOn,
     string Description,
-    IReadOnlyList<TransactionSplitInput> Splits);
+    IReadOnlyList<TransactionSplitInput> Splits,
+    Guid? PayeeId);

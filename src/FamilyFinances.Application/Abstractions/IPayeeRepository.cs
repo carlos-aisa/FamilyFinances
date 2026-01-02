@@ -4,7 +4,8 @@ namespace FamilyFinances.Application.Abstractions;
 
 public interface IPayeeRepository
 {
-    Task<Payee?> GetByNormalizedNameAsync(string normalizedName, CancellationToken ct);
-    Task<IReadOnlyList<Payee>> ListAsync(CancellationToken ct);
     Task AddAsync(Payee payee, CancellationToken ct);
+    Task<IReadOnlyList<Payee>> ListAsync(CancellationToken ct);
+    Task<Payee?> GetByIdAsync(PayeeId id, CancellationToken ct);
+    Task<Payee?> GetByNormalizedNameAsync(string normalizedName, CancellationToken ct);
 }

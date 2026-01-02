@@ -6,4 +6,5 @@ public sealed record TransactionDto(
     Guid Id,
     DateOnly BookedOn,
     string Description,
+    Guid? PayeeId,
     IReadOnlyList<TransactionSplitDto> Splits);

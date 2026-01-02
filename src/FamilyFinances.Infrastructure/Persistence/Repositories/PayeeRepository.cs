@@ -23,4 +23,9 @@ internal sealed class PayeeRepository : IPayeeRepository
 
     public Task AddAsync(Payee payee, CancellationToken ct)
         => _db.Payees.AddAsync(payee, ct).AsTask();
+
+    public Task<Payee?> GetByIdAsync(PayeeId id, CancellationToken ct) 
+        => _db.Payees
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == id, ct);
 }

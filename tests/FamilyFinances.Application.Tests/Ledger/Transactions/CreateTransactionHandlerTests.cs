@@ -13,6 +13,7 @@ public sealed class CreateTransactionHandlerTests
     public async Task HandleAsync_CreatesBalancedTransaction_AndPersistsIt()
     {
         var repo = new Mock<ITransactionRepository>(MockBehavior.Strict);
+        var payeeRepo = new Mock<IPayeeRepository>(MockBehavior.Strict);
         var uow = new Mock<ILedgerUnitOfWork>(MockBehavior.Strict);
 
         repo.Setup(r => r.AddAsync(It.IsAny<Transaction>(), It.IsAny<CancellationToken>()))
@@ -21,7 +22,7 @@ public sealed class CreateTransactionHandlerTests
         uow.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
-        var handler = new CreateTransactionHandler(repo.Object, uow.Object);
+        var handler = new CreateTransactionHandler(repo.Object, payeeRepo.Object, uow.Object);
 
         var bankId = Guid.NewGuid();
         var expenseId = Guid.NewGuid();
@@ -33,7 +34,8 @@ public sealed class CreateTransactionHandlerTests
             {
                 new(bankId, -5000, "Payment"),
                 new(expenseId, 5000, "Expense")
-            });
+            },
+            PayeeId: null);
 
         var result = await handler.HandleAsync(cmd, CancellationToken.None);
 
@@ -58,9 +60,10 @@ public sealed class CreateTransactionHandlerTests
     public async Task HandleAsync_ThrowsDomainException_WhenUnbalanced()
     {
         var repo = new Mock<ITransactionRepository>(MockBehavior.Strict);
+        var payeeRepo = new Mock<IPayeeRepository>(MockBehavior.Strict);
         var uow = new Mock<ILedgerUnitOfWork>(MockBehavior.Strict);
 
-        var handler = new CreateTransactionHandler(repo.Object, uow.Object);
+        var handler = new CreateTransactionHandler(repo.Object, payeeRepo.Object, uow.Object);
 
         var a = Guid.NewGuid();
         var b = Guid.NewGuid();
@@ -72,7 +75,8 @@ public sealed class CreateTransactionHandlerTests
             {
                 new(a, 1000, null),
                 new(b, 200, null) // sum != 0
-            });
+            },
+            PayeeId: null);
 
         var act = async () => await handler.HandleAsync(cmd, CancellationToken.None);
 
