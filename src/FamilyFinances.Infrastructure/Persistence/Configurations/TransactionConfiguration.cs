@@ -1,4 +1,4 @@
-using FamilyFinances.Domain.Ledger;
+using FamilyFinances.Domain.Ledger.Payees;
 using FamilyFinances.Domain.Ledger.Transactions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -33,5 +33,15 @@ public sealed class TransactionConfiguration : IEntityTypeConfiguration<Transact
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Navigation(x => x.Splits).AutoInclude(false);
+
+        builder.Property(t => t.PayeeId)
+            .HasConversion(
+                id => id.HasValue ? id.Value.Value : (Guid?)null,
+                value => value.HasValue ? new PayeeId(value.Value) : (PayeeId?)null);
+
+        builder.HasOne<Payee>()
+            .WithMany()
+            .HasForeignKey(t => t.PayeeId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

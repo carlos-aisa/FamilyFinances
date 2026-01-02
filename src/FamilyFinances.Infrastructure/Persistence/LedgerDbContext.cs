@@ -1,4 +1,5 @@
 using FamilyFinances.Domain.Ledger.Accounts;
+using FamilyFinances.Domain.Ledger.Payees;
 using FamilyFinances.Domain.Ledger.Transactions;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,6 +16,7 @@ public sealed class LedgerDbContext : DbContext
     public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<TransactionSplit> TransactionSplits => Set<TransactionSplit>();
     public DbSet<TransactionLink> TransactionLinks => Set<TransactionLink>();
+    public DbSet<Payee> Payees => Set<Payee>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
