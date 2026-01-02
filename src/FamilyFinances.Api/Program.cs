@@ -90,7 +90,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// Skip HTTPS redirection in Testing environment to avoid issues with test clients
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    app.UseHttpsRedirection();
+}
 
 // AuthN/AuthZ must be before MapControllers
 app.UseAuthentication();
@@ -101,3 +105,5 @@ app.MapControllers();
 app.MapHealthChecks("/health");
 
 app.Run();
+// Make the implicit Program class accessible to tests
+public partial class Program { }
