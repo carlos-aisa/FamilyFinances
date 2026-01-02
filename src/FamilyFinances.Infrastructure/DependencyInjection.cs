@@ -1,8 +1,12 @@
-﻿// src/FamilyFinances.Infrastructure/DependencyInjection.cs
+﻿
 using System.Text;
 using FamilyFinances.Application.Abstractions;
-using FamilyFinances.Application.Accounts;
 using FamilyFinances.Application.Ledger;
+using FamilyFinances.Application.Ledger.Accounts.Create;
+using FamilyFinances.Application.Ledger.Accounts.List;
+using FamilyFinances.Application.Ledger.Payees.Create;
+using FamilyFinances.Application.Ledger.Payees.List;
+using FamilyFinances.Application.Ledger.Transactions.Create;
 using FamilyFinances.Infrastructure.Persistence;
 using FamilyFinances.Infrastructure.Persistence.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -28,11 +32,14 @@ public static class DependencyInjection
         services.AddScoped<ILedgerUnitOfWork, LedgerUnitOfWork>();
         services.AddScoped<IAccountRepository, AccountRepository>();
         services.AddScoped<ITransactionRepository, TransactionRepository>();
+        services.AddScoped<IPayeeRepository, PayeeRepository>();
 
         services.AddScoped<CreateAccountHandler>();
         services.AddScoped<ListAccountsHandler>();
         services.AddScoped<CreateTransactionHandler>();
         services.AddScoped<GetTransactionByIdHandler>();
+        services.AddScoped<CreatePayeeHandler>();
+        services.AddScoped<ListPayeesHandler>();
 
         return services;
     }

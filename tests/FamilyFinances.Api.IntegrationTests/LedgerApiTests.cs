@@ -115,7 +115,7 @@ public sealed class LedgerApiTests
         fetched.Splits.Should().Contain(s => s.AccountId == groceries.Id && s.AmountCents == 5000);
     }
 
-    private static async Task<AccountDto> CreateAccountAsync(HttpClient client, string name, string nature, string kind)
+    public static async Task<AccountDto> CreateAccountAsync(HttpClient client, string name, string nature, string kind)
     {
         // Convert enum names to numeric values for JSON
         var natureValue = nature switch
@@ -154,17 +154,17 @@ public sealed class LedgerApiTests
         return dto!;
     }
 
-    private sealed record AccountDto(Guid Id, string Name);
+    public sealed record AccountDto(Guid Id, string Name);
 
-    private sealed record TransactionDto(
+    public sealed record TransactionDto(
         Guid Id,
         string Description,
         List<TransactionSplitDto> Splits);
 
-    private sealed record TransactionSplitDto(
+    public sealed record TransactionSplitDto(
         Guid AccountId,
         long AmountCents,
         string? Memo);
 
-    private sealed record ErrorResponse(string Error);
+    public sealed record ErrorResponse(string Error);
 }

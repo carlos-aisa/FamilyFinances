@@ -1,4 +1,4 @@
-using FamilyFinances.Domain.Accounts;
+using FamilyFinances.Domain.Ledger.Accounts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

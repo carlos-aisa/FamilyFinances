@@ -1,4 +1,4 @@
-using FamilyFinances.Domain.Ledger;
+using FamilyFinances.Domain.Ledger.Transactions;
 
 namespace FamilyFinances.Application.Abstractions;
 
