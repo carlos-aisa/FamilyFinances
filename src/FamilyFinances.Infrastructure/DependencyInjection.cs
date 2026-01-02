@@ -1,6 +1,10 @@
 ﻿// src/FamilyFinances.Infrastructure/DependencyInjection.cs
 using System.Text;
+using FamilyFinances.Application.Abstractions;
+using FamilyFinances.Application.Accounts;
+using FamilyFinances.Application.Ledger;
 using FamilyFinances.Infrastructure.Persistence;
+using FamilyFinances.Infrastructure.Persistence.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +25,15 @@ public static class DependencyInjection
         services.AddIdentityServices();
         services.AddJwtAuthentication(configuration);
         services.AddAuthorizationPolicies();
+        services.AddScoped<ILedgerUnitOfWork, LedgerUnitOfWork>();
+        services.AddScoped<IAccountRepository, AccountRepository>();
+        services.AddScoped<ITransactionRepository, TransactionRepository>();
+
+        services.AddScoped<CreateAccountHandler>();
+        services.AddScoped<ListAccountsHandler>();
+        services.AddScoped<CreateTransactionHandler>();
+        services.AddScoped<GetTransactionByIdHandler>();
+
         return services;
     }
 

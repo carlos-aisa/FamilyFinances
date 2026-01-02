@@ -96,6 +96,7 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseMiddleware<FamilyFinances.Api.Middleware.DomainExceptionMiddleware>();
 app.MapControllers();
 app.MapHealthChecks("/health");
 
