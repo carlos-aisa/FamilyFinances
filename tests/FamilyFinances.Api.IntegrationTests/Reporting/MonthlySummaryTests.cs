@@ -14,7 +14,7 @@ public sealed class MonthlySummaryTests
 
         // Arrange
         var bank = await LedgerApiTests.CreateAccountAsync(client, "Main Bank", "Asset", "Checking");
-        var salary = await LedgerApiTests.CreateAccountAsync(client, "Salary", "Revenue", "Other");
+        var salary = await LedgerApiTests.CreateAccountAsync(client, "Salary", "Income", "Other");
         var groceries = await LedgerApiTests.CreateAccountAsync(client, "Groceries", "Expense", "Other");
 
         // January 2026 income
@@ -64,17 +64,17 @@ public sealed class MonthlySummaryTests
 
         summary!.Year.Should().Be(2026);
         summary.Month.Should().Be(1);
-        summary.IncomeTotalCents.Should().Be(100_000);
-        summary.ExpenseTotalCents.Should().Be(20_000);
-        summary.NetCents.Should().Be(80_000);
+        summary.IncomeTotal.Should().Be(100_000);
+        summary.ExpenseTotal.Should().Be(20_000);
+        summary.Net.Should().Be(80_000);
         summary.TransactionsCount.Should().Be(2);
     }
 
     public sealed record MonthlySummaryDto(
         int Year,
         int Month,
-        long IncomeTotalCents,
-        long ExpenseTotalCents,
-        long NetCents,
+        long IncomeTotal,
+        long ExpenseTotal,
+        long Net,
         int TransactionsCount);
 }

@@ -12,6 +12,6 @@ public sealed record CategoryTotalsDto(
 public sealed record CategoryTotalItemDto(
     Guid AccountId,
     string AccountName,
-    decimal Total,
+    long Total,
     int TransactionsCount
 );

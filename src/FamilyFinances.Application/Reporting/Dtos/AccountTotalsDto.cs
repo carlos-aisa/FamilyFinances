@@ -13,6 +13,6 @@ public sealed record AccountTotalItemDto(
     string AccountName,
     AccountNature AccountNature,
     AccountKind AccountKind,
-    decimal NetChange,
+    long NetChange,
     int TransactionsCount
 );

@@ -6,6 +6,7 @@ using FamilyFinances.Application.Ledger.Accounts.Create;
 using FamilyFinances.Application.Ledger.Accounts.List;
 using FamilyFinances.Application.Ledger.Payees.Create;
 using FamilyFinances.Application.Ledger.Payees.List;
+using FamilyFinances.Application.Reporting.Abstractions;
 using FamilyFinances.Application.Reporting.Handlers;
 using FamilyFinances.Infrastructure.Persistence;
 using FamilyFinances.Infrastructure.Persistence.Repositories;
@@ -33,6 +34,7 @@ public static class DependencyInjection
         services.AddScoped<IAccountRepository, AccountRepository>();
         services.AddScoped<ITransactionRepository, TransactionRepository>();
         services.AddScoped<IPayeeRepository, PayeeRepository>();
+        services.AddScoped<IReportingReadRepository, ReportingReadRepository>();
 
         services.AddScoped<CreateAccountHandler>();
         services.AddScoped<ListAccountsHandler>();

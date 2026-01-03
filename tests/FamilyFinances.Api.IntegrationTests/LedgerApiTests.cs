@@ -122,9 +122,9 @@ public sealed class LedgerApiTests
         {
             "Asset" => 1,
             "Liability" => 2,
-            "Equity" => 3,
-            "Revenue" => 4,
-            "Expense" => 5,
+            "Income" => 3,
+            "Expense" => 4,
+            "Equity" => 5,
             _ => throw new ArgumentException($"Unknown nature: {nature}")
         };
 
