@@ -42,4 +42,19 @@ public sealed class ReportsController : ControllerBase
 
         return Ok(dto);
     }
+
+    [HttpGet("account-totals")]
+    public async Task<IActionResult> GetAccountTotals(
+        [FromQuery] DateOnly from,
+        [FromQuery] DateOnly to,
+        [FromQuery] bool includeZeroAccounts,
+        [FromServices] GetAccountTotalsHandler handler,
+        CancellationToken ct)
+    {
+        var dto = await handler.HandleAsync(
+            new GetAccountTotalsQuery(from, to, includeZeroAccounts),
+            ct);
+
+        return Ok(dto);
+    }
 }

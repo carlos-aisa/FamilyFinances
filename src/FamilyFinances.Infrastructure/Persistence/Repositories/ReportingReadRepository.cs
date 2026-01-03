@@ -69,11 +69,11 @@ public sealed class ReportingReadRepository : IReportingReadRepository
     }
 
     public async Task<CategoryTotalsDto> GetCategoryTotalsAsync(
-    DateOnly fromInclusive,
-    DateOnly toExclusive,
-    AccountNature nature,
-    Guid? payeeId,
-    CancellationToken ct)
+        DateOnly fromInclusive,
+        DateOnly toExclusive,
+        AccountNature nature,
+        Guid? payeeId,
+        CancellationToken ct)
     {
         var q =
             from t in _db.Transactions.AsNoTracking()
@@ -116,11 +116,62 @@ public sealed class ReportingReadRepository : IReportingReadRepository
         );
     }
 
-
-    public Task<AccountTotalsDto> GetAccountTotalsAsync(
+    public async Task<AccountTotalsDto> GetAccountTotalsAsync(
         DateOnly fromInclusive,
         DateOnly toExclusive,
         bool includeZeroAccounts,
         CancellationToken ct)
-        => throw new NotImplementedException();
+    {
+        var q =
+            from t in _db.Transactions.AsNoTracking()
+            join s in _db.TransactionSplits.AsNoTracking()
+                on t.Id equals EF.Property<TransactionId>(s, "TransactionId")
+            join a in _db.Accounts.AsNoTracking()
+                on s.AccountId equals a.Id
+            where t.BookedOn >= fromInclusive && t.BookedOn < toExclusive
+            select new
+            {
+                TransactionId = t.Id,
+                AccountId = a.Id,
+                AccountName = a.Name,
+                AccountNature = a.Nature,
+                AccountKind = a.Kind,
+                AmountCents = s.Amount.Cents
+            };
+
+        // Materialize early to avoid EF translation issues with VOs + grouping
+        var data = await q.ToListAsync(ct);
+
+        var items = data
+            .GroupBy(x => new
+            {
+                x.AccountId,
+                x.AccountName,
+                x.AccountNature,
+                x.AccountKind
+            })
+            .Select(g =>
+            {
+                var net = g.Sum(x => x.AmountCents);
+
+                return new AccountTotalItemDto(
+                    g.Key.AccountId.Value,
+                    g.Key.AccountName,
+                    g.Key.AccountNature,
+                    g.Key.AccountKind,
+                    net,
+                    g.Select(x => x.TransactionId).Distinct().Count()
+                );
+            })
+            .Where(x => includeZeroAccounts || x.NetChange != 0)
+            .OrderBy(x => x.AccountNature)
+            .ThenBy(x => x.AccountName)
+            .ToList();
+
+        return new AccountTotalsDto(
+            fromInclusive,
+            toExclusive,
+            items
+        );
+    }
 }
