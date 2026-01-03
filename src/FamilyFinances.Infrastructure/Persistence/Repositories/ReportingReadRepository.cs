@@ -1,5 +1,6 @@
 using FamilyFinances.Application.Reporting.Abstractions;
 using FamilyFinances.Application.Reporting.Dtos;
+using FamilyFinances.Domain.Ledger.AccountGroups;
 using FamilyFinances.Domain.Ledger.Accounts;
 using FamilyFinances.Domain.Ledger.Transactions;
 using Microsoft.EntityFrameworkCore;
@@ -172,6 +173,100 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             fromInclusive,
             toExclusive,
             items
+        );
+    }
+
+    public async Task<AccountGroupTotalsDto> GetAccountGroupTotalsAsync(
+        Guid groupId,
+        DateOnly fromInclusive,
+        DateOnly toExclusive,
+        AccountNature nature,
+        CancellationToken ct)
+    {
+        var groupIdVo = new AccountGroupId(groupId);
+
+        // 1) Load group (name/description) - read-only
+        var group = await _db.AccountGroups
+            .AsNoTracking()
+            .FirstOrDefaultAsync(g => g.Id == groupIdVo, ct);
+
+        if (group is null)
+            throw new KeyNotFoundException("Account group not found.");
+
+        // 2) Load member account ids
+        var accountIds = await _db.AccountGroupMembers
+            .AsNoTracking()
+            .Where(m => m.GroupId == groupIdVo)
+            .Select(m => m.AccountId)
+            .ToListAsync(ct);
+
+        if (accountIds.Count == 0)
+        {
+            return new AccountGroupTotalsDto(
+                GroupId: groupId,
+                GroupName: group.Name,
+                FromInclusive: fromInclusive,
+                ToExclusive: toExclusive,
+                Nature: nature,
+                TotalCents: 0,
+                TransactionsCount: 0,
+                AccountsCount: 0,
+                Items: Array.Empty<AccountGroupTotalItemDto>()
+            );
+        }
+
+        // 3) Query transactions + splits + accounts for those accounts
+        var q =
+            from t in _db.Transactions.AsNoTracking()
+            join s in _db.TransactionSplits.AsNoTracking()
+                on t.Id equals EF.Property<TransactionId>(s, "TransactionId")
+            join a in _db.Accounts.AsNoTracking()
+                on s.AccountId equals a.Id
+            where t.BookedOn >= fromInclusive && t.BookedOn < toExclusive
+            where a.Nature == nature
+            select new
+            {
+                TransactionId = t.Id,
+                AccountId = a.Id,
+                AccountName = a.Name,
+                AmountCents = s.Amount.Cents
+            };
+
+        // Filter by group membership (VO-friendly)
+        q = q.Where(x => accountIds.Contains(x.AccountId));
+
+        // Materialize to avoid translation issues (VOs + grouping + abs + distinct)
+        var data = await q.ToListAsync(ct);
+
+        var items = data
+            .GroupBy(x => new { x.AccountId, x.AccountName })
+            .Select(g => new AccountGroupTotalItemDto(
+                AccountId: g.Key.AccountId.Value,
+                AccountName: g.Key.AccountName,
+                TotalCents: g.Sum(x => Math.Abs(x.AmountCents)),
+                TransactionsCount: g.Select(x => x.TransactionId).Distinct().Count()
+            ))
+            .OrderByDescending(x => x.TotalCents)
+            .ThenBy(x => x.AccountName)
+            .ToList();
+
+        var total = items.Sum(i => i.TotalCents);
+        var txCount = data.Select(x => x.TransactionId).Distinct().Count();
+
+        // AccountsCount: number of member accounts that match the nature filter AND appear in results.
+        // If you prefer "all members regardless of activity", use accountIds.Count instead.
+        var accountsCount = items.Count;
+
+        return new AccountGroupTotalsDto(
+            GroupId: groupId,
+            GroupName: group.Name,
+            FromInclusive: fromInclusive,
+            ToExclusive: toExclusive,
+            Nature: nature,
+            TotalCents: total,
+            TransactionsCount: txCount,
+            AccountsCount: accountsCount,
+            Items: items
         );
     }
 }
