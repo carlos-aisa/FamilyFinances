@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using static FamilyFinances.Infrastructure.Identity.AuthConstants;
 
 namespace FamilyFinances.Api.Controllers.V1;
 
@@ -10,6 +11,6 @@ namespace FamilyFinances.Api.Controllers.V1;
 public sealed class PingController : ControllerBase
 {
     [HttpGet]
-    [Authorize(Policy = "CanRead")]
+    [Authorize(Policy = Policies.CanRead)]
     public IActionResult Get() => Ok(new { status = "ok" });
 }

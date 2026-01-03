@@ -3,6 +3,7 @@ using FamilyFinances.Application.Reporting.Queries;
 using FamilyFinances.Domain.Ledger.Accounts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using static FamilyFinances.Infrastructure.Identity.AuthConstants;
 
 namespace FamilyFinances.Api.Controllers;
 
@@ -11,6 +12,7 @@ namespace FamilyFinances.Api.Controllers;
 [Authorize]
 public sealed class ReportsController : ControllerBase
 {
+    [Authorize(Policy = Policies.CanRead)]
     [HttpGet("monthly-summary")]
     public async Task<IActionResult> GetMonthlySummary(
         [FromQuery] int year,
@@ -27,6 +29,7 @@ public sealed class ReportsController : ControllerBase
         return Ok(dto);
     }
 
+    [Authorize(Policy = Policies.CanRead)]
     [HttpGet("category-totals")]
     public async Task<IActionResult> GetCategoryTotals(
         [FromQuery] DateOnly from,
@@ -43,6 +46,7 @@ public sealed class ReportsController : ControllerBase
         return Ok(dto);
     }
 
+    [Authorize(Policy = Policies.CanRead)]
     [HttpGet("account-totals")]
     public async Task<IActionResult> GetAccountTotals(
         [FromQuery] DateOnly from,
