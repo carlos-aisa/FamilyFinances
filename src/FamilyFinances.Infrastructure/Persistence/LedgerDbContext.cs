@@ -1,3 +1,4 @@
+using FamilyFinances.Domain.Ledger.AccountGroups;
 using FamilyFinances.Domain.Ledger.Accounts;
 using FamilyFinances.Domain.Ledger.Payees;
 using FamilyFinances.Domain.Ledger.Transactions;
@@ -17,6 +18,8 @@ public sealed class LedgerDbContext : DbContext
     public DbSet<TransactionSplit> TransactionSplits => Set<TransactionSplit>();
     public DbSet<TransactionLink> TransactionLinks => Set<TransactionLink>();
     public DbSet<Payee> Payees => Set<Payee>();
+    public DbSet<AccountGroup> AccountGroups => Set<AccountGroup>();
+    public DbSet<AccountGroupMember> AccountGroupMembers => Set<AccountGroupMember>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -1,6 +1,8 @@
 ﻿
 using System.Text;
 using FamilyFinances.Application.Ledger;
+using FamilyFinances.Application.Ledger.AccountGroups.Abstractions;
+using FamilyFinances.Application.Ledger.AccountGroups.Handlers;
 using FamilyFinances.Application.Ledger.Accounts.Abstractions;
 using FamilyFinances.Application.Ledger.Accounts.Handlers;
 using FamilyFinances.Application.Ledger.Payees.Abstractions;
@@ -36,6 +38,8 @@ public static class DependencyInjection
         services.AddScoped<ITransactionRepository, TransactionRepository>();
         services.AddScoped<IPayeeRepository, PayeeRepository>();
         services.AddScoped<IReportingReadRepository, ReportingReadRepository>();
+        services.AddScoped<IAccountGroupRepository, AccountGroupRepository>();
+        services.AddScoped<IAccountGroupMembershipRepository, AccountGroupMembershipRepository>();
 
         services.AddScoped<CreateAccountHandler>();
         services.AddScoped<ListAccountsHandler>();
@@ -46,7 +50,11 @@ public static class DependencyInjection
         services.AddScoped<GetMonthlySummaryHandler>();
         services.AddScoped<GetCategoryTotalsHandler>();
         services.AddScoped<GetAccountTotalsHandler>();
-
+        services.AddScoped<CreateAccountGroupHandler>();
+        services.AddScoped<ListAccountGroupsHandler>();
+        services.AddScoped<GetAccountGroupByIdHandler>();
+        services.AddScoped<AddAccountToGroupHandler>();
+        services.AddScoped<RemoveAccountFromGroupHandler>();
         return services;
     }
 
