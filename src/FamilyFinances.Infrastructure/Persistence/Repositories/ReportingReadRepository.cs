@@ -68,13 +68,54 @@ public sealed class ReportingReadRepository : IReportingReadRepository
         );
     }
 
-    public Task<CategoryTotalsDto> GetCategoryTotalsAsync(
-        DateOnly fromInclusive,
-        DateOnly toExclusive,
-        AccountNature nature,
-        Guid? payeeId,
-        CancellationToken ct)
-        => throw new NotImplementedException();
+    public async Task<CategoryTotalsDto> GetCategoryTotalsAsync(
+    DateOnly fromInclusive,
+    DateOnly toExclusive,
+    AccountNature nature,
+    Guid? payeeId,
+    CancellationToken ct)
+    {
+        var q =
+            from t in _db.Transactions.AsNoTracking()
+            join s in _db.TransactionSplits.AsNoTracking() on t.Id equals EF.Property<TransactionId>(s, "TransactionId")
+            join a in _db.Accounts.AsNoTracking() on s.AccountId equals a.Id
+            where t.BookedOn >= fromInclusive && t.BookedOn < toExclusive
+            where a.Nature == nature
+            select new
+            {
+                TransactionId = t.Id,
+                PayeeId = t.PayeeId,
+                AccountId = a.Id,
+                AccountName = a.Name,
+                AmountCents = s.Amount.Cents
+            };
+
+        if (payeeId is not null)
+            q = q.Where(x => x.PayeeId.HasValue && x.PayeeId.Value.Value == payeeId.Value);
+
+        // Materialize the query to perform aggregations in memory
+        var data = await q.ToListAsync(ct);
+
+        var items = data
+            .GroupBy(x => new { x.AccountId, x.AccountName })
+            .Select(g => new CategoryTotalItemDto(
+                g.Key.AccountId.Value,
+                g.Key.AccountName,
+                g.Sum(x => Math.Abs(x.AmountCents)),
+                g.Select(x => x.TransactionId).Distinct().Count()
+            ))
+            .OrderByDescending(x => x.Total)
+            .ThenBy(x => x.AccountName)
+            .ToList();
+
+        return new CategoryTotalsDto(
+            FromInclusive: fromInclusive,
+            ToExclusive: toExclusive,
+            Nature: nature,
+            Items: items
+        );
+    }
+
 
     public Task<AccountTotalsDto> GetAccountTotalsAsync(
         DateOnly fromInclusive,
