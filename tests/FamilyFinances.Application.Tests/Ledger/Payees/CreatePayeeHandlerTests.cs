@@ -1,5 +1,7 @@
-using FamilyFinances.Application.Abstractions;
-using FamilyFinances.Application.Ledger.Payees.Create;
+using FamilyFinances.Application.Ledger;
+using FamilyFinances.Application.Ledger.Payees.Abstractions;
+using FamilyFinances.Application.Ledger.Payees.Handlers;
+using FamilyFinances.Application.Ledger.Payees.Requests;
 using FamilyFinances.Domain.Common;
 using FamilyFinances.Domain.Ledger.Payees;
 using FluentAssertions;
@@ -29,7 +31,7 @@ public sealed class CreatePayeeHandlerTests
 
         var handler = new CreatePayeeHandler(repo.Object, uow.Object);
 
-        var cmd = new CreatePayeeCommand(Name: "  Netflix  ");
+        var cmd = new CreatePayeeRequest(Name: "  Netflix  ");
 
         var id = await handler.HandleAsync(cmd, CancellationToken.None);
 
@@ -56,7 +58,7 @@ public sealed class CreatePayeeHandlerTests
 
         var handler = new CreatePayeeHandler(repo.Object, uow.Object);
 
-        var cmd = new CreatePayeeCommand(Name: "Netflix");
+        var cmd = new CreatePayeeRequest(Name: "Netflix");
 
         var act = async () => await handler.HandleAsync(cmd, CancellationToken.None);
 
@@ -80,7 +82,7 @@ public sealed class CreatePayeeHandlerTests
 
         var handler = new CreatePayeeHandler(repo.Object, uow.Object);
 
-        var cmd = new CreatePayeeCommand(Name: "   ");
+        var cmd = new CreatePayeeRequest(Name: "   ");
 
         var act = async () => await handler.HandleAsync(cmd, CancellationToken.None);
 

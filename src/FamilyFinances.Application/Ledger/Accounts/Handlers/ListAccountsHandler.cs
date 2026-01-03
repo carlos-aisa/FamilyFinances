@@ -1,6 +1,7 @@
-using FamilyFinances.Application.Abstractions;
+using FamilyFinances.Application.Ledger.Accounts.Abstractions;
+using FamilyFinances.Application.Ledger.Accounts.Dtos;
 
-namespace FamilyFinances.Application.Ledger.Accounts.List;
+namespace FamilyFinances.Application.Ledger.Accounts.Handlers;
 
 public sealed class ListAccountsHandler
 {

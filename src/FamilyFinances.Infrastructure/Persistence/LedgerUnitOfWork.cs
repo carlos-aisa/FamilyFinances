@@ -1,4 +1,4 @@
-using FamilyFinances.Application.Abstractions;
+using FamilyFinances.Application.Ledger;
 
 namespace FamilyFinances.Infrastructure.Persistence;
 

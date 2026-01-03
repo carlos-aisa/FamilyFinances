@@ -1,7 +1,7 @@
 using Asp.Versioning;
-using FamilyFinances.Application.Ledger;
-using FamilyFinances.Application.Ledger.Transactions;
-using FamilyFinances.Application.Ledger.Transactions.Create;
+using FamilyFinances.Application.Ledger.Transactions.Dtos;
+using FamilyFinances.Application.Ledger.Transactions.Handlers;
+using FamilyFinances.Application.Ledger.Transactions.Requests;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,7 +16,7 @@ public sealed class TransactionsController : ControllerBase
     [Authorize(Policy = "CanWrite")]
     public async Task<ActionResult<TransactionDto>> Create(
         [FromServices] CreateTransactionHandler handler,
-        [FromBody] CreateTransactionCommand command,
+        [FromBody] CreateTransactionRequest command,
         CancellationToken ct)
         => Ok(await handler.HandleAsync(command, ct));
 

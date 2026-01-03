@@ -1,8 +1,9 @@
-using FamilyFinances.Application.Abstractions;
+using FamilyFinances.Application.Ledger.Payees.Abstractions;
+using FamilyFinances.Application.Ledger.Payees.Requests;
 using FamilyFinances.Domain.Common;
 using FamilyFinances.Domain.Ledger.Payees;
 
-namespace FamilyFinances.Application.Ledger.Payees.Create;
+namespace FamilyFinances.Application.Ledger.Payees.Handlers;
 
 public sealed class CreatePayeeHandler
 {
@@ -15,7 +16,7 @@ public sealed class CreatePayeeHandler
         _uow = uow;
     }
 
-    public async Task<PayeeId> HandleAsync(CreatePayeeCommand command, CancellationToken ct)
+    public async Task<PayeeId> HandleAsync(CreatePayeeRequest command, CancellationToken ct)
     {
         if (command is null)
             throw new ArgumentNullException(nameof(command));

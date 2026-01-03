@@ -1,6 +1,6 @@
 using FamilyFinances.Domain.Ledger.Transactions;
 
-namespace FamilyFinances.Application.Abstractions;
+namespace FamilyFinances.Application.Ledger.Transactions.Abstractions;
 
 public interface ITransactionRepository
 {

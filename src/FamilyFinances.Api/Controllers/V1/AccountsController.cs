@@ -1,7 +1,7 @@
 using Asp.Versioning;
-using FamilyFinances.Application.Ledger.Accounts;
-using FamilyFinances.Application.Ledger.Accounts.Create;
-using FamilyFinances.Application.Ledger.Accounts.List;
+using FamilyFinances.Application.Ledger.Accounts.Dtos;
+using FamilyFinances.Application.Ledger.Accounts.Handlers;
+using FamilyFinances.Application.Ledger.Accounts.Requests;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,7 +16,7 @@ public sealed class AccountsController : ControllerBase
     [Authorize(Policy = "CanWrite")]
     public async Task<ActionResult<AccountDto>> Create(
         [FromServices] CreateAccountHandler handler,
-        [FromBody] CreateAccountCommand command,
+        [FromBody] CreateAccountRequest command,
         CancellationToken ct)
         => Ok(await handler.HandleAsync(command, ct));
 

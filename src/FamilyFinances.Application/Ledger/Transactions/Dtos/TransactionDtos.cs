@@ -1,4 +1,4 @@
-namespace FamilyFinances.Application.Ledger.Transactions;
+namespace FamilyFinances.Application.Ledger.Transactions.Dtos;
 
 public sealed record TransactionSplitDto(Guid AccountId, long AmountCents, string? Memo);
 

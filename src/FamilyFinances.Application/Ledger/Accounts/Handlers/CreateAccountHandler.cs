@@ -1,7 +1,9 @@
-using FamilyFinances.Application.Abstractions;
+using FamilyFinances.Application.Ledger.Accounts.Abstractions;
+using FamilyFinances.Application.Ledger.Accounts.Dtos;
+using FamilyFinances.Application.Ledger.Accounts.Requests;
 using FamilyFinances.Domain.Ledger.Accounts;
 
-namespace FamilyFinances.Application.Ledger.Accounts.Create;
+namespace FamilyFinances.Application.Ledger.Accounts.Handlers;
 
 
 public sealed class CreateAccountHandler
@@ -15,7 +17,7 @@ public sealed class CreateAccountHandler
         _uow = uow;
     }
 
-    public async Task<AccountDto> HandleAsync(CreateAccountCommand cmd, CancellationToken ct)
+    public async Task<AccountDto> HandleAsync(CreateAccountRequest cmd, CancellationToken ct)
     {
         var account = Account.Create(cmd.Name, cmd.Nature, cmd.Kind, cmd.OpenedOn);
 

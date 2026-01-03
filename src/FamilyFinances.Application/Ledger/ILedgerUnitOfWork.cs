@@ -1,4 +1,4 @@
-namespace FamilyFinances.Application.Abstractions;
+namespace FamilyFinances.Application.Ledger;
 
 public interface ILedgerUnitOfWork
 {

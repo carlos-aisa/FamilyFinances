@@ -1,5 +1,6 @@
-using FamilyFinances.Application.Abstractions;
-using FamilyFinances.Application.Ledger.Payees.List;
+using FamilyFinances.Application.Ledger.Payees.Abstractions;
+using FamilyFinances.Application.Ledger.Payees.Handlers;
+using FamilyFinances.Application.Ledger.Payees.Requests;
 using FamilyFinances.Domain.Ledger.Payees;
 using FluentAssertions;
 using Moq;
@@ -21,7 +22,7 @@ public sealed class ListPayeesHandlerTests
 
         var handler = new ListPayeesHandler(repo.Object);
 
-        var result = await handler.HandleAsync(new ListPayeesQuery(), CancellationToken.None);
+        var result = await handler.HandleAsync(new ListPayeesRequest(), CancellationToken.None);
 
         result.Should().HaveCount(2);
         result[0].Id.Should().Be(p1.Id);

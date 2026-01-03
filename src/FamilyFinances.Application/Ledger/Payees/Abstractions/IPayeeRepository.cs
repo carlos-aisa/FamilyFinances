@@ -1,6 +1,6 @@
 using FamilyFinances.Domain.Ledger.Payees;
 
-namespace FamilyFinances.Application.Abstractions;
+namespace FamilyFinances.Application.Ledger.Payees.Abstractions;
 
 public interface IPayeeRepository
 {

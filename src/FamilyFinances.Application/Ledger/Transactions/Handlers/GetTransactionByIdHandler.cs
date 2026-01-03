@@ -1,8 +1,8 @@
-using FamilyFinances.Application.Abstractions;
-using FamilyFinances.Application.Ledger.Transactions;
+using FamilyFinances.Application.Ledger.Transactions.Abstractions;
+using FamilyFinances.Application.Ledger.Transactions.Dtos;
 using FamilyFinances.Domain.Ledger.Transactions;
 
-namespace FamilyFinances.Application.Ledger;
+namespace FamilyFinances.Application.Ledger.Transactions.Handlers;
 
 public sealed class GetTransactionByIdHandler
 {

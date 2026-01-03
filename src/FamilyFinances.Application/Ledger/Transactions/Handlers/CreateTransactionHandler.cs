@@ -1,6 +1,8 @@
-using FamilyFinances.Application.Abstractions;
-using FamilyFinances.Application.Ledger.Transactions;
-using FamilyFinances.Application.Ledger.Transactions.Create;
+using FamilyFinances.Application.Ledger;
+using FamilyFinances.Application.Ledger.Payees.Abstractions;
+using FamilyFinances.Application.Ledger.Transactions.Abstractions;
+using FamilyFinances.Application.Ledger.Transactions.Dtos;
+using FamilyFinances.Application.Ledger.Transactions.Requests;
 using FamilyFinances.Domain.Common;
 using FamilyFinances.Domain.Ledger.Accounts;
 using FamilyFinances.Domain.Ledger.Payees;
@@ -19,7 +21,7 @@ public sealed class CreateTransactionHandler
         _uow = uow;
     }
 
-    public async Task<TransactionDto> HandleAsync(CreateTransactionCommand cmd, CancellationToken ct)
+    public async Task<TransactionDto> HandleAsync(CreateTransactionRequest cmd, CancellationToken ct)
     {
         PayeeId? payeeId = null;
 

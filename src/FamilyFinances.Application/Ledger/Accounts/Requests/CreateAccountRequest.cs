@@ -1,8 +1,8 @@
 ﻿using FamilyFinances.Domain.Ledger.Accounts;
 
-namespace FamilyFinances.Application.Ledger.Accounts.Create;
+namespace FamilyFinances.Application.Ledger.Accounts.Requests;
 
-public sealed record CreateAccountCommand(
+public sealed record CreateAccountRequest(
     string Name,
     AccountNature Nature,
     AccountKind Kind,

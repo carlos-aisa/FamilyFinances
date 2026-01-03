@@ -1,6 +1,6 @@
 using FamilyFinances.Domain.Ledger.Accounts;
 
-namespace FamilyFinances.Application.Abstractions;
+namespace FamilyFinances.Application.Ledger.Accounts.Abstractions;
 
 public interface IAccountRepository
 {
