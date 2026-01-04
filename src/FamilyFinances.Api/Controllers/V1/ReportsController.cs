@@ -1,3 +1,4 @@
+using FamilyFinances.Application.Reporting.Dtos;
 using FamilyFinances.Application.Reporting.Handlers;
 using FamilyFinances.Application.Reporting.Queries;
 using FamilyFinances.Domain.Ledger.Accounts;
@@ -57,6 +58,23 @@ public sealed class ReportsController : ControllerBase
     {
         var dto = await handler.HandleAsync(
             new GetAccountTotalsQuery(from, to, includeZeroAccounts),
+            ct);
+
+        return Ok(dto);
+    }
+
+    [Authorize(Policy = Policies.CanRead)]
+    [HttpGet("account-groups/{groupId:guid}/totals")]
+    public async Task<ActionResult<AccountGroupTotalsDto>> GetAccountGroupTotals(
+        [FromRoute] Guid groupId,
+        [FromQuery] DateOnly from,
+        [FromQuery] DateOnly to,
+        [FromQuery] AccountNature? nature,
+        [FromServices] GetAccountGroupTotalsHandler handler,
+        CancellationToken ct)
+    {
+        var dto = await handler.HandleAsync(
+            new GetAccountGroupTotalsQuery(groupId, from, to, nature),
             ct);
 
         return Ok(dto);

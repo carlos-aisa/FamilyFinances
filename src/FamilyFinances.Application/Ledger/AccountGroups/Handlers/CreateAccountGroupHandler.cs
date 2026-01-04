@@ -1,4 +1,5 @@
-﻿using FamilyFinances.Application.Ledger.AccountGroups.Abstractions;
+﻿using FamilyFinances.Application.Ledger;
+using FamilyFinances.Application.Ledger.AccountGroups.Abstractions;
 using FamilyFinances.Application.Ledger.AccountGroups.Dtos;
 using FamilyFinances.Application.Ledger.AccountGroups.Requests;
 using FamilyFinances.Domain.Ledger.AccountGroups;
@@ -8,10 +9,12 @@ namespace FamilyFinances.Application.Ledger.AccountGroups.Handlers
     public sealed class CreateAccountGroupHandler
     {
         private readonly IAccountGroupRepository _groups;
+        private readonly ILedgerUnitOfWork _uow;
 
-        public CreateAccountGroupHandler(IAccountGroupRepository groups)
+        public CreateAccountGroupHandler(IAccountGroupRepository groups, ILedgerUnitOfWork uow)
         {
             _groups = groups;
+            _uow = uow;
         }
 
         public async Task<AccountGroupDto> HandleAsync(
@@ -29,6 +32,7 @@ namespace FamilyFinances.Application.Ledger.AccountGroups.Handlers
                 request.Description?.Trim());
 
             await _groups.AddAsync(group, ct);
+            await _uow.SaveChangesAsync(ct);
 
             return new AccountGroupDto(
                 group.Id.Value,

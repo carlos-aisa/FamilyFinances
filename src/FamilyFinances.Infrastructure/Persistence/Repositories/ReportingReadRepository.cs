@@ -185,7 +185,7 @@ public sealed class ReportingReadRepository : IReportingReadRepository
     {
         var groupIdVo = new AccountGroupId(groupId);
 
-        // 1) Load group (name/description) - read-only
+        // 1) Load group
         var group = await _db.AccountGroups
             .AsNoTracking()
             .FirstOrDefaultAsync(g => g.Id == groupIdVo, ct);
@@ -203,15 +203,15 @@ public sealed class ReportingReadRepository : IReportingReadRepository
         if (accountIds.Count == 0)
         {
             return new AccountGroupTotalsDto(
-                GroupId: groupId,
-                GroupName: group.Name,
-                FromInclusive: fromInclusive,
-                ToExclusive: toExclusive,
-                Nature: nature,
-                TotalCents: 0,
-                TransactionsCount: 0,
-                AccountsCount: 0,
-                Items: Array.Empty<AccountGroupTotalItemDto>()
+                groupId,
+                group.Name,
+                fromInclusive,
+                toExclusive,
+                nature,
+                0,
+                0,
+                0,
+                Array.Empty<AccountGroupTotalItemDto>()
             );
         }
 
@@ -232,19 +232,19 @@ public sealed class ReportingReadRepository : IReportingReadRepository
                 AmountCents = s.Amount.Cents
             };
 
-        // Filter by group membership (VO-friendly)
+        // Filter by group membership
         q = q.Where(x => accountIds.Contains(x.AccountId));
 
-        // Materialize to avoid translation issues (VOs + grouping + abs + distinct)
+        // Materialize to avoid translation issues 
         var data = await q.ToListAsync(ct);
 
         var items = data
             .GroupBy(x => new { x.AccountId, x.AccountName })
             .Select(g => new AccountGroupTotalItemDto(
-                AccountId: g.Key.AccountId.Value,
-                AccountName: g.Key.AccountName,
-                TotalCents: g.Sum(x => Math.Abs(x.AmountCents)),
-                TransactionsCount: g.Select(x => x.TransactionId).Distinct().Count()
+                g.Key.AccountId.Value,
+                g.Key.AccountName,
+                g.Sum(x => Math.Abs(x.AmountCents)),
+                g.Select(x => x.TransactionId).Distinct().Count()
             ))
             .OrderByDescending(x => x.TotalCents)
             .ThenBy(x => x.AccountName)
@@ -253,20 +253,18 @@ public sealed class ReportingReadRepository : IReportingReadRepository
         var total = items.Sum(i => i.TotalCents);
         var txCount = data.Select(x => x.TransactionId).Distinct().Count();
 
-        // AccountsCount: number of member accounts that match the nature filter AND appear in results.
-        // If you prefer "all members regardless of activity", use accountIds.Count instead.
         var accountsCount = items.Count;
 
         return new AccountGroupTotalsDto(
-            GroupId: groupId,
-            GroupName: group.Name,
-            FromInclusive: fromInclusive,
-            ToExclusive: toExclusive,
-            Nature: nature,
-            TotalCents: total,
-            TransactionsCount: txCount,
-            AccountsCount: accountsCount,
-            Items: items
+            groupId,
+            group.Name,
+            fromInclusive,
+            toExclusive,
+            nature,
+            total,
+            txCount,
+            accountsCount,
+            items
         );
     }
 }
