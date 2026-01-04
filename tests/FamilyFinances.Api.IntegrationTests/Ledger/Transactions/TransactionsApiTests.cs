@@ -1,57 +1,20 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using FamilyFinances.Application.Ledger;
 using FluentAssertions;
+using FamilyFinances.Api.IntegrationTests.Helpers;
 
-namespace FamilyFinances.Api.IntegrationTests;
+namespace FamilyFinances.Api.IntegrationTests.Ledger.Transactions;
 
-public sealed class LedgerApiTests
+public sealed class TransactionsApiTests
 {
-    [Fact]
-    public async Task Ping_RequiresAuth()
-    {
-        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
-        using var client = TestClient.CreateClient(factory);
-
-        var res = await client.GetAsync("/api/v1/ping");
-        res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);    }
-
-    [Fact]
-    public async Task Can_Create_And_List_Accounts_WhenAuthorized()
-    {
-        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
-        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
-
-        var createRes = await client.PostAsJsonAsync("/api/v1/accounts", new
-        {
-            name = "Main Bank",
-            nature = 1, // Asset
-            kind = 1,   // Checking
-            openedOn = "2026-01-02"
-        });
-
-        createRes.StatusCode.Should().Be(HttpStatusCode.OK);
-        var created = await createRes.Content.ReadFromJsonAsync<AccountDto>();
-        created.Should().NotBeNull();
-        created!.Id.Should().NotBeEmpty();
-
-        var listRes = await client.GetAsync("/api/v1/accounts");
-        listRes.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var list = await listRes.Content.ReadFromJsonAsync<List<AccountDto>>();
-        list.Should().NotBeNull();
-        list!.Any(a => a.Id == created.Id).Should().BeTrue();
-    }
-
     [Fact]
     public async Task Creating_Unbalanced_Transaction_Returns_400()
     {
         using var factory = TestClient.CreateFactoryWithFreshDb(out _);
         using var client = await TestClient.CreateAuthorizedClientAsync(factory);
 
-        var bank = await CreateAccountAsync(client, "Main Bank", "Asset", "Checking");
-        var groceries = await CreateAccountAsync(client, "Groceries", "Expense", "Other");
+        var bank = await TestHelpers.CreateAccountAsync(client, "Main Bank", "Asset", "Checking");
+        var groceries = await TestHelpers.CreateAccountAsync(client, "Groceries", "Expense", "Other");
 
         var txRes = await client.PostAsJsonAsync("/api/v1/transactions", new
         {
@@ -77,8 +40,8 @@ public sealed class LedgerApiTests
         using var factory = TestClient.CreateFactoryWithFreshDb(out _);
         using var client = await TestClient.CreateAuthorizedClientAsync(factory);
 
-        var bank = await CreateAccountAsync(client, "Main Bank", "Asset", "Checking");
-        var groceries = await CreateAccountAsync(client, "Groceries", "Expense", "Other");
+        var bank = await TestHelpers.CreateAccountAsync(client, "Main Bank", "Asset", "Checking");
+        var groceries = await TestHelpers.CreateAccountAsync(client, "Groceries", "Expense", "Other");
 
         // Create balanced transaction
         var createTxRes = await client.PostAsJsonAsync("/api/v1/transactions", new
@@ -115,46 +78,21 @@ public sealed class LedgerApiTests
         fetched.Splits.Should().Contain(s => s.AccountId == groceries.Id && s.AmountCents == 5000);
     }
 
-    public static async Task<AccountDto> CreateAccountAsync(HttpClient client, string name, string nature, string kind)
+    [Fact]
+    public async Task Create_Transaction_RequiresAuth()
     {
-        // Convert enum names to numeric values for JSON
-        var natureValue = nature switch
-        {
-            "Asset" => 1,
-            "Liability" => 2,
-            "Income" => 3,
-            "Expense" => 4,
-            "Equity" => 5,
-            _ => throw new ArgumentException($"Unknown nature: {nature}")
-        };
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = factory.CreateClient();
 
-        var kindValue = kind switch
+        var res = await client.PostAsJsonAsync("/api/v1/transactions", new
         {
-            "Checking" => 1,
-            "Savings" => 2,
-            "CreditCard" => 3,
-            "Cash" => 4,
-            "Investment" => 5,
-            "Loan" => 6,
-            "Other" => 7,
-            _ => throw new ArgumentException($"Unknown kind: {kind}")
-        };
-
-        var res = await client.PostAsJsonAsync("/api/v1/accounts", new
-        {
-            name,
-            nature = natureValue,
-            kind = kindValue,
-            openedOn = "2026-01-02"
+            bookedOn = "2026-01-02",
+            description = "Test",
+            splits = Array.Empty<object>()
         });
 
-        res.EnsureSuccessStatusCode();
-        var dto = await res.Content.ReadFromJsonAsync<AccountDto>();
-        dto.Should().NotBeNull();
-        return dto!;
+        res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
-
-    public sealed record AccountDto(Guid Id, string Name);
 
     public sealed record TransactionDto(
         Guid Id,

@@ -1,8 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
+using FamilyFinances.Api.IntegrationTests.Helpers;
 
-namespace FamilyFinances.Api.IntegrationTests;
+namespace FamilyFinances.Api.IntegrationTests.Ledger.Transactions;
 
 public sealed class TransactionsPayeesApiTests
 {
@@ -19,8 +20,8 @@ public sealed class TransactionsPayeesApiTests
         payee!.Id.Should().NotBeEmpty();
 
         // Create accounts (adjust this to your helpers / endpoints if needed)
-        var a1 = await LedgerApiTests.CreateAccountAsync(client, "Checking", "Asset", "Checking");
-        var a2 = await LedgerApiTests.CreateAccountAsync(client, "Groceries", "Expense", "Other");
+        var a1 = await TestHelpers.CreateAccountAsync(client, "Checking", "Asset", "Checking");
+        var a2 = await TestHelpers.CreateAccountAsync(client, "Groceries", "Expense", "Other");
 
         // Create transaction with payee
         var txRes = await client.PostAsJsonAsync("/api/v1/transactions", new
@@ -47,8 +48,8 @@ public sealed class TransactionsPayeesApiTests
         using var factory = TestClient.CreateFactoryWithFreshDb(out _);
         using var client = await TestClient.CreateAuthorizedClientAsync(factory);
 
-        var a1 = await LedgerApiTests.CreateAccountAsync(client, "Checking", "Asset", "Checking");
-        var a2 = await LedgerApiTests.CreateAccountAsync(client, "Groceries", "Expense", "Other");
+        var a1 = await TestHelpers.CreateAccountAsync(client, "Checking", "Asset", "Checking");
+        var a2 = await TestHelpers.CreateAccountAsync(client, "Groceries", "Expense", "Other");
 
         var missingPayeeId = Guid.NewGuid();
 

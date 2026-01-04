@@ -2,6 +2,7 @@
 using FamilyFinances.Application.Ledger.AccountGroups.Abstractions;
 using FamilyFinances.Application.Ledger.AccountGroups.Dtos;
 using FamilyFinances.Application.Ledger.AccountGroups.Requests;
+using FamilyFinances.Domain.Common;
 using FamilyFinances.Domain.Ledger.AccountGroups;
 
 namespace FamilyFinances.Application.Ledger.AccountGroups.Handlers
@@ -25,7 +26,7 @@ namespace FamilyFinances.Application.Ledger.AccountGroups.Handlers
 
             var existing = await _groups.GetByNormalizedNameAsync(normalized, ct);
             if (existing is not null)
-                throw new InvalidOperationException("An account group with the same name already exists.");
+                throw new DomainException("An account group with the same name already exists.");
 
             var group = AccountGroup.Create(
                 request.Name.Trim(),

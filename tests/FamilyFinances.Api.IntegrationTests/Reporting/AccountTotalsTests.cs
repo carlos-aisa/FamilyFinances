@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 using FamilyFinances.Domain.Ledger.Accounts;
+using FamilyFinances.Api.IntegrationTests.Helpers;
 
 namespace FamilyFinances.Api.IntegrationTests.Reporting;
 
@@ -13,9 +14,9 @@ public sealed class AccountTotalsTests
         using var factory = TestClient.CreateFactoryWithFreshDb(out _);
         using var client = await TestClient.CreateAuthorizedClientAsync(factory);
 
-        var bank = await LedgerApiTests.CreateAccountAsync(client, "Main Bank", "Asset", "Checking");
-        var salary = await LedgerApiTests.CreateAccountAsync(client, "Salary", "Income", "Other");
-        var groceries = await LedgerApiTests.CreateAccountAsync(client, "Groceries", "Expense", "Other");
+        var bank = await TestHelpers.CreateAccountAsync(client, "Main Bank", "Asset", "Checking");
+        var income = await TestHelpers.CreateAccountAsync(client, "Salary", "Income", "Other");
+        var groceries = await TestHelpers.CreateAccountAsync(client, "Groceries", "Expense", "Other");
 
         // Jan income
         (await client.PostAsJsonAsync("/api/v1/transactions", new
@@ -25,7 +26,7 @@ public sealed class AccountTotalsTests
             splits = new[]
             {
                 new { accountId = bank.Id, amountCents = -100_000, memo = "Salary in" },
-                new { accountId = salary.Id, amountCents = 100_000, memo = "Salary" }
+                new { accountId = income.Id, amountCents = 100_000, memo = "Salary" }
             }
         })).EnsureSuccessStatusCode();
 
@@ -63,17 +64,18 @@ public sealed class AccountTotalsTests
         var dto = await res.Content.ReadFromJsonAsync<AccountTotalsDto>();
         dto.Should().NotBeNull();
         dto!.Items.Should().NotBeNull();
+        dto.Items.Should().HaveCount(3);
 
         var bankItem = dto.Items.Single(i => i.AccountId == bank.Id);
-        var salaryItem = dto.Items.Single(i => i.AccountId == salary.Id);
+        var incomeItem = dto.Items.Single(i => i.AccountId == income.Id);
         var groceriesItem = dto.Items.Single(i => i.AccountId == groceries.Id);
 
         bankItem.NetChange.Should().Be(-80_000);      // -100000 + 20000
-        salaryItem.NetChange.Should().Be(100_000);
+        incomeItem.NetChange.Should().Be(100_000);
         groceriesItem.NetChange.Should().Be(-20_000);
 
-        bankItem.TransactionsCount.Should().Be(2);
-        salaryItem.TransactionsCount.Should().Be(1);
+        incomeItem.TransactionsCount.Should().Be(1);
+        incomeItem.TransactionsCount.Should().Be(1);
         groceriesItem.TransactionsCount.Should().Be(1);
     }
 

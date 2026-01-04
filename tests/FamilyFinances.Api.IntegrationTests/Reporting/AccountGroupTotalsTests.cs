@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 using FamilyFinances.Domain.Ledger.Accounts;
+using FamilyFinances.Api.IntegrationTests.Helpers;
 
 namespace FamilyFinances.Api.IntegrationTests.Reporting;
 
@@ -14,10 +15,10 @@ public sealed class AccountGroupTotalsTests
         using var client = await TestClient.CreateAuthorizedClientAsync(factory);
 
         // Accounts
-        var bank = await LedgerApiTests.CreateAccountAsync(client, "Main Bank", "Asset", "Checking");
-        var groceries = await LedgerApiTests.CreateAccountAsync(client, "Groceries", "Expense", "Other");
-        var fixedBills = await LedgerApiTests.CreateAccountAsync(client, "Fixed Bills", "Expense", "Other");
-        var salary = await LedgerApiTests.CreateAccountAsync(client, "Salary", "Income", "Other");
+        var bank = await TestHelpers.CreateAccountAsync(client, "Main Bank", "Asset", "Checking");
+        var groceries = await TestHelpers.CreateAccountAsync(client, "Groceries", "Expense", "Other");
+        var fixedBills = await TestHelpers.CreateAccountAsync(client, "Fixed Bills", "Expense", "Other");
+        var salary = await TestHelpers.CreateAccountAsync(client, "Salary", "Income", "Other");
 
         // Create group
         var createGroupRes = await client.PostAsJsonAsync("/api/v1/account-groups", new
