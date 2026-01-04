@@ -15,26 +15,27 @@ builder.Services.AddAuthorizationCore();
 builder.Services.Configure<ApiClientOptions>(builder.Configuration.GetSection("Api"));
 
 builder.Services.AddScoped<IApiTokenStore, ApiTokenStore>();
-builder.Services.AddScoped<AuthenticationStateProvider, JwtAuthStateProvider>();
 
 builder.Services.AddScoped<AuthApi>();
 builder.Services.AddScoped<AccountsApi>();
-builder.Services.AddScoped<AuthHeaderHandler>();
+builder.Services.AddScoped<JwtAuthStateProvider>();
+
+// Also register it as the framework abstraction.
+builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
+    sp.GetRequiredService<JwtAuthStateProvider>());
 
 builder.Services.AddHttpClient("FamilyFinancesApi", (sp, client) =>
 {
     var options = sp.GetRequiredService<IOptions<ApiClientOptions>>().Value;
     client.BaseAddress = new Uri(options.BaseUrl);
-    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+    client.DefaultRequestHeaders.Accept.Add(
+        new MediaTypeWithQualityHeaderValue("application/json"));
 })
-.AddHttpMessageHandler<AuthHeaderHandler>();
-
-builder.Services.AddScoped(sp =>
+.AddHttpMessageHandler(sp =>
 {
-    var factory = sp.GetRequiredService<IHttpClientFactory>();
-    return factory.CreateClient("FamilyFinancesApi");
+    var tokenStore = sp.GetRequiredService<IApiTokenStore>();
+    return new AuthHeaderHandler(tokenStore);
 });
-
 
 var app = builder.Build();
 

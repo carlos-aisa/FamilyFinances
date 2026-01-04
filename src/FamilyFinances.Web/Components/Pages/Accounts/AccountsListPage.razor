@@ -1,0 +1,65 @@
+@page "/accounts"
+@using FamilyFinances.Web.Api
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject AccountsApi AccountsApi
+@inject FamilyFinances.Web.Auth.IApiTokenStore TokenStore
+@inject NavigationManager Nav
+
+<h3>Accounts</h3>
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <p style="color:red">@_error</p>
+}
+
+@if (_accounts is null)
+{
+    <p>Loading...</p>
+}
+else if (_accounts.Count == 0)
+{
+    <p>No accounts yet.</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Nature</th>
+                <th>Kind</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var a in _accounts)
+        {
+            <tr>
+                <td>@a.Name</td>
+                <td>@a.Nature</td>
+                <td>@a.Kind</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@code {
+    private IReadOnlyList<FamilyFinances.Application.Ledger.Accounts.Dtos.AccountDto>? _accounts;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(TokenStore.GetAccessToken()))
+                Nav.NavigateTo("/login", forceLoad: true);
+            _accounts = await AccountsApi.ListAsync(CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+}

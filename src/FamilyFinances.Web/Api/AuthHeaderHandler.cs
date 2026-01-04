@@ -13,6 +13,7 @@ namespace FamilyFinances.Web.Api
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var token = _tokenStore.GetAccessToken();
+            Console.WriteLine($"[AuthHeaderHandler] token present: {!string.IsNullOrWhiteSpace(token)}");
             if (!string.IsNullOrWhiteSpace(token))
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 

@@ -1,0 +1,70 @@
+@page "/login"
+@using FamilyFinances.Web.Api
+@using FamilyFinances.Web.Auth
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthApi AuthApi
+@inject JwtAuthStateProvider JwtAuthStateProvider
+@inject NavigationManager Nav
+
+<h3>Login</h3>
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <p style="color:red">@_error</p>
+}
+
+<div>
+    <label>Email</label><br />
+    <input @bind="_email" />
+</div>
+
+<div style="margin-top:8px">
+    <label>Password</label><br />
+    <input type="password" @bind="_password" />
+</div>
+
+<div style="margin-top:12px">
+    <button @onclick="OnLoginAsync" disabled="@_isBusy">Login</button>
+</div>
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <div style="border:1px solid red; padding:8px; margin:8px 0;">
+        <strong>Error:</strong> @_error
+    </div>
+}
+
+@code {
+
+#if DEBUG
+    private string _email = "admin@familyfinances.local";
+    private string _password = "Admin123!";
+#else
+    private string _email = "";
+    private string _password = "";
+#endif
+    private bool _isBusy;
+    private string? _error;
+
+    private async Task OnLoginAsync()
+    {
+        _error = null;
+        _isBusy = true;
+
+        try
+        {
+            var token = await AuthApi.LoginAsync(_email, _password, CancellationToken.None);
+
+            JwtAuthStateProvider.MarkUserAsAuthenticated(token);
+            Console.WriteLine($"[Login] token length: {token.Length}");
+            Nav.NavigateTo("/accounts");
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+}
