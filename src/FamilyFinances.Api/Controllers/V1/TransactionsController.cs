@@ -1,9 +1,10 @@
 using Asp.Versioning;
-using FamilyFinances.Application.Ledger;
-using FamilyFinances.Application.Ledger.Transactions;
-using FamilyFinances.Application.Ledger.Transactions.Create;
+using FamilyFinances.Application.Ledger.Transactions.Dtos;
+using FamilyFinances.Application.Ledger.Transactions.Handlers;
+using FamilyFinances.Application.Ledger.Transactions.Requests;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using static FamilyFinances.Infrastructure.Identity.AuthConstants;
 
 namespace FamilyFinances.Api.Controllers.V1;
 
@@ -13,15 +14,15 @@ namespace FamilyFinances.Api.Controllers.V1;
 public sealed class TransactionsController : ControllerBase
 {
     [HttpPost]
-    [Authorize(Policy = "CanWrite")]
+    [Authorize(Policy = Policies.CanWrite)]
     public async Task<ActionResult<TransactionDto>> Create(
         [FromServices] CreateTransactionHandler handler,
-        [FromBody] CreateTransactionCommand command,
+        [FromBody] CreateTransactionRequest command,
         CancellationToken ct)
         => Ok(await handler.HandleAsync(command, ct));
 
     [HttpGet("{id:guid}")]
-    [Authorize(Policy = "CanRead")]
+    [Authorize(Policy = Policies.CanRead)]
     public async Task<ActionResult<TransactionDto>> GetById(
         [FromServices] GetTransactionByIdHandler handler,
         Guid id,

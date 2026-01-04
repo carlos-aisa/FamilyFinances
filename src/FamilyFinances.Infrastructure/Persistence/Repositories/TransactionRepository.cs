@@ -1,5 +1,5 @@
-using FamilyFinances.Application.Abstractions;
 using FamilyFinances.Application.Ledger;
+using FamilyFinances.Application.Ledger.Transactions.Abstractions;
 using FamilyFinances.Domain.Ledger.Transactions;
 using Microsoft.EntityFrameworkCore;
 

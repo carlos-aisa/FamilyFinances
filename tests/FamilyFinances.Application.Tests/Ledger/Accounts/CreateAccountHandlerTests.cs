@@ -1,5 +1,7 @@
-using FamilyFinances.Application.Abstractions;
-using FamilyFinances.Application.Ledger.Accounts.Create;
+using FamilyFinances.Application.Ledger;
+using FamilyFinances.Application.Ledger.Accounts.Abstractions;
+using FamilyFinances.Application.Ledger.Accounts.Handlers;
+using FamilyFinances.Application.Ledger.Accounts.Requests;
 using FamilyFinances.Domain.Common;
 using FamilyFinances.Domain.Ledger.Accounts;
 using FluentAssertions;
@@ -23,7 +25,7 @@ public sealed class CreateAccountHandlerTests
 
         var handler = new CreateAccountHandler(repo.Object, uow.Object);
 
-        var cmd = new CreateAccountCommand(
+        var cmd = new CreateAccountRequest(
             Name: "Main Bank",
             Nature: AccountNature.Asset,
             Kind: AccountKind.Checking,
@@ -58,7 +60,7 @@ public sealed class CreateAccountHandlerTests
 
         var handler = new CreateAccountHandler(repo.Object, uow.Object);
 
-        var cmd = new CreateAccountCommand(
+        var cmd = new CreateAccountRequest(
             Name: "   ",
             Nature: AccountNature.Asset,
             Kind: AccountKind.Checking,

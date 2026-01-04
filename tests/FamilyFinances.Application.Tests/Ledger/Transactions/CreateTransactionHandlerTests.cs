@@ -1,5 +1,7 @@
-using FamilyFinances.Application.Abstractions;
-using FamilyFinances.Application.Ledger.Transactions.Create;
+using FamilyFinances.Application.Ledger;
+using FamilyFinances.Application.Ledger.Payees.Abstractions;
+using FamilyFinances.Application.Ledger.Transactions.Abstractions;
+using FamilyFinances.Application.Ledger.Transactions.Requests;
 using FamilyFinances.Domain.Common;
 using FamilyFinances.Domain.Ledger.Transactions;
 using FluentAssertions;
@@ -27,7 +29,7 @@ public sealed class CreateTransactionHandlerTests
         var bankId = Guid.NewGuid();
         var expenseId = Guid.NewGuid();
 
-        var cmd = new CreateTransactionCommand(
+        var cmd = new CreateTransactionRequest(
             BookedOn: new DateOnly(2026, 1, 2),
             Description: "Groceries",
             Splits: new List<TransactionSplitInput>
@@ -68,7 +70,7 @@ public sealed class CreateTransactionHandlerTests
         var a = Guid.NewGuid();
         var b = Guid.NewGuid();
 
-        var cmd = new CreateTransactionCommand(
+        var cmd = new CreateTransactionRequest(
             BookedOn: new DateOnly(2026, 1, 2),
             Description: "Bad Tx",
             Splits: new List<TransactionSplitInput>

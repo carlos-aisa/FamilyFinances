@@ -24,4 +24,11 @@ public interface IReportingReadRepository
         DateOnly toExclusive,
         bool includeZeroAccounts,
         CancellationToken ct);
+
+    Task<AccountGroupTotalsDto> GetAccountGroupTotalsAsync(
+        Guid groupId,
+        DateOnly fromInclusive,
+        DateOnly toExclusive,
+        AccountNature nature,
+        CancellationToken ct);
 }

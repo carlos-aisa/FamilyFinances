@@ -1,9 +1,10 @@
 using Asp.Versioning;
-using FamilyFinances.Application.Ledger.Accounts;
-using FamilyFinances.Application.Ledger.Accounts.Create;
-using FamilyFinances.Application.Ledger.Accounts.List;
+using FamilyFinances.Application.Ledger.Accounts.Dtos;
+using FamilyFinances.Application.Ledger.Accounts.Handlers;
+using FamilyFinances.Application.Ledger.Accounts.Requests;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using static FamilyFinances.Infrastructure.Identity.AuthConstants;
 
 namespace FamilyFinances.Api.Controllers.V1;
 
@@ -13,15 +14,15 @@ namespace FamilyFinances.Api.Controllers.V1;
 public sealed class AccountsController : ControllerBase
 {
     [HttpPost]
-    [Authorize(Policy = "CanWrite")]
+    [Authorize(Policy = Policies.CanWrite)]
     public async Task<ActionResult<AccountDto>> Create(
         [FromServices] CreateAccountHandler handler,
-        [FromBody] CreateAccountCommand command,
+        [FromBody] CreateAccountRequest command,
         CancellationToken ct)
         => Ok(await handler.HandleAsync(command, ct));
 
     [HttpGet]
-    [Authorize(Policy = "CanRead")]
+    [Authorize(Policy = Policies.CanRead)]
     public async Task<ActionResult<IReadOnlyList<AccountDto>>> List(
         [FromServices] ListAccountsHandler handler,
         CancellationToken ct)

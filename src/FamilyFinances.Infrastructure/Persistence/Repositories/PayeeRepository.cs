@@ -1,4 +1,4 @@
-using FamilyFinances.Application.Abstractions;
+using FamilyFinances.Application.Ledger.Payees.Abstractions;
 using FamilyFinances.Domain.Ledger.Payees;
 using Microsoft.EntityFrameworkCore;
 

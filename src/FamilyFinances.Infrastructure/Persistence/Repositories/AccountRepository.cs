@@ -1,4 +1,4 @@
-using FamilyFinances.Application.Abstractions;
+using FamilyFinances.Application.Ledger.Accounts.Abstractions;
 using FamilyFinances.Domain.Ledger.Accounts;
 using Microsoft.EntityFrameworkCore;
 

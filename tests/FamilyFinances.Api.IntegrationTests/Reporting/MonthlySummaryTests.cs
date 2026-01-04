@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
+using FamilyFinances.Api.IntegrationTests.Helpers;
 
 namespace FamilyFinances.Api.IntegrationTests.Reporting;
 
@@ -13,9 +14,9 @@ public sealed class MonthlySummaryTests
         using var client = await TestClient.CreateAuthorizedClientAsync(factory);
 
         // Arrange
-        var bank = await LedgerApiTests.CreateAccountAsync(client, "Main Bank", "Asset", "Checking");
-        var salary = await LedgerApiTests.CreateAccountAsync(client, "Salary", "Income", "Other");
-        var groceries = await LedgerApiTests.CreateAccountAsync(client, "Groceries", "Expense", "Other");
+        var bank = await TestHelpers.CreateAccountAsync(client, "Main Bank", "Asset", "Checking");
+        var income = await TestHelpers.CreateAccountAsync(client, "Salary", "Income", "Other");
+        var groceries = await TestHelpers.CreateAccountAsync(client, "Groceries", "Expense", "Other");
 
         // January 2026 income
         await client.PostAsJsonAsync("/api/v1/transactions", new
@@ -25,7 +26,7 @@ public sealed class MonthlySummaryTests
             splits = new[]
             {
                 new { accountId = bank.Id, amountCents = -100_000, memo = "Salary in" },
-                new { accountId = salary.Id, amountCents = 100_000, memo = "Salary" }
+                new { accountId = income.Id, amountCents = 100_000, memo = "Salary" }
             }
         });
 

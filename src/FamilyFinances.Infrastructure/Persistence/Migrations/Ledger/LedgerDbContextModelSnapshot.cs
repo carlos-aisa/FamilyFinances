@@ -17,6 +17,48 @@ namespace FamilyFinances.Infrastructure.Persistence.Migrations.Ledger
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.11");
 
+            modelBuilder.Entity("FamilyFinances.Domain.Ledger.AccountGroups.AccountGroup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique();
+
+                    b.ToTable("AccountGroups", (string)null);
+                });
+
+            modelBuilder.Entity("FamilyFinances.Domain.Ledger.AccountGroups.AccountGroupMember", b =>
+                {
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("GroupId", "AccountId");
+
+                    b.HasIndex("AccountId");
+
+                    b.ToTable("AccountGroupMembers", (string)null);
+                });
+
             modelBuilder.Entity("FamilyFinances.Domain.Ledger.Accounts.Account", b =>
                 {
                     b.Property<Guid>("Id")
@@ -153,6 +195,21 @@ namespace FamilyFinances.Infrastructure.Persistence.Migrations.Ledger
                     b.HasIndex("TransactionId");
 
                     b.ToTable("TransactionSplits", (string)null);
+                });
+
+            modelBuilder.Entity("FamilyFinances.Domain.Ledger.AccountGroups.AccountGroupMember", b =>
+                {
+                    b.HasOne("FamilyFinances.Domain.Ledger.Accounts.Account", null)
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FamilyFinances.Domain.Ledger.AccountGroups.AccountGroup", null)
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("FamilyFinances.Domain.Ledger.Transactions.Transaction", b =>
