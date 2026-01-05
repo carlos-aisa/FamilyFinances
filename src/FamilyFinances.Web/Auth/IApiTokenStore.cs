@@ -5,5 +5,5 @@ public interface IApiTokenStore
     string? GetAccessToken();
     void SetAccessToken(string accessToken);
     void Clear();
-    Task TryLoadFromSessionAsync();
+    Task<string?> WaitForTokenAsync(TimeSpan timeout, CancellationToken ct);
 }

@@ -3,12 +3,15 @@
 public sealed class ApiTokenStore : IApiTokenStore
 {
     private string? _token;
+    private readonly TaskCompletionSource<string?> _tokenReady =
+       new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public string? GetAccessToken() => _token;
 
     public void SetAccessToken(string accessToken)
     {
         _token = accessToken;
+        _tokenReady.TrySetResult(_token);
     }
 
     public void Clear()
@@ -16,9 +19,15 @@ public sealed class ApiTokenStore : IApiTokenStore
         _token = null;
     }
 
-    public Task TryLoadFromSessionAsync()
+    public async Task<string?> WaitForTokenAsync(TimeSpan timeout, CancellationToken ct)
     {
-        // No-op: tokens are loaded via SessionBootstrapper from /auth/session endpoint
-        return Task.CompletedTask;
+        if (!string.IsNullOrWhiteSpace(_token))
+            return _token;
+
+        var completed = await Task.WhenAny(_tokenReady.Task, Task.Delay(timeout, ct));
+        if (completed != _tokenReady.Task)
+            return null;
+
+        return await _tokenReady.Task;
     }
 }
