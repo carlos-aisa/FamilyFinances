@@ -11,16 +11,17 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+builder.Services.Configure<ApiClientOptions>(builder.Configuration.GetSection("Api"));
+
 builder.Services.AddAuthorizationCore();
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddScoped<IApiTokenStore, ApiTokenStore>();
 
-builder.Services.Configure<ApiClientOptions>(builder.Configuration.GetSection("Api"));
-
 builder.Services.AddScoped<AccountsApi>();
-builder.Services.AddScoped<JwtAuthStateProvider>();
+builder.Services.AddScoped<PayeesApi>();
 
+builder.Services.AddScoped<JwtAuthStateProvider>();
 // Also register it as the framework abstraction.
 builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
     sp.GetRequiredService<JwtAuthStateProvider>());

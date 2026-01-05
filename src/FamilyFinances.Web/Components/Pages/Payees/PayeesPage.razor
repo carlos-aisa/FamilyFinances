@@ -1,0 +1,96 @@
+@page "/payees"
+@inherits ApiPageBase
+@using System.ComponentModel.DataAnnotations
+@using FamilyFinances.Application.Ledger.Payees.Dtos
+@using FamilyFinances.Application.Ledger.Payees.Requests
+@using FamilyFinances.Web.Api
+@using FamilyFinances.Web.Components.Base
+@inject PayeesApi PayeesApi
+
+<h3>Payees</h3>
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <div class="alert alert-danger" role="alert">@_error</div>
+}
+
+<EditForm Model="_createModel" OnValidSubmit="CreateAsync">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label class="form-label">Name</label>
+        <InputText class="form-control" @bind-Value="_createModel.Name" />
+    </div>
+
+    <button class="btn btn-primary" disabled="@_isBusy">Create</button>
+</EditForm>
+
+<hr />
+
+@if (_items is null)
+{
+    <p>Loading...</p>
+}
+else if (_items.Count == 0)
+{
+    <p>No payees yet.</p>
+}
+else
+{
+    <ul>
+        @foreach (var p in _items)
+        {
+            <li>@p.Name</li>
+        }
+    </ul>
+}
+
+@code {
+    private IReadOnlyList<PayeeDto>? _items;
+    private bool _isBusy;
+    private string? _error;
+
+    private CreatePayeeFormModel _createModel = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _error = null;
+
+        await ExecuteApiAsync(async ct =>
+        {
+            _items = await PayeesApi.ListAsync(ct);
+        });
+    }
+
+    private async Task CreateAsync()
+    {
+        if (_isBusy)
+            return;
+
+        _isBusy = true;
+        _error = null;
+
+        await ExecuteApiAsync(async ct =>
+        {
+            var created = await PayeesApi.CreateAsync(new CreatePayeeRequest(_createModel.Name), ct);
+
+            _createModel = new();
+            _items = await PayeesApi.ListAsync(ct);
+        });
+
+        _isBusy = false;
+    }
+
+    private sealed class CreatePayeeFormModel
+    {
+        [Required]
+        [StringLength(100)]
+        public string Name { get; set; } = "";
+    }
+}
