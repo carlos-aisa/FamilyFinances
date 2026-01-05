@@ -1,10 +1,10 @@
 @page "/login"
-@using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Auth
 @using Microsoft.AspNetCore.Components.Authorization
-@inject AuthApi AuthApi
 @inject JwtAuthStateProvider JwtAuthStateProvider
 @inject NavigationManager Nav
+@inject IHttpClientFactory HttpClientFactory
+@inject IApiTokenStore TokenStore
 
 <h3>Login</h3>
 
@@ -52,10 +52,19 @@
 
         try
         {
-            var token = await AuthApi.LoginAsync(_email, _password, CancellationToken.None);
+            var http = HttpClientFactory.CreateClient();
 
-            JwtAuthStateProvider.MarkUserAsAuthenticated(token);
-            Console.WriteLine($"[Login] token length: {token.Length}");
+            var url = new Uri(new Uri(Nav.BaseUri), "auth/session");
+            var response = await http.PostAsJsonAsync(url, new { Email = _email, Password = _password });
+            var payload = await response.Content.ReadFromJsonAsync<SessionResponse>();
+            if (payload is null || string.IsNullOrWhiteSpace(payload.AccessToken))
+            {
+                _error = "Missing access token.";
+                return;
+            }
+
+            TokenStore.SetAccessToken(payload.AccessToken);
+            await JwtAuthStateProvider.RefreshAsync();
             Nav.NavigateTo("/accounts");
         }
         catch (Exception ex)
@@ -67,4 +76,6 @@
             _isBusy = false;
         }
     }
+
+    private record SessionResponse(string AccessToken);
 }

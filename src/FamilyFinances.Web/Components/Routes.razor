@@ -1,16 +1,22 @@
-﻿@using Microsoft.AspNetCore.Components.Authorization
+﻿@using FamilyFinances.Web.Components.Layout
+@using FamilyFinances.Web.Components.Auth
+@using Microsoft.AspNetCore.Components.Authorization
+
+@rendermode InteractiveServer
+
+<SessionBootstrapper />
 
 <Router AppAssembly="@typeof(Program).Assembly">
     <Found Context="routeData">
-        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(FamilyFinances.Web.Components.Layout.MainLayout)">
+        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
             <NotAuthorized>
                 <RedirectToLogin />
             </NotAuthorized>
         </AuthorizeRouteView>
     </Found>
     <NotFound>
-        <LayoutView Layout="@typeof(FamilyFinances.Web.Components.Layout.MainLayout)">
-            <p>Sorry, there's nothing at this address.</p>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <p>Page not found.</p>
         </LayoutView>
     </NotFound>
 </Router>

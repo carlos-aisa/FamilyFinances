@@ -1,65 +1,73 @@
 @page "/accounts"
+@rendermode InteractiveServer
 @using FamilyFinances.Web.Api
-@using Microsoft.AspNetCore.Authorization
+@using FamilyFinances.Web.Auth
 @using Microsoft.AspNetCore.Components.Authorization
 
 @inject AccountsApi AccountsApi
-@inject FamilyFinances.Web.Auth.IApiTokenStore TokenStore
 @inject NavigationManager Nav
+@inject IApiTokenStore TokenStore
 
-<h3>Accounts</h3>
+<AuthorizeView>
+    <Authorized>
+        <h3>Accounts</h3>
 
-@if (!string.IsNullOrWhiteSpace(_error))
-{
-    <p style="color:red">@_error</p>
-}
-
-@if (_accounts is null)
-{
-    <p>Loading...</p>
-}
-else if (_accounts.Count == 0)
-{
-    <p>No accounts yet.</p>
-}
-else
-{
-    <table>
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Nature</th>
-                <th>Kind</th>
-            </tr>
-        </thead>
-        <tbody>
-        @foreach (var a in _accounts)
+        @if (!string.IsNullOrWhiteSpace(_error))
         {
-            <tr>
-                <td>@a.Name</td>
-                <td>@a.Nature</td>
-                <td>@a.Kind</td>
-            </tr>
+            <p style="color:red">@_error</p>
         }
-        </tbody>
-    </table>
-}
+        else if (_accounts is null)
+        {
+            <p>Loading...</p>
+        }
+        else
+        {
+            <ul>
+                @foreach (var a in _accounts)
+                {
+                    <li>@a.Name</li>
+                }
+            </ul>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <p>You must be logged in to view accounts.</p>
+        <p><a href="/login">Login</a></p>
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
     private IReadOnlyList<FamilyFinances.Application.Ledger.Accounts.Dtos.AccountDto>? _accounts;
     private string? _error;
+    private bool _hasLoaded;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (!firstRender || _hasLoaded)
+            return;
+
+        _hasLoaded = true;
+
+        // Wait a bit for SessionBootstrapper to load the token
+        for (int i = 0; i < 10; i++)
+        {
+            if (!string.IsNullOrWhiteSpace(TokenStore.GetAccessToken()))
+                break;
+            
+            await Task.Delay(100);
+        }
+
         try
         {
-            if (string.IsNullOrWhiteSpace(TokenStore.GetAccessToken()))
-                Nav.NavigateTo("/login", forceLoad: true);
             _accounts = await AccountsApi.ListAsync(CancellationToken.None);
         }
         catch (Exception ex)
         {
             _error = ex.Message;
+        }
+        finally
+        {
+            StateHasChanged();
         }
     }
 }

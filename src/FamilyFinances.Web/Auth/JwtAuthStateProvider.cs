@@ -20,28 +20,19 @@ public sealed class JwtAuthStateProvider : AuthenticationStateProvider
             return Task.FromResult(new AuthenticationState(Anonymous));
 
         var claims = JwtParser.ParseClaimsFromJwt(token);
-
-        // "jwt" is the auth type label; any non-empty string works
         var identity = new ClaimsIdentity(claims, authenticationType: "jwt");
         var user = new ClaimsPrincipal(identity);
 
         return Task.FromResult(new AuthenticationState(user));
     }
 
-    public void MarkUserAsAuthenticated(string accessToken)
+    /// <summary>
+    /// Forces consumers (AuthorizeView/AuthorizeRouteView) to recompute the current auth state.
+    /// Use this after the Web host sets or clears the HttpOnly cookie via /auth/session endpoints.
+    /// </summary>
+    public Task RefreshAsync()
     {
-        _tokenStore.SetAccessToken(accessToken);
-
-        var claims = JwtParser.ParseClaimsFromJwt(accessToken);
-        var identity = new ClaimsIdentity(claims, authenticationType: "jwt");
-        var user = new ClaimsPrincipal(identity);
-
-        NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
-    }
-
-    public void MarkUserAsLoggedOut()
-    {
-        _tokenStore.Clear();
-        NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(Anonymous)));
+        NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+        return Task.CompletedTask;
     }
 }
