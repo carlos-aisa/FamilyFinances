@@ -3,7 +3,9 @@
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Auth
 @using Microsoft.AspNetCore.Components.Authorization
+@inherits FamilyFinances.Web.Components.Base.ApiPageBase
 
+@inject FamilyFinances.Web.Api.AccountsApi AccountsApi
 @inject AccountsApi AccountsApi
 @inject NavigationManager Nav
 @inject IApiTokenStore TokenStore
@@ -42,6 +44,14 @@
     private IReadOnlyList<FamilyFinances.Application.Ledger.Accounts.Dtos.AccountDto>? _accounts;
     private string? _error;
     private bool _hasLoaded;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ExecuteApiAsync(async ct =>
+        {
+            _accounts = await AccountsApi.ListAsync(ct);
+        });
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
