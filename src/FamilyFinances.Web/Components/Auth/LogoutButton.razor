@@ -1,0 +1,22 @@
+@using FamilyFinances.Web.Auth
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Nav
+@inject IApiTokenStore TokenStore
+@inject JwtAuthStateProvider AuthProvider
+
+<button class="btn btn-link" @onclick="LogoutAsync">Logout</button>
+
+@code {
+    private async Task LogoutAsync()
+    {
+        var http = HttpClientFactory.CreateClient();
+        var url = new Uri(new Uri(Nav.BaseUri), "auth/session");
+
+        await http.DeleteAsync(url);
+
+        TokenStore.Clear();
+        await AuthProvider.RefreshAsync();
+
+        Nav.NavigateTo("/login");
+    }
+}

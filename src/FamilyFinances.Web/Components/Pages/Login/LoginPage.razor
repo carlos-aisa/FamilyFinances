@@ -1,5 +1,6 @@
 @page "/login"
 @using FamilyFinances.Web.Auth
+@using Microsoft.AspNetCore.WebUtilities
 @using Microsoft.AspNetCore.Components.Authorization
 @inject JwtAuthStateProvider JwtAuthStateProvider
 @inject NavigationManager Nav
@@ -7,11 +8,6 @@
 @inject IApiTokenStore TokenStore
 
 <h3>Login</h3>
-
-@if (!string.IsNullOrWhiteSpace(_error))
-{
-    <p style="color:red">@_error</p>
-}
 
 <div>
     <label>Email</label><br />
@@ -45,6 +41,16 @@
     private bool _isBusy;
     private string? _error;
 
+    protected override void OnInitialized()
+    {
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+
+        if (query.TryGetValue("reason", out var reason) && reason == "expired")
+        {
+            _error = "Your session has expired. Please log in again.";
+        }
+    }
     private async Task OnLoginAsync()
     {
         _error = null;

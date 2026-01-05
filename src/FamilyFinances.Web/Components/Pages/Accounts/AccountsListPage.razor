@@ -7,6 +7,8 @@
 @inject AccountsApi AccountsApi
 @inject NavigationManager Nav
 @inject IApiTokenStore TokenStore
+@inject IHttpClientFactory HttpClientFactory
+@inject JwtAuthStateProvider AuthProvider
 
 <AuthorizeView>
     <Authorized>
@@ -48,16 +50,27 @@
 
         _hasLoaded = true;
 
-        var token = await TokenStore.WaitForTokenAsync(TimeSpan.FromSeconds(1), CancellationToken.None);
-        if (string.IsNullOrWhiteSpace(token))
-        {
-            _error = "No access token available.";
-            return;
-        }
-
         try
         {
+             var token = await TokenStore.WaitForTokenAsync(TimeSpan.FromSeconds(1), CancellationToken.None);
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                _error = "No access token available.";
+                return;
+            }
             _accounts = await AccountsApi.ListAsync(CancellationToken.None);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // Token expired/invalid: clear both circuit token and cookie session
+            var http = HttpClientFactory.CreateClient();
+            var url = new Uri(new Uri(Nav.BaseUri), "auth/session");
+            await http.DeleteAsync(url);
+
+            TokenStore.Clear();
+            await AuthProvider.RefreshAsync();
+
+            Nav.NavigateTo("/login?reason=expired");
         }
         catch (Exception ex)
         {
