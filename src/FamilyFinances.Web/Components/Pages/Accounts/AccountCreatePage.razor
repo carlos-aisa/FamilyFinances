@@ -1,0 +1,98 @@
+@page "/accounts/new"
+@inherits ApiPageBase
+@using System.ComponentModel.DataAnnotations
+@using FamilyFinances.Application.Ledger.Accounts.Requests
+@using FamilyFinances.Domain.Ledger.Accounts
+@using FamilyFinances.Web.Api
+@using FamilyFinances.Web.Components.Base
+@inject AccountsApi AccountsApi
+@inject NavigationManager Nav
+
+<h3>New account</h3>
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <div class="alert alert-danger" role="alert">@_error</div>
+}
+
+<EditForm Model="_model" OnValidSubmit="CreateAsync">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label class="form-label">Name</label>
+        <InputText class="form-control" @bind-Value="_model.Name" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Nature</label>
+        <InputSelect class="form-select" @bind-Value="_model.Nature">
+            @foreach (var n in Enum.GetValues<AccountNature>())
+            {
+                <option value="@n">@n</option>
+            }
+        </InputSelect>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Kind</label>
+        <InputSelect class="form-select" @bind-Value="_model.Kind">
+            @foreach (var k in Enum.GetValues<AccountKind>())
+            {
+                <option value="@k">@k</option>
+            }
+        </InputSelect>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary" disabled="@_isBusy">Create</button>
+        <button type="button" class="btn btn-secondary" @onclick="Cancel" disabled="@_isBusy">Cancel</button>
+    </div>
+</EditForm>
+
+@code {
+    private bool _isBusy;
+    private string? _error;
+
+    private CreateAccountFormModel _model = new();
+
+    private async Task CreateAsync()
+    {
+        if (_isBusy)
+            return;
+
+        _isBusy = true;
+        _error = null;
+
+        await ExecuteApiAsync(async ct =>
+        {
+            var request = new CreateAccountRequest(
+                _model.Name.Trim(),
+                _model.Nature,
+                _model.Kind,
+                DateOnly.FromDateTime(DateTime.Now));
+
+            await AccountsApi.CreateAsync(request, ct);
+        });
+
+        _isBusy = false;
+
+        if (string.IsNullOrWhiteSpace(_error))
+            Nav.NavigateTo("/accounts");
+    }
+
+    private void Cancel() => Nav.NavigateTo("/accounts");
+
+    private sealed class CreateAccountFormModel
+    {
+        [Required]
+        [StringLength(100)]
+        public string Name { get; set; } = "";
+
+        [Required]
+        public AccountNature Nature { get; set; } = AccountNature.Asset;
+
+        [Required]
+        public AccountKind Kind { get; set; } = AccountKind.Cash;
+    }
+}
