@@ -1,0 +1,177 @@
+@page "/"
+@inherits FamilyFinances.Web.Components.Base.ApiPageBase
+
+@using FamilyFinances.Application.Ledger.Accounts.Dtos
+@using FamilyFinances.Application.Ledger.Payees.Dtos
+@using FamilyFinances.Domain.Ledger.Accounts // AccountNature enum
+@inject FamilyFinances.Web.Api.AccountsApi AccountsApi
+@inject FamilyFinances.Web.Api.PayeesApi PayeesApi
+
+<h3>Dashboard</h3>
+
+@if (_accounts is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="accordion" id="accountsAccordion">
+                @RenderNatureSection(AccountNature.Asset, "Assets", "assets")
+                @RenderNatureSection(AccountNature.Liability, "Liabilities", "liabilities")
+                @RenderNatureSection(AccountNature.Expense, "Expenses", "expenses")
+                @RenderNatureSection(AccountNature.Income, "Income", "income")
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <QuickExpenseDrawer
+                Accounts="_accounts"
+                Payees="_payees"
+                SelectedFromAccountId="_selectedFromAccountId"
+                SelectedToAccountId="_selectedToAccountId"
+                OnTransactionCreated="OnTransactionCreatedAsync"
+                OnClearSelection="ClearSelection" />
+
+            <div class="mt-3">
+                <small class="text-muted">
+                    Tip: click an Asset/Liability to set <strong>Paid from</strong>, then click an Expense to set <strong>Category</strong>.
+                </small>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private IReadOnlyList<AccountDto>? _accounts;
+    private IReadOnlyList<PayeeDto> _payees = Array.Empty<PayeeDto>();
+
+    private Guid? _selectedFromAccountId;
+    private Guid? _selectedToAccountId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ExecuteApiAsync(async ct =>
+        {
+            var allAccounts = await AccountsApi.ListAsync(ct);
+            _accounts = allAccounts
+                .Where(a => !a.IsClosed)
+                .ToList();
+
+            _payees = await PayeesApi.ListAsync(ct);
+        });
+    }
+
+    private RenderFragment RenderNatureSection(AccountNature nature, string title, string idSuffix) => builder =>
+    {
+        if (_accounts is null)
+            return;
+
+        var groupId = $"acc-{idSuffix}";
+        var collapseId = $"collapse-{idSuffix}";
+
+        var items = _accounts
+            .Where(a => a.Nature == nature && !a.IsClosed)
+            .OrderBy(a => a.Name)
+            .ToList();
+
+        // Accordion item
+        var seq = 0;
+
+        builder.OpenElement(seq++, "div");
+        builder.AddAttribute(seq++, "class", "accordion-item");
+
+        builder.OpenElement(seq++, "h2");
+        builder.AddAttribute(seq++, "class", "accordion-header");
+        builder.AddAttribute(seq++, "id", groupId);
+
+        builder.OpenElement(seq++, "button");
+        builder.AddAttribute(seq++, "class", "accordion-button collapsed");
+        builder.AddAttribute(seq++, "type", "button");
+        builder.AddAttribute(seq++, "data-bs-toggle", "collapse");
+        builder.AddAttribute(seq++, "data-bs-target", $"#{collapseId}");
+        builder.AddAttribute(seq++, "aria-expanded", "false");
+        builder.AddAttribute(seq++, "aria-controls", collapseId);
+        builder.AddContent(seq++, $"{title} ({items.Count})");
+        builder.CloseElement(); // button
+
+        builder.CloseElement(); // h2
+
+        builder.OpenElement(seq++, "div");
+        builder.AddAttribute(seq++, "id", collapseId);
+        builder.AddAttribute(seq++, "class", "accordion-collapse collapse");
+        builder.AddAttribute(seq++, "aria-labelledby", groupId);
+        builder.AddAttribute(seq++, "data-bs-parent", "#accountsAccordion");
+
+        builder.OpenElement(seq++, "div");
+        builder.AddAttribute(seq++, "class", "accordion-body p-2");
+
+        if (items.Count == 0)
+        {
+            builder.OpenElement(seq++, "div");
+            builder.AddAttribute(seq++, "class", "text-muted");
+            builder.AddContent(seq++, "No accounts.");
+            builder.CloseElement();
+        }
+        else
+        {
+            builder.OpenElement(seq++, "div");
+            builder.AddAttribute(seq++, "class", "list-group");
+
+            foreach (var a in items)
+            {
+                var isSelected =
+                    (_selectedFromAccountId == a.Id) ||
+                    (_selectedToAccountId == a.Id);
+
+                builder.OpenElement(seq++, "button");
+                builder.AddAttribute(seq++, "type", "button");
+                builder.AddAttribute(seq++, "class", isSelected ? "list-group-item list-group-item-action active" : "list-group-item list-group-item-action");
+                builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => OnAccountClicked(a)));
+                builder.AddContent(seq++, a.Name);
+                builder.CloseElement();
+            }
+
+            builder.CloseElement(); // list-group
+            builder.CloseElement(); // div
+        }
+
+        builder.CloseElement(); // accordion-body
+        builder.CloseElement(); // collapse
+        builder.CloseElement(); // accordion-item
+    };
+
+    private void OnAccountClicked(AccountDto account)
+    {
+        // Rule A:
+        // - Asset/Liability -> Paid from
+        // - Expense -> Category
+        if (account.Nature == AccountNature.Asset || account.Nature == AccountNature.Liability)
+        {
+            _selectedFromAccountId = account.Id;
+            return;
+        }
+
+        if (account.Nature == AccountNature.Expense)
+        {
+            _selectedToAccountId = account.Id;
+            return;
+        }
+    }
+
+    private Task OnTransactionCreatedAsync()
+    {
+        // After creating a transaction, keep "Paid from" selected (typical behavior for repetitive expenses),
+        // but clear the category to avoid accidental repeats.
+        _selectedToAccountId = null;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private void ClearSelection()
+    {
+        _selectedFromAccountId = null;
+        _selectedToAccountId = null;
+    }
+}

@@ -1,0 +1,230 @@
+@inherits FamilyFinances.Web.Components.Base.ApiPageBase
+
+@using System.ComponentModel.DataAnnotations
+@using FamilyFinances.Application.Ledger.Accounts.Dtos
+@using FamilyFinances.Application.Ledger.Payees.Dtos
+@using FamilyFinances.Domain.Ledger.Accounts // AccountNature
+@using FamilyFinances.Web.Features.Transactions
+@inject FamilyFinances.Web.Api.TransactionsApi TransactionsApi
+
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <h5 class="card-title mb-0">Quick expense</h5>
+
+            <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ClearSelectionClicked">
+                Clear selection
+            </button>
+        </div>
+
+        <div class="mb-2">
+            <small class="text-muted">
+                Paid from: <strong>@(FromAccountName ?? "-")</strong> ·
+                Category: <strong>@(ToAccountName ?? "-")</strong>
+            </small>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <div class="alert alert-danger" role="alert">@_error</div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_info))
+        {
+            <div class="alert alert-success" role="alert">@_info</div>
+        }
+
+        <EditForm Model="_model" OnValidSubmit="CreateAsync">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Date</label>
+                    <InputDate class="form-control" @bind-Value="_model.BookedOn" />
+                </div>
+
+                <div class="col-md-8">
+                    <label class="form-label">Description</label>
+                    <InputText class="form-control" @bind-Value="_model.Description" />
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Amount</label>
+                    <InputNumber class="form-control" @bind-Value="_model.Amount" />
+                </div>
+
+                <div class="col-md-8">
+                    <label class="form-label">Payee (optional)</label>
+                    <div class="input-group">
+                        <InputSelect class="form-select" @bind-Value="_model.PayeeId">
+                            <option value="">-- none --</option>
+                            @foreach (var p in Payees)
+                            {
+                                <option value="@p.Id">@p.Name</option>
+                            }
+                        </InputSelect>
+
+                        @* Payee quick-create comes in the next slice *@
+                        <button type="button" class="btn btn-outline-secondary" disabled title="Coming soon">
+                            +
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_formError))
+            {
+                <div class="alert alert-warning mt-3" role="alert">@_formError</div>
+            }
+
+            <div class="mt-3 d-flex align-items-center justify-content-between">
+                <div class="form-check">
+                    <InputCheckbox class="form-check-input" @bind-Value="_model.KeepOpen" />
+                    <label class="form-check-label">Keep open</label>
+                </div>
+
+                <button class="btn btn-primary" disabled="@(!_canSubmit || _isBusy)">
+                    Create
+                </button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<AccountDto> Accounts { get; set; } = Array.Empty<AccountDto>();
+    [Parameter, EditorRequired] public IReadOnlyList<PayeeDto> Payees { get; set; } = Array.Empty<PayeeDto>();
+
+    [Parameter] public Guid? SelectedFromAccountId { get; set; }
+    [Parameter] public Guid? SelectedToAccountId { get; set; }
+
+    [Parameter] public EventCallback OnTransactionCreated { get; set; }
+    [Parameter] public EventCallback OnClearSelection { get; set; }
+
+    private bool _isBusy;
+    private bool _canSubmit;
+    private string? _error;
+    private string? _info;
+    private string? _formError;
+
+    private QuickExpenseModel _model = new()
+    {
+        BookedOn = DateOnly.FromDateTime(DateTime.Today)
+    };
+
+    private string? FromAccountName => Accounts.FirstOrDefault(a => a.Id == SelectedFromAccountId)?.Name;
+    private string? ToAccountName => Accounts.FirstOrDefault(a => a.Id == SelectedToAccountId)?.Name;
+
+    protected override void OnParametersSet()
+    {
+        Validate();
+    }
+
+    private void Validate()
+    {
+        _formError = null;
+
+        if (SelectedFromAccountId is null)
+            _formError = "Select a Paid from account (Asset/Liability) from the left panel.";
+
+        if (SelectedToAccountId is null)
+            _formError = "Select an Expense category from the left panel.";
+
+        if (SelectedFromAccountId is not null && SelectedToAccountId is not null && SelectedFromAccountId == SelectedToAccountId)
+            _formError = "Paid from and Category accounts must be different.";
+
+        if (_model.Amount <= 0)
+            _formError = "Amount must be greater than zero.";
+
+        if (string.IsNullOrWhiteSpace(_model.Description))
+            _formError = "Description is required.";
+
+        // Basic nature guardrails (defensive)
+        if (SelectedFromAccountId is not null)
+        {
+            var from = Accounts.FirstOrDefault(a => a.Id == SelectedFromAccountId);
+            if (from is not null && from.Nature != AccountNature.Asset && from.Nature != AccountNature.Liability)
+                _formError = "Paid from must be an Asset or Liability account.";
+        }
+
+        if (SelectedToAccountId is not null)
+        {
+            var to = Accounts.FirstOrDefault(a => a.Id == SelectedToAccountId);
+            if (to is not null && to.Nature != AccountNature.Expense)
+                _formError = "Category must be an Expense account.";
+        }
+
+        _canSubmit = string.IsNullOrWhiteSpace(_formError);
+    }
+
+    private async Task CreateAsync()
+    {
+        Validate();
+        if (!_canSubmit || _isBusy)
+            return;
+
+        _isBusy = true;
+        _error = null;
+        _info = null;
+
+        await ExecuteApiAsync(async ct =>
+        {
+            var request = ExpenseTransactionFactory.Build(
+                bookedOn: _model.BookedOn,
+                description: _model.Description.Trim(),
+                fromAccountId: SelectedFromAccountId!.Value,
+                expenseAccountId: SelectedToAccountId!.Value,
+                amount: _model.Amount,
+                payeeId: _model.PayeeId,
+                memo: null);
+
+            await TransactionsApi.CreateAsync(request, ct);
+        });
+
+        _isBusy = false;
+
+        if (string.IsNullOrWhiteSpace(_error))
+        {
+            _info = "Transaction created.";
+
+            // Reset entry fields.
+            _model.Amount = 0m;
+            _model.Description = "";
+            _model.PayeeId = null;
+
+            // Keep date as is (often used for multiple entries on same day).
+            // Keep selection behavior:
+            // - If KeepOpen: keep Paid from
+            // - Always notify parent so it can decide whether to clear category
+            await OnTransactionCreated.InvokeAsync();
+
+            if (!_model.KeepOpen)
+                await OnClearSelection.InvokeAsync();
+
+            Validate();
+        }
+    }
+
+    private async Task ClearSelectionClicked()
+    {
+        await OnClearSelection.InvokeAsync();
+        Validate();
+    }
+
+    private sealed class QuickExpenseModel
+    {
+        [Required]
+        public DateOnly BookedOn { get; set; }
+
+        [Required, StringLength(200)]
+        public string Description { get; set; } = "";
+
+        [Range(typeof(decimal), "0.01", "999999999")]
+        public decimal Amount { get; set; }
+
+        public Guid? PayeeId { get; set; }
+
+        public bool KeepOpen { get; set; } = true;
+    }
+}

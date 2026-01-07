@@ -71,7 +71,7 @@
 
             TokenStore.SetAccessToken(payload.AccessToken);
             await JwtAuthStateProvider.RefreshAsync();
-            Nav.NavigateTo("/accounts");
+            Nav.NavigateTo("/");
         }
         catch (Exception ex)
         {
