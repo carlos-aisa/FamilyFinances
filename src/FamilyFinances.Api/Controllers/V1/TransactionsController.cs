@@ -31,4 +31,12 @@ public sealed class TransactionsController : ControllerBase
         var result = await handler.HandleAsync(id, ct);
         return result is null ? NotFound() : Ok(result);
     }
+
+    [HttpGet]
+    [Authorize(Policy = Policies.CanRead)]
+    public async Task<ActionResult<IReadOnlyList<TransactionDto>>> List(
+    [FromServices] ListTransactionsHandler handler,
+    [FromQuery] int take,
+    CancellationToken ct)
+    => Ok(await handler.HandleAsync(take, ct));
 }

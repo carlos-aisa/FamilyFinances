@@ -1,0 +1,59 @@
+@page "/transactions"
+@using FamilyFinances.Web.Api
+@using FamilyFinances.Web.Components.Base
+@inherits ApiPageBase
+@inject TransactionsApi TransactionsApi
+@inject NavigationManager Nav
+
+<h3>Transactions</h3>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="NewTransaction">New transaction</button>
+</div>
+
+@if (_items is null)
+{
+    <p>Loading...</p>
+}
+else if (_items.Count == 0)
+{
+    <p>No transactions yet.</p>
+}
+else
+{
+    <table class="table table-sm">
+        <thead>
+        <tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Payee</th>
+            <th>Splits</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var t in _items)
+        {
+            <tr>
+                <td>@t.BookedOn</td>
+                <td>@t.Description</td>
+                <td>@(t.PayeeId?.ToString() ?? "-")</td>
+                <td>@t.Splits.Count</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@code {
+    private IReadOnlyList<FamilyFinances.Application.Ledger.Transactions.Dtos.TransactionDto>? _items;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ExecuteApiAsync(async ct =>
+        {
+            _items = await TransactionsApi.ListAsync(100, ct);
+        });
+    }
+
+    private void NewTransaction() => Nav.NavigateTo("/transactions/new");
+}

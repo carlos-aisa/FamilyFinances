@@ -19,4 +19,14 @@ public sealed class TransactionRepository : ITransactionRepository
             .AsNoTracking()
             .Include(t => t.Splits)
             .FirstOrDefaultAsync(t => t.Id == id, ct);
+
+    public async Task<IReadOnlyList<Transaction>> ListAsync(int take, CancellationToken ct)
+        => await _db.Transactions
+            .AsNoTracking()
+            .Include(t => t.Splits)
+            .OrderByDescending(t => t.BookedOn)
+            .ThenByDescending(t => t.Id)
+            .Take(take)
+            .ToListAsync(ct);
+
 }
