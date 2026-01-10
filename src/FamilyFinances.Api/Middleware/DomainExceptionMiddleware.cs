@@ -20,5 +20,17 @@ public sealed class DomainExceptionMiddleware
             context.Response.ContentType = "application/json";
             await context.Response.WriteAsJsonAsync(new { error = ex.Message });
         }
+        catch (ConflictException ex)
+        {
+            context.Response.StatusCode = StatusCodes.Status409Conflict;
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsJsonAsync(new { error = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsJsonAsync(new { error = ex.Message });
+        }
     }
 }

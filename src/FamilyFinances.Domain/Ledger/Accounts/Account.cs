@@ -6,6 +6,7 @@ public sealed class Account
 {
     public AccountId Id { get; }
     public string Name { get; private set; }
+    public string NormalizedName { get; private set; }
 
     // Accounting semantics
     public AccountNature Nature { get; }
@@ -27,12 +28,14 @@ public sealed class Account
     private Account(
         AccountId id,
         string name,
+        string normalized,
         AccountNature nature,
         AccountKind kind,
         DateOnly openedOn)
     {
         Id = id;
         Name = name;
+        NormalizedName = normalized;
         Nature = nature;
         Kind = kind;
         OpenedOn = openedOn;
@@ -47,13 +50,19 @@ public sealed class Account
         name = (name ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(name))
             throw new DomainException("Account name is required.");
+        
+        if (name.Length > 200)
+            throw new DomainException("Account name is too long (max 200).");
+
+        var normalized = Normalize(name);
 
         if (openedOn == default)
             throw new DomainException("OpenedOn date is required.");
 
-        return new Account(
+       return new Account(
             AccountId.New(),
             name,
+            normalized,
             nature,
             kind,
             openedOn);
@@ -85,4 +94,6 @@ public sealed class Account
         IsClosed = false;
         ClosedOn = null;
     }
+
+    private static string Normalize(string name) => name.Trim().ToUpperInvariant();
 }

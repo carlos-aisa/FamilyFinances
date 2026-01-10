@@ -18,4 +18,16 @@ public sealed class AccountRepository : IAccountRepository
 
     public Task<Account?> GetByIdAsync(AccountId id, CancellationToken ct)
         => _db.Accounts.FirstOrDefaultAsync(a => a.Id == id, ct);
+
+    public async Task<bool> ExistsByNormalizedNameAsync(string normalizedName, AccountId? excludingId, CancellationToken ct)
+    {
+        var query = _db.Accounts.AsQueryable();
+
+        query = query.Where(a => a.NormalizedName == normalizedName);
+
+        if (excludingId is not null)
+            query = query.Where(a => a.Id != excludingId);
+
+        return await query.AnyAsync(ct);
+    }
 }
