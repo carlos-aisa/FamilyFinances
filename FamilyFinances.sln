@@ -23,6 +23,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FamilyFinances.Api.Integrat
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FamilyFinances.Web", "src\FamilyFinances.Web\FamilyFinances.Web.csproj", "{95C50282-DD1C-4DBC-8ADC-60DF0711C03D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FamilyFinances.Web.Tests", "tests\FamilyFinances.Web.Tests\FamilyFinances.Web.Tests.csproj", "{4CDA991B-1B03-4C25-957D-169C8120F178}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -129,6 +131,18 @@ Global
 		{95C50282-DD1C-4DBC-8ADC-60DF0711C03D}.Release|x64.Build.0 = Release|Any CPU
 		{95C50282-DD1C-4DBC-8ADC-60DF0711C03D}.Release|x86.ActiveCfg = Release|Any CPU
 		{95C50282-DD1C-4DBC-8ADC-60DF0711C03D}.Release|x86.Build.0 = Release|Any CPU
+		{4CDA991B-1B03-4C25-957D-169C8120F178}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4CDA991B-1B03-4C25-957D-169C8120F178}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4CDA991B-1B03-4C25-957D-169C8120F178}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{4CDA991B-1B03-4C25-957D-169C8120F178}.Debug|x64.Build.0 = Debug|Any CPU
+		{4CDA991B-1B03-4C25-957D-169C8120F178}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{4CDA991B-1B03-4C25-957D-169C8120F178}.Debug|x86.Build.0 = Debug|Any CPU
+		{4CDA991B-1B03-4C25-957D-169C8120F178}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4CDA991B-1B03-4C25-957D-169C8120F178}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4CDA991B-1B03-4C25-957D-169C8120F178}.Release|x64.ActiveCfg = Release|Any CPU
+		{4CDA991B-1B03-4C25-957D-169C8120F178}.Release|x64.Build.0 = Release|Any CPU
+		{4CDA991B-1B03-4C25-957D-169C8120F178}.Release|x86.ActiveCfg = Release|Any CPU
+		{4CDA991B-1B03-4C25-957D-169C8120F178}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -142,5 +156,6 @@ Global
 		{E58CA3A1-3AFB-452B-B3A0-C65D73D69E19} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{A9141680-24E1-D415-7CFD-C3455036F4AF} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{95C50282-DD1C-4DBC-8ADC-60DF0711C03D} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{4CDA991B-1B03-4C25-957D-169C8120F178} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 EndGlobal

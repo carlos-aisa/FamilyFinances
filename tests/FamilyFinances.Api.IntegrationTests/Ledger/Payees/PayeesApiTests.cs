@@ -54,7 +54,7 @@ public sealed class PayeesApiTests
         first.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var dup = await client.PostAsJsonAsync("/api/v1/payees", new { name = "netflix" });
-        dup.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        dup.StatusCode.Should().Be(HttpStatusCode.Conflict);
 
         var error = await dup.Content.ReadFromJsonAsync<ErrorResponse>();
         error.Should().NotBeNull();

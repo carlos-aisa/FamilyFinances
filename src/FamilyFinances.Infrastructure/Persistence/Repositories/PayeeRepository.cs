@@ -28,4 +28,14 @@ internal sealed class PayeeRepository : IPayeeRepository
         => _db.Payees
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == id, ct);
+
+    public Task<Payee?> GetByIdForUpdateAsync(PayeeId id, CancellationToken ct)
+    => _db.Payees.FirstOrDefaultAsync(p => p.Id == id, ct);
+
+    public void Remove(Payee payee)
+        => _db.Payees.Remove(payee);
+
+    public Task<bool> IsReferencedByTransactionsAsync(PayeeId id, CancellationToken ct)
+        => _db.Transactions.AnyAsync(t => t.PayeeId == id, ct);
+
 }

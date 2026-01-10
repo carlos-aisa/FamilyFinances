@@ -62,7 +62,7 @@ public sealed class CreatePayeeHandlerTests
 
         var act = async () => await handler.HandleAsync(cmd, CancellationToken.None);
 
-        await act.Should().ThrowAsync<DomainException>();
+        await act.Should().ThrowAsync<ConflictException>();
 
         repo.Verify(r => r.GetByNormalizedNameAsync("NETFLIX", It.IsAny<CancellationToken>()), Times.Once);
 
