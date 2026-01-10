@@ -8,7 +8,7 @@ namespace FamilyFinances.Web.Api;
 
 internal record ErrorResponse(string Error);
 
-public sealed class AccountsApi
+public sealed class AccountsApi : IAccountsApi
 {
     private readonly HttpClient _http;
     private readonly IApiTokenStore _tokenStore;

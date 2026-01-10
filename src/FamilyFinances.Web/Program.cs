@@ -18,7 +18,7 @@ builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddScoped<IApiTokenStore, ApiTokenStore>();
 
-builder.Services.AddScoped<AccountsApi>();
+builder.Services.AddScoped<IAccountsApi, AccountsApi>();
 builder.Services.AddScoped<PayeesApi>();
 builder.Services.AddScoped<TransactionsApi>();
 
