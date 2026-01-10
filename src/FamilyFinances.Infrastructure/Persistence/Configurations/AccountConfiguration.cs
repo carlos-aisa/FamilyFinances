@@ -43,6 +43,7 @@ public sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
             .IsRequired();
 
         builder.HasIndex(x => x.NormalizedName)
-            .IsUnique();
+            .IsUnique()
+            .HasFilter("\"IsClosed\" = 0");
     }
 }

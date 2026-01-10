@@ -1,4 +1,5 @@
 using FamilyFinances.Application.Ledger.Accounts.Abstractions;
+using FamilyFinances.Domain.Common;
 using FamilyFinances.Domain.Ledger.Accounts;
 
 namespace FamilyFinances.Application.Ledger.Accounts.Handlers;
@@ -21,6 +22,10 @@ public sealed class ReopenAccountHandler
         var account = await _accounts.GetByIdAsync(id, ct);
         if (account is null)
             return false;
+
+        var exists = await _accounts.ExistsByNormalizedNameAsync(account.NormalizedName, account.Id, ct);
+        if (exists)
+            throw new ConflictException("An active account with the same name already exists. Rename it before reopening.");
 
         account.Reopen();
         await _uow.SaveChangesAsync(ct);

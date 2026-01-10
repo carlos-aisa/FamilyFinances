@@ -29,6 +29,9 @@ public sealed class ReopenAccountHandlerTests
         repo.Setup(r => r.GetByIdAsync(It.IsAny<AccountId>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(account);
 
+        repo.Setup(r => r.ExistsByNormalizedNameAsync("TEST ACCOUNT", It.IsAny<AccountId?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
         uow.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
@@ -43,6 +46,7 @@ public sealed class ReopenAccountHandlerTests
         account.ClosedOn.Should().BeNull();
         
         repo.Verify(r => r.GetByIdAsync(It.IsAny<AccountId>(), It.IsAny<CancellationToken>()), Times.Once);
+        repo.Verify(r => r.ExistsByNormalizedNameAsync("TEST ACCOUNT", It.IsAny<AccountId?>(), It.IsAny<CancellationToken>()), Times.Once);
         uow.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
         repo.VerifyNoOtherCalls();
         uow.VerifyNoOtherCalls();

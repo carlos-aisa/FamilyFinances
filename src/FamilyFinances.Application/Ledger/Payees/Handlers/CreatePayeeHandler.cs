@@ -21,7 +21,7 @@ public sealed class CreatePayeeHandler
         if (command is null)
             throw new ArgumentNullException(nameof(command));
 
-        var normalizedName = command.Name.Trim().ToUpperInvariant();
+        var normalizedName = Payee.Normalize(command.Name);
 
         var existing = await _payees.GetByNormalizedNameAsync(normalizedName, ct);
         if (existing is not null)

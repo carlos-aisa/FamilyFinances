@@ -1,6 +1,7 @@
 using FamilyFinances.Application.Ledger.Accounts.Abstractions;
 using FamilyFinances.Application.Ledger.Accounts.Dtos;
 using FamilyFinances.Application.Ledger.Accounts.Requests;
+using FamilyFinances.Domain.Common;
 using FamilyFinances.Domain.Ledger.Accounts;
 
 namespace FamilyFinances.Application.Ledger.Accounts.Handlers;
@@ -19,6 +20,11 @@ public sealed class CreateAccountHandler
 
     public async Task<AccountDto> HandleAsync(CreateAccountRequest cmd, CancellationToken ct)
     {
+        var normalizedName = Account.Normalize(cmd.Name);
+        var exists = await _accounts.ExistsByNormalizedNameAsync(normalizedName, excludingId: null, ct);
+        if (exists)
+            throw new ConflictException("Account name already exists.");
+
         var account = Account.Create(cmd.Name, cmd.Nature, cmd.Kind, cmd.OpenedOn);
 
         await _accounts.AddAsync(account, ct);

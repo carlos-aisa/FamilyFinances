@@ -63,5 +63,5 @@ public sealed class Payee
         DefaultCategory = category;
     }
 
-    private static string Normalize(string name) => name.Trim().ToUpperInvariant();
+    public static string Normalize(string name) => name.Trim().ToUpperInvariant();
 }

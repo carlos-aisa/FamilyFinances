@@ -43,7 +43,7 @@
             Description = string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
         }
 
-        private static string Normalize(string value)
+        public static string Normalize(string value)
             => value.Trim().ToUpperInvariant();
     }
 }

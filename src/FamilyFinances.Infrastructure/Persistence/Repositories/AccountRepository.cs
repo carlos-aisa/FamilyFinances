@@ -21,9 +21,8 @@ public sealed class AccountRepository : IAccountRepository
 
     public async Task<bool> ExistsByNormalizedNameAsync(string normalizedName, AccountId? excludingId, CancellationToken ct)
     {
-        var query = _db.Accounts.AsQueryable();
-
-        query = query.Where(a => a.NormalizedName == normalizedName);
+        var query = _db.Accounts
+            .Where(a => a.NormalizedName == normalizedName && !a.IsClosed);
 
         if (excludingId is not null)
             query = query.Where(a => a.Id != excludingId);
