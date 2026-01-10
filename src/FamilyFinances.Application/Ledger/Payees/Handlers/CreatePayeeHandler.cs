@@ -25,7 +25,7 @@ public sealed class CreatePayeeHandler
 
         var existing = await _payees.GetByNormalizedNameAsync(normalizedName, ct);
         if (existing is not null)
-            throw new DomainException($"Payee '{command.Name}' already exists.");
+            throw new ConflictException($"Payee '{command.Name}' already exists.");
 
         var payee = Payee.Create(command.Name);
 
