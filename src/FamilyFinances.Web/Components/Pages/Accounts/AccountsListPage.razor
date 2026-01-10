@@ -9,6 +9,7 @@
 @inherits FamilyFinances.Web.Components.Base.ApiPageBase
 
 @inject AccountsApi AccountsApi
+@inject IJSRuntime JS
 
 <AuthorizeView>
     <Authorized Context="auth">
@@ -58,7 +59,7 @@
                                 <label class="form-label">Nature</label>
                                 <InputSelect class="form-select"
                                              @bind-Value="_createModel.Nature"
-                                             @onchange="OnNatureChanged">
+                                             @bind-Value:after="OnNatureChanged">
                                     @foreach (var n in _natureOrder)
                                     {
                                         <option value="@n">@n</option>
@@ -263,7 +264,7 @@
         _createModel.Kind = AccountKind.ExpenseCategory;
     }
 
-    private Task OnNatureChanged(ChangeEventArgs _)
+    private Task OnNatureChanged()
     {
         // When the user changes nature, auto-suggest a sensible default kind.
         _createModel.Kind = GetDefaultKind(_createModel.Nature);
@@ -279,20 +280,31 @@
         _error = null;
         _info = null;
 
-        await ExecuteApiAsync(async ct =>
+        try
         {
-            var request = new CreateAccountRequest(
-                Name: _createModel.Name.Trim(),
-                Nature: _createModel.Nature,
-                Kind: _createModel.Kind,
-                OpenedOn: DateOnly.FromDateTime(DateTime.Today)); // Hidden in UI
+            await ExecuteApiAsync(async ct =>
+            {
+                var request = new CreateAccountRequest(
+                    Name: _createModel.Name.Trim(),
+                    Nature: _createModel.Nature,
+                    Kind: _createModel.Kind,
+                    OpenedOn: DateOnly.FromDateTime(DateTime.Today)); // Hidden in UI
 
-            await AccountsApi.CreateAsync(request, ct);
+                await AccountsApi.CreateAsync(request, ct);
 
-            _isCreating = false;
-            _info = "Account created.";
-            await LoadAsync();
-        });
+                _isCreating = false;
+                _info = "Account created.";
+                await LoadAsync();
+            });
+        }
+        catch (HttpRequestException ex)
+        {
+            _error = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _error = $"Unexpected error: {ex.Message}";
+        }
 
         _isBusy = false;
     }
@@ -417,6 +429,10 @@
                 await LoadAsync();
             });
         }
+        catch (InvalidOperationException ex)
+        {
+            _error = ex.Message;
+        }
         catch (Exception ex)
         {
             _error = ex.Message;
@@ -447,6 +463,10 @@
                 _info = "Account closed.";
                 await LoadAsync();
             });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _error = ex.Message;
         }
         catch (Exception ex)
         {
@@ -479,6 +499,10 @@
                 await LoadAsync();
             });
         }
+        catch (InvalidOperationException ex)
+        {
+            _error = ex.Message;
+        }
         catch (Exception ex)
         {
             _error = ex.Message;
@@ -489,11 +513,9 @@
         }
     }
 
-    private Task<bool> ConfirmAsync(string message)
+    private async Task<bool> ConfirmAsync(string message)
     {
-        // Minimal confirmation without adding JS libs.
-        // Blazor Server can call JS runtime, but we keep it simple and non-invasive for now.
-        return Task.FromResult(true);
+        return await JS.InvokeAsync<bool>("confirm", message);
     }
 
     private sealed class CreateAccountModel

@@ -6,6 +6,8 @@ using System.Net.Http.Headers;
 
 namespace FamilyFinances.Web.Api;
 
+internal record ErrorResponse(string Error);
+
 public sealed class AccountsApi
 {
     private readonly HttpClient _http;
@@ -54,10 +56,27 @@ public sealed class AccountsApi
         if (response.StatusCode == HttpStatusCode.Unauthorized)
             throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
 
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorMessage = await TryReadErrorMessageAsync(response, ct);
+            throw new HttpRequestException($"{errorMessage}", null, response.StatusCode);
+        }
 
         var dto = await response.Content.ReadFromJsonAsync<AccountDto>(cancellationToken: ct);
         return dto ?? throw new InvalidOperationException("Empty response payload.");
+    }
+
+    private static async Task<string> TryReadErrorMessageAsync(HttpResponseMessage response, CancellationToken ct)
+    {
+        try
+        {
+            var errorResponse = await response.Content.ReadFromJsonAsync<ErrorResponse>(cancellationToken: ct);
+            return errorResponse?.Error ?? $"Request failed with status {(int)response.StatusCode} ({response.StatusCode})";
+        }
+        catch
+        {
+            return $"Request failed with status {(int)response.StatusCode} ({response.StatusCode})";
+        }
     }
 
     public async Task RenameAsync(Guid accountId, string name, CancellationToken ct)
