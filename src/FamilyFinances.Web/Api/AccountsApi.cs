@@ -60,4 +60,75 @@ public sealed class AccountsApi
         return dto ?? throw new InvalidOperationException("Empty response payload.");
     }
 
+    public async Task RenameAsync(Guid accountId, string name, CancellationToken ct)
+    {
+        var token = _tokenStore.GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("No access token available.");
+
+        using var request = new HttpRequestMessage(HttpMethod.Patch, $"api/v1/accounts/{accountId}/rename")
+        {
+            Content = JsonContent.Create(new { name })
+        };
+
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _http.SendAsync(request, ct);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
+
+        if (response.StatusCode == HttpStatusCode.Conflict)
+            throw new InvalidOperationException(await ReadErrorAsync(response, ct));
+
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task CloseAsync(Guid accountId, CancellationToken ct)
+    {
+        await PatchNoBodyAsync($"api/v1/accounts/{accountId}/close", ct);
+    }
+
+    public async Task ReopenAsync(Guid accountId, CancellationToken ct)
+    {
+        await PatchNoBodyAsync($"api/v1/accounts/{accountId}/reopen", ct);
+    }
+
+    private async Task PatchNoBodyAsync(string url, CancellationToken ct)
+    {
+        var token = _tokenStore.GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("No access token available.");
+
+        using var request = new HttpRequestMessage(HttpMethod.Patch, url);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _http.SendAsync(request, ct);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
+
+        if (response.StatusCode == HttpStatusCode.Conflict)
+            throw new InvalidOperationException(await ReadErrorAsync(response, ct));
+
+        response.EnsureSuccessStatusCode();
+    }
+
+    private static async Task<string> ReadErrorAsync(HttpResponseMessage response, CancellationToken ct)
+    {
+        try
+        {
+            var payload = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>(cancellationToken: ct);
+            if (payload is not null && payload.TryGetValue("error", out var msg) && !string.IsNullOrWhiteSpace(msg))
+                return msg;
+        }
+        catch
+        {
+            // Ignore parsing issues and fallback to raw content.
+        }
+
+        var raw = await response.Content.ReadAsStringAsync(ct);
+        return string.IsNullOrWhiteSpace(raw) ? "Request failed." : raw;
+    }
+
 }
