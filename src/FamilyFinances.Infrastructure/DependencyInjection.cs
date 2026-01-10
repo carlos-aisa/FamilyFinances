@@ -46,7 +46,8 @@ public static class DependencyInjection
         services.AddScoped<RenameAccountHandler>();
         services.AddScoped<CloseAccountHandler>();
         services.AddScoped<ReopenAccountHandler>();
-        
+        services.AddScoped<DeleteAccountHandler>();
+
         services.AddScoped<CreateTransactionHandler>();
         services.AddScoped<GetTransactionByIdHandler>();
         services.AddScoped<ListTransactionsHandler>();

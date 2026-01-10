@@ -29,4 +29,14 @@ public sealed class AccountRepository : IAccountRepository
 
         return await query.AnyAsync(ct);
     }
+
+    public Task<Account?> GetByIdForUpdateAsync(AccountId id, CancellationToken ct)
+    => _db.Accounts.FirstOrDefaultAsync(a => a.Id == id, ct);
+
+    public Task<bool> IsReferencedBySplitsAsync(AccountId id, CancellationToken ct)
+        => _db.TransactionSplits.AnyAsync(s => s.AccountId == id, ct);
+
+    public void Remove(Account account)
+        => _db.Accounts.Remove(account);
+
 }

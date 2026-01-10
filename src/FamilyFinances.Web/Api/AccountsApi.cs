@@ -113,6 +113,27 @@ public sealed class AccountsApi : IAccountsApi
         await PatchNoBodyAsync($"api/v1/accounts/{accountId}/reopen", ct);
     }
 
+    public async Task DeleteAsync(Guid accountId, CancellationToken ct)
+    {
+        var token = _tokenStore.GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("No access token available.");
+
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"api/v1/accounts/{accountId}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _http.SendAsync(request, ct);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
+
+        if (response.StatusCode == HttpStatusCode.Conflict)
+            throw new InvalidOperationException(await ReadErrorAsync(response, ct));
+
+        response.EnsureSuccessStatusCode();
+    }
+
+
     private async Task PatchNoBodyAsync(string url, CancellationToken ct)
     {
         var token = _tokenStore.GetAccessToken();

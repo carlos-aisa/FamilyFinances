@@ -10,4 +10,6 @@ public interface IAccountsApi
     Task RenameAsync(Guid accountId, string name, CancellationToken ct);
     Task CloseAsync(Guid accountId, CancellationToken ct);
     Task ReopenAsync(Guid accountId, CancellationToken ct);
+    Task DeleteAsync(Guid accountId, CancellationToken ct);
 }
+

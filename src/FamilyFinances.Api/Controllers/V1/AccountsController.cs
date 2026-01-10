@@ -62,4 +62,16 @@ public sealed class AccountsController : ControllerBase
         return ok ? NoContent() : NotFound();
     }
 
+    [HttpDelete("{id:guid}")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<IActionResult> Delete(
+    [FromRoute] Guid id,
+    [FromServices] DeleteAccountHandler handler,
+    CancellationToken ct)
+    {
+        var ok = await handler.HandleAsync(id, ct);
+        return ok ? NoContent() : NotFound();
+    }
+
+
 }

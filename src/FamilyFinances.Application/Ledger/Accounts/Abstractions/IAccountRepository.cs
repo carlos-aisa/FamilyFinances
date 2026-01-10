@@ -8,5 +8,9 @@ public interface IAccountRepository
     Task<IReadOnlyList<Account>> ListAsync(CancellationToken ct);
     Task<Account?> GetByIdAsync(AccountId id, CancellationToken ct);
     Task<bool> ExistsByNormalizedNameAsync(string normalizedName, AccountId? excludingId, CancellationToken ct);
+    Task<Account?> GetByIdForUpdateAsync(AccountId id, CancellationToken ct);
+    Task<bool> IsReferencedBySplitsAsync(AccountId id, CancellationToken ct);
+    void Remove(Account account);
+
 
 }

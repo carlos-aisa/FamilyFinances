@@ -172,6 +172,15 @@
                                             else
                                             {
                                                 <div class="d-flex justify-content-end gap-2">
+                                                    @if (a.IsClosed)
+                                                    {
+                                                        <button class="btn btn-sm btn-outline-danger"
+                                                        type="button"
+                                                        @onclick="@(() => DeleteAsync(a))"
+                                                        disabled="@_isBusy">
+                                                            Delete
+                                                        </button>
+                                                    }
                                                     <button class="btn btn-sm btn-outline-primary" type="button" @onclick="@(() => StartRename(a))" disabled="@_isBusy">
                                                         Rename
                                                     </button>
@@ -512,6 +521,39 @@
             _isBusy = false;
         }
     }
+
+    private async Task DeleteAsync(AccountDto account)
+    {
+        if (_isBusy)
+            return;
+
+        var confirmed = await ConfirmAsync($"Delete account '{account.Name}'?");
+        if (!confirmed)
+            return;
+
+        _isBusy = true;
+        _error = null;
+        _info = null;
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                await AccountsApi.DeleteAsync(account.Id, ct);
+                _info = "Account deleted.";
+                await LoadAsync();
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
 
     private async Task<bool> ConfirmAsync(string message)
     {
