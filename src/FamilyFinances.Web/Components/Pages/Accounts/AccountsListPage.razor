@@ -119,7 +119,7 @@
                 <details class="@GetNatureDetailsClass(nature)" open>
                     <summary class="@GetNatureSummaryClass(nature)">
                         <span>@nature</span>
-                        <span class="text-muted">(@items.Count)</span>
+                        <span class="badge rounded-pill @GetNatureCountBadgeClass(nature)">@items.Count</span>
                     </summary>
 
                     <div class="mt-2">
@@ -330,6 +330,16 @@
         AccountNature.Income => "text-success-emphasis",
         AccountNature.Equity => "text-secondary-emphasis",
         _ => "text-body"
+    };
+
+    private static string GetNatureCountBadgeClass(AccountNature nature) => nature switch
+    {
+        AccountNature.Asset => "text-bg-primary",
+        AccountNature.Liability => "text-bg-warning",
+        AccountNature.Expense => "text-bg-danger",
+        AccountNature.Income => "text-bg-success",
+        AccountNature.Equity => "text-bg-secondary",
+        _ => "text-bg-secondary"
     };
 
 
