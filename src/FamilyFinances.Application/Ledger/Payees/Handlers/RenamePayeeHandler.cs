@@ -23,7 +23,7 @@ public sealed class RenamePayeeHandler
 
         var id = new PayeeId(payeeId);
 
-        var payee = await _payees.GetByIdAsync(id, ct);
+        var payee = await _payees.GetByIdForUpdateAsync(id, ct);
         if (payee is null)
             return false;
 

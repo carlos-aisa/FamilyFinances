@@ -75,7 +75,7 @@ public sealed class PayeesApi
 
         using var request = new HttpRequestMessage(HttpMethod.Patch, $"api/v1/payees/{payeeId}/rename")
         {
-            Content = JsonContent.Create(new { name })
+            Content = JsonContent.Create(new { Name = name })
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
@@ -93,6 +93,25 @@ public sealed class PayeesApi
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task DeleteAsync(Guid payeeId, CancellationToken ct)
+    {
+        var token = _tokenStore.GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("No access token available.");
+
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"api/v1/payees/{payeeId}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _http.SendAsync(request, ct);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
+
+        if (response.StatusCode == HttpStatusCode.Conflict)
+            throw new InvalidOperationException(await ReadErrorAsync(response, ct));
+
+        response.EnsureSuccessStatusCode();
+    }
 
     private static async Task<string> ReadErrorAsync(HttpResponseMessage response, CancellationToken ct)
     {

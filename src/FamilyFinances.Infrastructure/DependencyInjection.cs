@@ -53,6 +53,8 @@ public static class DependencyInjection
 
         services.AddScoped<CreatePayeeHandler>();
         services.AddScoped<ListPayeesHandler>();
+        services.AddScoped<RenamePayeeHandler>();
+        services.AddScoped<DeletePayeeHandler>();
 
         services.AddScoped<GetMonthlySummaryHandler>();
         services.AddScoped<GetCategoryTotalsHandler>();

@@ -5,28 +5,48 @@
 @using FamilyFinances.Application.Ledger.Payees.Requests
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
+@using Microsoft.JSInterop
 @inject PayeesApi PayeesApi
+@inject IJSRuntime JS
 
-<h3>Payees</h3>
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h3 class="m-0">Payees</h3>
+</div>
 
 @if (!string.IsNullOrWhiteSpace(_error))
 {
     <div class="alert alert-danger" role="alert">@_error</div>
 }
 
-<EditForm Model="_createModel" OnValidSubmit="CreateAsync">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
+@if (!string.IsNullOrWhiteSpace(_info))
+{
+    <div class="alert alert-success" role="alert">@_info</div>
+}
 
-    <div class="mb-3">
-        <label class="form-label">Name</label>
-        <InputText class="form-control" @bind-Value="_createModel.Name" />
+<div class="card mb-3">
+    <div class="card-body">
+        <h5 class="card-title">New payee</h5>
+
+        <EditForm Model="_createModel" OnValidSubmit="CreateAsync">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="d-flex gap-2 align-items-end">
+                <div class="flex-grow-1">
+                    <label class="form-label">Name</label>
+                    <InputText class="form-control" @bind-Value="_createModel.Name" />
+                </div>
+
+                <button class="btn btn-primary" disabled="@_isBusy">Create</button>
+            </div>
+        </EditForm>
     </div>
+</div>
 
-    <button class="btn btn-primary" disabled="@_isBusy">Create</button>
-</EditForm>
-
-<hr />
+<div class="mb-3">
+    <label class="form-label">Search</label>
+    <InputText class="form-control" @bind-Value="_search" />
+</div>
 
 @if (_items is null)
 {
@@ -34,23 +54,73 @@
 }
 else if (_items.Count == 0)
 {
-    <p>No payees yet.</p>
+    <p class="text-muted">No payees yet.</p>
 }
 else
 {
-    <ul>
-        @foreach (var p in _items)
-        {
-            <li>@p.Name</li>
-        }
-    </ul>
+    var filtered = _items
+        .Where(p => string.IsNullOrWhiteSpace(_search) || p.Name.Contains(_search, StringComparison.OrdinalIgnoreCase))
+        .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    <table class="table table-sm align-middle">
+        <thead>
+            <tr>
+                <th style="width: 70%;">Name</th>
+                <th style="width: 30%;"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in filtered)
+            {
+                <tr>
+                    <td>
+                        @if (_editingPayeeId == p.Id)
+                        {
+                            <EditForm Model="_renameModel" OnValidSubmit="@(() => SaveRenameAsync(p.Id))">
+                                <DataAnnotationsValidator />
+
+                                <div class="d-flex gap-2">
+                                    <InputText class="form-control form-control-sm" @bind-Value="_renameModel.Name" />
+                                    <button class="btn btn-sm btn-success" type="submit" disabled="@_isBusy">Save</button>
+                                    <button class="btn btn-sm btn-outline-secondary" type="button" @onclick="CancelRename" disabled="@_isBusy">Cancel</button>
+                                </div>
+                            </EditForm>
+                        }
+                        else
+                        {
+                            @p.Name
+                        }
+                    </td>
+                    <td class="text-end">
+                        @if (_editingPayeeId != p.Id)
+                        {
+                            <div class="d-flex justify-content-end gap-2">
+                                <button class="btn btn-sm btn-outline-primary" type="button" @onclick="@(() => StartRename(p))" disabled="@_isBusy">
+                                    Rename
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" type="button" @onclick="@(() => DeleteAsync(p))" disabled="@_isBusy">
+                                    Delete
+                                </button>
+                            </div>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
 }
 
 @code {
     private IReadOnlyList<PayeeDto>? _items;
     private bool _isBusy;
     private string? _error;
+    private string? _info;
 
+    private string _search = "";
+
+    private Guid? _editingPayeeId;
+    private readonly RenamePayeeFormModel _renameModel = new();
     private CreatePayeeFormModel _createModel = new();
 
     protected override async Task OnInitializedAsync()
@@ -75,19 +145,112 @@ else
 
         _isBusy = true;
         _error = null;
+        _info = null;
 
-        await ExecuteApiAsync(async ct =>
+        try
         {
-            var created = await PayeesApi.CreateAsync(new CreatePayeeRequest(_createModel.Name), ct);
+            await ExecuteApiAsync(async ct =>
+            {
+                await PayeesApi.CreateAsync(new CreatePayeeRequest(_createModel.Name), ct);
+                _createModel = new();
+                _info = "Payee created.";
+                _items = await PayeesApi.ListAsync(ct);
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
 
-            _createModel = new();
-            _items = await PayeesApi.ListAsync(ct);
-        });
+    private void StartRename(PayeeDto payee)
+    {
+        _error = null;
+        _info = null;
 
-        _isBusy = false;
+        _editingPayeeId = payee.Id;
+        _renameModel.Name = payee.Name;
+    }
+
+    private void CancelRename()
+    {
+        _editingPayeeId = null;
+        _renameModel.Name = "";
+    }
+
+    private async Task SaveRenameAsync(Guid payeeId)
+    {
+        if (_isBusy)
+            return;
+
+        _isBusy = true;
+        _error = null;
+        _info = null;
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                await PayeesApi.RenameAsync(payeeId, _renameModel.Name.Trim(), ct);
+                _editingPayeeId = null;
+                _info = "Payee renamed.";
+                _items = await PayeesApi.ListAsync(ct);
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private async Task DeleteAsync(PayeeDto payee)
+    {
+        if (_isBusy)
+            return;
+
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Delete payee '{payee.Name}'?");
+        if (!confirmed)
+            return;
+
+        _isBusy = true;
+        _error = null;
+        _info = null;
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                await PayeesApi.DeleteAsync(payee.Id, ct);
+                _info = "Payee deleted.";
+                _items = await PayeesApi.ListAsync(ct);
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
     }
 
     private sealed class CreatePayeeFormModel
+    {
+        [Required]
+        [StringLength(100)]
+        public string Name { get; set; } = "";
+    }
+
+    private sealed class RenamePayeeFormModel
     {
         [Required]
         [StringLength(100)]
