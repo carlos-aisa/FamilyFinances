@@ -3,7 +3,7 @@
 @using System.ComponentModel.DataAnnotations
 @using FamilyFinances.Application.Ledger.Accounts.Dtos
 @using FamilyFinances.Application.Ledger.Payees.Dtos
-@using FamilyFinances.Domain.Ledger.Accounts // AccountNature
+@using FamilyFinances.Domain.Ledger.Accounts
 @using FamilyFinances.Web.Features.Transactions
 @inject FamilyFinances.Web.Api.TransactionsApi TransactionsApi
 
@@ -35,7 +35,7 @@
         }
 
         <EditForm Model="_model" OnValidSubmit="CreateAsync">
-            <DataAnnotationsValidator />
+          @* <DataAnnotationsValidator /> *@
             <ValidationSummary />
 
             <div class="row g-3">
@@ -84,7 +84,11 @@
                     <label class="form-check-label">Keep open</label>
                 </div>
 
-                <button class="btn btn-primary" disabled="@(!_canSubmit || _isBusy)">
+                <button type="submit" class="btn btn-primary" disabled="@(!_canSubmit || _isBusy)">
+                    @if (_isBusy)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                    }
                     Create
                 </button>
             </div>
@@ -118,38 +122,26 @@
 
     protected override void OnParametersSet()
     {
-        Validate();
+        ValidateAccountSelection();
     }
 
-    private void Validate()
+    private void ValidateAccountSelection()
     {
         _formError = null;
 
         if (SelectedFromAccountId is null)
             _formError = "Select a Paid from account (Asset/Liability) from the left panel.";
-
-        if (SelectedToAccountId is null)
+        else if (SelectedToAccountId is null)
             _formError = "Select an Expense category from the left panel.";
-
-        if (SelectedFromAccountId is not null && SelectedToAccountId is not null && SelectedFromAccountId == SelectedToAccountId)
+        else if (SelectedFromAccountId == SelectedToAccountId)
             _formError = "Paid from and Category accounts must be different.";
-
-        if (_model.Amount <= 0)
-            _formError = "Amount must be greater than zero.";
-
-        if (string.IsNullOrWhiteSpace(_model.Description))
-            _formError = "Description is required.";
-
-        // Basic nature guardrails (defensive)
-        if (SelectedFromAccountId is not null)
+        else
         {
+            // Basic nature guardrails (defensive)
             var from = Accounts.FirstOrDefault(a => a.Id == SelectedFromAccountId);
             if (from is not null && from.Nature != AccountNature.Asset && from.Nature != AccountNature.Liability)
                 _formError = "Paid from must be an Asset or Liability account.";
-        }
 
-        if (SelectedToAccountId is not null)
-        {
             var to = Accounts.FirstOrDefault(a => a.Id == SelectedToAccountId);
             if (to is not null && to.Nature != AccountNature.Expense)
                 _formError = "Category must be an Expense account.";
@@ -160,32 +152,48 @@
 
     private async Task CreateAsync()
     {
-        Validate();
+        // Re-validate accounts at submission time
+        ValidateAccountSelection();
+        
         if (!_canSubmit || _isBusy)
             return;
+
+        // Validate form data
+        if (string.IsNullOrWhiteSpace(_model.Description))
+        {
+            _formError = "Description is required.";
+            _canSubmit = false;
+            return;
+        }
+
+        if (_model.Amount <= 0)
+        {
+            _formError = "Amount must be greater than zero.";
+            _canSubmit = false;
+            return;
+        }
 
         _isBusy = true;
         _error = null;
         _info = null;
+        StateHasChanged();
 
-        await ExecuteApiAsync(async ct =>
+        try
         {
-            var request = ExpenseTransactionFactory.Build(
-                bookedOn: _model.BookedOn,
-                description: _model.Description.Trim(),
-                fromAccountId: SelectedFromAccountId!.Value,
-                expenseAccountId: SelectedToAccountId!.Value,
-                amount: _model.Amount,
-                payeeId: _model.PayeeId,
-                memo: null);
+            await ExecuteApiAsync(async ct =>
+            {
+                var request = ExpenseTransactionFactory.Build(
+                    bookedOn: _model.BookedOn,
+                    description: _model.Description.Trim(),
+                    fromAccountId: SelectedFromAccountId!.Value,
+                    expenseAccountId: SelectedToAccountId!.Value,
+                    amount: _model.Amount,
+                    payeeId: _model.PayeeId,
+                    memo: null);
 
-            await TransactionsApi.CreateAsync(request, ct);
-        });
+                await TransactionsApi.CreateAsync(request, ct);
+            });
 
-        _isBusy = false;
-
-        if (string.IsNullOrWhiteSpace(_error))
-        {
             _info = "Transaction created.";
 
             // Reset entry fields.
@@ -194,22 +202,27 @@
             _model.PayeeId = null;
 
             // Keep date as is (often used for multiple entries on same day).
-            // Keep selection behavior:
-            // - If KeepOpen: keep Paid from
-            // - Always notify parent so it can decide whether to clear category
             await OnTransactionCreated.InvokeAsync();
 
             if (!_model.KeepOpen)
                 await OnClearSelection.InvokeAsync();
 
-            Validate();
+            ValidateAccountSelection();
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to create transaction: {ex.Message}";
+        }
+        finally
+        {
+            _isBusy = false;
         }
     }
 
     private async Task ClearSelectionClicked()
     {
         await OnClearSelection.InvokeAsync();
-        Validate();
+        ValidateAccountSelection();
     }
 
     private sealed class QuickExpenseModel

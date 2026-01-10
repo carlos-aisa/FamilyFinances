@@ -3,7 +3,9 @@
 
 @using FamilyFinances.Application.Ledger.Accounts.Dtos
 @using FamilyFinances.Application.Ledger.Payees.Dtos
-@using FamilyFinances.Domain.Ledger.Accounts // AccountNature enum
+@using FamilyFinances.Domain.Ledger.Accounts
+@using FamilyFinances.Web.Components.Dashboard
+@using FamilyFinances.Web.Components.QuickEntry
 @inject FamilyFinances.Web.Api.AccountsApi AccountsApi
 @inject FamilyFinances.Web.Api.PayeesApi PayeesApi
 
@@ -18,10 +20,33 @@ else
     <div class="row g-4">
         <div class="col-lg-6">
             <div class="accordion" id="accountsAccordion">
-                @RenderNatureSection(AccountNature.Asset, "Assets", "assets")
-                @RenderNatureSection(AccountNature.Liability, "Liabilities", "liabilities")
-                @RenderNatureSection(AccountNature.Expense, "Expenses", "expenses")
-                @RenderNatureSection(AccountNature.Income, "Income", "income")
+                <NatureAccountsSection
+                    Title="Assets"
+                    Items="@GetAccounts(AccountNature.Asset)"
+                    SelectedFromAccountId="_selectedFromAccountId"
+                    SelectedToAccountId="_selectedToAccountId"
+                    OnAccountClicked="OnAccountClicked" />
+
+                <NatureAccountsSection
+                    Title="Liabilities"
+                    Items="@GetAccounts(AccountNature.Liability)"
+                    SelectedFromAccountId="_selectedFromAccountId"
+                    SelectedToAccountId="_selectedToAccountId"
+                    OnAccountClicked="OnAccountClicked" />
+
+                <NatureAccountsSection
+                    Title="Expenses"
+                    Items="@GetAccounts(AccountNature.Expense)"
+                    SelectedFromAccountId="_selectedFromAccountId"
+                    SelectedToAccountId="_selectedToAccountId"
+                    OnAccountClicked="OnAccountClicked" />
+
+                <NatureAccountsSection
+                    Title="Income"
+                    Items="@GetAccounts(AccountNature.Income)"
+                    SelectedFromAccountId="_selectedFromAccountId"
+                    SelectedToAccountId="_selectedToAccountId"
+                    OnAccountClicked="OnAccountClicked" />
             </div>
         </div>
 
@@ -173,5 +198,15 @@ else
     {
         _selectedFromAccountId = null;
         _selectedToAccountId = null;
+    }
+
+    private IReadOnlyList<AccountDto> GetAccounts(AccountNature nature)
+    {
+        if (_accounts is null) return Array.Empty<AccountDto>();
+
+        return _accounts
+            .Where(a => a.Nature == nature && !a.IsClosed)
+            .OrderBy(a => a.Name)
+            .ToList();
     }
 }

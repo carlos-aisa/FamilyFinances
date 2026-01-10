@@ -1,0 +1,46 @@
+@using FamilyFinances.Application.Ledger.Accounts.Dtos
+@using FamilyFinances.Domain.Ledger.Accounts
+
+@using FamilyFinances.Application.Ledger.Accounts.Dtos
+
+<details class="border rounded mb-2" open="@IsOpen">
+    <summary class="px-3 py-2 d-flex align-items-center justify-content-between" style="cursor: pointer;">
+        <span><strong>@Title</strong> (@Items.Count)</span>
+        <span class="text-muted">toggle</span>
+    </summary>
+
+    <div class="p-2">
+        @if (Items.Count == 0)
+        {
+            <div class="text-muted">No accounts.</div>
+        }
+        else
+        {
+            <div class="list-group">
+                @foreach (var a in Items)
+                {
+                    var isSelected = (SelectedFromAccountId == a.Id) || (SelectedToAccountId == a.Id);
+
+                    <button type="button"
+                            class="@(isSelected ? "list-group-item list-group-item-action active" : "list-group-item list-group-item-action")"
+                            @onclick="() => OnAccountClicked.InvokeAsync(a)">
+                        @a.Name
+                    </button>
+                }
+            </div>
+        }
+    </div>
+</details>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = default!;
+    [Parameter, EditorRequired] public IReadOnlyList<AccountDto> Items { get; set; } = Array.Empty<AccountDto>();
+
+    [Parameter] public Guid? SelectedFromAccountId { get; set; }
+    [Parameter] public Guid? SelectedToAccountId { get; set; }
+
+    [Parameter, EditorRequired] public EventCallback<AccountDto> OnAccountClicked { get; set; }
+
+    // Optional: open by default when there are items (or tweak as you like)
+    private bool IsOpen => Items.Count > 0;
+}
