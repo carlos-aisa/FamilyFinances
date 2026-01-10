@@ -13,5 +13,6 @@ public enum AccountKind
     ExpenseCategory = 6,
     IncomeSource = 7,
     Mortgage = 8,
+    Loan = 9,
     Other = 99
 }
