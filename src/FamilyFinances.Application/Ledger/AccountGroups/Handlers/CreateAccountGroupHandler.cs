@@ -22,7 +22,7 @@ namespace FamilyFinances.Application.Ledger.AccountGroups.Handlers
             CreateAccountGroupRequest request,
             CancellationToken ct)
         {
-            var normalized = AccountGroup.Normalize(request.Name);
+            var normalized = NameNormalizer.Normalize(request.Name);
 
             var existing = await _groups.GetByNormalizedNameAsync(normalized, ct);
             if (existing is not null)

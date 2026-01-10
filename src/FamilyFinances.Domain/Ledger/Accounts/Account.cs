@@ -54,7 +54,7 @@ public sealed class Account
         if (name.Length > 200)
             throw new DomainException("Account name is too long (max 200).");
 
-        var normalized = Normalize(name);
+        var normalized = NameNormalizer.Normalize(name);
 
         if (openedOn == default)
             throw new DomainException("OpenedOn date is required.");
@@ -94,6 +94,4 @@ public sealed class Account
         IsClosed = false;
         ClosedOn = null;
     }
-
-    public static string Normalize(string name) => name.Trim().ToUpperInvariant();
 }

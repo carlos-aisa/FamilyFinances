@@ -20,7 +20,7 @@ public sealed class CreateAccountHandler
 
     public async Task<AccountDto> HandleAsync(CreateAccountRequest cmd, CancellationToken ct)
     {
-        var normalizedName = Account.Normalize(cmd.Name);
+        var normalizedName = NameNormalizer.Normalize(cmd.Name);
         var exists = await _accounts.ExistsByNormalizedNameAsync(normalizedName, excludingId: null, ct);
         if (exists)
             throw new ConflictException("Account name already exists.");

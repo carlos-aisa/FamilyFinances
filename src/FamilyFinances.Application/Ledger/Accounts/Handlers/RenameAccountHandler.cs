@@ -25,7 +25,7 @@ public sealed class RenameAccountHandler
             return false;
 
         var newName = (request.Name ?? string.Empty).Trim();
-        var normalized = Account.Normalize(newName);
+        var normalized = NameNormalizer.Normalize(newName);
 
         var exists = await _accounts.ExistsByNormalizedNameAsync(normalized, id, ct);
         if (exists)
