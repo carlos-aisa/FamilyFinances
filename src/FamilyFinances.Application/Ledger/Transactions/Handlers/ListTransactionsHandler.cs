@@ -1,5 +1,6 @@
 using FamilyFinances.Application.Ledger.Transactions.Abstractions;
 using FamilyFinances.Application.Ledger.Transactions.Dtos;
+using FamilyFinances.Domain.Common;
 using FamilyFinances.Domain.Ledger.Accounts;
 using FamilyFinances.Domain.Ledger.Transactions;
 
@@ -74,10 +75,10 @@ public sealed class ListTransactionsHandler
         // UX rule:
         // Show the absolute value of the "main" money movement.
         // Convention: sum of negative splits (money leaving an account).
-        var amount = transaction.Splits
+        var totalCents = transaction.Splits
             .Where(s => s.Amount.Cents < 0)
-            .Sum(s => Math.Abs(s.Amount.Cents) / 100m);
+            .Sum(s => s.Amount.Abs().Cents);
 
-        return amount;
+        return new Money(totalCents).ToEuros();
     }
 }

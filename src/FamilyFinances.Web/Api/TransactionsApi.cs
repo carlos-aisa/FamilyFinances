@@ -60,4 +60,24 @@ public sealed class TransactionsApi
         var dto = await response.Content.ReadFromJsonAsync<TransactionDto>(cancellationToken: ct);
         return dto ?? throw new InvalidOperationException("Empty response payload.");
     }
+
+    public async Task<TransactionDto> GetByIdAsync(Guid id, CancellationToken ct)
+    {
+        var token = _tokenStore.GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("No access token available.");
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"api/v1/transactions/{id}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _http.SendAsync(request, ct);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
+
+        response.EnsureSuccessStatusCode();
+
+        var dto = await response.Content.ReadFromJsonAsync<TransactionDto>(cancellationToken: ct);
+        return dto ?? throw new InvalidOperationException("Empty response payload.");
+    }
 }

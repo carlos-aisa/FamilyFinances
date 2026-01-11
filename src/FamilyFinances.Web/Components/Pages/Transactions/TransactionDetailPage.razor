@@ -1,0 +1,106 @@
+﻿@page "/transactions/{Id:guid}"
+@inherits ApiPageBase
+@using System.Globalization
+@using FamilyFinances.Application.Ledger.Accounts.Dtos
+@using FamilyFinances.Application.Ledger.Transactions.Dtos
+@using FamilyFinances.Web.Api
+@using FamilyFinances.Web.Components.Base
+@inject TransactionsApi TransactionsApi
+@inject IAccountsApi AccountsApi
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+        <h3 class="m-0">Transaction</h3>
+        @if (_tx is not null)
+        {
+            <div class="text-muted">@_tx.BookedOn</div>
+        }
+    </div>
+
+    <a class="btn btn-sm btn-outline-secondary" href="/transactions">Back</a>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <div class="alert alert-danger" role="alert">@_error</div>
+}
+else if (_tx is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="mb-3">
+        <div class="fw-semibold">Description</div>
+        <div>@_tx.Description</div>
+    </div>
+
+    <div class="mb-4">
+        <div class="fw-semibold">Payee</div>
+        <div>@GetPayeeLabel(_tx.PayeeName)</div>
+    </div>
+
+    <h5 class="mb-2">Splits</h5>
+    <table class="table table-sm align-middle">
+        <thead>
+            <tr>
+                <th>Account</th>
+                <th style="width: 160px;" class="text-end">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var s in _tx.Splits)
+            {
+                <tr>
+                    <td>@GetAccountName(s.AccountId)</td>
+                    <td class="text-end">@FormatMoney(s.Amount)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private TransactionDto? _tx;
+    private string? _error;
+
+    private IReadOnlyList<AccountDto> _accounts = Array.Empty<AccountDto>();
+    private Dictionary<Guid, string> _accountNames = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _error = null;
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                // Load accounts first (for mapping split.AccountId -> name)
+                _accounts = await AccountsApi.ListAsync(ct);
+                _accountNames = _accounts.ToDictionary(a => a.Id, a => a.Name);
+
+                _tx = await TransactionsApi.GetByIdAsync(Id, ct);
+            });
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private string GetAccountName(Guid accountId)
+        => _accountNames.TryGetValue(accountId, out var name) ? name : "(unknown account)";
+
+    private string GetPayeeLabel(string? payee)
+        => payee ?? "(unknown payee)";
+
+    private static string FormatMoney(decimal amount)
+        => amount.ToString("C", CultureInfo.CurrentCulture);
+}

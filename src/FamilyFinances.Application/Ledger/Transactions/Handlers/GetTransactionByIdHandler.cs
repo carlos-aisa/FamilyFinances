@@ -23,7 +23,8 @@ public sealed class GetTransactionByIdHandler
             tx.BookedOn,
             tx.Description,
             tx.PayeeId?.Value,
-            tx.Splits.Select(x => new TransactionSplitDto(x.AccountId.Value, x.Amount.Cents, x.Memo)).ToList()
+            tx.Payee?.Name,
+            tx.Splits.Select(x => new TransactionSplitDto(x.AccountId.Value, x.Amount.ToEuros(), x.Memo)).ToList()
         );
     }
 }

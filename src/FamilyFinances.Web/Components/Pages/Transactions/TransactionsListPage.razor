@@ -39,11 +39,10 @@ else
                 <tr>
                     <td>@t.BookedOn</td>
                     <td>
-                        <div class="fw-semibold">@t.Headline</div>
-                        @if (!string.IsNullOrWhiteSpace(t.Subheadline))
-                        {
+                        <a class="text-decoration-none" href="@($"/transactions/{t.Id}")">
+                            <div class="fw-semibold">@t.Headline</div>
                             <div class="text-muted small">@t.Subheadline</div>
-                        }
+                        </a>
                     </td>
                     <td class="text-end fw-semibold">
                         @t.Amount.ToString("C", CultureInfo.CurrentCulture)

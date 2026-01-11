@@ -17,6 +17,7 @@ public sealed class TransactionRepository : ITransactionRepository
     public Task<Transaction?> GetByIdAsync(TransactionId id, CancellationToken ct)
         => _db.Transactions
             .AsNoTracking()
+            .Include(t=> t.Payee)
             .Include(t => t.Splits)
             .FirstOrDefaultAsync(t => t.Id == id, ct);
 
