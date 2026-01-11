@@ -1,0 +1,34 @@
+﻿<div class="border rounded overflow-hidden">
+    <div class="px-3 py-2 fw-semibold bg-body-tertiary d-flex justify-content-between align-items-center"
+         role="button"
+         @onclick="OnHeaderClick">
+        <div class="d-flex align-items-center gap-2">
+            <span>@Title</span>
+            @if (!string.IsNullOrWhiteSpace(Subtitle))
+            {
+                <span class="text-muted fw-normal">@Subtitle</span>
+            }
+        </div>
+
+        @if (!IsActive && !string.IsNullOrWhiteSpace(CollapsedHint))
+        {
+            <span class="badge rounded-pill text-bg-secondary">@CollapsedHint</span>
+        }
+    </div>
+
+    @if (IsActive)
+    {
+        <div class="p-3">
+            @ChildContent
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public string? CollapsedHint { get; set; }
+    [Parameter] public bool IsActive { get; set; }
+    [Parameter] public EventCallback OnHeaderClick { get; set; }
+    [Parameter, EditorRequired] public RenderFragment ChildContent { get; set; } = default!;
+}
