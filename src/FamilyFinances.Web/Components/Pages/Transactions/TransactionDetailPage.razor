@@ -3,11 +3,37 @@
 @using System.Globalization
 @using FamilyFinances.Application.Ledger.Accounts.Dtos
 @using FamilyFinances.Application.Ledger.Transactions.Dtos
+@using FamilyFinances.Domain.Common
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
 @inject TransactionsApi TransactionsApi
 @inject IAccountsApi AccountsApi
 
+<div class="d-flex gap-2">
+    <a class="btn btn-sm btn-outline-secondary" href="/transactions">Back</a>
+
+    @if (!_confirmDelete)
+    {
+        <button class="btn btn-sm btn-outline-danger" type="button"
+                @onclick="() => _confirmDelete = true">
+            Delete
+        </button>
+    }
+    else
+    {
+        <button class="btn btn-sm btn-secondary" type="button"
+                @onclick="() => _confirmDelete = false"
+                disabled="@_isDeleting">
+            Cancel
+        </button>
+
+        <button class="btn btn-sm btn-danger" type="button"
+                @onclick="DeleteAsync"
+                disabled="@_isDeleting">
+            Confirm delete
+        </button>
+    }
+</div>
 <div class="d-flex align-items-center justify-content-between mb-3">
     <div>
         <h3 class="m-0">Transaction</h3>
@@ -69,6 +95,9 @@ else
     private IReadOnlyList<AccountDto> _accounts = Array.Empty<AccountDto>();
     private Dictionary<Guid, string> _accountNames = new();
 
+    private bool _confirmDelete;
+    private bool _isDeleting;
+
     protected override async Task OnInitializedAsync()
     {
         await LoadAsync();
@@ -103,4 +132,30 @@ else
 
     private static string FormatMoney(decimal amount)
         => amount.ToString("C", CultureInfo.CurrentCulture);
+
+    private async Task DeleteAsync()
+    {
+        _error = null;
+        _isDeleting = true;
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                await TransactionsApi.DeleteAsync(Id, ct);
+            });
+
+            Nav.NavigateTo("/transactions");
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            _confirmDelete = false;
+        }
+        finally
+        {
+            _isDeleting = false;
+        }
+    }
+
 }

@@ -31,4 +31,13 @@ public sealed class TransactionRepository : ITransactionRepository
             .Take(take)
             .ToListAsync(ct);
 
+    public async Task RemoveAsync(TransactionId id, CancellationToken ct)
+    {
+        var transaction = await GetByIdAsync(id, ct);
+        if (transaction is not null)
+        {
+            _db.Transactions.Remove(transaction);
+            return;
+        }
+    }
 }

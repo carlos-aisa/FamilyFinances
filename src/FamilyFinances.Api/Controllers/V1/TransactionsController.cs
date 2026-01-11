@@ -39,4 +39,15 @@ public sealed class TransactionsController : ControllerBase
     [FromQuery] int take,
     CancellationToken ct)
     => Ok(await handler.HandleAsync(take, ct));
+
+    [HttpDelete("{id:guid}")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<IActionResult> Delete(
+        [FromServices] DeleteTransactionHandler handler,
+        [FromRoute] Guid id,
+        CancellationToken ct)
+    {
+        var ok = await handler.HandleAsync(id, ct);
+        return ok ? NoContent() : NotFound();
+    }
 }

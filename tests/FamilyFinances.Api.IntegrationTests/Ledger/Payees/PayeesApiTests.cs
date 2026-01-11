@@ -90,6 +90,73 @@ public sealed class PayeesApiTests
         payees!.Should().ContainSingle(p => p.Id == created.Id && p.Name == "AWS");
     }
 
+    [Fact]
+    public async Task Rename_Payee_Returns404_WhenNotFound()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var renameRes = await client.PatchAsJsonAsync($"/api/v1/payees/{Guid.NewGuid()}/rename", new { name = "New Name" });
+
+        renameRes.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Rename_Payee_RequiresAuth()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = factory.CreateClient();
+
+        var res = await client.PatchAsJsonAsync($"/api/v1/payees/{Guid.NewGuid()}/rename", new { name = "New Name" });
+
+        res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Can_Delete_Payee_WhenAuthorized()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        // Create a payee
+        var createRes = await client.PostAsJsonAsync("/api/v1/payees", new { name = "Payee to Delete" });
+        createRes.StatusCode.Should().Be(HttpStatusCode.OK);
+        var created = await createRes.Content.ReadFromJsonAsync<PayeeDto>();
+        created.Should().NotBeNull();
+
+        // Delete the payee
+        var deleteRes = await client.DeleteAsync($"/api/v1/payees/{created!.Id}");
+        deleteRes.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        // Verify it's not in the list anymore
+        var listRes = await client.GetAsync("/api/v1/payees");
+        var list = await listRes.Content.ReadFromJsonAsync<List<PayeeDto>>();
+        list.Should().NotBeNull();
+        list!.Should().NotContain(p => p.Id == created.Id);
+    }
+
+    [Fact]
+    public async Task Delete_Payee_Returns404_WhenNotFound()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var deleteRes = await client.DeleteAsync($"/api/v1/payees/{Guid.NewGuid()}");
+
+        deleteRes.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Delete_Payee_RequiresAuth()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = factory.CreateClient();
+
+        var res = await client.DeleteAsync($"/api/v1/payees/{Guid.NewGuid()}");
+
+        res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
     private sealed record PayeeDto(Guid Id, string Name);
 
     private sealed record ErrorResponse(string Error);
