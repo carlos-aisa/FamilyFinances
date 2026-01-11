@@ -19,8 +19,8 @@ else
 {
     <div class="row g-4">
         <div class="col-12 col-lg-7">
-            <QuickEntryCard Title="Expense"
-                            Subtitle="@GetExpenseSubtitle()"
+            <QuickEntryCard Title="@Specs[QuickEntryType.Expense].Title"
+                            Subtitle="@Specs[QuickEntryType.Expense].Hint"
                             IsActive="@(_activeEntry == QuickEntryType.Expense)"
                             OnHeaderClick="@(() => SetActive(QuickEntryType.Expense))">
                 <QuickExpenseDrawer Accounts="_accounts"
@@ -37,10 +37,10 @@ else
                 </div>
             </QuickEntryCard>
 
-            <QuickEntryCard Title="Income"
-                           Subtitle="@GetIncomeSubtitle()"
-                           IsActive="@(_activeEntry == QuickEntryType.Income)"
-                           OnHeaderClick="@(() => SetActive(QuickEntryType.Income))">
+            <QuickEntryCard Title="@Specs[QuickEntryType.Income].Title"
+                            Subtitle="@Specs[QuickEntryType.Income].Hint"
+                            IsActive="@(_activeEntry == QuickEntryType.Income)"
+                            OnHeaderClick="@(() => SetActive(QuickEntryType.Income))">
                 <QuickExpenseDrawer Accounts="_accounts"
                                     Payees="_payees"
                                     SelectedFromAccountId="_incomeFromSourceId"
@@ -49,10 +49,10 @@ else
                                     OnClearSelection="ClearSelection" />
             </QuickEntryCard>
 
-            <QuickEntryCard Title="Transfer"
-                           Subtitle="@GetTransferSubtitle()"
-                           IsActive="@(_activeEntry == QuickEntryType.Transfer)"
-                           OnHeaderClick="@(() => SetActive(QuickEntryType.Transfer))">
+            <QuickEntryCard Title="@Specs[QuickEntryType.Transfer].Title"
+                            Subtitle="@Specs[QuickEntryType.Transfer].Hint"
+                            IsActive="@(_activeEntry == QuickEntryType.Transfer)"
+                            OnHeaderClick="@(() => SetActive(QuickEntryType.Transfer))">
                 <QuickExpenseDrawer Accounts="_accounts"
                                     Payees="_payees"
                                     SelectedFromAccountId="_transferFromAssetId"
@@ -134,159 +134,83 @@ else
             _payees = await PayeesApi.ListAsync(ct);
         });
     }
-    /*
-    private RenderFragment RenderNatureSection(AccountNature nature, string title, string idSuffix) => builder =>
-    {
-        if (_accounts is null)
-            return;
-
-        var groupId = $"acc-{idSuffix}";
-        var collapseId = $"collapse-{idSuffix}";
-
-        var items = _accounts
-            .Where(a => a.Nature == nature && !a.IsClosed)
-            .OrderBy(a => a.Name)
-            .ToList();
-
-        // Accordion item
-        var seq = 0;
-
-        builder.OpenElement(seq++, "div");
-        builder.AddAttribute(seq++, "class", "accordion-item");
-
-        builder.OpenElement(seq++, "h2");
-        builder.AddAttribute(seq++, "class", "accordion-header");
-        builder.AddAttribute(seq++, "id", groupId);
-
-        builder.OpenElement(seq++, "button");
-        builder.AddAttribute(seq++, "class", "accordion-button collapsed");
-        builder.AddAttribute(seq++, "type", "button");
-        builder.AddAttribute(seq++, "data-bs-toggle", "collapse");
-        builder.AddAttribute(seq++, "data-bs-target", $"#{collapseId}");
-        builder.AddAttribute(seq++, "aria-expanded", "false");
-        builder.AddAttribute(seq++, "aria-controls", collapseId);
-        builder.AddContent(seq++, $"{title} ({items.Count})");
-        builder.CloseElement(); // button
-
-        builder.CloseElement(); // h2
-
-        builder.OpenElement(seq++, "div");
-        builder.AddAttribute(seq++, "id", collapseId);
-        builder.AddAttribute(seq++, "class", "accordion-collapse collapse");
-        builder.AddAttribute(seq++, "aria-labelledby", groupId);
-        builder.AddAttribute(seq++, "data-bs-parent", "#accountsAccordion");
-
-        builder.OpenElement(seq++, "div");
-        builder.AddAttribute(seq++, "class", "accordion-body p-2");
-
-        if (items.Count == 0)
-        {
-            builder.OpenElement(seq++, "div");
-            builder.AddAttribute(seq++, "class", "text-muted");
-            builder.AddContent(seq++, "No accounts.");
-            builder.CloseElement();
-            }
-        else
-        {
-            builder.OpenElement(seq++, "div");
-            builder.AddAttribute(seq++, "class", "list-group");
-
-            foreach (var a in items)
-            {
-                var isSelected =
-        (_selectedFromAccountId == a.Id) ||
-        (_selectedToAccountId == a.Id);
-
-                builder.OpenElement(seq++, "button");
-                builder.AddAttribute(seq++, "type", "button");
-                builder.AddAttribute(seq++, "class", isSelected ? "list-group-item list-group-item-action active" : "list-group-item list-group-item-action");
-                builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => OnAccountClicked(a)));
-                builder.AddContent(seq++, a.Name);
-                builder.CloseElement();
-                }
-
-            builder.CloseElement(); // list-group
-            builder.CloseElement(); // div
-            }
-
-        builder.CloseElement(); // accordion-body
-        builder.CloseElement(); // collapse
-        builder.CloseElement(); // accordion-item
-        };
-    */
 
     private void OnAccountClicked(AccountDto account)
+    {
+        var spec = Specs[_activeEntry];
+
+        if (spec.FromAllowed.Contains(account.Nature))
+        {
+            SetFromForActiveEntry(account.Id);
+            return;
+        }
+
+        if (spec.ToAllowed.Contains(account.Nature))
+        {
+            SetToForActiveEntry(account.Id, spec.ReplaceToWhenBothSelected);
+            return;
+        }
+    }
+
+    private void SetFromForActiveEntry(Guid accountId)
     {
         switch (_activeEntry)
         {
             case QuickEntryType.Expense:
-                HandleExpenseSelection(account);
+                _expenseFromAssetId = accountId;
+                _selectedFromAccountId = accountId;
                 break;
+
             case QuickEntryType.Income:
-                HandleIncomeSelection(account);
+                _incomeFromSourceId = accountId;
+                _selectedFromAccountId = accountId;
                 break;
+
             case QuickEntryType.Transfer:
-                HandleTransferSelection(account);
+                _transferFromAssetId = accountId;
+                _selectedFromAccountId = accountId;
                 break;
         }
     }
 
-    private void HandleExpenseSelection(AccountDto account)
+    private void SetToForActiveEntry(Guid accountId, bool replaceWhenBothSelected)
     {
-        if (account.Nature is AccountNature.Asset or AccountNature.Liability)
+        switch (_activeEntry)
         {
-            _expenseFromAssetId = account.Id;
-            _selectedFromAccountId = account.Id;  //remove in the future
-            return;
+            case QuickEntryType.Expense:
+                _expenseToCategoryId = accountId;
+                _selectedToAccountId = accountId;
+                break;
+
+            case QuickEntryType.Income:
+                _incomeToAssetId = accountId;
+                _selectedToAccountId = accountId;
+                break;
+
+            case QuickEntryType.Transfer:
+                if (_transferFromAssetId is null)
+                {
+                    // If the user clicked an Asset and From is empty, treat it as From.
+                    _transferFromAssetId = accountId;
+                    _selectedFromAccountId = accountId;
+                    return;
+                }
+
+                if (_transferToAssetId is null)
+                {
+                    _transferToAssetId = accountId;
+                    _selectedToAccountId = accountId;
+                    return;
+                }
+
+                if (replaceWhenBothSelected)
+                {
+                    _transferToAssetId = accountId;
+                    _selectedToAccountId = accountId;
+                }
+
+                break;
         }
-
-        if (account.Nature == AccountNature.Expense)
-        {
-            _expenseToCategoryId = account.Id;
-            _selectedToAccountId = account.Id;   //remove in the future
-            return;
-        }
-    }
-
-    private void HandleIncomeSelection(AccountDto account)
-    {
-        if (account.Nature == AccountNature.Income)
-        {
-            _incomeFromSourceId = account.Id;
-            _selectedFromAccountId = account.Id;  //remove in the future
-            return;
-        }
-
-        if (account.Nature == AccountNature.Asset)
-        {
-            _incomeToAssetId = account.Id;
-            _selectedToAccountId = account.Id;  //remove in the future
-            return;
-        }
-    }
-
-    private void HandleTransferSelection(AccountDto account)
-    {
-        if (account.Nature != AccountNature.Asset)
-            return;
-
-        if (_transferFromAssetId is null)
-        {
-            _transferFromAssetId = account.Id; 
-            _selectedFromAccountId = account.Id;  //remove in the future
-            return;
-        }
-
-        if (_transferToAssetId is null)
-        {
-            _transferToAssetId = account.Id; 
-            _selectedToAccountId = account.Id;  //remove in the future
-            return;
-        }
-
-        // Both set: replace To 
-        _transferToAssetId = account.Id;
-        _selectedToAccountId = account.Id;   //remove in the future
     }
 
 
@@ -350,7 +274,7 @@ else
 
     private string GetExpenseSubtitle()
        // => $"{GetAccountName(_expenseFromAssetId)} → {GetAccountName(_expenseToCategoryId)}";
-       => "";
+       => "Tip: click an Asset/Liability to set Paid from, then click an Expense to set <strong>Category";
     private string GetIncomeSubtitle()
         //=> $"{GetAccountName(_incomeFromSourceId)} → {GetAccountName(_incomeToAssetId)}";
        => "";
@@ -368,4 +292,35 @@ else
             .OrderBy(a => a.Name)
             .ToList();
     }
+
+    private sealed record QuickEntrySpec(
+        string Title,
+        string Hint,
+        HashSet<AccountNature> FromAllowed,
+        HashSet<AccountNature> ToAllowed,
+        bool ReplaceToWhenBothSelected);
+
+    private static readonly Dictionary<QuickEntryType, QuickEntrySpec> Specs = new()
+    {
+        [QuickEntryType.Expense] = new(
+            Title: "Expense",
+            Hint: "Select an account and an expense category",
+            FromAllowed: new() { AccountNature.Asset, AccountNature.Liability },
+            ToAllowed: new() { AccountNature.Expense },
+            ReplaceToWhenBothSelected: false),
+
+        [QuickEntryType.Income] = new(
+            Title: "Income",
+            Hint: "Select an income source and a destination account",
+            FromAllowed: new() { AccountNature.Income },
+            ToAllowed: new() { AccountNature.Asset },
+            ReplaceToWhenBothSelected: false),
+
+        [QuickEntryType.Transfer] = new(
+            Title: "Transfer",
+            Hint: "Select two accounts to move money between them",
+            FromAllowed: new() { AccountNature.Asset },
+            ToAllowed: new() { AccountNature.Asset },
+            ReplaceToWhenBothSelected: true),
+    };
 }
