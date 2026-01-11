@@ -1,14 +1,19 @@
 @page "/transactions"
+@inherits ApiPageBase
+@using FamilyFinances.Application.Ledger.Transactions.Dtos
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
-@inherits ApiPageBase
+@using System.Globalization
 @inject TransactionsApi TransactionsApi
 
-<h3>Transactions</h3>
-
-<div class="mb-3">
-    <button class="btn btn-primary" @onclick="NewTransaction">New transaction</button>
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h3 class="m-0">Transactions</h3>
 </div>
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <div class="alert alert-danger" role="alert">@_error</div>
+}
 
 @if (_items is null)
 {
@@ -16,43 +21,62 @@
 }
 else if (_items.Count == 0)
 {
-    <p>No transactions yet.</p>
+    <p class="text-muted">No transactions yet.</p>
 }
 else
 {
-    <table class="table table-sm">
+    <table class="table table-sm align-middle">
         <thead>
-        <tr>
-            <th>Date</th>
-            <th>Description</th>
-            <th>Payee</th>
-            <th>Splits</th>
-        </tr>
+            <tr>
+                <th style="width: 110px;">Date</th>
+                <th>Description</th>
+                <th style="width: 140px;" class="text-end">Amount</th>
+            </tr>
         </thead>
         <tbody>
-        @foreach (var t in _items)
-        {
-            <tr>
-                <td>@t.BookedOn</td>
-                <td>@t.Description</td>
-                <td>@(t.PayeeId?.ToString() ?? "-")</td>
-                <td>@t.Splits.Count</td>
-            </tr>
-        }
+            @foreach (var t in _items)
+            {
+                <tr>
+                    <td>@t.BookedOn</td>
+                    <td>
+                        <div class="fw-semibold">@t.Headline</div>
+                        @if (!string.IsNullOrWhiteSpace(t.Subheadline))
+                        {
+                            <div class="text-muted small">@t.Subheadline</div>
+                        }
+                    </td>
+                    <td class="text-end fw-semibold">
+                        @t.Amount.ToString("C", CultureInfo.CurrentCulture)
+                    </td>
+                </tr>
+            }
         </tbody>
     </table>
 }
 
 @code {
-    private IReadOnlyList<FamilyFinances.Application.Ledger.Transactions.Dtos.TransactionDto>? _items;
+    private IReadOnlyList<TransactionListItemDto>? _items;
+    private string? _error;
 
     protected override async Task OnInitializedAsync()
     {
-        await ExecuteApiAsync(async ct =>
-        {
-            _items = await TransactionsApi.ListAsync(100, ct);
-        });
+        await LoadAsync();
     }
 
-    private void NewTransaction() => Nav.NavigateTo("/transactions/new");
+    private async Task LoadAsync()
+    {
+        _error = null;
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                _items = await TransactionsApi.ListAsync(take: 50, ct);
+            });
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
 }

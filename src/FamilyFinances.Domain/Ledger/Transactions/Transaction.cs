@@ -12,6 +12,7 @@ public sealed class Transaction
     public string Description { get; }
 
     public PayeeId? PayeeId { get; }
+    public Payee? Payee { get; }
 
     public IReadOnlyList<TransactionSplit> Splits => _splits;
 

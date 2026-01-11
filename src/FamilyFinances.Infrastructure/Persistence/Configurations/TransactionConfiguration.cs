@@ -39,7 +39,7 @@ public sealed class TransactionConfiguration : IEntityTypeConfiguration<Transact
                 id => id.HasValue ? id.Value.Value : (Guid?)null,
                 value => value.HasValue ? new PayeeId(value.Value) : (PayeeId?)null);
 
-        builder.HasOne<Payee>()
+        builder.HasOne(x=> x.Payee)
             .WithMany()
             .HasForeignKey(t => t.PayeeId)
             .OnDelete(DeleteBehavior.Restrict);

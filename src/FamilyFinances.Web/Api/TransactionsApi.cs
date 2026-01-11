@@ -18,7 +18,7 @@ public sealed class TransactionsApi
         _tokenStore = tokenStore;
     }
 
-    public async Task<IReadOnlyList<TransactionDto>> ListAsync(int take, CancellationToken ct)
+    public async Task<IReadOnlyList<TransactionListItemDto>> ListAsync(int take, CancellationToken ct)
     {
         var token = _tokenStore.GetAccessToken();
         if (string.IsNullOrWhiteSpace(token))
@@ -34,8 +34,8 @@ public sealed class TransactionsApi
 
         response.EnsureSuccessStatusCode();
 
-        var items = await response.Content.ReadFromJsonAsync<IReadOnlyList<TransactionDto>>(cancellationToken: ct);
-        return items ?? Array.Empty<TransactionDto>();
+        var items = await response.Content.ReadFromJsonAsync<IReadOnlyList<TransactionListItemDto>>(cancellationToken: ct);
+        return items ?? [];
     }
 
     public async Task<TransactionDto> CreateAsync(CreateTransactionRequest requestBody, CancellationToken ct)

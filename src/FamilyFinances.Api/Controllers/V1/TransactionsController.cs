@@ -34,7 +34,7 @@ public sealed class TransactionsController : ControllerBase
 
     [HttpGet]
     [Authorize(Policy = Policies.CanRead)]
-    public async Task<ActionResult<IReadOnlyList<TransactionDto>>> List(
+    public async Task<ActionResult<IReadOnlyList<TransactionListItemDto>>> List(
     [FromServices] ListTransactionsHandler handler,
     [FromQuery] int take,
     CancellationToken ct)
