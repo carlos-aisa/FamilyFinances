@@ -52,6 +52,7 @@ public static class DependencyInjection
         services.AddScoped<GetTransactionByIdHandler>();
         services.AddScoped<ListTransactionsHandler>();
         services.AddScoped<DeleteTransactionHandler>();
+        services.AddScoped<UpdateTransactionHandler>();
 
         services.AddScoped<CreatePayeeHandler>();
         services.AddScoped<ListPayeesHandler>();

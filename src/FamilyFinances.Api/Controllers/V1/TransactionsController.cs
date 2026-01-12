@@ -35,10 +35,23 @@ public sealed class TransactionsController : ControllerBase
     [HttpGet]
     [Authorize(Policy = Policies.CanRead)]
     public async Task<ActionResult<IReadOnlyList<TransactionListItemDto>>> List(
-    [FromServices] ListTransactionsHandler handler,
-    [FromQuery] int take,
-    CancellationToken ct)
+        [FromServices] ListTransactionsHandler handler,
+        [FromQuery] int take,
+        CancellationToken ct)
     => Ok(await handler.HandleAsync(take, ct));
+
+    [HttpPut("{id:guid}")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<IActionResult> Update(
+        Guid id,
+        [FromServices] UpdateTransactionHandler _handler,
+        [FromBody] UpdateTransactionRequest request,
+        CancellationToken ct)
+    {
+        var ok = await _handler.HandleAsync(request, ct);
+
+        return ok ? NoContent() : NotFound();
+    }
 
     [HttpDelete("{id:guid}")]
     [Authorize(Policy = Policies.CanWrite)]

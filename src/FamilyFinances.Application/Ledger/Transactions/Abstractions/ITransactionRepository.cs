@@ -8,4 +8,13 @@ public interface ITransactionRepository
     Task<Transaction?> GetByIdAsync(TransactionId id, CancellationToken ct);
     Task<IReadOnlyList<Transaction>> ListAsync(int take, CancellationToken ct);
     Task RemoveAsync(TransactionId id, CancellationToken ct);
+    Task<bool> UpdateTwoSplitAsync(
+        Guid id,
+        DateOnly bookedOn,
+        string description,
+        Guid? payeeId,
+        Guid fromAccountId,
+        Guid toAccountId,
+        decimal amount,
+        CancellationToken ct);
 }

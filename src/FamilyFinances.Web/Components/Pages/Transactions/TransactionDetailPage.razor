@@ -12,6 +12,7 @@
 <div class="d-flex gap-2">
     <a class="btn btn-sm btn-outline-secondary" href="/transactions">Back</a>
 
+    <a class="btn btn-sm btn-outline-primary" href="@($"/transactions/{Id}/edit")">Edit</a>
     @if (!_confirmDelete)
     {
         <button class="btn btn-sm btn-outline-danger" type="button"
