@@ -11,7 +11,12 @@
 
 <div class="d-flex gap-2">
     <a class="btn btn-sm btn-outline-secondary" href="/transactions">Back</a>
-
+    @if (_result == "updated")
+    {
+        <div class="alert alert-success" role="alert">
+            Transaction updated successfully.
+        </div>
+    }
     <a class="btn btn-sm btn-outline-primary" href="@($"/transactions/{Id}/edit")">Edit</a>
     @if (!_confirmDelete)
     {
@@ -98,9 +103,11 @@ else
 
     private bool _confirmDelete;
     private bool _isDeleting;
+    private string? _result;
 
     protected override async Task OnInitializedAsync()
     {
+        _result = GetQueryParam("result");
         await LoadAsync();
     }
 
@@ -125,6 +132,18 @@ else
         }
     }
 
+    private string? GetQueryParam(string key)
+    {
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        if (Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query)
+            .TryGetValue(key, out var value))
+        {
+            return value.ToString();
+        }
+
+        return null;
+    }
+
     private string GetAccountName(Guid accountId)
         => _accountNames.TryGetValue(accountId, out var name) ? name : "(unknown account)";
 
@@ -146,7 +165,7 @@ else
                 await TransactionsApi.DeleteAsync(Id, ct);
             });
 
-            Nav.NavigateTo("/transactions");
+            Nav.NavigateTo("/transactions?result=deleted", replace: true);
         }
         catch (Exception ex)
         {
@@ -156,6 +175,18 @@ else
         finally
         {
             _isDeleting = false;
+        }
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        if (!string.IsNullOrWhiteSpace(_result))
+        {
+            var cleanUrl = Nav.Uri.Split('?')[0];
+            Nav.NavigateTo(cleanUrl, replace: true);
         }
     }
 

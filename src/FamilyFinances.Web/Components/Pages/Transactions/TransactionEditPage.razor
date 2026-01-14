@@ -165,7 +165,7 @@ else
                 await TransactionsApi.UpdateAsync(Id, req, ct);
             });
 
-            NavigationManager.NavigateTo($"/transactions/{Id}");
+            NavigationManager.NavigateTo($"/transactions/{Id}?result=updated", replace: true);
         }
         catch (Exception ex)
         {

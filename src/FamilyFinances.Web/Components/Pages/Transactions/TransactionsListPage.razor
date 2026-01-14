@@ -10,6 +10,12 @@
     <h3 class="m-0">Transactions</h3>
 </div>
 
+@if (_result == "deleted")
+{
+    <div class="alert alert-success" role="alert">
+        Transaction deleted successfully.
+    </div>
+}
 @if (!string.IsNullOrWhiteSpace(_error))
 {
     <div class="alert alert-danger" role="alert">@_error</div>
@@ -56,9 +62,11 @@ else
 @code {
     private IReadOnlyList<TransactionListItemDto>? _items;
     private string? _error;
+    private string? _result;
 
     protected override async Task OnInitializedAsync()
     {
+        _result = GetQueryParam("result");
         await LoadAsync();
     }
 
@@ -76,6 +84,30 @@ else
         catch (Exception ex)
         {
             _error = ex.Message;
+        }
+    }
+
+    private string? GetQueryParam(string key)
+    {
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        if (Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query)
+            .TryGetValue(key, out var value))
+        {
+            return value.ToString();
+        }
+
+        return null;
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        if (!string.IsNullOrWhiteSpace(_result))
+        {
+            var cleanUrl = Nav.Uri.Split('?')[0];
+            Nav.NavigateTo(cleanUrl, replace: true);
         }
     }
 }
