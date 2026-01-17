@@ -136,6 +136,116 @@ public sealed class AccountGroupsApiTests
         create.StatusCode.Should().BeOneOf(HttpStatusCode.Unauthorized, HttpStatusCode.Forbidden);
     }
 
+    [Fact]
+    public async Task Can_Rename_AccountGroup()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        // Create
+        var createRes = await client.PostAsJsonAsync("/api/v1/account-groups", new
+        {
+            name = "Original Name",
+            description = (string?)null
+        });
+        createRes.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var group = await createRes.Content.ReadFromJsonAsync<AccountGroupDto>();
+        group.Should().NotBeNull();
+
+        // Rename
+        var renameRes = await client.PatchAsync($"/api/v1/account-groups/{group!.Id}/rename",
+            JsonContent.Create(new { name = "New Name" }));
+        renameRes.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        // Verify
+        var getRes = await client.GetAsync($"/api/v1/account-groups/{group.Id}");
+        getRes.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var details = await getRes.Content.ReadFromJsonAsync<AccountGroupDetailsDto>();
+        details.Should().NotBeNull();
+        details!.Name.Should().Be("New Name");
+    }
+
+    [Fact]
+    public async Task Rename_Should_Reject_Duplicate_Name()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        // Create two groups
+        var res1 = await client.PostAsJsonAsync("/api/v1/account-groups", new { name = "Group A", description = (string?)null });
+        res1.StatusCode.Should().Be(HttpStatusCode.OK);
+        var group1 = await res1.Content.ReadFromJsonAsync<AccountGroupDto>();
+
+        var res2 = await client.PostAsJsonAsync("/api/v1/account-groups", new { name = "Group B", description = (string?)null });
+        res2.StatusCode.Should().Be(HttpStatusCode.OK);
+        var group2 = await res2.Content.ReadFromJsonAsync<AccountGroupDto>();
+
+        // Try to rename group2 to group1's name (case-insensitive)
+        var renameRes = await client.PatchAsync($"/api/v1/account-groups/{group2!.Id}/rename",
+            JsonContent.Create(new { name = "group a" }));
+
+        renameRes.IsSuccessStatusCode.Should().BeFalse();
+        renameRes.StatusCode.Should().BeOneOf(HttpStatusCode.BadRequest, HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task Rename_Returns_NotFound_For_NonExistent_Group()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var renameRes = await client.PatchAsync($"/api/v1/account-groups/{Guid.NewGuid()}/rename",
+            JsonContent.Create(new { name = "Any Name" }));
+
+        renameRes.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Can_Delete_AccountGroup()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        // Create
+        var createRes = await client.PostAsJsonAsync("/api/v1/account-groups", new
+        {
+            name = "To Delete",
+            description = (string?)null
+        });
+        createRes.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var group = await createRes.Content.ReadFromJsonAsync<AccountGroupDto>();
+        group.Should().NotBeNull();
+
+        // Delete
+        var deleteRes = await client.DeleteAsync($"/api/v1/account-groups/{group!.Id}");
+        deleteRes.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        // Verify it's gone
+        var getRes = await client.GetAsync($"/api/v1/account-groups/{group.Id}");
+        getRes.StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        // List should not contain it
+        var listRes = await client.GetAsync("/api/v1/account-groups");
+        listRes.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var list = await listRes.Content.ReadFromJsonAsync<List<AccountGroupDto>>();
+        list.Should().NotBeNull();
+        list!.Should().NotContain(g => g.Id == group.Id);
+    }
+
+    [Fact]
+    public async Task Delete_Returns_NotFound_For_NonExistent_Group()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var deleteRes = await client.DeleteAsync($"/api/v1/account-groups/{Guid.NewGuid()}");
+        deleteRes.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
     // Minimal DTOs for deserialization
     public sealed record AccountGroupDto(Guid Id, string Name, string? Description);
 
