@@ -68,4 +68,27 @@ public sealed class AccountGroupsController : ControllerBase
         await handler.HandleAsync(new RemoveAccountFromGroupRequest(id, accountId), ct);
         return NoContent();
     }
+
+    [HttpPatch("{id:guid}/rename")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<IActionResult> Rename(
+        [FromRoute] Guid id,
+        [FromBody] RenameAccountGroupRequest request,
+        [FromServices] RenameAccountGroupHandler handler,
+        CancellationToken ct)
+    {
+        var ok = await handler.HandleAsync(id, request, ct);
+        return ok ? NoContent() : NotFound();
+    }
+
+    [HttpDelete("{id:guid}")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<IActionResult> Delete(
+        [FromRoute] Guid id,
+        [FromServices] DeleteAccountGroupHandler handler,
+        CancellationToken ct)
+    {
+        var ok = await handler.HandleAsync(id, ct);
+        return ok ? NoContent() : NotFound();
+    }
 }
