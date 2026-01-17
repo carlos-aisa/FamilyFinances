@@ -1,17 +1,22 @@
 @using FamilyFinances.Web.Auth
+@using Microsoft.JSInterop
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager Nav
 @inject IApiTokenStore TokenStore
 @inject JwtAuthStateProvider AuthProvider
+@inject IJSRuntime JS
 
-<button class="btn btn-link" @onclick="LogoutAsync">Logout</button>
+<button class="btn btn-link nav-link" @onclick="LogoutAsync">
+    <span class="bi bi-box-arrow-right" aria-hidden="true"></span> Logout
+</button>
 
 @code {
     private async Task LogoutAsync()
     {
+        await JS.InvokeVoidAsync("sessionHelper.clearSessionActive");
+        
         var http = HttpClientFactory.CreateClient();
         var url = new Uri(new Uri(Nav.BaseUri), "auth/session");
-
         await http.DeleteAsync(url);
 
         TokenStore.Clear();

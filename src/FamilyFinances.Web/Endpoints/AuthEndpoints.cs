@@ -57,7 +57,7 @@ public static class AuthEndpoints
         if (!http.Request.Cookies.TryGetValue("ff_access_token", out var token) ||
             string.IsNullOrWhiteSpace(token))
         {
-            return Results.NoContent();
+            return Results.NoContent(); // O Results.Ok(new { accessToken = (string?)null })
         }
 
         return Results.Ok(new { accessToken = token });

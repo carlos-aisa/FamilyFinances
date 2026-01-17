@@ -1,9 +1,49 @@
 @using System.Net.Http.Json
 @using FamilyFinances.Web.Auth
-@inject IHttpClientFactory HttpClientFactory
-@inject NavigationManager Nav
+@using Microsoft.JSInterop
 @inject IApiTokenStore TokenStore
 @inject JwtAuthStateProvider AuthProvider
+@inject ISessionInitializationService SessionInit
+@inject ILogger<SessionBootstrapper> Logger
+@inject IJSRuntime JS
+
+<script>
+    window.sessionHelper = {
+        hasActiveSession: function() {
+            return sessionStorage.getItem('ff_session_active') === 'true';
+        },
+        
+        markSessionActive: function() {
+            sessionStorage.setItem('ff_session_active', 'true');
+        },
+        
+        clearSessionActive: function() {
+            sessionStorage.removeItem('ff_session_active');
+        },
+        
+        getSession: async function () {
+            try {
+                const response = await fetch('/auth/session', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                if (response.status === 204 || !response.ok) {
+                    return { hasSession: false };
+                }
+
+                const data = await response.json();
+                return { 
+                    hasSession: true, 
+                    accessToken: data.accessToken 
+                };
+            } catch (error) {
+                console.error('Session recovery error:', error);
+                return { hasSession: false };
+            }
+        }
+    };
+</script>
 
 @code {
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -11,41 +51,51 @@
         if (!firstRender)
             return;
 
-        // If we already have a token in memory, skip
-        if (!string.IsNullOrWhiteSpace(TokenStore.GetAccessToken()))
-        {
-            return;
-        }
-
-        // Call /auth/session endpoint to get token from HttpOnly cookie
-        var http = HttpClientFactory.CreateClient();
-        var url = new Uri(new Uri(Nav.BaseUri), "auth/session");
-
         try
         {
-            var response = await http.GetAsync(url);
-            if (!response.IsSuccessStatusCode)
+            var currentToken = TokenStore.GetAccessToken();
+            if (!string.IsNullOrWhiteSpace(currentToken))
             {
+                Logger.LogInformation("SessionBootstrapper: Token already in memory");
                 return;
             }
 
-            var payload = await response.Content.ReadFromJsonAsync<SessionResponse>();
-            if (payload is null || string.IsNullOrWhiteSpace(payload.AccessToken))
+            // Only recover session if there's an active session flag in sessionStorage
+            // This flag is cleared when the browser tab is closed, differentiating "fresh start" from "F5 reload"
+            var hasActiveSession = await JS.InvokeAsync<bool>("sessionHelper.hasActiveSession");
+            
+            if (!hasActiveSession)
             {
+                Logger.LogInformation("SessionBootstrapper: No active session flag, requiring fresh login");
                 return;
             }
 
-            TokenStore.SetAccessToken(payload.AccessToken);
+            var result = await JS.InvokeAsync<SessionResult>("sessionHelper.getSession");
+
+            if (!result.HasSession || string.IsNullOrWhiteSpace(result.AccessToken))
+            {
+                await JS.InvokeVoidAsync("sessionHelper.clearSessionActive");
+                return;
+            }
+
+            Logger.LogInformation("SessionBootstrapper: Session recovered successfully");
+            
+            TokenStore.SetAccessToken(result.AccessToken);
             await AuthProvider.RefreshAsync();
         }
-        catch
+        catch (Exception ex)
         {
-            // Silently fail - user is not authenticated
+            Logger.LogError(ex, "SessionBootstrapper: Error during session recovery");
+        }
+        finally
+        {
+            SessionInit.MarkAsInitialized();
         }
     }
 
-    private sealed class SessionResponse
+    private sealed class SessionResult
     {
-        public string AccessToken { get; set; } = "";
+        public bool HasSession { get; set; }
+        public string? AccessToken { get; set; }
     }
 }

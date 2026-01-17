@@ -1,22 +1,54 @@
 ﻿@using FamilyFinances.Web.Components.Layout
 @using FamilyFinances.Web.Components.Auth
 @using Microsoft.AspNetCore.Components.Authorization
+@inject FamilyFinances.Web.Auth.ISessionInitializationService SessionInit
 
 @rendermode InteractiveServer
 
-<SessionBootstrapper />
+<CascadingAuthenticationState>
+    <SessionBootstrapper />
+    
+    @if (_sessionReady)
+    {
+        <Router AppAssembly="@typeof(Program).Assembly">
+            <Found Context="routeData">
+                <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                    <NotAuthorized>
+                        <RedirectToLogin />
+                    </NotAuthorized>
+                </AuthorizeRouteView>
+            </Found>
+            <NotFound>
+                <LayoutView Layout="@typeof(MainLayout)">
+                    <p>Page not found.</p>
+                </LayoutView>
+            </NotFound>
+        </Router>
+    }
+    else
+    {
+        <div class="d-flex justify-content-center align-items-center" style="height: 100vh;">
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3 text-muted">Checking session...</p>
+            </div>
+        </div>
+    }
+</CascadingAuthenticationState>
 
-<Router AppAssembly="@typeof(Program).Assembly">
-    <Found Context="routeData">
-        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
-            <NotAuthorized>
-                <RedirectToLogin />
-            </NotAuthorized>
-        </AuthorizeRouteView>
-    </Found>
-    <NotFound>
-        <LayoutView Layout="@typeof(MainLayout)">
-            <p>Page not found.</p>
-        </LayoutView>
-    </NotFound>
-</Router>
+@code {
+    private bool _sessionReady;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        await SessionInit.WaitForInitializationAsync();
+        
+        _sessionReady = true;
+        StateHasChanged();
+    }
+}

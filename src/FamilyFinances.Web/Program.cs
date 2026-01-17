@@ -17,6 +17,7 @@ builder.Services.AddAuthorizationCore();
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddScoped<IApiTokenStore, ApiTokenStore>();
+builder.Services.AddScoped<ISessionInitializationService, SessionInitializationService>();
 
 builder.Services.AddScoped<IAccountsApi, AccountsApi>();
 builder.Services.AddScoped<PayeesApi>();
