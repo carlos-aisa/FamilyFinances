@@ -49,4 +49,22 @@ public sealed class AccountGroupMembershipRepository : IAccountGroupMembershipRe
             .OrderBy(a => a.Name)
             .ToListAsync(ct);
     }
+
+    public async Task<IReadOnlyList<AccountGroup>> ListGroupsForAccountAsync(AccountId accountId, CancellationToken ct)
+    {
+        var groupIds = await _db.AccountGroupMembers
+            .AsNoTracking()
+            .Where(x => x.AccountId == accountId)
+            .Select(x => x.GroupId)
+            .ToListAsync(ct);
+
+        if (groupIds.Count == 0)
+            return Array.Empty<AccountGroup>();
+
+        return await _db.AccountGroups
+            .AsNoTracking()
+            .Where(g => groupIds.Contains(g.Id))
+            .OrderBy(g => g.Name)
+            .ToListAsync(ct);
+    }
 }
