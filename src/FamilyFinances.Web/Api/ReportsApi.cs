@@ -103,4 +103,33 @@ public sealed class ReportsApi
         var result = await response.Content.ReadFromJsonAsync<AccountTotalsDto>(cancellationToken: ct);
         return result ?? throw new InvalidOperationException("Failed to deserialize account totals response.");
     }
+
+    public async Task<AccountGroupTotalsDto> GetAccountGroupTotalsAsync(
+        Guid groupId,
+        DateOnly fromInclusive,
+        DateOnly toExclusive,
+        AccountNature? nature = null,
+        CancellationToken ct = default)
+    {
+        var token = _tokenStore.GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("No access token available.");
+
+        var url = $"api/v1/reports/account-groups/{groupId}/totals?from={fromInclusive:yyyy-MM-dd}&to={toExclusive:yyyy-MM-dd}";
+        if (nature.HasValue)
+            url += $"&nature={nature.Value}";
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _http.SendAsync(request, ct);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
+
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<AccountGroupTotalsDto>(cancellationToken: ct);
+        return result ?? throw new InvalidOperationException("Failed to deserialize account group totals response.");
+    }
 }
