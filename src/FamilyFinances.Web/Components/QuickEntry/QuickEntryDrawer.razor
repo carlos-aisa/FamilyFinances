@@ -7,6 +7,7 @@
 @using FamilyFinances.Domain.Ledger.Accounts
 @using FamilyFinances.Web.Components.Dashboard
 @using FamilyFinances.Web.Features.Transactions
+@using FamilyFinances.Web.Components.Shared
 @inject FamilyFinances.Web.Api.TransactionsApi TransactionsApi
 
 <div class="card">
@@ -67,21 +68,10 @@
                 @if (Mode != QuickEntryType.Transfer)
                 {
                     <div class="col-md-8">
-                        <label class="form-label">Payee (optional)</label>
-                        <div class="input-group">
-                            <InputSelect class="form-select" @bind-Value="_model.PayeeId" @bind-Value:after="ValidateForm">
-                                <option value="">-- none --</option>
-                                @foreach (var p in Payees)
-                                {
-                                    <option value="@p.Id">@p.Name</option>
-                                }
-                            </InputSelect>
-
-                            @* Payee quick-create comes in the next slice *@
-                            <button type="button" class="btn btn-outline-secondary" disabled title="Coming soon">
-                                +
-                            </button>
-                        </div>
+                        <PayeeSelector @bind-SelectedPayeeId="_model.PayeeId"
+                                      IsRequired="false"
+                                      IsDisabled="@_isBusy"
+                                      @bind-SelectedPayeeId:after="OnPayeeChanged" />
                     </div>
                 }
             </div>
@@ -163,6 +153,11 @@
             // If parsing fails, keep the previous value (don't reset to 0)
         }
         
+        ValidateForm();
+    }
+
+    private void OnPayeeChanged()
+    {
         ValidateForm();
     }
 
