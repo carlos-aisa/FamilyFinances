@@ -101,4 +101,8 @@ public sealed class TransactionRepository : ITransactionRepository
         return true;
     }
 
+    public async Task<bool> HasAnyAsync(CancellationToken ct)
+    {
+        return await _db.Transactions.AnyAsync(ct);
+    }
 }

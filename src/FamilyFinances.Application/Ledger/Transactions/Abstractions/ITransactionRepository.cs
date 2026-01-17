@@ -17,4 +17,5 @@ public interface ITransactionRepository
         Guid toAccountId,
         decimal amount,
         CancellationToken ct);
+    Task<bool> HasAnyAsync(CancellationToken ct);
 }

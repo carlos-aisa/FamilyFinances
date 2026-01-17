@@ -122,4 +122,25 @@ public sealed class TransactionsApi
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task<bool> HasAnyAsync(CancellationToken ct)
+    {
+        var token = _tokenStore.GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("No access token available.");
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "api/v1/transactions/any");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _http.SendAsync(request, ct);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
+
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<HasAnyResponse>(cancellationToken: ct);
+        return result?.HasAny ?? false;
+    }
+
+    private sealed record HasAnyResponse(bool HasAny);
 }

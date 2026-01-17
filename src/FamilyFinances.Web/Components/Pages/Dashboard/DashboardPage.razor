@@ -10,6 +10,7 @@
 
 @inject FamilyFinances.Web.Api.IAccountsApi AccountsApi
 @inject FamilyFinances.Web.Api.PayeesApi PayeesApi
+@inject FamilyFinances.Web.Api.TransactionsApi TransactionsApi
 
 <AuthorizeView>
     <Authorized Context="auth">
@@ -162,6 +163,7 @@
 @code {
     private IReadOnlyList<AccountDto>? _accounts;
     private IReadOnlyList<PayeeDto> _payees = Array.Empty<PayeeDto>();
+    private bool? _hasAnyTransactions;
 
     private Guid? _selectedFromAccountId;
     private Guid? _selectedToAccountId;
@@ -195,6 +197,8 @@
                 .ToList();
 
             _payees = await PayeesApi.ListAsync(ct);
+            
+            _hasAnyTransactions = await TransactionsApi.HasAnyAsync(ct);
         });
     }
 
