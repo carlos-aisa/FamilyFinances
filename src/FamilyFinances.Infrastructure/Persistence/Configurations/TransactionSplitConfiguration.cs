@@ -34,6 +34,11 @@ public sealed class TransactionSplitConfiguration : IEntityTypeConfiguration<Tra
                 value => new AccountId(value))
             .IsRequired();
 
+        builder.HasOne(x => x.Account)
+            .WithMany()
+            .HasForeignKey(a => a.AccountId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // Money is a value object (Cents). Store as long.
         builder.Property(x => x.Amount)
             .HasConversion(

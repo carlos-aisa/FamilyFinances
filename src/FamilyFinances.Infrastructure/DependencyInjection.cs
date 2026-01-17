@@ -43,18 +43,33 @@ public static class DependencyInjection
 
         services.AddScoped<CreateAccountHandler>();
         services.AddScoped<ListAccountsHandler>();
+        services.AddScoped<RenameAccountHandler>();
+        services.AddScoped<CloseAccountHandler>();
+        services.AddScoped<ReopenAccountHandler>();
+        services.AddScoped<DeleteAccountHandler>();
+
         services.AddScoped<CreateTransactionHandler>();
         services.AddScoped<GetTransactionByIdHandler>();
+        services.AddScoped<ListTransactionsHandler>();
+        services.AddScoped<DeleteTransactionHandler>();
+        services.AddScoped<UpdateTransactionHandler>();
+
         services.AddScoped<CreatePayeeHandler>();
         services.AddScoped<ListPayeesHandler>();
+        services.AddScoped<RenamePayeeHandler>();
+        services.AddScoped<DeletePayeeHandler>();
+
         services.AddScoped<GetMonthlySummaryHandler>();
         services.AddScoped<GetCategoryTotalsHandler>();
         services.AddScoped<GetAccountTotalsHandler>();
+
         services.AddScoped<CreateAccountGroupHandler>();
         services.AddScoped<ListAccountGroupsHandler>();
         services.AddScoped<GetAccountGroupByIdHandler>();
         services.AddScoped<AddAccountToGroupHandler>();
         services.AddScoped<RemoveAccountFromGroupHandler>();
+        services.AddScoped<RenameAccountGroupHandler>();
+        services.AddScoped<DeleteAccountGroupHandler>();
         services.AddScoped<GetAccountGroupTotalsHandler>();
         return services;
     }

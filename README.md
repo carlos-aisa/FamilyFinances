@@ -87,6 +87,7 @@ Examples:
 - `v0.2.0` Ledger (transactions + splits + links)
 - `v0.3.0` Payees + templates + import
 - `v0.4.0` Reports
+- `v0.5.0` Account gropus
 - `v1.0.0` Stable version for real usage
 
 ## Non-Goals (for now)

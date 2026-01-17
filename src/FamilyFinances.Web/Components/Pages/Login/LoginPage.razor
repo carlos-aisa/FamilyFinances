@@ -1,0 +1,184 @@
+@page "/login"
+@attribute [AllowAnonymous]
+@using FamilyFinances.Web.Auth
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.WebUtilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.JSInterop
+@inject JwtAuthStateProvider JwtAuthStateProvider
+@inject NavigationManager Nav
+@inject IApiTokenStore TokenStore
+@inject ILogger<LoginPage> Logger
+@inject IJSRuntime JS
+
+<script>
+    window.loginHelper = {
+        executeLogin: async function (email, password) {
+            try {
+                const response = await fetch('/auth/session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password }),
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    const error = await response.text();
+                    return { success: false, error: error || 'Login failed' };
+                }
+
+                const data = await response.json();
+                return { success: true, accessToken: data.accessToken };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+    };
+</script>
+
+<div class="container">
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow">
+                <div class="card-body p-4">
+                    <h3 class="card-title text-center mb-4">
+                        <i class="bi bi-lock-fill me-2"></i>Family Finances
+                    </h3>
+
+                    @if (!string.IsNullOrWhiteSpace(_error))
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="bi bi-exclamation-triangle me-2"></i>@_error
+                            <button type="button" class="btn-close" @onclick="() => _error = null"></button>
+                        </div>
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" @bind="_email" placeholder="admin@familyfinances.local" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" @bind="_password" @onkeypress="HandleKeyPress" placeholder="Enter password" />
+                    </div>
+
+                    <button type="button" class="btn btn-primary w-100" @onclick="OnLoginAsync" disabled="@(_isBusy || !_jsLoaded)">
+                        @if (_isBusy)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        <i class="bi bi-box-arrow-in-right me-2"></i>Login
+                    </button>
+
+                    <div class="text-center mt-3">
+                        <small class="text-muted">
+                            Default: admin@familyfinances.local / Admin123!
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+#if DEBUG
+    private string _email = "admin@familyfinances.local";
+    private string _password = "Admin123!";
+#else
+    private string _email = "";
+    private string _password = "";
+#endif
+    private bool _isBusy;
+    private bool _jsLoaded;
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+
+        if (query.TryGetValue("reason", out var reason) && reason == "expired")
+        {
+            _error = "Your session has expired. Please log in again.";
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Task.Delay(100);
+            _jsLoaded = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !_isBusy && _jsLoaded)
+        {
+            await OnLoginAsync();
+        }
+    }
+
+    private async Task OnLoginAsync()
+    {
+        if (!_jsLoaded)
+        {
+            _error = "Please wait, loading...";
+            return;
+        }
+
+        _error = null;
+        _isBusy = true;
+
+        try
+        {
+            var result = await JS.InvokeAsync<LoginResult>("loginHelper.executeLogin", _email, _password);
+
+            if (!result.Success)
+            {
+                _error = result.Error ?? "Invalid email or password";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(result.AccessToken))
+            {
+                _error = "Missing access token.";
+                return;
+            }
+
+            TokenStore.SetAccessToken(result.AccessToken);
+            
+            // Mark session as active in sessionStorage to allow F5 session recovery
+            await JS.InvokeVoidAsync("sessionHelper.markSessionActive");
+            
+            await JwtAuthStateProvider.RefreshAsync();
+
+            Nav.NavigateTo("/", forceLoad: false);
+        }
+        catch (JSException jsEx)
+        {
+            Logger.LogError(jsEx, "JavaScript error during login");
+            _error = "Login system error. Please refresh the page and try again.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Login exception");
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private sealed class LoginResult
+    {
+        public bool Success { get; set; }
+        public string? AccessToken { get; set; }
+        public string? Error { get; set; }
+    }
+}

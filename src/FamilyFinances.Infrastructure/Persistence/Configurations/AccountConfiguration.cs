@@ -38,6 +38,12 @@ public sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
 
         builder.Property(x => x.ClosedOn);
 
-        builder.HasIndex(x => x.Name);
+        builder.Property(x => x.NormalizedName)
+            .HasMaxLength(200)
+            .IsRequired();
+
+        builder.HasIndex(x => x.NormalizedName)
+            .IsUnique()
+            .HasFilter("\"IsClosed\" = 0");
     }
 }

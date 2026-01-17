@@ -1,0 +1,203 @@
+﻿@page "/transactions/{Id:guid}/edit"
+@inherits ApiPageBase
+@using System.ComponentModel.DataAnnotations
+@using System.Globalization
+@using FamilyFinances.Application.Ledger.Accounts.Dtos
+@using FamilyFinances.Application.Ledger.Payees.Dtos
+@using FamilyFinances.Application.Ledger.Transactions.Dtos
+@using FamilyFinances.Application.Ledger.Transactions.Requests
+@using FamilyFinances.Web.Api
+@using FamilyFinances.Web.Components.Base
+@inject TransactionsApi TransactionsApi
+@inject IAccountsApi AccountsApi
+@inject PayeesApi PayeesApi
+@inject NavigationManager NavigationManager
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h3 class="m-0">Edit transaction</h3>
+    <a class="btn btn-sm btn-outline-secondary" href="@($"/transactions/{Id}")">Back</a>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <div class="alert alert-danger" role="alert">@_error</div>
+}
+
+@if (_model is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <EditForm Model="_model" OnValidSubmit="SaveAsync">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="row g-3">
+            <div class="col-12 col-md-3">
+                <label class="form-label">Booked on</label>
+                <InputDate class="form-control" @bind-Value="_model.BookedOn" />
+            </div>
+
+            <div class="col-12 col-md-5">
+                <label class="form-label">Description</label>
+                <InputText class="form-control" @bind-Value="_model.Description" />
+            </div>
+
+            <div class="col-12 col-md-4">
+                <label class="form-label">Payee</label>
+                <InputSelect class="form-select" @bind-Value="_model.PayeeId">
+                    <option value="">—</option>
+                    @foreach (var p in _payees)
+                    {
+                        <option value="@p.Id">@p.Name</option>
+                    }
+                </InputSelect>
+            </div>
+
+            <div class="col-12 col-md-4">
+                <label class="form-label">From account</label>
+                <InputSelect class="form-select" @bind-Value="_model.FromAccountId">
+                    @foreach (var a in _accounts)
+                    {
+                        <option value="@a.Id">@a.Name</option>
+                    }
+                </InputSelect>
+            </div>
+
+            <div class="col-12 col-md-4">
+                <label class="form-label">To account</label>
+                <InputSelect class="form-select" @bind-Value="_model.ToAccountId">
+                    @foreach (var a in _accounts)
+                    {
+                        <option value="@a.Id">@a.Name</option>
+                    }
+                </InputSelect>
+            </div>
+
+            <div class="col-12 col-md-4">
+                <label class="form-label">Amount</label>
+                <InputNumber class="form-control" @bind-Value="_model.Amount" />
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+            <button class="btn btn-primary" type="submit" disabled="@_saving">Save</button>
+            <a class="btn btn-outline-secondary" href="@($"/transactions/{Id}")">Cancel</a>
+        </div>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private IReadOnlyList<AccountDto> _accounts = Array.Empty<AccountDto>();
+    private IReadOnlyList<PayeeDto> _payees = Array.Empty<PayeeDto>();
+
+    private EditTransactionModel? _model;
+    private string? _error;
+    private bool _saving;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _error = null;
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                _accounts = await AccountsApi.ListAsync(ct);
+                _payees = await PayeesApi.ListAsync(ct);
+
+                var tx = await TransactionsApi.GetByIdAsync(Id, ct);
+
+                if (tx.Splits.Count != 2)
+                    throw new InvalidOperationException("Only 2-split transactions can be edited.");
+
+                // Convention A: From split is negative, To split is positive
+                var from = tx.Splits.Single(s => s.Amount < 0);
+                var to = tx.Splits.Single(s => s.Amount > 0);
+
+                _model = new EditTransactionModel
+                {
+                    Id = tx.Id,
+                    BookedOn = tx.BookedOn,
+                    Description = tx.Description,
+                    PayeeId = tx.PayeeId,
+                    FromAccountId = from.AccountId,
+                    ToAccountId = to.AccountId,
+                    Amount = Math.Abs(from.Amount)
+                };
+            });
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_model is null)
+            return;
+
+        _error = null;
+        _saving = true;
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                var req = new UpdateTransactionRequest(
+                    _model.Id,
+                    _model.BookedOn,
+                    _model.Description,
+                    _model.PayeeId,
+                    _model.FromAccountId,
+                    _model.ToAccountId,
+                    _model.Amount);
+
+                await TransactionsApi.UpdateAsync(Id, req, ct);
+            });
+
+            NavigationManager.NavigateTo($"/transactions/{Id}?result=updated", replace: true);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private sealed class EditTransactionModel
+    {
+        [Required]
+        public Guid Id { get; set; }
+
+        [Required]
+        public DateOnly BookedOn { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+
+        [Required]
+        [StringLength(200)]
+        public string Description { get; set; } = "";
+
+        public Guid? PayeeId { get; set; }
+
+        [Required]
+        public Guid FromAccountId { get; set; }
+
+        [Required]
+        public Guid ToAccountId { get; set; }
+
+        [Range(typeof(decimal), "0,01", "999999999")]
+        public decimal Amount { get; set; }
+    }
+}

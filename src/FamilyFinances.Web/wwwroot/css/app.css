@@ -1,0 +1,196 @@
+/* Dark mode customizations */
+[data-bs-theme="dark"] {
+    --bs-body-bg: #1a1d20;
+    --bs-body-color: #e9ecef;
+}
+
+[data-bs-theme="dark"] .card {
+    background-color: #2b3035;
+    border-color: #495057;
+}
+
+[data-bs-theme="dark"] .card-header {
+    background-color: #343a40;
+    border-color: #495057;
+}
+
+[data-bs-theme="dark"] .list-group-item {
+    background-color: #2b3035;
+    border-color: #495057;
+    color: #e9ecef;
+}
+
+[data-bs-theme="dark"] .list-group-item:hover {
+    background-color: #343a40;
+    color: #f8f9fa;
+}
+
+[data-bs-theme="dark"] .list-group-item.active {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: #ffffff;
+}
+
+/* Fix for form controls in dark mode */
+[data-bs-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select {
+    background-color: #2b3035;
+    border-color: #495057;
+    color: #e9ecef;
+}
+
+[data-bs-theme="dark"] .form-control:focus,
+[data-bs-theme="dark"] .form-select:focus {
+    background-color: #343a40;
+    border-color: #86b7fe;
+    color: #e9ecef;
+}
+
+[data-bs-theme="dark"] .form-control::placeholder {
+    color: #6c757d;
+}
+
+/* Fix for input groups */
+[data-bs-theme="dark"] .input-group-text {
+    background-color: #343a40;
+    border-color: #495057;
+    color: #e9ecef;
+}
+
+/* Fix for badges */
+[data-bs-theme="dark"] .badge {
+    color: #fff;
+}
+
+[data-bs-theme="dark"] .badge.bg-secondary {
+    background-color: #6c757d !important;
+}
+
+/* Fix for text-muted in dark mode - MEJOR CONTRASTE */
+[data-bs-theme="dark"] .text-muted {
+    color: #dee2e6 !important;
+}
+
+/* Fix for bg-light in dark mode - MEJOR CONTRASTE */
+[data-bs-theme="dark"] .bg-light {
+    background-color: #2b3035 !important;
+    border-color: #495057 !important;
+    color: #f8f9fa !important;
+}
+
+/* Fix for labels and small text in bg-light */
+[data-bs-theme="dark"] .bg-light .text-muted,
+[data-bs-theme="dark"] .bg-light small.text-muted {
+    color: #f8f9fa !important;
+}
+
+[data-bs-theme="dark"] .bg-light .text-body {
+    color: #ffffff !important;
+}
+
+/* Fix for strong elements in bg-light */
+[data-bs-theme="dark"] .bg-light strong {
+    color: #ffffff !important;
+}
+
+/* Fix for small elements in bg-light */
+[data-bs-theme="dark"] .bg-light small {
+    color: #f8f9fa !important;
+}
+
+/* Fix for icons in bg-light */
+[data-bs-theme="dark"] .bg-light i {
+    color: #f8f9fa !important;
+}
+
+/* Fix for card-footer */
+[data-bs-theme="dark"] .card-footer {
+    background-color: #343a40 !important;
+    border-color: #495057 !important;
+    color: #f8f9fa !important;
+}
+
+[data-bs-theme="dark"] .card-footer .text-muted {
+    color: #dee2e6 !important;
+}
+
+[data-bs-theme="dark"] .card-footer small {
+    color: #f8f9fa !important;
+}
+
+/* Fix for alerts */
+[data-bs-theme="dark"] .alert {
+    border-color: #495057;
+}
+
+[data-bs-theme="dark"] .alert-warning {
+    background-color: #664d03;
+    border-color: #997404;
+    color: #ffecb5;
+}
+
+[data-bs-theme="dark"] .alert-danger {
+    background-color: #842029;
+    border-color: #a52834;
+    color: #f8d7da;
+}
+
+[data-bs-theme="dark"] .alert-success {
+    background-color: #0f5132;
+    border-color: #146c43;
+    color: #d1e7dd;
+}
+
+/* Fix for table headers */
+[data-bs-theme="dark"] .table-light {
+    background-color: #343a40;
+    border-color: #495057;
+    color: #e9ecef;
+}
+
+/* Fix for dropdown menus */
+[data-bs-theme="dark"] .dropdown-menu {
+    background-color: #2b3035;
+    border-color: #495057;
+}
+
+[data-bs-theme="dark"] .dropdown-item {
+    color: #e9ecef;
+}
+
+[data-bs-theme="dark"] .dropdown-item:hover {
+    background-color: #343a40;
+    color: #f8f9fa;
+}
+
+/* Light mode adjustments */
+[data-bs-theme="light"] {
+    --bs-body-bg: #ffffff;
+    --bs-body-color: #212529;
+}
+
+[data-bs-theme="light"] .bg-light {
+    background-color: #f8f9fa !important;
+}
+
+/* Mejorar contraste de text-muted en modo claro sobre bg-light */
+[data-bs-theme="light"] .bg-light .text-muted {
+    color: #495057 !important;
+}
+
+[data-bs-theme="light"] .bg-light strong {
+    color: #212529 !important;
+}
+
+[data-bs-theme="light"] .bg-light .text-body {
+    color: #212529 !important;
+}
+
+/* Mejorar contraste en footers modo claro */
+[data-bs-theme="light"] .card-footer .text-muted {
+    color: #495057 !important;
+}
+
+[data-bs-theme="light"] .text-muted {
+    color: #495057 !important;
+}

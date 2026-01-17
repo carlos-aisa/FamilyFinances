@@ -31,4 +31,36 @@ public sealed class TransactionsController : ControllerBase
         var result = await handler.HandleAsync(id, ct);
         return result is null ? NotFound() : Ok(result);
     }
+
+    [HttpGet]
+    [Authorize(Policy = Policies.CanRead)]
+    public async Task<ActionResult<IReadOnlyList<TransactionListItemDto>>> List(
+        [FromServices] ListTransactionsHandler handler,
+        [FromQuery] int take,
+        CancellationToken ct)
+    => Ok(await handler.HandleAsync(take, ct));
+
+    [HttpPut("{id:guid}")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<IActionResult> Update(
+        Guid id,
+        [FromServices] UpdateTransactionHandler _handler,
+        [FromBody] UpdateTransactionRequest request,
+        CancellationToken ct)
+    {
+        var ok = await _handler.HandleAsync(request, ct);
+
+        return ok ? NoContent() : NotFound();
+    }
+
+    [HttpDelete("{id:guid}")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<IActionResult> Delete(
+        [FromServices] DeleteTransactionHandler handler,
+        [FromRoute] Guid id,
+        CancellationToken ct)
+    {
+        var ok = await handler.HandleAsync(id, ct);
+        return ok ? NoContent() : NotFound();
+    }
 }

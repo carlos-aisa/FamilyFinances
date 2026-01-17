@@ -43,4 +43,29 @@ public sealed class PayeesController : ControllerBase
 
         return Ok(result);
     }
+
+    [HttpPatch("{id:guid}/rename")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<IActionResult> Rename(
+        [FromRoute] Guid id,
+        [FromBody] RenamePayeeRequest request,
+        [FromServices] RenamePayeeHandler handler,
+        CancellationToken ct)
+    {
+        var ok = await handler.HandleAsync(id, request, ct);
+        return ok ? NoContent() : NotFound();
+    }
+
+    [HttpDelete("{id:guid}")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<IActionResult> Delete(
+        [FromRoute] Guid id,
+        [FromServices] DeletePayeeHandler handler,
+        CancellationToken ct)
+    {
+        var ok = await handler.HandleAsync(id, ct);
+        return ok ? NoContent() : NotFound();
+    }
+
+
 }

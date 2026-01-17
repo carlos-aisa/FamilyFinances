@@ -27,4 +27,51 @@ public sealed class AccountsController : ControllerBase
         [FromServices] ListAccountsHandler handler,
         CancellationToken ct)
         => Ok(await handler.HandleAsync(ct));
+
+    [HttpPatch("{id:guid}/rename")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<IActionResult> Rename(
+        [FromRoute] Guid id,
+        [FromBody] RenameAccountRequest request,
+        [FromServices] RenameAccountHandler handler,
+        CancellationToken ct)
+    {
+        var ok = await handler.HandleAsync(id, request, ct);
+        return ok ? NoContent() : NotFound();
+    }
+
+    [HttpPatch("{id:guid}/close")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<IActionResult> Close(
+        [FromRoute] Guid id,
+        [FromServices] CloseAccountHandler handler,
+        CancellationToken ct)
+    {
+        var ok = await handler.HandleAsync(id, ct);
+        return ok ? NoContent() : NotFound();
+    }
+
+    [HttpPatch("{id:guid}/reopen")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<IActionResult> Reopen(
+        [FromRoute] Guid id,
+        [FromServices] ReopenAccountHandler handler,
+        CancellationToken ct)
+    {
+        var ok = await handler.HandleAsync(id, ct);
+        return ok ? NoContent() : NotFound();
+    }
+
+    [HttpDelete("{id:guid}")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<IActionResult> Delete(
+    [FromRoute] Guid id,
+    [FromServices] DeleteAccountHandler handler,
+    CancellationToken ct)
+    {
+        var ok = await handler.HandleAsync(id, ct);
+        return ok ? NoContent() : NotFound();
+    }
+
+
 }

@@ -1,0 +1,78 @@
+<div class="card shadow-sm mb-3 border-start border-4 @GetBorderClass()">
+    <div class="card-header @GetHeaderClass() cursor-pointer" @onclick="OnHeaderClick">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h6 class="mb-0 @GetTextClass()">
+                    <i class="@GetIcon() me-2"></i>@Title
+                </h6>
+                <small class="@GetSubtitleClass()">@Subtitle</small>
+            </div>
+            <i class="bi @(IsActive ? "bi-chevron-up" : "bi-chevron-down") @GetTextClass()"></i>
+        </div>
+    </div>
+
+    @if (IsActive)
+    {
+        <div class="card-body">
+            @ChildContent
+        </div>
+    }
+</div>
+
+<style>
+    .cursor-pointer {
+        cursor: pointer;
+    }
+
+    .cursor-pointer:hover {
+        opacity: 0.9;
+    }
+</style>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public bool IsActive { get; set; }
+    [Parameter] public EventCallback OnHeaderClick { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string GetBorderClass() => Title.ToLowerInvariant() switch
+    {
+        "expense" => "border-danger",
+        "income" => "border-success",
+        "transfer" => "border-primary",
+        _ => "border-secondary"
+    };
+
+    private string GetHeaderClass() => Title.ToLowerInvariant() switch
+    {
+        "expense" => "bg-danger-subtle",
+        "income" => "bg-success-subtle",
+        "transfer" => "bg-primary-subtle",
+        _ => "bg-secondary-subtle"
+    };
+
+    private string GetTextClass() => Title.ToLowerInvariant() switch
+    {
+        "expense" => "text-danger-emphasis",
+        "income" => "text-success-emphasis",
+        "transfer" => "text-primary-emphasis",
+        _ => "text-secondary-emphasis"
+    };
+
+    private string GetSubtitleClass() => Title.ToLowerInvariant() switch
+    {
+        "expense" => "text-danger-emphasis opacity-75",
+        "income" => "text-success-emphasis opacity-75",
+        "transfer" => "text-primary-emphasis opacity-75",
+        _ => "text-secondary-emphasis opacity-75"
+    };
+
+    private string GetIcon() => Title.ToLowerInvariant() switch
+    {
+        "expense" => "bi-arrow-up-circle",
+        "income" => "bi-arrow-down-circle",
+        "transfer" => "bi-arrow-left-right",
+        _ => "bi-wallet2"
+    };
+}

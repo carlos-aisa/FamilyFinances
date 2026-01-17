@@ -12,6 +12,7 @@ public sealed class Transaction
     public string Description { get; }
 
     public PayeeId? PayeeId { get; }
+    public Payee? Payee { get; }
 
     public IReadOnlyList<TransactionSplit> Splits => _splits;
 
@@ -42,7 +43,8 @@ public sealed class Transaction
         DateOnly bookedOn,
         string description,
         IEnumerable<TransactionSplit> splits,
-        PayeeId? payeeId)
+        PayeeId? payeeId,
+        Guid? id = null)
     {
         if (bookedOn == default)
             throw new DomainException("BookedOn date is required.");
@@ -76,7 +78,13 @@ public sealed class Transaction
 
         if (total != 0)
             throw new DomainException("Transaction splits must be balanced (sum must be zero).");
-
-        return new Transaction(TransactionId.New(), bookedOn, description, payeeId, list);
+        if (id == null || id == Guid.Empty)
+        {
+            return new Transaction(TransactionId.New(), bookedOn, description, payeeId, list);
+        }
+        else
+        {
+            return new Transaction(new TransactionId(id.Value), bookedOn, description, payeeId, list);
+        }
     }
 }

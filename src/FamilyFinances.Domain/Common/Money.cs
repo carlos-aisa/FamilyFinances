@@ -24,6 +24,8 @@ public readonly record struct Money(long Cents)
 
     public decimal ToEuros() => Cents / 100m;
 
+    public Money Abs() => new(Math.Abs(Cents));
+
     // Use checked to ensure that an overflow throws an exception explicitly
     public static Money operator +(Money a, Money b) => new(checked(a.Cents + b.Cents));
     public static Money operator -(Money a, Money b) => new(checked(a.Cents - b.Cents));

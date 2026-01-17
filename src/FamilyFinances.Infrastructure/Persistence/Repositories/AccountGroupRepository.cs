@@ -15,7 +15,6 @@ public sealed class AccountGroupRepository : IAccountGroupRepository
 
     public Task<AccountGroup?> GetByIdAsync(AccountGroupId id, CancellationToken ct)
         => _db.AccountGroups
-            .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == id, ct);
 
     public Task<AccountGroup?> GetByNormalizedNameAsync(string normalizedName, CancellationToken ct)
@@ -28,4 +27,7 @@ public sealed class AccountGroupRepository : IAccountGroupRepository
             .AsNoTracking()
             .OrderBy(x => x.Name)
             .ToListAsync(ct);
+
+    public void Remove(AccountGroup group)
+        => _db.AccountGroups.Remove(group);
 }

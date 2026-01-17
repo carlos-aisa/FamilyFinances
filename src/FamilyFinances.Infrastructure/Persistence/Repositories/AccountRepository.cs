@@ -18,4 +18,25 @@ public sealed class AccountRepository : IAccountRepository
 
     public Task<Account?> GetByIdAsync(AccountId id, CancellationToken ct)
         => _db.Accounts.FirstOrDefaultAsync(a => a.Id == id, ct);
+
+    public async Task<bool> ExistsByNormalizedNameAsync(string normalizedName, AccountId? excludingId, CancellationToken ct)
+    {
+        var query = _db.Accounts
+            .Where(a => a.NormalizedName == normalizedName && !a.IsClosed);
+
+        if (excludingId is not null)
+            query = query.Where(a => a.Id != excludingId);
+
+        return await query.AnyAsync(ct);
+    }
+
+    public Task<Account?> GetByIdForUpdateAsync(AccountId id, CancellationToken ct)
+    => _db.Accounts.FirstOrDefaultAsync(a => a.Id == id, ct);
+
+    public Task<bool> IsReferencedBySplitsAsync(AccountId id, CancellationToken ct)
+        => _db.TransactionSplits.AnyAsync(s => s.AccountId == id, ct);
+
+    public void Remove(Account account)
+        => _db.Accounts.Remove(account);
+
 }

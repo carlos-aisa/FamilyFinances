@@ -1,0 +1,457 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@using FamilyFinances.Application.Ledger.Accounts.Dtos
+@using FamilyFinances.Application.Ledger.Payees.Dtos
+@using FamilyFinances.Domain.Ledger.Accounts
+@using FamilyFinances.Web.Components.Dashboard
+@using FamilyFinances.Web.Components.QuickEntry
+@using Microsoft.AspNetCore.Components.Authorization
+@inherits FamilyFinances.Web.Components.Base.ApiPageBase
+
+@inject FamilyFinances.Web.Api.IAccountsApi AccountsApi
+@inject FamilyFinances.Web.Api.PayeesApi PayeesApi
+
+<AuthorizeView>
+    <Authorized Context="auth">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h3 class="mb-1">
+                    <i class="bi bi-speedometer2 me-2"></i>Dashboard
+                </h3>
+                <p class="text-muted mb-0">Quick entry for transactions</p>
+            </div>
+        </div>
+
+        @if (_accounts is null)
+        {
+            <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+                <div class="text-center">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted">Loading accounts...</p>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="row g-4">
+                <div class="col-12 col-lg-7">
+                    <QuickEntryCard Title="@Specs[QuickEntryType.Expense].Title"
+                                    Subtitle="@Specs[QuickEntryType.Expense].Hint"
+                                    IsActive="@(_activeEntry == QuickEntryType.Expense)"
+                                    OnHeaderClick="@(() => SetActive(QuickEntryType.Expense))">
+                        <QuickEntryDrawer Mode="_activeEntry"
+                                    Specs="Specs" 
+                                    Accounts="_accounts"
+                                    Payees="_payees"
+                                    SelectedFromAccountId="_selectedFromAccountId"
+                                    SelectedToAccountId="_selectedToAccountId"
+                                    OnTransactionCreated="OnTransactionCreatedAsync"
+                                    OnClearSelection="ClearSelection"
+                                    OnSwapAccounts="SwapTransferAccounts" />
+
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Click an Asset/Liability to set <strong>Paid from</strong>, then click an Expense to set <strong>Category</strong>.
+                            </small>
+                        </div>
+                    </QuickEntryCard>
+
+                    <QuickEntryCard Title="@Specs[QuickEntryType.Income].Title"
+                                    Subtitle="@Specs[QuickEntryType.Income].Hint"
+                                    IsActive="@(_activeEntry == QuickEntryType.Income)"
+                                    OnHeaderClick="@(() => SetActive(QuickEntryType.Income))">
+                        <QuickEntryDrawer Mode="_activeEntry"
+                                        Specs="Specs" 
+                                        Accounts="_accounts"
+                                        Payees="_payees"
+                                        SelectedFromAccountId="_incomeFromSourceId"
+                                        SelectedToAccountId="_incomeToAssetId"
+                                        OnTransactionCreated="OnTransactionCreatedAsync"
+                                        OnClearSelection="ClearSelection"
+                                        OnSwapAccounts="SwapTransferAccounts" />
+                    </QuickEntryCard>
+
+                    <QuickEntryCard Title="@Specs[QuickEntryType.Transfer].Title"
+                                    Subtitle="@Specs[QuickEntryType.Transfer].Hint"
+                                    IsActive="@(_activeEntry == QuickEntryType.Transfer)"
+                                    OnHeaderClick="@(() => SetActive(QuickEntryType.Transfer))">
+                        <QuickEntryDrawer Mode="_activeEntry"
+                                        Specs="Specs"
+                                        Accounts="_accounts"
+                                        Payees="_payees"
+                                        SelectedFromAccountId="_transferFromAssetId"
+                                        SelectedToAccountId="_transferToAssetId"
+                                        OnTransactionCreated="OnTransactionCreatedAsync"
+                                        OnClearSelection="ClearSelection"
+                                        OnSwapAccounts="SwapTransferAccounts" />
+                    </QuickEntryCard>
+                </div>
+
+                <div class="col-12 col-lg-5">
+                    @foreach (var nature in _natureOrder)
+                    {
+                        var items = GetAccounts(nature);
+
+                        if (items.Count == 0)
+                            continue;
+
+                        <div class="card shadow-sm mb-3 border-start border-4 @GetNatureBorderClass(nature)">
+                            <div class="card-header @GetNatureHeaderClass(nature)">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0 @GetNatureTextClass(nature)">
+                                        <i class="@GetNatureIcon(nature) me-2"></i>@nature
+                                    </h6>
+                                    <span class="badge @GetNatureCountBadgeClass(nature)">@items.Count</span>
+                                </div>
+                            </div>
+
+                            <div class="card-body p-0">
+                                <div class="list-group list-group-flush">
+                                    @foreach (var a in items)
+                                    {
+                                        var isSelectedFrom = _selectedFromAccountId == a.Id;
+                                        var isSelectedTo = _selectedToAccountId == a.Id;
+                                        var isSelected = isSelectedFrom || isSelectedTo;
+
+                                        <button type="button"
+                                                class="list-group-item list-group-item-action d-flex justify-content-between align-items-center @(isSelected ? "active" : "")"
+                                                @onclick="@(() => OnAccountClicked(a))">
+                                            <span>
+                                                <i class="bi bi-wallet2 me-2"></i>@a.Name
+                                            </span>
+                                            @if (isSelectedFrom)
+                                            {
+                                                <span class="badge bg-warning text-dark">
+                                                    <i class="bi bi-arrow-up-right me-1"></i>From
+                                                </span>
+                                            }
+                                            else if (isSelectedTo)
+                                            {
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-arrow-down-left me-1"></i>To
+                                                </span>
+                                            }
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </Authorized>
+
+    <NotAuthorized>
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-shield-lock display-1 text-muted mb-3"></i>
+                <h5 class="text-muted">Authentication Required</h5>
+                <p class="text-muted">You must be logged in to access the dashboard.</p>
+                <a class="btn btn-primary mt-3" href="/login">
+                    <i class="bi bi-box-arrow-in-right me-1"></i>Login
+                </a>
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private IReadOnlyList<AccountDto>? _accounts;
+    private IReadOnlyList<PayeeDto> _payees = Array.Empty<PayeeDto>();
+
+    private Guid? _selectedFromAccountId;
+    private Guid? _selectedToAccountId;
+
+    private QuickEntryType _activeEntry = QuickEntryType.Expense;
+
+    private Guid? _expenseFromAssetId;
+    private Guid? _expenseToCategoryId;
+
+    private Guid? _incomeFromSourceId;
+    private Guid? _incomeToAssetId;
+
+    private Guid? _transferFromAssetId;
+    private Guid? _transferToAssetId;
+
+    private static readonly AccountNature[] _natureOrder =
+    [
+        AccountNature.Asset,
+        AccountNature.Liability,
+        AccountNature.Expense,
+        AccountNature.Income
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ExecuteApiAsync(async ct =>
+        {
+            var allAccounts = await AccountsApi.ListAsync(ct);
+            _accounts = allAccounts
+                .Where(a => !a.IsClosed)
+                .ToList();
+
+            _payees = await PayeesApi.ListAsync(ct);
+        });
+    }
+
+    private void OnAccountClicked(AccountDto account)
+    {
+        var spec = Specs[_activeEntry];
+
+        var canBeFrom = spec.FromAllowed.Contains(account.Nature);
+        var canBeTo = spec.ToAllowed.Contains(account.Nature);
+
+        if (!canBeFrom && !canBeTo)
+            return;
+
+        if (canBeFrom && canBeTo)
+        {
+            if (ShouldAssignToInActiveEntry())
+                SetToForActiveEntry(account.Id, spec.ReplaceToWhenBothSelected);
+            else
+                SetFromForActiveEntry(account.Id);
+
+            return;
+        }
+
+        if (canBeFrom)
+        {
+            SetFromForActiveEntry(account.Id);
+            return;
+        }
+
+        SetToForActiveEntry(account.Id, spec.ReplaceToWhenBothSelected);
+    }
+
+    private void SetFromForActiveEntry(Guid accountId)
+    {
+        switch (_activeEntry)
+        {
+            case QuickEntryType.Expense:
+                _expenseFromAssetId = accountId;
+                _selectedFromAccountId = accountId;
+                break;
+
+            case QuickEntryType.Income:
+                _incomeFromSourceId = accountId;
+                _selectedFromAccountId = accountId;
+                break;
+
+            case QuickEntryType.Transfer:
+                _transferFromAssetId = accountId;
+                _selectedFromAccountId = accountId;
+                break;
+        }
+    }
+
+    private void SetToForActiveEntry(Guid accountId, bool replaceWhenBothSelected)
+    {
+        switch (_activeEntry)
+        {
+            case QuickEntryType.Expense:
+                _expenseToCategoryId = accountId;
+                _selectedToAccountId = accountId;
+                break;
+
+            case QuickEntryType.Income:
+                _incomeToAssetId = accountId;
+                _selectedToAccountId = accountId;
+                break;
+
+            case QuickEntryType.Transfer:
+                if (_transferFromAssetId is null)
+                {
+                    _transferFromAssetId = accountId;
+                    _selectedFromAccountId = accountId;
+                    return;
+                }
+
+                if (_transferToAssetId is null)
+                {
+                    _transferToAssetId = accountId;
+                    _selectedToAccountId = accountId;
+                    return;
+                }
+
+                if (replaceWhenBothSelected)
+                {
+                    _transferToAssetId = accountId;
+                    _selectedToAccountId = accountId;
+                }
+
+                break;
+        }
+    }
+
+
+    private Task OnTransactionCreatedAsync()
+    {
+        switch (_activeEntry)
+        {
+            case QuickEntryType.Expense:
+                _expenseToCategoryId = null;
+                break;
+
+            case QuickEntryType.Income:
+                _incomeToAssetId = null;
+                break;
+
+            case QuickEntryType.Transfer:
+                _transferToAssetId = null;
+                break;
+        }
+
+        _selectedToAccountId = null;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private void ClearSelection()
+    {
+        switch (_activeEntry)
+        {
+            case QuickEntryType.Expense:
+                _expenseFromAssetId = null;
+                _expenseToCategoryId = null;
+                break;
+
+            case QuickEntryType.Income:
+                _incomeFromSourceId = null;
+                _incomeToAssetId = null;
+                break;
+
+            case QuickEntryType.Transfer:
+                _transferFromAssetId = null;
+                _transferToAssetId = null;
+                break;
+        }
+
+        _selectedFromAccountId = null;
+        _selectedToAccountId = null;
+    }
+
+    private void SetActive(QuickEntryType type)
+    {
+        _activeEntry = type;
+        SyncSelectionForActiveEntry();
+    }
+
+    private void SyncSelectionForActiveEntry()
+    {
+        switch (_activeEntry)
+        {
+            case QuickEntryType.Expense:
+                _selectedFromAccountId = _expenseFromAssetId;
+                _selectedToAccountId = _expenseToCategoryId;
+                break;
+
+            case QuickEntryType.Income:
+                _selectedFromAccountId = _incomeFromSourceId;
+                _selectedToAccountId = _incomeToAssetId;
+                break;
+
+            case QuickEntryType.Transfer:
+                _selectedFromAccountId = _transferFromAssetId;
+                _selectedToAccountId = _transferToAssetId;
+                break;
+        }
+    }
+
+    private void SwapTransferAccounts()
+    {
+        (_transferFromAssetId, _transferToAssetId) = (_transferToAssetId, _transferFromAssetId);
+        (_selectedFromAccountId, _selectedToAccountId) = (_selectedToAccountId, _selectedFromAccountId);
+    }
+
+    private IReadOnlyList<AccountDto> GetAccounts(AccountNature nature)
+    {
+        if (_accounts is null) return Array.Empty<AccountDto>();
+
+        return _accounts
+            .Where(a => a.Nature == nature && !a.IsClosed)
+            .OrderBy(a => a.Name)
+            .ToList();
+    }
+
+    private bool ShouldAssignToInActiveEntry()
+    {
+        return _activeEntry switch
+        {
+            QuickEntryType.Transfer => _transferFromAssetId is not null && _transferToAssetId is null,
+            _ => _selectedFromAccountId is not null && _selectedToAccountId is null
+        };
+    }
+
+    private static string GetNatureBorderClass(AccountNature nature) => nature switch
+    {
+        AccountNature.Asset => "border-primary",
+        AccountNature.Liability => "border-warning",
+        AccountNature.Expense => "border-danger",
+        AccountNature.Income => "border-success",
+        _ => "border-secondary"
+    };
+
+    private static string GetNatureHeaderClass(AccountNature nature) => nature switch
+    {
+        AccountNature.Asset => "bg-primary-subtle",
+        AccountNature.Liability => "bg-warning-subtle",
+        AccountNature.Expense => "bg-danger-subtle",
+        AccountNature.Income => "bg-success-subtle",
+        _ => "bg-secondary-subtle"
+    };
+
+    private static string GetNatureTextClass(AccountNature nature) => nature switch
+    {
+        AccountNature.Asset => "text-primary-emphasis",
+        AccountNature.Liability => "text-warning-emphasis",
+        AccountNature.Expense => "text-danger-emphasis",
+        AccountNature.Income => "text-success-emphasis",
+        _ => "text-secondary-emphasis"
+    };
+
+    private static string GetNatureCountBadgeClass(AccountNature nature) => nature switch
+    {
+        AccountNature.Asset => "bg-primary text-white",
+        AccountNature.Liability => "bg-warning text-dark",
+        AccountNature.Expense => "bg-danger text-white",
+        AccountNature.Income => "bg-success text-white",
+        _ => "bg-secondary text-white"
+    };
+
+    private static string GetNatureIcon(AccountNature nature) => nature switch
+    {
+        AccountNature.Asset => "bi-bank",
+        AccountNature.Liability => "bi-credit-card",
+        AccountNature.Expense => "bi-arrow-up-circle",
+        AccountNature.Income => "bi-arrow-down-circle",
+        _ => "bi-wallet2"
+    };
+
+    private static readonly Dictionary<QuickEntryType, QuickEntrySpec> Specs = new()
+    {
+        [QuickEntryType.Expense] = new(
+            Title: "Expense",
+            Hint: "Select an account and an expense category",
+            FromAllowed: new() { AccountNature.Asset, AccountNature.Liability },
+            ToAllowed: new() { AccountNature.Expense },
+            ReplaceToWhenBothSelected: false),
+
+        [QuickEntryType.Income] = new(
+            Title: "Income",
+            Hint: "Select an income source and a destination account",
+            FromAllowed: new() { AccountNature.Income },
+            ToAllowed: new() { AccountNature.Asset },
+            ReplaceToWhenBothSelected: false),
+
+        [QuickEntryType.Transfer] = new(
+            Title: "Transfer",
+            Hint: "Select two accounts to move money between them",
+            FromAllowed: new() { AccountNature.Asset, AccountNature.Liability },
+            ToAllowed: new() { AccountNature.Asset, AccountNature.Liability},
+            ReplaceToWhenBothSelected: true),
+    };
+}

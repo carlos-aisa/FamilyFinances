@@ -1,0 +1,679 @@
+@page "/accounts"
+@rendermode InteractiveServer
+@using System.ComponentModel.DataAnnotations
+@using FamilyFinances.Application.Ledger.Accounts.Dtos
+@using FamilyFinances.Application.Ledger.Accounts.Requests
+@using FamilyFinances.Domain.Ledger.Accounts
+@using FamilyFinances.Web.Api
+@using Microsoft.AspNetCore.Components.Authorization
+@inherits FamilyFinances.Web.Components.Base.ApiPageBase
+
+@inject IAccountsApi AccountsApi
+@inject IJSRuntime JS
+
+<AuthorizeView>
+    <Authorized Context="auth">
+        <!-- Header -->
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h3 class="mb-1">Accounts</h3>
+                <p class="text-muted mb-0">
+                    @if (_accounts is not null)
+                    {
+                        var visibleCount = _accounts.Count(a => _showClosed || !a.IsClosed);
+                        <i class="bi bi-wallet2 me-1"></i>
+                        <span>@visibleCount account@(visibleCount != 1 ? "s" : "")</span>
+                    }
+                </p>
+            </div>
+
+            <div class="d-flex gap-2 align-items-center">
+                <div class="form-check form-switch m-0">
+                    <input class="form-check-input" type="checkbox" role="switch" id="showClosedSwitch"
+                           @bind="_showClosed" />
+                    <label class="form-check-label" for="showClosedSwitch">
+                        <i class="bi bi-eye me-1"></i>Show closed
+                    </label>
+                </div>
+
+                <button class="btn @(_isCreating ? "btn-outline-secondary" : "btn-primary")" @onclick="ToggleCreate">
+                    <i class="bi @(_isCreating ? "bi-x-circle" : "bi-plus-circle") me-1"></i>
+                    @(_isCreating ? "Cancel" : "New Account")
+                </button>
+            </div>
+        </div>
+
+        <!-- Alerts -->
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle me-2"></i>@_error
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_info))
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle me-2"></i>@_info
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <!-- Create Form -->
+        @if (_isCreating)
+        {
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-plus-circle me-2"></i>New Account
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <EditForm Model="_createModel" OnValidSubmit="CreateAsync">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="text-danger" />
+
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">
+                                    <i class="bi bi-pencil me-1"></i>Name
+                                </label>
+                                <InputText class="form-control" @bind-Value="_createModel.Name" placeholder="Enter account name" />
+                            </div>
+
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">
+                                    <i class="bi bi-diagram-3 me-1"></i>Nature
+                                </label>
+                                <InputSelect class="form-select"
+                                             @bind-Value="_createModel.Nature"
+                                             @bind-Value:after="OnNatureChanged">
+                                    @foreach (var n in _natureOrder)
+                                    {
+                                        <option value="@n">@n</option>
+                                    }
+                                </InputSelect>
+                            </div>
+
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">
+                                    <i class="bi bi-tag me-1"></i>Kind
+                                </label>
+                                <InputSelect class="form-select" @bind-Value="_createModel.Kind">
+                                    @foreach (var k in GetAllowedKinds(_createModel.Nature))
+                                    {
+                                        <option value="@k">@k</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                        </div>
+
+                        <div class="mt-3 d-flex gap-2 align-items-center">
+                            <button class="btn btn-success" type="submit" disabled="@_isBusy">
+                                @if (_isBusy)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                }
+                                <i class="bi bi-check-circle me-1"></i>Create
+                            </button>
+                            <button class="btn btn-outline-secondary" type="button" @onclick="ToggleCreate" disabled="@_isBusy">
+                                <i class="bi bi-x-circle me-1"></i>Cancel
+                            </button>
+                            
+                            <small class="text-muted ms-3">
+                                <i class="bi bi-info-circle me-1"></i>OpenedOn is set to today's date automatically
+                            </small>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        }
+
+        <!-- Content -->
+        @if (!_hasLoaded)
+        {
+            <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+                <div class="text-center">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted">Loading accounts...</p>
+                </div>
+            </div>
+        }
+        else if (_accounts is null || _accounts.Count == 0)
+        {
+            <div class="card shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-wallet2 display-1 text-muted mb-3"></i>
+                    <h5 class="text-muted">No accounts found</h5>
+                    <p class="text-muted">Create your first account to get started.</p>
+                    <button class="btn btn-primary mt-3" @onclick="ToggleCreate">
+                        <i class="bi bi-plus-circle me-1"></i>Create Account
+                    </button>
+                </div>
+            </div>
+        }
+        else
+        {
+            @foreach (var nature in _natureOrder)
+            {
+                var items = _accounts
+                    .Where(a => a.Nature == nature)
+                    .Where(a => _showClosed || !a.IsClosed)
+                    .OrderBy(a => a.IsClosed)
+                    .ThenBy(a => a.Name, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                if (items.Count == 0)
+                    continue;
+
+                <div class="card shadow-sm mb-3 border-start border-4 @GetNatureBorderClass(nature)">
+                    <div class="card-header @GetNatureHeaderClass(nature)">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 @GetNatureTextClass(nature)">
+                                <i class="@GetNatureIcon(nature) me-2"></i>@nature
+                            </h5>
+                            <span class="badge @GetNatureCountBadgeClass(nature) fs-6">@items.Count</span>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="border-0 ps-3" style="width: 40%;">
+                                            <i class="bi bi-tag me-1"></i>Name
+                                        </th>
+                                        <th class="border-0" style="width: 20%;">
+                                            <i class="bi bi-bookmark me-1"></i>Kind
+                                        </th>
+                                        <th class="border-0" style="width: 15%;">
+                                            <i class="bi bi-info-circle me-1"></i>Status
+                                        </th>
+                                        <th class="border-0 text-end pe-3" style="width: 25%;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var a in items)
+                                    {
+                                        <tr class="account-row">
+                                            <td class="ps-3">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="bi bi-wallet2 text-muted me-2"></i>
+                                                    <span class="@(a.IsClosed ? "text-muted" : "fw-semibold")">@a.Name</span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary-subtle text-secondary">@a.Kind</span>
+                                            </td>
+                                            <td>
+                                                @if (a.IsClosed)
+                                                {
+                                                    <span class="badge bg-secondary">
+                                                        <i class="bi bi-lock me-1"></i>Closed
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-success">
+                                                        <i class="bi bi-check-circle me-1"></i>Active
+                                                    </span>
+                                                }
+                                            </td>
+                                            <td class="text-end pe-3">
+                                                @if (_editingAccountId == a.Id)
+                                                {
+                                                    <EditForm Model="_renameModel" OnValidSubmit="@(() => SaveRenameAsync(a.Id))">
+                                                        <DataAnnotationsValidator />
+
+                                                        <div class="d-flex justify-content-end gap-2">
+                                                            <InputText class="form-control form-control-sm" style="min-width: 200px;"
+                                                                    @bind-Value="_renameModel.Name" />
+
+                                                            <button class="btn btn-sm btn-success" type="submit" disabled="@_isBusy">
+                                                                <i class="bi bi-check me-1"></i>Save
+                                                            </button>
+
+                                                            <button class="btn btn-sm btn-outline-secondary" type="button" @onclick="CancelRename" disabled="@_isBusy">
+                                                                <i class="bi bi-x me-1"></i>Cancel
+                                                            </button>
+                                                        </div>
+                                                    </EditForm>
+                                                }
+                                                else
+                                                {
+                                                    <div class="d-flex justify-content-end gap-1">
+                                                        <button class="btn btn-sm btn-outline-primary" type="button" @onclick="@(() => StartRename(a))" disabled="@_isBusy" title="Rename">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </button>
+
+                                                        @if (a.IsClosed)
+                                                        {
+                                                            <button class="btn btn-sm btn-outline-success" type="button" @onclick="@(() => ReopenAsync(a))" disabled="@_isBusy" title="Reopen">
+                                                                <i class="bi bi-unlock"></i>
+                                                            </button>
+                                                            <button class="btn btn-sm btn-outline-danger"
+                                                            type="button"
+                                                            @onclick="@(() => DeleteAsync(a))"
+                                                            disabled="@_isBusy"
+                                                            title="Delete">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        }
+                                                        else
+                                                        {
+                                                            <button class="btn btn-sm btn-outline-warning" type="button" @onclick="@(() => CloseAsync(a))" disabled="@_isBusy" title="Close">
+                                                                <i class="bi bi-lock"></i>
+                                                            </button>
+                                                        }
+                                                    </div>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </Authorized>
+
+    <NotAuthorized>
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-shield-lock display-1 text-muted mb-3"></i>
+                <h5 class="text-muted">Authentication Required</h5>
+                <p class="text-muted">You must be logged in to view accounts.</p>
+                <a class="btn btn-primary mt-3" href="/login">
+                    <i class="bi bi-box-arrow-in-right me-1"></i>Login
+                </a>
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+<style>
+    .account-row {
+        transition: all 0.2s ease-in-out;
+    }
+
+    .account-row:hover {
+        background-color: rgba(13, 110, 253, 0.05) !important;
+    }
+</style>
+
+@code {
+    private IReadOnlyList<AccountDto>? _accounts;
+    private string? _error;
+    private string? _info;
+    private bool _hasLoaded;
+
+    private bool _showClosed;
+    private bool _isCreating;
+    private bool _isBusy;
+    private Guid? _editingAccountId;
+    private readonly RenameAccountModel _renameModel = new();
+
+    private readonly CreateAccountModel _createModel = new();
+
+    private static readonly AccountNature[] _natureOrder =
+    [
+        AccountNature.Asset,
+        AccountNature.Liability,
+        AccountNature.Expense,
+        AccountNature.Income,
+        AccountNature.Equity
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _error = null;
+        _info = null;
+
+        await ExecuteApiAsync(async ct =>
+        {
+            _accounts = await AccountsApi.ListAsync(ct);
+            _hasLoaded = true;
+        });
+    }
+
+    private void ToggleCreate()
+    {
+        _error = null;
+        _info = null;
+        _isCreating = !_isCreating;
+
+        if (_isCreating)
+            ResetCreateModel();
+    }
+
+    private void ResetCreateModel()
+    {
+        _createModel.Name = "";
+        _createModel.Nature = AccountNature.Expense;
+        _createModel.Kind = AccountKind.ExpenseCategory;
+    }
+
+    private Task OnNatureChanged()
+    {
+        _createModel.Kind = GetDefaultKind(_createModel.Nature);
+        return Task.CompletedTask;
+    }
+
+    private async Task CreateAsync()
+    {
+        if (_isBusy)
+            return;
+
+        _isBusy = true;
+        _error = null;
+        _info = null;
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                var request = new CreateAccountRequest(
+                    Name: _createModel.Name.Trim(),
+                    Nature: _createModel.Nature,
+                    Kind: _createModel.Kind,
+                    OpenedOn: DateOnly.FromDateTime(DateTime.Today));
+
+                await AccountsApi.CreateAsync(request, ct);
+
+                _isCreating = false;
+                _info = "Account created successfully.";
+                await LoadAsync();
+            });
+        }
+        catch (HttpRequestException ex)
+        {
+            _error = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _error = $"Unexpected error: {ex.Message}";
+        }
+
+        _isBusy = false;
+    }
+
+    private static AccountKind GetDefaultKind(AccountNature nature) => nature switch
+    {
+        AccountNature.Asset => AccountKind.Checking,
+        AccountNature.Liability => AccountKind.CreditCard,
+        AccountNature.Expense => AccountKind.ExpenseCategory,
+        AccountNature.Income => AccountKind.IncomeSource,
+        AccountNature.Equity => AccountKind.Other,
+        _ => AccountKind.Other
+    };
+
+    private static IReadOnlyList<AccountKind> GetAllowedKinds(AccountNature nature) => nature switch
+    {
+        AccountNature.Asset =>
+        [
+            AccountKind.Cash,
+            AccountKind.Checking,
+            AccountKind.Savings,
+            AccountKind.Investment,
+            AccountKind.Other
+        ],
+        AccountNature.Liability =>
+        [
+            AccountKind.CreditCard,
+            AccountKind.Loan,
+            AccountKind.Mortgage,
+            AccountKind.Other
+        ],
+        AccountNature.Expense =>
+        [
+            AccountKind.ExpenseCategory,
+            AccountKind.Other
+        ],
+        AccountNature.Income =>
+        [
+            AccountKind.IncomeSource,
+            AccountKind.Other
+        ],
+        AccountNature.Equity =>
+        [
+            AccountKind.Other
+        ],
+        _ => [AccountKind.Other]
+    };
+
+    private static string GetNatureBorderClass(AccountNature nature) => nature switch
+    {
+        AccountNature.Asset => "border-primary",
+        AccountNature.Liability => "border-warning",
+        AccountNature.Expense => "border-danger",
+        AccountNature.Income => "border-success",
+        AccountNature.Equity => "border-secondary",
+        _ => "border-secondary"
+    };
+
+    private static string GetNatureHeaderClass(AccountNature nature) => nature switch
+    {
+        AccountNature.Asset => "bg-primary-subtle",
+        AccountNature.Liability => "bg-warning-subtle",
+        AccountNature.Expense => "bg-danger-subtle",
+        AccountNature.Income => "bg-success-subtle",
+        AccountNature.Equity => "bg-secondary-subtle",
+        _ => "bg-light"
+    };
+
+    private static string GetNatureTextClass(AccountNature nature) => nature switch
+    {
+        AccountNature.Asset => "text-primary-emphasis",
+        AccountNature.Liability => "text-warning-emphasis",
+        AccountNature.Expense => "text-danger-emphasis",
+        AccountNature.Income => "text-success-emphasis",
+        AccountNature.Equity => "text-secondary-emphasis",
+        _ => "text-body"
+    };
+
+    private static string GetNatureCountBadgeClass(AccountNature nature) => nature switch
+    {
+        AccountNature.Asset => "bg-primary text-white",
+        AccountNature.Liability => "bg-warning text-dark",
+        AccountNature.Expense => "bg-danger text-white",
+        AccountNature.Income => "bg-success text-white",
+        AccountNature.Equity => "bg-secondary text-white",
+        _ => "bg-secondary text-white"
+    };
+
+    private static string GetNatureIcon(AccountNature nature) => nature switch
+    {
+        AccountNature.Asset => "bi bi-bank",
+        AccountNature.Liability => "bi bi-credit-card",
+        AccountNature.Expense => "bi bi-arrow-up-circle",
+        AccountNature.Income => "bi bi-arrow-down-circle",
+        AccountNature.Equity => "bi bi-diagram-3",
+        _ => "bi bi-wallet2"
+    };
+
+    private void StartRename(AccountDto account)
+    {
+        _error = null;
+        _info = null;
+
+        _editingAccountId = account.Id;
+        _renameModel.Name = account.Name;
+    }
+
+    private void CancelRename()
+    {
+        _editingAccountId = null;
+        _renameModel.Name = "";
+    }
+
+    private async Task SaveRenameAsync(Guid accountId)
+    {
+        if (_isBusy)
+            return;
+
+        _isBusy = true;
+        _error = null;
+        _info = null;
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                await AccountsApi.RenameAsync(accountId, _renameModel.Name.Trim(), ct);
+                _editingAccountId = null;
+                _info = "Account renamed successfully.";
+                await LoadAsync();
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _error = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private async Task CloseAsync(AccountDto account)
+    {
+        if (_isBusy)
+            return;
+
+        if (!await ConfirmAsync($"Close account '{account.Name}'?"))
+            return;
+
+        _isBusy = true;
+        _error = null;
+        _info = null;
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                await AccountsApi.CloseAsync(account.Id, ct);
+                _info = "Account closed successfully.";
+                await LoadAsync();
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _error = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private async Task ReopenAsync(AccountDto account)
+    {
+        if (_isBusy)
+            return;
+
+        if (!await ConfirmAsync($"Reopen account '{account.Name}'?"))
+            return;
+
+        _isBusy = true;
+        _error = null;
+        _info = null;
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                await AccountsApi.ReopenAsync(account.Id, ct);
+                _info = "Account reopened successfully.";
+                await LoadAsync();
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _error = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private async Task DeleteAsync(AccountDto account)
+    {
+        if (_isBusy)
+            return;
+
+        var confirmed = await ConfirmAsync($"Delete account '{account.Name}'? This action cannot be undone.");
+        if (!confirmed)
+            return;
+
+        _isBusy = true;
+        _error = null;
+        _info = null;
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                await AccountsApi.DeleteAsync(account.Id, ct);
+                _info = "Account deleted successfully.";
+                await LoadAsync();
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private async Task<bool> ConfirmAsync(string message)
+    {
+        return await JS.InvokeAsync<bool>("confirm", message);
+    }
+
+    private sealed class CreateAccountModel
+    {
+        [Required]
+        [StringLength(100, MinimumLength = 1)]
+        public string Name { get; set; } = "";
+
+        [Required]
+        public AccountNature Nature { get; set; } = AccountNature.Expense;
+
+        [Required]
+        public AccountKind Kind { get; set; } = AccountKind.ExpenseCategory;
+    }
+
+    private sealed class RenameAccountModel
+    {
+        [Required]
+        [StringLength(200, MinimumLength = 1)]
+        public string Name { get; set; } = "";
+    }
+}

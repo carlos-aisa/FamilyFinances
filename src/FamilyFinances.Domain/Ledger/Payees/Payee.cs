@@ -36,7 +36,7 @@ public sealed class Payee
         if (defaultCategory is not null && defaultCategory.Length > 100)
             throw new DomainException("DefaultCategory is too long (max 100).");
 
-        var normalized = Normalize(name);
+        var normalized = NameNormalizer.Normalize(name);
 
         return new Payee(PayeeId.New(), name, normalized, defaultCategory);
     }
@@ -51,7 +51,7 @@ public sealed class Payee
             throw new DomainException("Payee name is too long (max 200).");
 
         Name = newName;
-        NormalizedName = Normalize(newName);
+        NormalizedName = NameNormalizer.Normalize(newName);
     }
 
     public void SetDefaultCategory(string? category)
@@ -62,6 +62,4 @@ public sealed class Payee
 
         DefaultCategory = category;
     }
-
-    private static string Normalize(string name) => name.Trim().ToUpperInvariant();
 }

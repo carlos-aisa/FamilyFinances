@@ -8,4 +8,5 @@ public interface IAccountGroupRepository
     Task<AccountGroup?> GetByIdAsync(AccountGroupId id, CancellationToken ct);
     Task<AccountGroup?> GetByNormalizedNameAsync(string normalizedName, CancellationToken ct);
     Task<IReadOnlyList<AccountGroup>> ListAsync(CancellationToken ct);
+    void Remove(AccountGroup group);
 }

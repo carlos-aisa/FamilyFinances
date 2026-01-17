@@ -81,12 +81,19 @@ namespace FamilyFinances.Infrastructure.Persistence.Migrations.Ledger
                     b.Property<int>("Nature")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateOnly>("OpenedOn")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Name");
+                    b.HasIndex("NormalizedName")
+                        .IsUnique()
+                        .HasFilter("\"IsClosed\" = 0");
 
                     b.ToTable("Accounts", (string)null);
                 });
@@ -214,19 +221,29 @@ namespace FamilyFinances.Infrastructure.Persistence.Migrations.Ledger
 
             modelBuilder.Entity("FamilyFinances.Domain.Ledger.Transactions.Transaction", b =>
                 {
-                    b.HasOne("FamilyFinances.Domain.Ledger.Payees.Payee", null)
+                    b.HasOne("FamilyFinances.Domain.Ledger.Payees.Payee", "Payee")
                         .WithMany()
                         .HasForeignKey("PayeeId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Payee");
                 });
 
             modelBuilder.Entity("FamilyFinances.Domain.Ledger.Transactions.TransactionSplit", b =>
                 {
+                    b.HasOne("FamilyFinances.Domain.Ledger.Accounts.Account", "Account")
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("FamilyFinances.Domain.Ledger.Transactions.Transaction", null)
                         .WithMany("Splits")
                         .HasForeignKey("TransactionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Account");
                 });
 
             modelBuilder.Entity("FamilyFinances.Domain.Ledger.Transactions.Transaction", b =>

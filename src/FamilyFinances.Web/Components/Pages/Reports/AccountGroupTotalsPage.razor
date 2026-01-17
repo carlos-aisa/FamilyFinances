@@ -1,0 +1,311 @@
+@page "/reports/account-group-totals"
+@inherits ApiPageBase
+@rendermode InteractiveServer
+@using FamilyFinances.Application.Ledger.AccountGroups.Dtos
+@using FamilyFinances.Application.Reporting.Dtos
+@using FamilyFinances.Domain.Ledger.Accounts
+@using FamilyFinances.Web.Api
+@using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web.Features.Reports
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AccountGroupsApi AccountGroupsApi
+@inject ReportsApi ReportsApi
+@inject NavigationManager Navigation
+
+<AuthorizeView>
+    <Authorized Context="authContext">
+        <!-- Header -->
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-2">
+                        <li class="breadcrumb-item"><a href="/reports">Reports</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Account Group Totals</li>
+                    </ol>
+                </nav>
+                <h3 class="mb-0">
+                    <i class="bi bi-collection me-2 text-warning"></i>Account Group Totals
+                </h3>
+            </div>
+
+            <button class="btn btn-outline-secondary" @onclick="GoBack">
+                <i class="bi bi-arrow-left me-1"></i>Back to Reports
+            </button>
+        </div>
+
+        <!-- Filters Card -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-funnel me-2"></i>Filters
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Account Group</label>
+                        <select class="form-select" @bind="_selectedGroupId">
+                            <option value="">-- Select Group --</option>
+                            @if (_groups is not null)
+                            {
+                                @foreach (var group in _groups)
+                                {
+                                    <option value="@group.Id">@group.Name</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">From Date</label>
+                        <input type="date" class="form-control" @bind="_fromDate" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">To Date</label>
+                        <input type="date" class="form-control" @bind="_toDate" />
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label">Nature</label>
+                        <select class="form-select" @bind="_nature">
+                            <option value="">All</option>
+                            <option value="@AccountNature.Expense">Expense</option>
+                            <option value="@AccountNature.Income">Income</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12">
+                        <button class="btn btn-primary" @onclick="LoadReportAsync" disabled="@(_isBusy || string.IsNullOrEmpty(_selectedGroupId))">
+                            @if (_isBusy)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                            }
+                            <i class="bi bi-bar-chart me-1"></i>Generate Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alerts -->
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle me-2"></i>@_error
+                <button type="button" class="btn-close" @onclick="@(() => _error = null)"></button>
+            </div>
+        }
+
+        <!-- Report Results -->
+        @if (_report is not null)
+        {
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-collection me-2"></i>@_report.GroupName
+                        </h5>
+                        <div>
+                            <span class="badge bg-secondary">
+                                @_report.FromInclusive.ToString("MMM dd, yyyy") - @_report.ToExclusive.AddDays(-1).ToString("MMM dd, yyyy")
+                            </span>
+                            @if (_report.Nature != 0)
+                            {
+                                <span class="badge @(_report.Nature == AccountNature.Expense ? "bg-danger" : "bg-success")">
+                                    @_report.Nature
+                                </span>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Summary -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <div class="card bg-light h-100">
+                                <div class="card-body">
+                                    <h6 class="text-muted mb-2">Total Amount</h6>
+                                    <h4 class="mb-0 @(_report.TotalCents < 0 ? "text-danger" : "text-success")">
+                                        @FormatCurrency(_report.TotalCents)
+                                    </h4>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="card bg-light h-100">
+                                <div class="card-body">
+                                    <h6 class="text-muted mb-2">Transactions</h6>
+                                    <h4 class="mb-0">@_report.TransactionsCount</h4>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="card bg-light h-100">
+                                <div class="card-body">
+                                    <h6 class="text-muted mb-2">Accounts</h6>
+                                    <h4 class="mb-0">@_report.AccountsCount</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Account Breakdown -->
+                    @if (_report.Items.Count > 0)
+                    {
+                        <h6 class="mb-3">
+                            <i class="bi bi-wallet2 me-2"></i>Account Breakdown
+                        </h6>
+
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Account</th>
+                                        <th class="text-end">Amount</th>
+                                        <th class="text-center">Transactions</th>
+                                        <th class="text-end">% of Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in _report.Items.OrderByDescending(i => Math.Abs(i.TotalCents)))
+                                    {
+                                        var percentage = _report.TotalCents != 0 ? (Math.Abs(item.TotalCents) / (double)Math.Abs(_report.TotalCents)) * 100 : 0;
+
+                                        <tr>
+                                            <td>
+                                                <i class="bi bi-wallet2 me-2 text-muted"></i>
+                                                <strong>@item.AccountName</strong>
+                                            </td>
+                                            <td class="text-end">
+                                                <span class="@(item.TotalCents < 0 ? "text-danger" : "text-success")">
+                                                    @FormatCurrency(item.TotalCents)
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-secondary">@item.TransactionsCount</span>
+                                            </td>
+                                            <td class="text-end">
+                                                <div class="d-flex align-items-center justify-content-end">
+                                                    <div class="progress me-2" style="width: 100px; height: 8px;">
+                                                        <div class="progress-bar" role="progressbar" style="width: @(percentage)%"></div>
+                                                    </div>
+                                                    <span class="text-muted small">@percentage.ToString("F1")%</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <i class="bi bi-inbox display-4 text-muted"></i>
+                            <p class="text-muted mt-2 mb-0">No transactions found for the selected period.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+        else if (!_isBusy)
+        {
+            <div class="card shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-bar-chart display-1 text-muted mb-3"></i>
+                    <h5 class="text-muted">Select a Group to Begin</h5>
+                    <p class="text-muted">Choose an account group and date range, then click "Generate Report" to view totals.</p>
+                </div>
+            </div>
+        }
+
+    </Authorized>
+
+    <NotAuthorized>
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-shield-lock display-1 text-muted mb-3"></i>
+                <h5 class="text-muted">Authentication Required</h5>
+                <p class="text-muted">You must be logged in to view reports.</p>
+                <a class="btn btn-primary mt-3" href="/login">
+                    <i class="bi bi-box-arrow-in-right me-1"></i>Login
+                </a>
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private IReadOnlyList<AccountGroupDto>? _groups;
+    private AccountGroupTotalsDto? _report;
+
+    private string _selectedGroupId = string.Empty;
+    private DateOnly _fromDate = DateHelper.GetCurrentMonthStart();
+    private DateOnly _toDate = DateHelper.GetCurrentMonthEnd();
+    private string _nature = string.Empty;
+
+    private string? _error;
+    private bool _isBusy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadGroupsAsync();
+    }
+
+    private async Task LoadGroupsAsync()
+    {
+        _error = null;
+
+        await ExecuteApiAsync(async ct =>
+        {
+            _groups = await AccountGroupsApi.ListAsync(ct);
+        });
+    }
+
+    private async Task LoadReportAsync()
+    {
+        if (string.IsNullOrEmpty(_selectedGroupId))
+            return;
+
+        _isBusy = true;
+        _error = null;
+        _report = null;
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                var groupId = Guid.Parse(_selectedGroupId);
+                AccountNature? nature = string.IsNullOrEmpty(_nature) ? null : Enum.Parse<AccountNature>(_nature);
+
+                _report = await ReportsApi.GetAccountGroupTotalsAsync(
+                    groupId,
+                    _fromDate,
+                    _toDate,
+                    nature,
+                    ct);
+            });
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/reports");
+    }
+
+    private string FormatCurrency(long cents)
+    {
+        return (cents / 100m).ToString("C2");
+    }
+}

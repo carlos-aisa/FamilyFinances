@@ -1,0 +1,453 @@
+@page "/account-groups/{Id:guid}"
+@inherits ApiPageBase
+@rendermode InteractiveServer
+@using System.ComponentModel.DataAnnotations
+@using FamilyFinances.Application.Ledger.AccountGroups.Dtos
+@using FamilyFinances.Application.Ledger.Accounts.Dtos
+@using FamilyFinances.Web.Api
+@using FamilyFinances.Web.Components.Base
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AccountGroupsApi AccountGroupsApi
+@inject IAccountsApi AccountsApi
+@inject NavigationManager Navigation
+
+<AuthorizeView>
+    <Authorized Context="authContext">
+        @if (_details is null)
+        {
+            <div class="card shadow-sm">
+                <div class="card-body text-center py-5">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted mb-0">Loading account group details...</p>
+                </div>
+            </div>
+        }
+        else
+        {
+            <!-- Header -->
+            <div class="d-flex align-items-center justify-content-between mb-4">
+                <div>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-2">
+                            <li class="breadcrumb-item"><a href="/account-groups">Account Groups</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">@_details.Name</li>
+                        </ol>
+                    </nav>
+                    <h3 class="mb-0">
+                        <i class="bi bi-collection me-2 text-primary"></i>@_details.Name
+                    </h3>
+                </div>
+
+                <button class="btn btn-outline-secondary" @onclick="GoBack">
+                    <i class="bi bi-arrow-left me-1"></i>Back to List
+                </button>
+            </div>
+
+            <!-- Alerts -->
+            @if (!string.IsNullOrWhiteSpace(_error))
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2"></i>@_error
+                    <button type="button" class="btn-close" @onclick="@(() => _error = null)"></button>
+                </div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(_info))
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle me-2"></i>@_info
+                    <button type="button" class="btn-close" @onclick="@(() => _info = null)"></button>
+                </div>
+            }
+
+            <div class="row">
+                <!-- Group Info Card -->
+                <div class="col-md-5 mb-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-light">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-info-circle me-2"></i>Group Information
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            @if (_isEditingName)
+                            {
+                                <EditForm Model="_renameModel" OnValidSubmit="RenameAsync">
+                                    <DataAnnotationsValidator />
+                                    <div class="mb-3">
+                                        <label class="form-label">Group Name</label>
+                                        <InputText class="form-control" @bind-Value="_renameModel.Name" />
+                                        <ValidationMessage For="@(() => _renameModel.Name)" />
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-success btn-sm" type="submit" disabled="@_isBusy">
+                                            <i class="bi bi-check-circle me-1"></i>Save
+                                        </button>
+                                        <button class="btn btn-outline-secondary btn-sm" type="button" @onclick="CancelRename" disabled="@_isBusy">
+                                            <i class="bi bi-x-circle me-1"></i>Cancel
+                                        </button>
+                                    </div>
+                                </EditForm>
+                            }
+                            else
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label text-muted small">Group Name</label>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>@_details.Name</strong>
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="StartRename">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+
+                            <div class="mb-0">
+                                <label class="form-label text-muted small">Description</label>
+                                @if (!string.IsNullOrWhiteSpace(_details.Description))
+                                {
+                                    <p class="mb-0">@_details.Description</p>
+                                }
+                                else
+                                {
+                                    <p class="mb-0 text-muted fst-italic">No description</p>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Members Management Card -->
+                <div class="col-md-7 mb-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-wallet2 me-2"></i>Accounts in Group
+                                <span class="badge bg-primary ms-2">@_details.Accounts.Count</span>
+                            </h5>
+                            <button class="btn btn-sm btn-outline-success" @onclick="ToggleAddAccount">
+                                <i class="bi @(_showAddAccount ? "bi-x-circle" : "bi-plus-circle") me-1"></i>
+                                @(_showAddAccount ? "Cancel" : "Add Account")
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            @if (_showAddAccount)
+                            {
+                                <div class="mb-3 p-3 bg-light rounded">
+                                    <h6 class="mb-2">
+                                        <i class="bi bi-plus-circle me-2"></i>Add Account to Group
+                                    </h6>
+
+                                    <!-- Search/Filter -->
+                                    <div class="input-group mb-3">
+                                        <span class="input-group-text">
+                                            <i class="bi bi-search"></i>
+                                        </span>
+                                        <input type="text" class="form-control" placeholder="Search accounts..." @bind="_accountSearch" @bind:event="oninput" />
+                                    </div>
+
+                                    @if (_allAccounts is null)
+                                    {
+                                        <div class="text-center py-3">
+                                            <div class="spinner-border spinner-border-sm" role="status"></div>
+                                            <small class="text-muted ms-2">Loading accounts...</small>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        var availableAccounts = GetAvailableAccounts();
+
+                                        @if (availableAccounts.Count == 0)
+                                        {
+                                            <div class="alert alert-info mb-0">
+                                                <i class="bi bi-info-circle me-2"></i>
+                                                <small>All accounts are already in this group or no accounts match your search.</small>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="list-group" style="max-height: 300px; overflow-y: auto;">
+                                                @foreach (var account in availableAccounts)
+                                                {
+                                                    var otherGroups = GetOtherGroupsForAccount(account.Id);
+                                                    var hasOtherGroups = otherGroups.Count > 0;
+
+                                                    <button type="button" 
+                                                            class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                                                            @onclick="@(() => AddAccountToGroup(account.Id))">
+                                                        <div>
+                                                            <strong>@account.Name</strong>
+                                                            <br />
+                                                            <small class="text-muted">@account.Nature - @account.Kind</small>
+                                                            @if (hasOtherGroups)
+                                                            {
+                                                                <br />
+                                                                <small class="text-warning">
+                                                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                                                    Already in @otherGroups.Count other group@(otherGroups.Count > 1 ? "s" : ""): @string.Join(", ", otherGroups.Select(g => g.Name))
+                                                                </small>
+                                                            }
+                                                        </div>
+                                                        <i class="bi bi-plus-circle text-success"></i>
+                                                    </button>
+                                                }
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                            }
+
+                            @if (_details.Accounts.Count == 0)
+                            {
+                                <div class="text-center py-4">
+                                    <i class="bi bi-inbox display-4 text-muted"></i>
+                                    <p class="text-muted mt-2 mb-0">No accounts in this group yet.</p>
+                                    <small class="text-muted">Click "Add Account" to get started.</small>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="list-group">
+                                    @foreach (var account in _details.Accounts.OrderBy(a => a.Name))
+                                    {
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>@account.Name</strong>
+                                                <br />
+                                                <small class="text-muted">@account.Nature - @account.Kind</small>
+                                            </div>
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAccountFromGroup(account.AccountId))">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </Authorized>
+
+    <NotAuthorized>
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-shield-lock display-1 text-muted mb-3"></i>
+                <h5 class="text-muted">Authentication Required</h5>
+                <p class="text-muted">You must be logged in to manage account groups.</p>
+                <a class="btn btn-primary mt-3" href="/login">
+                    <i class="bi bi-box-arrow-in-right me-1"></i>Login
+                </a>
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private AccountGroupDetailsDto? _details;
+    private IReadOnlyList<AccountDto>? _allAccounts;
+    private Dictionary<Guid, List<AccountGroupDto>> _accountGroupsCache = new();
+
+    private string? _error;
+    private string? _info;
+    private bool _isBusy;
+
+    private bool _isEditingName;
+    private RenameModel _renameModel = new();
+
+    private bool _showAddAccount;
+    private string _accountSearch = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _error = null;
+        _details = null;
+
+        await ExecuteApiAsync(async ct =>
+        {
+            _details = await AccountGroupsApi.GetByIdAsync(Id, ct);
+        });
+    }
+
+    private async Task LoadAccountsAsync()
+    {
+        if (_allAccounts is not null)
+            return;
+
+        await ExecuteApiAsync(async ct =>
+        {
+            _allAccounts = await AccountsApi.ListAsync(ct);
+        });
+    }
+
+    private void StartRename()
+    {
+        if (_details is null)
+            return;
+
+        _renameModel = new RenameModel { Name = _details.Name };
+        _isEditingName = true;
+        _error = null;
+        _info = null;
+    }
+
+    private void CancelRename()
+    {
+        _isEditingName = false;
+        _renameModel = new();
+    }
+
+    private async Task RenameAsync()
+    {
+        if (_isBusy || _details is null)
+            return;
+
+        _isBusy = true;
+        _error = null;
+        _info = null;
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                await AccountGroupsApi.RenameAsync(Id, _renameModel.Name.Trim(), ct);
+                _isEditingName = false;
+                _info = "Group renamed successfully.";
+                _details = await AccountGroupsApi.GetByIdAsync(Id, ct);
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private async Task ToggleAddAccount()
+    {
+        _showAddAccount = !_showAddAccount;
+        _accountSearch = string.Empty;
+        _error = null;
+        _info = null;
+
+        if (_showAddAccount)
+        {
+            await LoadAccountsAsync();
+        }
+    }
+
+    private async Task AddAccountToGroup(Guid accountId)
+    {
+        if (_isBusy || _details is null)
+            return;
+
+        _isBusy = true;
+        _error = null;
+        _info = null;
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                await AccountGroupsApi.AddAccountAsync(Id, accountId, ct);
+                _info = "Account added to group successfully.";
+                _details = await AccountGroupsApi.GetByIdAsync(Id, ct);
+                _showAddAccount = false;
+                _accountSearch = string.Empty;
+            });
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private async Task RemoveAccountFromGroup(Guid accountId)
+    {
+        if (_isBusy || _details is null)
+            return;
+
+        _isBusy = true;
+        _error = null;
+        _info = null;
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                await AccountGroupsApi.RemoveAccountAsync(Id, accountId, ct);
+                _info = "Account removed from group successfully.";
+                _details = await AccountGroupsApi.GetByIdAsync(Id, ct);
+            });
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private IReadOnlyList<AccountDto> GetAvailableAccounts()
+    {
+        if (_allAccounts is null || _details is null)
+            return Array.Empty<AccountDto>();
+
+        var memberIds = _details.Accounts.Select(a => a.AccountId).ToHashSet();
+
+        var available = _allAccounts
+            .Where(a => !a.IsClosed && !memberIds.Contains(a.Id))
+            .ToList();
+
+        if (!string.IsNullOrWhiteSpace(_accountSearch))
+        {
+            var searchLower = _accountSearch.Trim().ToLowerInvariant();
+            available = available
+                .Where(a => a.Name.ToLowerInvariant().Contains(searchLower))
+                .ToList();
+        }
+
+        return available.OrderBy(a => a.Name).ToList();
+    }
+
+    private List<AccountGroupDto> GetOtherGroupsForAccount(Guid accountId)
+    {
+        // For now, return empty list. In a real implementation, you would query the API
+        // to get all groups that contain this account, then filter out the current group.
+        // This would require adding a new endpoint: GET /api/v1/accounts/{accountId}/groups
+        // For the POC, we'll just show a warning without specific group names.
+        return new List<AccountGroupDto>();
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/account-groups");
+    }
+
+    private sealed class RenameModel
+    {
+        [Required(ErrorMessage = "Name is required")]
+        [StringLength(200, ErrorMessage = "Name cannot exceed 200 characters")]
+        public string Name { get; set; } = string.Empty;
+    }
+}

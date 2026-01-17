@@ -17,6 +17,9 @@ public sealed class CreateAccountHandlerTests
         var repo = new Mock<IAccountRepository>(MockBehavior.Strict);
         var uow = new Mock<ILedgerUnitOfWork>(MockBehavior.Strict);
 
+        repo.Setup(r => r.ExistsByNormalizedNameAsync("MAIN BANK", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
         repo.Setup(r => r.AddAsync(It.IsAny<Account>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
@@ -41,6 +44,7 @@ public sealed class CreateAccountHandlerTests
         result.IsClosed.Should().BeFalse();
         result.ClosedOn.Should().BeNull();
 
+        repo.Verify(r => r.ExistsByNormalizedNameAsync("MAIN BANK", null, It.IsAny<CancellationToken>()), Times.Once);
         repo.Verify(r => r.AddAsync(It.Is<Account>(a =>
             a.Name == "Main Bank" &&
             a.Nature == AccountNature.Asset &&
@@ -58,6 +62,9 @@ public sealed class CreateAccountHandlerTests
         var repo = new Mock<IAccountRepository>(MockBehavior.Strict);
         var uow = new Mock<ILedgerUnitOfWork>(MockBehavior.Strict);
 
+        repo.Setup(r => r.ExistsByNormalizedNameAsync("", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
         var handler = new CreateAccountHandler(repo.Object, uow.Object);
 
         var cmd = new CreateAccountRequest(
@@ -69,5 +76,32 @@ public sealed class CreateAccountHandlerTests
         var act = async () => await handler.HandleAsync(cmd, CancellationToken.None);
 
         await act.Should().ThrowAsync<DomainException>();
+    }
+
+    [Fact]
+    public async Task HandleAsync_ThrowsConflictException_WhenNameAlreadyExists()
+    {
+        var repo = new Mock<IAccountRepository>(MockBehavior.Strict);
+        var uow = new Mock<ILedgerUnitOfWork>(MockBehavior.Strict);
+
+        repo.Setup(r => r.ExistsByNormalizedNameAsync("MAIN BANK", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var handler = new CreateAccountHandler(repo.Object, uow.Object);
+
+        var cmd = new CreateAccountRequest(
+            Name: "Main Bank",
+            Nature: AccountNature.Asset,
+            Kind: AccountKind.Checking,
+            OpenedOn: new DateOnly(2026, 1, 2));
+
+        var act = async () => await handler.HandleAsync(cmd, CancellationToken.None);
+
+        await act.Should().ThrowAsync<ConflictException>()
+            .WithMessage("Account name already exists.");
+
+        repo.Verify(r => r.ExistsByNormalizedNameAsync("MAIN BANK", null, It.IsAny<CancellationToken>()), Times.Once);
+        repo.VerifyNoOtherCalls();
+        uow.VerifyNoOtherCalls();
     }
 }

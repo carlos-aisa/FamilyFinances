@@ -10,5 +10,9 @@ public enum AccountKind
     CreditCard = 3,
     Cash = 4,
     Investment = 5,
+    ExpenseCategory = 6,
+    IncomeSource = 7,
+    Mortgage = 8,
+    Loan = 9,
     Other = 99
 }

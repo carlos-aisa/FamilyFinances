@@ -1,4 +1,6 @@
-﻿namespace FamilyFinances.Domain.Ledger.AccountGroups
+﻿using FamilyFinances.Domain.Common;
+
+namespace FamilyFinances.Domain.Ledger.AccountGroups
 {
     public sealed class AccountGroup
     {
@@ -34,7 +36,7 @@
                 throw new ArgumentException("Account group name cannot be empty.", nameof(name));
 
             Name = trimmed;
-            NormalizedName = Normalize(trimmed);
+            NormalizedName = NameNormalizer.Normalize(trimmed);
         }
 
         private void SetDescription(string? description)
@@ -42,8 +44,5 @@
             var trimmed = description?.Trim();
             Description = string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
         }
-
-        private static string Normalize(string value)
-            => value.Trim().ToUpperInvariant();
     }
 }

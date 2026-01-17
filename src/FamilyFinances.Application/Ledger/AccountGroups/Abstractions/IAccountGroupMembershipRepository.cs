@@ -9,4 +9,5 @@ public interface IAccountGroupMembershipRepository
     Task AddAsync(AccountGroupId groupId, AccountId accountId, CancellationToken ct);
     Task RemoveAsync(AccountGroupId groupId, AccountId accountId, CancellationToken ct);
     Task<IReadOnlyList<Account>> ListAccountsForGroupAsync(AccountGroupId groupId, CancellationToken ct);
+    Task<IReadOnlyList<AccountGroup>> ListGroupsForAccountAsync(AccountId accountId, CancellationToken ct);
 }

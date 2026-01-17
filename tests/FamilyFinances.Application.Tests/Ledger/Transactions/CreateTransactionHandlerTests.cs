@@ -45,7 +45,7 @@ public sealed class CreateTransactionHandlerTests
         result.BookedOn.Should().Be(new DateOnly(2026, 1, 2));
         result.Description.Should().Be("Groceries");
         result.Splits.Should().HaveCount(2);
-        result.Splits.Sum(s => s.AmountCents).Should().Be(0);
+        result.Splits.Sum(s => s.Amount).Should().Be(0);
 
         repo.Verify(r => r.AddAsync(It.Is<Transaction>(t =>
             t.Description == "Groceries" &&

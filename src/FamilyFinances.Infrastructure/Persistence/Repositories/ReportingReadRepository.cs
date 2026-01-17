@@ -34,7 +34,7 @@ public sealed class ReportingReadRepository : IReportingReadRepository
                 PayeeId = t.PayeeId,
                 AccountId = s.AccountId,
                 Nature = a.Nature,
-                AmountCents = s.Amount.Cents
+                Amount = s.Amount
             };
 
         if (payeeId is not null)
@@ -48,11 +48,11 @@ public sealed class ReportingReadRepository : IReportingReadRepository
 
         var incomeCents = data
             .Where(x => x.Nature == AccountNature.Income)
-            .Sum(x => Math.Abs(x.AmountCents));
+            .Sum(x => x.Amount.Abs().Cents);
 
         var expenseCents = data
             .Where(x => x.Nature == AccountNature.Expense)
-            .Sum(x => Math.Abs(x.AmountCents));
+            .Sum(x => x.Amount.Abs().Cents);
 
         var transactionsCount = data
             .Select(x => x.TransactionId)
@@ -88,7 +88,7 @@ public sealed class ReportingReadRepository : IReportingReadRepository
                 PayeeId = t.PayeeId,
                 AccountId = a.Id,
                 AccountName = a.Name,
-                AmountCents = s.Amount.Cents
+                Amount = s.Amount
             };
 
         if (payeeId is not null)
@@ -102,7 +102,7 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             .Select(g => new CategoryTotalItemDto(
                 g.Key.AccountId.Value,
                 g.Key.AccountName,
-                g.Sum(x => Math.Abs(x.AmountCents)),
+                g.Sum(x => x.Amount.Abs().Cents),
                 g.Select(x => x.TransactionId).Distinct().Count()
             ))
             .OrderByDescending(x => x.Total)
@@ -137,7 +137,7 @@ public sealed class ReportingReadRepository : IReportingReadRepository
                 AccountName = a.Name,
                 AccountNature = a.Nature,
                 AccountKind = a.Kind,
-                AmountCents = s.Amount.Cents
+                Amount = s.Amount
             };
 
         // Materialize early to avoid EF translation issues with VOs + grouping
@@ -153,7 +153,7 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             })
             .Select(g =>
             {
-                var net = g.Sum(x => x.AmountCents);
+                var net = g.Sum(x => x.Amount.Cents);
 
                 return new AccountTotalItemDto(
                     g.Key.AccountId.Value,
@@ -229,7 +229,7 @@ public sealed class ReportingReadRepository : IReportingReadRepository
                 TransactionId = t.Id,
                 AccountId = a.Id,
                 AccountName = a.Name,
-                AmountCents = s.Amount.Cents
+                Amount = s.Amount
             };
 
         // Filter by group membership
@@ -243,7 +243,7 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             .Select(g => new AccountGroupTotalItemDto(
                 g.Key.AccountId.Value,
                 g.Key.AccountName,
-                g.Sum(x => Math.Abs(x.AmountCents)),
+                g.Sum(x => x.Amount.Abs().Cents),
                 g.Select(x => x.TransactionId).Distinct().Count()
             ))
             .OrderByDescending(x => x.TotalCents)

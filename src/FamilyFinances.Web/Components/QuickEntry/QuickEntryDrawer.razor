@@ -1,0 +1,356 @@
+@inherits FamilyFinances.Web.Components.Base.ApiPageBase
+
+@using System.ComponentModel.DataAnnotations
+@using System.Globalization
+@using FamilyFinances.Application.Ledger.Accounts.Dtos
+@using FamilyFinances.Application.Ledger.Payees.Dtos
+@using FamilyFinances.Domain.Ledger.Accounts
+@using FamilyFinances.Web.Components.Dashboard
+@using FamilyFinances.Web.Features.Transactions
+@using FamilyFinances.Web.Components.Shared
+@inject FamilyFinances.Web.Api.TransactionsApi TransactionsApi
+
+<div class="mb-3 p-3 bg-light rounded border">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="flex-grow-1">
+            <small class="text-muted d-block">
+                <i class="bi bi-arrow-up-right me-1"></i>
+                <strong>From:</strong> <span class="text-body">@(FromAccountName ?? "—")</span>
+            </small>
+            <small class="text-muted d-block">
+                <i class="bi bi-arrow-down-left me-1"></i>
+                <strong>To:</strong> <span class="text-body">@(ToAccountName ?? "—")</span>
+            </small>
+        </div>
+
+        <div class="d-flex gap-2">
+            @if (Mode == QuickEntryType.Transfer)
+            {
+                <button type="button" 
+                        class="btn btn-sm btn-outline-primary" 
+                        @onclick="SwapAccountsClicked"
+                        disabled="@(SelectedFromAccountId is null || SelectedToAccountId is null)"
+                        title="Swap accounts">
+                    <i class="bi bi-arrow-left-right me-1"></i>Swap
+                </button>
+            }
+            
+            <button type="button" 
+                    class="btn btn-sm btn-outline-secondary" 
+                    @onclick="ClearSelectionClicked"
+                    title="Clear selection">
+                <i class="bi bi-x-circle me-1"></i>Clear
+            </button>
+        </div>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>@_error
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(_info))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-2"></i>@_info
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<EditForm Model="_model" OnValidSubmit="CreateAsync">
+    <ValidationSummary class="text-danger" />
+
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label">
+                <i class="bi bi-calendar-event me-1"></i>Date
+            </label>
+            <InputDate class="form-control" @bind-Value="_model.BookedOn" @bind-Value:after="ValidateForm" />
+        </div>
+
+        <div class="col-md-8">
+            <label class="form-label">
+                <i class="bi bi-pencil me-1"></i>Description
+            </label>
+            <input type="text" 
+                   class="form-control" 
+                   placeholder="Enter description"
+                   @bind="_model.Description" 
+                   @bind:event="oninput"
+                   @bind:after="ValidateForm" />
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">
+                <i class="bi bi-currency-euro me-1"></i>Amount
+            </label>
+            <div class="input-group">
+                <input type="text" 
+                       class="form-control" 
+                       placeholder="0.00"
+                       @bind="_amountText" 
+                       @bind:event="oninput"
+                       @bind:after="OnAmountChanged" />
+                <span class="input-group-text">€</span>
+            </div>
+        </div>
+
+        @if (Mode != QuickEntryType.Transfer)
+        {
+            <div class="col-md-8">
+                <PayeeSelector @bind-SelectedPayeeId="_model.PayeeId"
+                              IsRequired="false"
+                              IsDisabled="@_isBusy"
+                              @bind-SelectedPayeeId:after="OnPayeeChanged" />
+            </div>
+        }
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_formError))
+    {
+        <div class="alert alert-warning mt-3" role="alert">
+            <i class="bi bi-exclamation-circle me-2"></i>@_formError
+        </div>
+    }
+
+    <div class="mt-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="form-check">
+            <InputCheckbox class="form-check-input" id="@_checkboxId" @bind-Value="_model.KeepSource" />
+            <label class="form-check-label" for="@_checkboxId">
+                <i class="bi bi-pin me-1"></i>Keep source account
+            </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary" disabled="@(!_canSubmit || _isBusy)">
+            @if (_isBusy)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            }
+            else
+            {
+                <i class="bi bi-plus-circle me-1"></i>
+            }
+            Create Transaction
+        </button>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<AccountDto> Accounts { get; set; } = Array.Empty<AccountDto>();
+    [Parameter, EditorRequired] public IReadOnlyList<PayeeDto> Payees { get; set; } = Array.Empty<PayeeDto>();
+
+    [Parameter] public Guid? SelectedFromAccountId { get; set; }
+    [Parameter] public Guid? SelectedToAccountId { get; set; }
+
+    [Parameter] public EventCallback OnTransactionCreated { get; set; }
+    [Parameter] public EventCallback OnClearSelection { get; set; }
+    [Parameter] public EventCallback OnSwapAccounts { get; set; }
+    
+    [Parameter] public QuickEntryType Mode { get; set; }
+
+    [Parameter] public required Dictionary<QuickEntryType, QuickEntrySpec> Specs { get; set; }
+
+    private bool _isBusy;
+    private bool _canSubmit;
+    private string? _error;
+    private string? _info;
+    private string? _formError;
+    private string _amountText = "";
+    private string _checkboxId = Guid.NewGuid().ToString();
+
+    private QuickEntryModel _model = new()
+    {
+        BookedOn = DateOnly.FromDateTime(DateTime.Today)
+    };
+
+    private string? FromAccountName => Accounts.FirstOrDefault(a => a.Id == SelectedFromAccountId)?.Name;
+    private string? ToAccountName => Accounts.FirstOrDefault(a => a.Id == SelectedToAccountId)?.Name;
+
+    protected override void OnParametersSet()
+    {
+        ValidateForm();
+    }
+
+    private void OnAmountChanged()
+    {
+        if (string.IsNullOrWhiteSpace(_amountText))
+        {
+            _model.Amount = 0;
+        }
+        else
+        {
+            var normalizedText = _amountText.Replace(',', '.');
+            
+            if (decimal.TryParse(normalizedText, NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign, 
+                CultureInfo.InvariantCulture, out var amount))
+            {
+                _model.Amount = amount;
+            }
+        }
+        
+        ValidateForm();
+    }
+
+    private void OnPayeeChanged()
+    {
+        ValidateForm();
+    }
+
+    private void ValidateForm()
+    {
+        _formError = null;
+
+        var spec = Specs[Mode];
+
+        if (SelectedFromAccountId is null)
+        {
+            _formError = spec.Title switch
+            {
+                "Transfer" => "Select a From account from the list.",
+                "Income" => "Select a Source account from the list.",
+                _ => "Select a Paid from account from the list."
+            };
+        }
+        else if (SelectedToAccountId is null)
+        {
+            _formError = spec.Title switch
+            {
+                "Transfer" => "Select a To account from the list.",
+                "Income" => "Select a Destination account from the list.",
+                _ => "Select a Category account from the list."
+            };
+        }
+        else if (SelectedFromAccountId == SelectedToAccountId)
+        {
+            _formError = "From and To accounts must be different.";
+        }
+        else
+        {
+            var from = Accounts.FirstOrDefault(a => a.Id == SelectedFromAccountId);
+            if (from is not null && !spec.FromAllowed.Contains(from.Nature))
+                _formError = $"From account must be one of: {string.Join(", ", spec.FromAllowed)}.";
+
+            var to = Accounts.FirstOrDefault(a => a.Id == SelectedToAccountId);
+            if (_formError is null && to is not null && !spec.ToAllowed.Contains(to.Nature))
+                _formError = $"To account must be one of: {string.Join(", ", spec.ToAllowed)}.";
+        }
+
+        if (_formError is null)
+        {
+            if (string.IsNullOrWhiteSpace(_model.Description))
+                _formError = "Description is required.";
+            else if (_model.Amount <= 0)
+                _formError = "Amount must be greater than zero.";
+        }
+
+        _canSubmit = string.IsNullOrWhiteSpace(_formError);
+
+        if (_canSubmit)
+            _error = null;
+    }
+
+    private async Task CreateAsync()
+    {
+        ValidateForm();
+        
+        if (!_canSubmit || _isBusy)
+            return;
+
+        _isBusy = true;
+        _error = null;
+        _info = null;
+        StateHasChanged();
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                var request = Mode switch
+                {
+                    QuickEntryType.Expense => ExpenseTransactionFactory.Build(
+                        bookedOn: _model.BookedOn,
+                        description: _model.Description.Trim(),
+                        fromAccountId: SelectedFromAccountId!.Value,
+                        expenseAccountId: SelectedToAccountId!.Value,
+                        amount: _model.Amount,
+                        payeeId: _model.PayeeId,
+                        memo: null),
+
+                    QuickEntryType.Income => IncomeTransactionFactory.Build(
+                        bookedOn: _model.BookedOn,
+                        description: _model.Description.Trim(),
+                        incomeAccountId: SelectedFromAccountId!.Value,
+                        destinationAccountId: SelectedToAccountId!.Value,
+                        amount: _model.Amount,
+                        payeeId: _model.PayeeId,
+                        memo: null),
+
+                    QuickEntryType.Transfer => TransferTransactionFactory.Build(
+                        bookedOn: _model.BookedOn,
+                        description: _model.Description.Trim(),
+                        fromAccountId: SelectedFromAccountId!.Value,
+                        toAccountId: SelectedToAccountId!.Value,
+                        amount: _model.Amount,
+                        memo: null),
+
+                    _ => throw new InvalidOperationException($"Unknown transaction type: {Mode}")
+                };
+
+                await TransactionsApi.CreateAsync(request, ct);
+            });
+
+            _info = "Transaction created successfully.";
+
+            _model.Amount = 0m;
+            _model.Description = "";
+            _model.PayeeId = null;
+            _amountText = "";
+
+            await OnTransactionCreated.InvokeAsync();
+
+            if (!_model.KeepSource)
+                await OnClearSelection.InvokeAsync();
+
+            ValidateForm();
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to create transaction: {ex.Message}";
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private async Task ClearSelectionClicked()
+    {
+        await OnClearSelection.InvokeAsync();
+        ValidateForm();
+    }
+
+    private async Task SwapAccountsClicked()
+    {
+        await OnSwapAccounts.InvokeAsync();
+    }
+
+    private sealed class QuickEntryModel
+    {
+        [Required]
+        public DateOnly BookedOn { get; set; }
+
+        [Required, StringLength(200)]
+        public string Description { get; set; } = "";
+
+        [Range(typeof(decimal), "0.01", "999999999")]
+        public decimal Amount { get; set; }
+
+        public Guid? PayeeId { get; set; }
+
+        public bool KeepSource { get; set; } = true;
+    }
+}

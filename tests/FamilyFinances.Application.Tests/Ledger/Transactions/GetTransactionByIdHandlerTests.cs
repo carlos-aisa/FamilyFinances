@@ -55,7 +55,7 @@ public sealed class GetTransactionByIdHandlerTests
         result.Should().NotBeNull();
         result!.Id.Should().Be(tx.Id.Value);
         result.Splits.Should().HaveCount(2);
-        result.Splits.Sum(s => s.AmountCents).Should().Be(0);
+        result.Splits.Sum(s => s.Amount).Should().Be(0);
 
         repo.Verify(r => r.GetByIdAsync(It.Is<TransactionId>(x => x.Value == tx.Id.Value), It.IsAny<CancellationToken>()), Times.Once);
         repo.VerifyNoOtherCalls();

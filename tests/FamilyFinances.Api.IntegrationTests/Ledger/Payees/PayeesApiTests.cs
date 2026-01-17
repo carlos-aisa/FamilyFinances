@@ -54,11 +54,107 @@ public sealed class PayeesApiTests
         first.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var dup = await client.PostAsJsonAsync("/api/v1/payees", new { name = "netflix" });
-        dup.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        dup.StatusCode.Should().Be(HttpStatusCode.Conflict);
 
         var error = await dup.Content.ReadFromJsonAsync<ErrorResponse>();
         error.Should().NotBeNull();
         error!.Error.Should().Contain("already exists");
+    }
+
+    [Fact]
+    public async Task Can_Rename_Payee()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        // Create payee
+        var createRes = await client.PostAsJsonAsync("/api/v1/payees", new { name = "Amazon" });
+        createRes.StatusCode.Should().Be(HttpStatusCode.OK);
+        var created = await createRes.Content.ReadFromJsonAsync<PayeeDto>();
+        created.Should().NotBeNull();
+
+        // Rename - test if it works properly with lowercase (camelCase)
+        var renameRes = await client.PatchAsJsonAsync($"/api/v1/payees/{created!.Id}/rename", new { name = "AWS" });
+        var renameContent = await renameRes.Content.ReadAsStringAsync();
+        Console.WriteLine($"Rename response: {renameRes.StatusCode} - {renameContent}");
+        renameRes.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        // List to verify the name changed
+        var listRes = await client.GetAsync("/api/v1/payees");
+        listRes.StatusCode.Should().Be(HttpStatusCode.OK);
+        var payees = await listRes.Content.ReadFromJsonAsync<List<PayeeDto>>();
+        
+        Console.WriteLine($"Payees after rename: {string.Join(", ", payees!.Select(p => $"{p.Id}:{p.Name}"))}");
+        
+        payees.Should().NotBeNull();
+        payees!.Should().ContainSingle(p => p.Id == created.Id && p.Name == "AWS");
+    }
+
+    [Fact]
+    public async Task Rename_Payee_Returns404_WhenNotFound()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var renameRes = await client.PatchAsJsonAsync($"/api/v1/payees/{Guid.NewGuid()}/rename", new { name = "New Name" });
+
+        renameRes.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Rename_Payee_RequiresAuth()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = factory.CreateClient();
+
+        var res = await client.PatchAsJsonAsync($"/api/v1/payees/{Guid.NewGuid()}/rename", new { name = "New Name" });
+
+        res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Can_Delete_Payee_WhenAuthorized()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        // Create a payee
+        var createRes = await client.PostAsJsonAsync("/api/v1/payees", new { name = "Payee to Delete" });
+        createRes.StatusCode.Should().Be(HttpStatusCode.OK);
+        var created = await createRes.Content.ReadFromJsonAsync<PayeeDto>();
+        created.Should().NotBeNull();
+
+        // Delete the payee
+        var deleteRes = await client.DeleteAsync($"/api/v1/payees/{created!.Id}");
+        deleteRes.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        // Verify it's not in the list anymore
+        var listRes = await client.GetAsync("/api/v1/payees");
+        var list = await listRes.Content.ReadFromJsonAsync<List<PayeeDto>>();
+        list.Should().NotBeNull();
+        list!.Should().NotContain(p => p.Id == created.Id);
+    }
+
+    [Fact]
+    public async Task Delete_Payee_Returns404_WhenNotFound()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var deleteRes = await client.DeleteAsync($"/api/v1/payees/{Guid.NewGuid()}");
+
+        deleteRes.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Delete_Payee_RequiresAuth()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = factory.CreateClient();
+
+        var res = await client.DeleteAsync($"/api/v1/payees/{Guid.NewGuid()}");
+
+        res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     private sealed record PayeeDto(Guid Id, string Name);

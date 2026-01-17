@@ -1,0 +1,397 @@
+@page "/account-groups"
+@inherits ApiPageBase
+@rendermode InteractiveServer
+@using System.ComponentModel.DataAnnotations
+@using FamilyFinances.Application.Ledger.AccountGroups.Dtos
+@using FamilyFinances.Application.Ledger.AccountGroups.Requests
+@using FamilyFinances.Web.Api
+@using FamilyFinances.Web.Components.Base
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AccountGroupsApi AccountGroupsApi
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<AuthorizeView>
+    <Authorized Context="authContext">
+        <!-- Header -->
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h3 class="mb-1">Account Groups</h3>
+                <p class="text-muted mb-0">
+                    @if (_items is not null)
+                    {
+                        var filtered = GetFilteredGroups();
+                        <i class="bi bi-collection me-1"></i>
+                        <span>@filtered.Count group@(filtered.Count != 1 ? "s" : "")</span>
+                        @if (!string.IsNullOrWhiteSpace(_search))
+                        {
+                            <span class="text-muted"> (filtered from @_items.Count total)</span>
+                        }
+                    }
+                </p>
+            </div>
+
+            <button class="btn @(_showCreateForm ? "btn-outline-secondary" : "btn-primary")" @onclick="ToggleCreateForm">
+                <i class="bi @(_showCreateForm ? "bi-x-circle" : "bi-plus-circle") me-1"></i>
+                @(_showCreateForm ? "Cancel" : "New Group")
+            </button>
+        </div>
+
+        <!-- Alerts -->
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle me-2"></i>@_error
+                <button type="button" class="btn-close" @onclick="@(() => _error = null)"></button>
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_info))
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle me-2"></i>@_info
+                <button type="button" class="btn-close" @onclick="@(() => _info = null)"></button>
+            </div>
+        }
+
+        <!-- Create Form -->
+        @if (_showCreateForm)
+        {
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-plus-circle me-2"></i>New Account Group
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <EditForm Model="_createModel" OnValidSubmit="CreateAsync">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="text-danger" />
+
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="bi bi-pencil me-1"></i>Name
+                            </label>
+                            <InputText class="form-control" @bind-Value="_createModel.Name" placeholder="Enter group name" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="bi bi-text-paragraph me-1"></i>Description (optional)
+                            </label>
+                            <InputTextArea class="form-control" @bind-Value="_createModel.Description" placeholder="Enter optional description" rows="2" />
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-success" type="submit" disabled="@_isBusy">
+                                @if (_isBusy)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                }
+                                <i class="bi bi-check-circle me-1"></i>Create
+                            </button>
+
+                            <button class="btn btn-outline-secondary" type="button" @onclick="ToggleCreateForm" disabled="@_isBusy">
+                                <i class="bi bi-x-circle me-1"></i>Cancel
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        }
+
+        <!-- Search Bar -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <div class="input-group">
+                    <span class="input-group-text bg-white">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" class="form-control border-start-0" placeholder="Search groups..." @bind="_search" @bind:event="oninput" />
+                    @if (!string.IsNullOrWhiteSpace(_search))
+                    {
+                        <button class="btn btn-outline-secondary" type="button" @onclick="@(() => _search = string.Empty)">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- List -->
+        @if (_items is null)
+        {
+            <div class="card shadow-sm">
+                <div class="card-body text-center py-5">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted mb-0">Loading account groups...</p>
+                </div>
+            </div>
+        }
+        else
+        {
+            var filtered = GetFilteredGroups();
+
+            @if (filtered.Count == 0)
+            {
+                <div class="card shadow-sm">
+                    <div class="card-body text-center py-5">
+                        <i class="bi bi-collection display-1 text-muted mb-3"></i>
+                        @if (string.IsNullOrWhiteSpace(_search))
+                        {
+                            <h5 class="text-muted">No Account Groups Yet</h5>
+                            <p class="text-muted">Click "New Group" to create your first account group.</p>
+                        }
+                        else
+                        {
+                            <h5 class="text-muted">No Matching Groups</h5>
+                            <p class="text-muted">Try adjusting your search criteria.</p>
+                        }
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                    @foreach (var group in filtered)
+                    {
+                        <div class="col">
+                            <div class="card shadow-sm h-100 hover-shadow">
+                                <div class="card-body d-flex flex-column">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h5 class="card-title mb-0">
+                                            <i class="bi bi-collection me-2 text-primary"></i>@group.Name
+                                        </h5>
+                                    </div>
+
+                                    @if (!string.IsNullOrWhiteSpace(group.Description))
+                                    {
+                                        <p class="card-text text-muted small mb-3">@group.Description</p>
+                                    }
+                                    else
+                                    {
+                                        <p class="card-text text-muted small fst-italic mb-3">No description</p>
+                                    }
+
+                                    <div class="mt-auto d-flex gap-2">
+                                        <button class="btn btn-sm btn-outline-primary flex-grow-1" @onclick="@(() => ViewDetails(group.Id))">
+                                            <i class="bi bi-eye me-1"></i>View/Edit
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="@(() => ConfirmDelete(group))">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        }
+
+        <!-- Delete Confirmation Modal -->
+        @if (_groupToDelete is not null)
+        {
+            <div class="modal d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header bg-danger text-white">
+                            <h5 class="modal-title">
+                                <i class="bi bi-exclamation-triangle me-2"></i>Confirm Delete
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" @onclick="CancelDelete" disabled="@_isBusy"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Are you sure you want to delete the account group <strong>"@_groupToDelete.Name"</strong>?</p>
+                            <div class="alert alert-warning mb-0">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <small>This will remove the group but <strong>not delete</strong> any accounts. Account memberships will be removed.</small>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="CancelDelete" disabled="@_isBusy">
+                                <i class="bi bi-x-circle me-1"></i>Cancel
+                            </button>
+                            <button type="button" class="btn btn-danger" @onclick="DeleteAsync" disabled="@_isBusy">
+                                @if (_isBusy)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                }
+                                <i class="bi bi-trash me-1"></i>Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+    </Authorized>
+
+    <NotAuthorized>
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-shield-lock display-1 text-muted mb-3"></i>
+                <h5 class="text-muted">Authentication Required</h5>
+                <p class="text-muted">You must be logged in to manage account groups.</p>
+                <a class="btn btn-primary mt-3" href="/login">
+                    <i class="bi bi-box-arrow-in-right me-1"></i>Login
+                </a>
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+<style>
+    .hover-shadow {
+        transition: all 0.3s ease;
+    }
+
+    .hover-shadow:hover {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+        transform: translateY(-2px);
+    }
+</style>
+
+@code {
+    private IReadOnlyList<AccountGroupDto>? _items;
+    private string? _error;
+    private string? _info;
+    private bool _isBusy;
+    private bool _showCreateForm;
+    private string _search = string.Empty;
+    private CreateModel _createModel = new();
+    private AccountGroupDto? _groupToDelete;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _error = null;
+        _items = null; // Show loading state
+
+        await ExecuteApiAsync(async ct =>
+        {
+            _items = await AccountGroupsApi.ListAsync(ct);
+        });
+    }
+
+    private void ToggleCreateForm()
+    {
+        _showCreateForm = !_showCreateForm;
+        _error = null;
+        _info = null;
+
+        if (_showCreateForm)
+            _createModel = new();
+    }
+
+    private async Task CreateAsync()
+    {
+        if (_isBusy)
+            return;
+
+        _isBusy = true;
+        _error = null;
+        _info = null;
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                await AccountGroupsApi.CreateAsync(new CreateAccountGroupRequest(_createModel.Name.Trim(), _createModel.Description?.Trim()), ct);
+                _createModel = new();
+                _showCreateForm = false;
+                _info = "Account group created successfully.";
+                _items = await AccountGroupsApi.ListAsync(ct);
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private void ViewDetails(Guid groupId)
+    {
+        Navigation.NavigateTo($"/account-groups/{groupId}");
+    }
+
+    private void ConfirmDelete(AccountGroupDto group)
+    {
+        _groupToDelete = group;
+    }
+
+    private void CancelDelete()
+    {
+        _groupToDelete = null;
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (_isBusy || _groupToDelete is null)
+            return;
+
+        _isBusy = true;
+        _error = null;
+        _info = null;
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                await AccountGroupsApi.DeleteAsync(_groupToDelete.Id, ct);
+                _groupToDelete = null;
+                _info = "Account group deleted successfully.";
+                _items = await AccountGroupsApi.ListAsync(ct);
+            });
+        }
+        catch (KeyNotFoundException)
+        {
+            _error = "Account group not found.";
+            _groupToDelete = null;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private IReadOnlyList<AccountGroupDto> GetFilteredGroups()
+    {
+        if (_items is null)
+            return Array.Empty<AccountGroupDto>();
+
+        if (string.IsNullOrWhiteSpace(_search))
+            return _items;
+
+        var searchLower = _search.Trim().ToLowerInvariant();
+
+        return _items
+            .Where(g => g.Name.ToLowerInvariant().Contains(searchLower) ||
+                       (g.Description?.ToLowerInvariant().Contains(searchLower) ?? false))
+            .ToList();
+    }
+
+    private sealed class CreateModel
+    {
+        [Required(ErrorMessage = "Name is required")]
+        [StringLength(200, ErrorMessage = "Name cannot exceed 200 characters")]
+        public string Name { get; set; } = string.Empty;
+
+        [StringLength(1000, ErrorMessage = "Description cannot exceed 1000 characters")]
+        public string? Description { get; set; }
+    }
+}
