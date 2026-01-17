@@ -10,94 +10,134 @@
 @using FamilyFinances.Web.Components.Shared
 @inject FamilyFinances.Web.Api.TransactionsApi TransactionsApi
 
-<div class="card">
-    <div class="card-body">
-        <div class="d-flex align-items-center justify-content-between mb-2">
-            <div class="mb-2">
-                <small class="text-muted">
-                    Paid from: <strong>@(FromAccountName ?? "-")</strong> ·
-                    Category: <strong>@(ToAccountName ?? "-")</strong>
-                </small>
-            </div>
-
-            <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ClearSelectionClicked">
-                Clear selection
-            </button>
+<div class="mb-3 p-3 bg-light rounded border">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="flex-grow-1">
+            <small class="text-muted d-block">
+                <i class="bi bi-arrow-up-right me-1"></i>
+                <strong>From:</strong> <span class="text-body">@(FromAccountName ?? "—")</span>
+            </small>
+            <small class="text-muted d-block">
+                <i class="bi bi-arrow-down-left me-1"></i>
+                <strong>To:</strong> <span class="text-body">@(ToAccountName ?? "—")</span>
+            </small>
         </div>
 
-
-        @if (!string.IsNullOrWhiteSpace(_error))
-        {
-            <div class="alert alert-danger" role="alert">@_error</div>
-        }
-
-        @if (!string.IsNullOrWhiteSpace(_info))
-        {
-            <div class="alert alert-success" role="alert">@_info</div>
-        }
-
-        <EditForm Model="_model" OnValidSubmit="CreateAsync">
-          @* <DataAnnotationsValidator /> *@
-            <ValidationSummary />
-
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <label class="form-label">Date</label>
-                    <InputDate class="form-control" @bind-Value="_model.BookedOn" @bind-Value:after="ValidateForm" />
-                </div>
-
-                <div class="col-md-8">
-                    <label class="form-label">Description</label>
-                    <input type="text" 
-                           class="form-control" 
-                           @bind="_model.Description" 
-                           @bind:event="oninput"
-                           @bind:after="ValidateForm" />
-                </div>
-
-                <div class="col-md-4">
-                    <label class="form-label">Amount</label>
-                    <input type="text" 
-                           class="form-control" 
-                           placeholder="0.00"
-                           @bind="_amountText" 
-                           @bind:event="oninput"
-                           @bind:after="OnAmountChanged" />
-                </div>
-
-                @if (Mode != QuickEntryType.Transfer)
-                {
-                    <div class="col-md-8">
-                        <PayeeSelector @bind-SelectedPayeeId="_model.PayeeId"
-                                      IsRequired="false"
-                                      IsDisabled="@_isBusy"
-                                      @bind-SelectedPayeeId:after="OnPayeeChanged" />
-                    </div>
-                }
-            </div>
-
-            @if (!string.IsNullOrWhiteSpace(_formError))
+        <div class="d-flex gap-2">
+            @if (Mode == QuickEntryType.Transfer)
             {
-                <div class="alert alert-warning mt-3" role="alert">@_formError</div>
-            }
-
-            <div class="mt-3 d-flex align-items-center justify-content-between">
-                <div class="form-check">
-                    <InputCheckbox class="form-check-input" @bind-Value="_model.KeepSource" />
-                    <label class="form-check-label">Keep source</label>
-                </div>
-
-                <button type="submit" class="btn btn-primary" disabled="@(!_canSubmit || _isBusy)">
-                    @if (_isBusy)
-                    {
-                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                    }
-                    Create
+                <button type="button" 
+                        class="btn btn-sm btn-outline-primary" 
+                        @onclick="SwapAccountsClicked"
+                        disabled="@(SelectedFromAccountId is null || SelectedToAccountId is null)"
+                        title="Swap accounts">
+                    <i class="bi bi-arrow-left-right me-1"></i>Swap
                 </button>
-            </div>
-        </EditForm>
+            }
+            
+            <button type="button" 
+                    class="btn btn-sm btn-outline-secondary" 
+                    @onclick="ClearSelectionClicked"
+                    title="Clear selection">
+                <i class="bi bi-x-circle me-1"></i>Clear
+            </button>
+        </div>
     </div>
 </div>
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>@_error
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(_info))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-2"></i>@_info
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<EditForm Model="_model" OnValidSubmit="CreateAsync">
+    <ValidationSummary class="text-danger" />
+
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label">
+                <i class="bi bi-calendar-event me-1"></i>Date
+            </label>
+            <InputDate class="form-control" @bind-Value="_model.BookedOn" @bind-Value:after="ValidateForm" />
+        </div>
+
+        <div class="col-md-8">
+            <label class="form-label">
+                <i class="bi bi-pencil me-1"></i>Description
+            </label>
+            <input type="text" 
+                   class="form-control" 
+                   placeholder="Enter description"
+                   @bind="_model.Description" 
+                   @bind:event="oninput"
+                   @bind:after="ValidateForm" />
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">
+                <i class="bi bi-currency-euro me-1"></i>Amount
+            </label>
+            <div class="input-group">
+                <input type="text" 
+                       class="form-control" 
+                       placeholder="0.00"
+                       @bind="_amountText" 
+                       @bind:event="oninput"
+                       @bind:after="OnAmountChanged" />
+                <span class="input-group-text">€</span>
+            </div>
+        </div>
+
+        @if (Mode != QuickEntryType.Transfer)
+        {
+            <div class="col-md-8">
+                <PayeeSelector @bind-SelectedPayeeId="_model.PayeeId"
+                              IsRequired="false"
+                              IsDisabled="@_isBusy"
+                              @bind-SelectedPayeeId:after="OnPayeeChanged" />
+            </div>
+        }
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_formError))
+    {
+        <div class="alert alert-warning mt-3" role="alert">
+            <i class="bi bi-exclamation-circle me-2"></i>@_formError
+        </div>
+    }
+
+    <div class="mt-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="form-check">
+            <InputCheckbox class="form-check-input" id="@_checkboxId" @bind-Value="_model.KeepSource" />
+            <label class="form-check-label" for="@_checkboxId">
+                <i class="bi bi-pin me-1"></i>Keep source account
+            </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary" disabled="@(!_canSubmit || _isBusy)">
+            @if (_isBusy)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            }
+            else
+            {
+                <i class="bi bi-plus-circle me-1"></i>
+            }
+            Create Transaction
+        </button>
+    </div>
+</EditForm>
 
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<AccountDto> Accounts { get; set; } = Array.Empty<AccountDto>();
@@ -108,6 +148,7 @@
 
     [Parameter] public EventCallback OnTransactionCreated { get; set; }
     [Parameter] public EventCallback OnClearSelection { get; set; }
+    [Parameter] public EventCallback OnSwapAccounts { get; set; }
     
     [Parameter] public QuickEntryType Mode { get; set; }
 
@@ -119,6 +160,7 @@
     private string? _info;
     private string? _formError;
     private string _amountText = "";
+    private string _checkboxId = Guid.NewGuid().ToString();
 
     private QuickEntryModel _model = new()
     {
@@ -135,14 +177,12 @@
 
     private void OnAmountChanged()
     {
-        // Parse amount accepting both comma and period as decimal separator
         if (string.IsNullOrWhiteSpace(_amountText))
         {
             _model.Amount = 0;
         }
         else
         {
-            // Replace comma with period for parsing
             var normalizedText = _amountText.Replace(',', '.');
             
             if (decimal.TryParse(normalizedText, NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign, 
@@ -150,7 +190,6 @@
             {
                 _model.Amount = amount;
             }
-            // If parsing fails, keep the previous value (don't reset to 0)
         }
         
         ValidateForm();
@@ -165,25 +204,24 @@
     {
         _formError = null;
 
-        // Accounts validation
         var spec = Specs[Mode];
 
         if (SelectedFromAccountId is null)
         {
             _formError = spec.Title switch
             {
-                "Transfer" => "Select a From account from the left panel.",
-                "Income" => "Select a Source account from the left panel.",
-                _ => "Select a Paid from account from the left panel."
+                "Transfer" => "Select a From account from the list.",
+                "Income" => "Select a Source account from the list.",
+                _ => "Select a Paid from account from the list."
             };
         }
         else if (SelectedToAccountId is null)
         {
             _formError = spec.Title switch
             {
-                "Transfer" => "Select a To account from the left panel.",
-                "Income" => "Select a Destination account from the left panel.",
-                _ => "Select a Category account from the left panel."
+                "Transfer" => "Select a To account from the list.",
+                "Income" => "Select a Destination account from the list.",
+                _ => "Select a Category account from the list."
             };
         }
         else if (SelectedFromAccountId == SelectedToAccountId)
@@ -201,7 +239,6 @@
                 _formError = $"To account must be one of: {string.Join(", ", spec.ToAllowed)}.";
         }
 
-        // Field validation (only if accounts are OK)
         if (_formError is null)
         {
             if (string.IsNullOrWhiteSpace(_model.Description))
@@ -212,16 +249,12 @@
 
         _canSubmit = string.IsNullOrWhiteSpace(_formError);
 
-        // If user is fixing things, keep the UI clean
         if (_canSubmit)
             _error = null;
     }
 
-
-
     private async Task CreateAsync()
     {
-        // Re-validate accounts at submission time
         ValidateForm();
         
         if (!_canSubmit || _isBusy)
@@ -270,15 +303,13 @@
                 await TransactionsApi.CreateAsync(request, ct);
             });
 
-            _info = "Transaction created.";
+            _info = "Transaction created successfully.";
 
-            // Reset entry fields.
             _model.Amount = 0m;
             _model.Description = "";
             _model.PayeeId = null;
             _amountText = "";
 
-            // Keep date as is (often used for multiple entries on same day).
             await OnTransactionCreated.InvokeAsync();
 
             if (!_model.KeepSource)
@@ -300,6 +331,11 @@
     {
         await OnClearSelection.InvokeAsync();
         ValidateForm();
+    }
+
+    private async Task SwapAccountsClicked()
+    {
+        await OnSwapAccounts.InvokeAsync();
     }
 
     private sealed class QuickEntryModel
