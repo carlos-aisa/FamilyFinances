@@ -23,7 +23,9 @@ else
                             Subtitle="@Specs[QuickEntryType.Expense].Hint"
                             IsActive="@(_activeEntry == QuickEntryType.Expense)"
                             OnHeaderClick="@(() => SetActive(QuickEntryType.Expense))">
-                <QuickExpenseDrawer Accounts="_accounts"
+                <QuickEntryDrawer Mode="_activeEntry"
+                            Specs="Specs" 
+                            Accounts="_accounts"
                             Payees="_payees"
                             SelectedFromAccountId="_selectedFromAccountId"
                             SelectedToAccountId="_selectedToAccountId"
@@ -41,24 +43,28 @@ else
                             Subtitle="@Specs[QuickEntryType.Income].Hint"
                             IsActive="@(_activeEntry == QuickEntryType.Income)"
                             OnHeaderClick="@(() => SetActive(QuickEntryType.Income))">
-                <QuickExpenseDrawer Accounts="_accounts"
-                                    Payees="_payees"
-                                    SelectedFromAccountId="_incomeFromSourceId"
-                                    SelectedToAccountId="_incomeToAssetId"
-                                    OnTransactionCreated="OnTransactionCreatedAsync"
-                                    OnClearSelection="ClearSelection" />
+                <QuickEntryDrawer Mode="_activeEntry"
+                                Specs="Specs" 
+                                Accounts="_accounts"
+                                Payees="_payees"
+                                SelectedFromAccountId="_incomeFromSourceId"
+                                SelectedToAccountId="_incomeToAssetId"
+                                OnTransactionCreated="OnTransactionCreatedAsync"
+                                OnClearSelection="ClearSelection" />
             </QuickEntryCard>
 
             <QuickEntryCard Title="@Specs[QuickEntryType.Transfer].Title"
                             Subtitle="@Specs[QuickEntryType.Transfer].Hint"
                             IsActive="@(_activeEntry == QuickEntryType.Transfer)"
                             OnHeaderClick="@(() => SetActive(QuickEntryType.Transfer))">
-                <QuickExpenseDrawer Accounts="_accounts"
-                                    Payees="_payees"
-                                    SelectedFromAccountId="_transferFromAssetId"
-                                    SelectedToAccountId="_transferToAssetId"
-                                    OnTransactionCreated="OnTransactionCreatedAsync"
-                                    OnClearSelection="ClearSelection" />
+                <QuickEntryDrawer Mode="_activeEntry"
+                                Specs="Specs"
+                                Accounts="_accounts"
+                                Payees="_payees"
+                                SelectedFromAccountId="_transferFromAssetId"
+                                SelectedToAccountId="_transferToAssetId"
+                                OnTransactionCreated="OnTransactionCreatedAsync"
+                                OnClearSelection="ClearSelection" />
 
                 <button class="btn btn-sm btn-outline-secondary"
                         type="button"
@@ -110,7 +116,6 @@ else
     private Guid? _selectedFromAccountId;
     private Guid? _selectedToAccountId;
 
-    private enum QuickEntryType { Expense, Income, Transfer }
     private QuickEntryType _activeEntry = QuickEntryType.Expense;
 
     private Guid? _expenseFromAssetId;
@@ -139,17 +144,32 @@ else
     {
         var spec = Specs[_activeEntry];
 
-        if (spec.FromAllowed.Contains(account.Nature))
+        var canBeFrom = spec.FromAllowed.Contains(account.Nature);
+        var canBeTo = spec.ToAllowed.Contains(account.Nature);
+
+        // If it can't be used in this mode, ignore.
+        if (!canBeFrom && !canBeTo)
+            return;
+
+        // When both are allowed (Transfer), decide based on current selection state.
+        if (canBeFrom && canBeTo)
+        {
+            if (ShouldAssignToInActiveEntry())
+                SetToForActiveEntry(account.Id, spec.ReplaceToWhenBothSelected);
+            else
+                SetFromForActiveEntry(account.Id);
+
+            return;
+        }
+
+        // Non-overlapping specs (Expense/Income): keep the simple rules.
+        if (canBeFrom)
         {
             SetFromForActiveEntry(account.Id);
             return;
         }
 
-        if (spec.ToAllowed.Contains(account.Nature))
-        {
-            SetToForActiveEntry(account.Id, spec.ReplaceToWhenBothSelected);
-            return;
-        }
+        SetToForActiveEntry(account.Id, spec.ReplaceToWhenBothSelected);
     }
 
     private void SetFromForActiveEntry(Guid accountId)
@@ -216,8 +236,22 @@ else
 
     private Task OnTransactionCreatedAsync()
     {
-        // After creating a transaction, keep "Paid from" selected (typical behavior for repetitive expenses),
-        // but clear the category to avoid accidental repeats.
+        // Clear "To" account for the active entry mode
+        switch (_activeEntry)
+        {
+            case QuickEntryType.Expense:
+                _expenseToCategoryId = null;
+                break;
+
+            case QuickEntryType.Income:
+                _incomeToAssetId = null;
+                break;
+
+            case QuickEntryType.Transfer:
+                _transferToAssetId = null;
+                break;
+        }
+
         _selectedToAccountId = null;
         StateHasChanged();
         return Task.CompletedTask;
@@ -225,6 +259,25 @@ else
 
     private void ClearSelection()
     {
+        // Clear selections for the active entry mode
+        switch (_activeEntry)
+        {
+            case QuickEntryType.Expense:
+                _expenseFromAssetId = null;
+                _expenseToCategoryId = null;
+                break;
+
+            case QuickEntryType.Income:
+                _incomeFromSourceId = null;
+                _incomeToAssetId = null;
+                break;
+
+            case QuickEntryType.Transfer:
+                _transferFromAssetId = null;
+                _transferToAssetId = null;
+                break;
+        }
+
         _selectedFromAccountId = null;
         _selectedToAccountId = null;
     }
@@ -259,8 +312,7 @@ else
     private void SwapTransferAccounts()
     {
         (_transferFromAssetId, _transferToAssetId) = (_transferToAssetId, _transferFromAssetId);
-        (_selectedFromAccountId, _selectedToAccountId) = (_selectedToAccountId, _selectedFromAccountId);  //remove
-
+        (_selectedFromAccountId, _selectedToAccountId) = (_selectedToAccountId, _selectedFromAccountId);
     }
 
     private string GetAccountName(Guid? accountId)
@@ -272,17 +324,6 @@ else
         return account?.Name ?? "—";
     }
 
-    private string GetExpenseSubtitle()
-       // => $"{GetAccountName(_expenseFromAssetId)} → {GetAccountName(_expenseToCategoryId)}";
-       => "Tip: click an Asset/Liability to set Paid from, then click an Expense to set <strong>Category";
-    private string GetIncomeSubtitle()
-        //=> $"{GetAccountName(_incomeFromSourceId)} → {GetAccountName(_incomeToAssetId)}";
-       => "";
-
-    private string GetTransferSubtitle()
-        //=> $"{GetAccountName(_transferFromAssetId)} → {GetAccountName(_transferToAssetId)}";
-       => "";
-
     private IReadOnlyList<AccountDto> GetAccounts(AccountNature nature)
     {
         if (_accounts is null) return Array.Empty<AccountDto>();
@@ -293,12 +334,14 @@ else
             .ToList();
     }
 
-    private sealed record QuickEntrySpec(
-        string Title,
-        string Hint,
-        HashSet<AccountNature> FromAllowed,
-        HashSet<AccountNature> ToAllowed,
-        bool ReplaceToWhenBothSelected);
+    private bool ShouldAssignToInActiveEntry()
+    {
+        return _activeEntry switch
+        {
+            QuickEntryType.Transfer => _transferFromAssetId is not null && _transferToAssetId is null,
+            _ => _selectedFromAccountId is not null && _selectedToAccountId is null
+        };
+    }
 
     private static readonly Dictionary<QuickEntryType, QuickEntrySpec> Specs = new()
     {
@@ -319,8 +362,8 @@ else
         [QuickEntryType.Transfer] = new(
             Title: "Transfer",
             Hint: "Select two accounts to move money between them",
-            FromAllowed: new() { AccountNature.Asset },
-            ToAllowed: new() { AccountNature.Asset },
+            FromAllowed: new() { AccountNature.Asset, AccountNature.Liability },
+            ToAllowed: new() { AccountNature.Asset, AccountNature.Liability},
             ReplaceToWhenBothSelected: true),
     };
 }

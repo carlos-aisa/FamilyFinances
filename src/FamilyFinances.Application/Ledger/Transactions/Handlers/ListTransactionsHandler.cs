@@ -44,7 +44,9 @@ public sealed class ListTransactionsHandler
             else if (assetSplits.Count == 2)
             {
                 type = TransactionListItemType.Transfer;
-                headline = $"{assetSplits[0].Account.Name} ? {assetSplits[1].Account.Name}";
+                var fromSplit = assetSplits.First(s => s.Amount.Cents < 0);
+                var toSplit = assetSplits.First(s => s.Amount.Cents > 0);
+                headline = $"{fromSplit.Account.Name} -> {toSplit.Account.Name}";
             }
             else
             {
