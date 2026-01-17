@@ -22,6 +22,7 @@ builder.Services.AddScoped<ISessionInitializationService, SessionInitializationS
 builder.Services.AddScoped<IAccountsApi, AccountsApi>();
 builder.Services.AddScoped<PayeesApi>();
 builder.Services.AddScoped<TransactionsApi>();
+builder.Services.AddScoped<ReportsApi>();
 
 builder.Services.AddScoped<JwtAuthStateProvider>();
 // Also register it as the framework abstraction.

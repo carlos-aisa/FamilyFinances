@@ -1,0 +1,323 @@
+@page "/reports/monthly-summary"
+@rendermode InteractiveServer
+@using FamilyFinances.Application.Ledger.Accounts.Dtos
+@using FamilyFinances.Application.Ledger.Payees.Dtos
+@using FamilyFinances.Application.Reporting.Dtos
+@using FamilyFinances.Web.Api
+@using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web.Features.Reports
+@using Microsoft.AspNetCore.Components.Authorization
+@inherits ApiPageBase
+
+@inject ReportsApi ReportsApi
+@inject IAccountsApi AccountsApi
+@inject PayeesApi PayeesApi
+
+<AuthorizeView>
+    <Authorized>
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h3 class="mb-1">
+                    <i class="bi bi-calendar-month me-2"></i>Monthly Summary
+                </h3>
+                <p class="text-muted mb-0">Income, expenses, and net balance for the selected month</p>
+            </div>
+            <a class="btn btn-outline-secondary" href="/reports">
+                <i class="bi bi-arrow-left me-1"></i>Back to Reports
+            </a>
+        </div>
+
+        <!-- Filters Card -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <!-- Month/Year Selector -->
+                    <div class="col-12 col-md-4">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar3 me-1"></i>Month
+                        </label>
+                        <div class="input-group">
+                            <button class="btn btn-outline-secondary" @onclick="PreviousMonth" type="button">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            <select class="form-select" @bind="_selectedMonth">
+                                @for (int m = 1; m <= 12; m++)
+                                {
+                                    <option value="@m">@DateHelper.GetMonthName(m)</option>
+                                }
+                            </select>
+                            <select class="form-select" style="max-width: 100px;" @bind="_selectedYear">
+                                @for (int y = _selectedYear - 5; y <= _selectedYear + 1; y++)
+                                {
+                                    <option value="@y">@y</option>
+                                }
+                            </select>
+                            <button class="btn btn-outline-secondary" @onclick="NextMonth" type="button">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Account Filter -->
+                    <div class="col-12 col-md-4">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-wallet2 me-1"></i>Account (optional)
+                        </label>
+                        <select class="form-select" @bind="_selectedAccountId">
+                            <option value="">All accounts</option>
+                            @if (_accounts is not null)
+                            {
+                                @foreach (var account in _accounts.OrderBy(a => a.Name))
+                                {
+                                    <option value="@account.Id">@account.Name</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Payee Filter -->
+                    <div class="col-12 col-md-4">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-person me-1"></i>Payee (optional)
+                        </label>
+                        <select class="form-select" @bind="_selectedPayeeId">
+                            <option value="">All payees</option>
+                            @if (_payees is not null)
+                            {
+                                @foreach (var payee in _payees.OrderBy(p => p.Name))
+                                {
+                                    <option value="@payee.Id">@payee.Name</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <button class="btn btn-primary" @onclick="LoadReportAsync" disabled="@_isLoading">
+                        @if (_isLoading)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-search me-1"></i>
+                        }
+                        Load Report
+                    </button>
+                    <button class="btn btn-outline-secondary ms-2" @onclick="ResetFilters">
+                        <i class="bi bi-x-circle me-1"></i>Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Display -->
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle me-2"></i>@_error
+                <button type="button" class="btn-close" @onclick="@(() => _error = null)"></button>
+            </div>
+        }
+
+        <!-- Loading State -->
+        @if (_isLoading)
+        {
+            <div class="card shadow-sm">
+                <div class="card-body text-center py-5">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted">Loading report data...</p>
+                </div>
+            </div>
+        }
+        else if (_report is not null)
+        {
+            <!-- Report Results -->
+            <div class="row g-4">
+                <!-- Summary Cards -->
+                <div class="col-12 col-md-6 col-lg-3">
+                    <div class="card shadow-sm border-start border-success border-4">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Income</h6>
+                                    <h4 class="mb-0 text-success">@MoneyFormatter.FormatCents(_report.IncomeTotal)</h4>
+                                </div>
+                                <i class="bi bi-arrow-down-circle text-success fs-2 opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-lg-3">
+                    <div class="card shadow-sm border-start border-danger border-4">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Expenses</h6>
+                                    <h4 class="mb-0 text-danger">@MoneyFormatter.FormatCents(_report.ExpenseTotal)</h4>
+                                </div>
+                                <i class="bi bi-arrow-up-circle text-danger fs-2 opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-lg-3">
+                    <div class="card shadow-sm border-start border-primary border-4">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Net Balance</h6>
+                                    <h4 class="mb-0 @MoneyFormatter.GetColorClass(_report.Net)">
+                                        @MoneyFormatter.FormatCentsWithSign(_report.Net)
+                                    </h4>
+                                </div>
+                                <i class="bi bi-wallet2 @MoneyFormatter.GetColorClass(_report.Net) fs-2 opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-lg-3">
+                    <div class="card shadow-sm border-start border-info border-4">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Transactions</h6>
+                                    <h4 class="mb-0 text-info">@_report.TransactionsCount</h4>
+                                </div>
+                                <i class="bi bi-receipt text-info fs-2 opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart Placeholder -->
+            <div class="card shadow-sm mt-4">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-bar-chart display-4 text-muted mb-3"></i>
+                    <h5 class="text-muted">Chart Visualization</h5>
+                    <p class="text-muted mb-0">Visual representation coming soon</p>
+                </div>
+            </div>
+        }
+        else if (!_isLoading && _report is null)
+        {
+            <!-- No Report Loaded Yet -->
+            <div class="card shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-graph-up display-1 text-muted mb-3"></i>
+                    <h5 class="text-muted">Ready to generate report</h5>
+                    <p class="text-muted">Select filters above and click "Load Report" to see your monthly summary.</p>
+                </div>
+            </div>
+        }
+
+    </Authorized>
+    <NotAuthorized>
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            Please log in to view reports.
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private IReadOnlyList<AccountDto>? _accounts;
+    private IReadOnlyList<PayeeDto>? _payees;
+    private MonthlySummaryDto? _report;
+    private string? _error;
+    private bool _isLoading;
+
+    private int _selectedYear = DateHelper.GetCurrentYear();
+    private int _selectedMonth = DateHelper.GetCurrentMonth();
+    private string _selectedAccountId = "";
+    private string _selectedPayeeId = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadFiltersDataAsync();
+    }
+
+    private async Task LoadFiltersDataAsync()
+    {
+        try
+        {
+            _accounts = await AccountsApi.ListAsync(default);
+            _payees = await PayeesApi.ListAsync(default);
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to load filter data: {ex.Message}";
+        }
+    }
+
+    private async Task LoadReportAsync()
+    {
+        _isLoading = true;
+        _error = null;
+        _report = null;
+        StateHasChanged();
+
+        try
+        {
+            Guid? accountId = string.IsNullOrWhiteSpace(_selectedAccountId) ? null : Guid.Parse(_selectedAccountId);
+            Guid? payeeId = string.IsNullOrWhiteSpace(_selectedPayeeId) ? null : Guid.Parse(_selectedPayeeId);
+
+            _report = await ReportsApi.GetMonthlySummaryAsync(_selectedYear, _selectedMonth, accountId, payeeId);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            _error = "You are not authorized to view this report. Please log in again.";
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to load report: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void PreviousMonth()
+    {
+        if (_selectedMonth == 1)
+        {
+            _selectedMonth = 12;
+            _selectedYear--;
+        }
+        else
+        {
+            _selectedMonth--;
+        }
+    }
+
+    private void NextMonth()
+    {
+        if (_selectedMonth == 12)
+        {
+            _selectedMonth = 1;
+            _selectedYear++;
+        }
+        else
+        {
+            _selectedMonth++;
+        }
+    }
+
+    private void ResetFilters()
+    {
+        _selectedYear = DateHelper.GetCurrentYear();
+        _selectedMonth = DateHelper.GetCurrentMonth();
+        _selectedAccountId = "";
+        _selectedPayeeId = "";
+        _report = null;
+        _error = null;
+    }
+}

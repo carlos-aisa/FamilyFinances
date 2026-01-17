@@ -1,0 +1,301 @@
+@page "/reports/category-totals"
+@rendermode InteractiveServer
+@using FamilyFinances.Application.Ledger.Payees.Dtos
+@using FamilyFinances.Application.Reporting.Dtos
+@using FamilyFinances.Domain.Ledger.Accounts
+@using FamilyFinances.Web.Api
+@using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web.Features.Reports
+@using Microsoft.AspNetCore.Components.Authorization
+@inherits ApiPageBase
+
+@inject ReportsApi ReportsApi
+@inject PayeesApi PayeesApi
+
+<AuthorizeView>
+    <Authorized>
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h3 class="mb-1">
+                    <i class="bi bi-pie-chart me-2"></i>Category Totals
+                </h3>
+                <p class="text-muted mb-0">Analyze spending or income by category</p>
+            </div>
+            <a class="btn btn-outline-secondary" href="/reports">
+                <i class="bi bi-arrow-left me-1"></i>Back to Reports
+            </a>
+        </div>
+
+        <!-- Filters Card -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <!-- Date Range -->
+                    <div class="col-12 col-md-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar3 me-1"></i>From Date
+                        </label>
+                        <input type="date" class="form-control" @bind="_fromDate" />
+                    </div>
+
+                    <div class="col-12 col-md-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar3 me-1"></i>To Date (exclusive)
+                        </label>
+                        <input type="date" class="form-control" @bind="_toDate" />
+                    </div>
+
+                    <!-- Nature Selector -->
+                    <div class="col-12 col-md-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-tag me-1"></i>Account Nature
+                        </label>
+                        <select class="form-select" @bind="_selectedNature">
+                            @foreach (var nature in Enum.GetValues<AccountNature>())
+                            {
+                                <option value="@nature">@nature</option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Payee Filter -->
+                    <div class="col-12 col-md-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-person me-1"></i>Payee (optional)
+                        </label>
+                        <select class="form-select" @bind="_selectedPayeeId">
+                            <option value="">All payees</option>
+                            @if (_payees is not null)
+                            {
+                                @foreach (var payee in _payees.OrderBy(p => p.Name))
+                                {
+                                    <option value="@payee.Id">@payee.Name</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <button class="btn btn-primary" @onclick="LoadReportAsync" disabled="@_isLoading">
+                        @if (_isLoading)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-search me-1"></i>
+                        }
+                        Load Report
+                    </button>
+                    <button class="btn btn-outline-secondary ms-2" @onclick="ResetFilters">
+                        <i class="bi bi-x-circle me-1"></i>Reset to Current Month
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Display -->
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle me-2"></i>@_error
+                <button type="button" class="btn-close" @onclick="@(() => _error = null)"></button>
+            </div>
+        }
+
+        <!-- Loading State -->
+        @if (_isLoading)
+        {
+            <div class="card shadow-sm">
+                <div class="card-body text-center py-5">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted">Loading report data...</p>
+                </div>
+            </div>
+        }
+        else if (_report is not null)
+        {
+            <!-- Report Results -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-transparent">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-list-ul me-2"></i>
+                            @_report.Nature Accounts
+                        </h5>
+                        <div class="text-muted">
+                            <small>
+                                <i class="bi bi-calendar-range me-1"></i>
+                                @_report.FromInclusive.ToString("MMM dd, yyyy") - @_report.ToExclusive.ToString("MMM dd, yyyy")
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    @if (_report.Items.Count == 0)
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-inbox display-4 text-muted mb-3"></i>
+                            <h5 class="text-muted">No data for this period</h5>
+                            <p class="text-muted">Try adjusting your filters or date range.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="border-0 ps-3" style="width: 50%;">
+                                            <i class="bi bi-tag me-1"></i>Account Name
+                                        </th>
+                                        <th class="border-0 text-end" style="width: 30%;">
+                                            <i class="bi bi-currency-euro me-1"></i>Total
+                                        </th>
+                                        <th class="border-0 text-end pe-3" style="width: 20%;">
+                                            <i class="bi bi-receipt me-1"></i>Transactions
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in _report.Items)
+                                    {
+                                        <tr>
+                                            <td class="ps-3">
+                                                <span class="fw-semibold">@item.AccountName</span>
+                                            </td>
+                                            <td class="text-end">
+                                                <span class="badge bg-primary bg-opacity-10 text-primary fs-6 fw-semibold">
+                                                    @MoneyFormatter.FormatCents(item.Total)
+                                                </span>
+                                            </td>
+                                            <td class="text-end pe-3">
+                                                <span class="text-muted">@item.TransactionsCount</span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <th class="ps-3">Total</th>
+                                        <th class="text-end">
+                                            <span class="badge bg-success bg-opacity-10 text-success fs-6 fw-bold">
+                                                @MoneyFormatter.FormatCents(_report.Items.Sum(i => i.Total))
+                                            </span>
+                                        </th>
+                                        <th class="text-end pe-3">
+                                            @_report.Items.Sum(i => i.TransactionsCount)
+                                        </th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Chart Placeholder -->
+            <div class="card shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-pie-chart display-4 text-muted mb-3"></i>
+                    <h5 class="text-muted">Pie Chart Visualization</h5>
+                    <p class="text-muted mb-0">Visual breakdown by category coming soon</p>
+                </div>
+            </div>
+        }
+        else if (!_isLoading && _report is null)
+        {
+            <!-- No Report Loaded Yet -->
+            <div class="card shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-pie-chart display-1 text-muted mb-3"></i>
+                    <h5 class="text-muted">Ready to generate report</h5>
+                    <p class="text-muted">Select filters above and click "Load Report" to see category totals.</p>
+                </div>
+            </div>
+        }
+
+    </Authorized>
+    <NotAuthorized>
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            Please log in to view reports.
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private IReadOnlyList<PayeeDto>? _payees;
+    private CategoryTotalsDto? _report;
+    private string? _error;
+    private bool _isLoading;
+
+    private DateOnly _fromDate = DateHelper.GetCurrentMonthStart();
+    private DateOnly _toDate = DateHelper.GetCurrentMonthEnd();
+    private AccountNature _selectedNature = AccountNature.Expense;
+    private string _selectedPayeeId = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadFiltersDataAsync();
+    }
+
+    private async Task LoadFiltersDataAsync()
+    {
+        try
+        {
+            _payees = await PayeesApi.ListAsync(default);
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to load filter data: {ex.Message}";
+        }
+    }
+
+    private async Task LoadReportAsync()
+    {
+        // Validate date range
+        if (_fromDate >= _toDate)
+        {
+            _error = "From date must be before To date.";
+            return;
+        }
+
+        _isLoading = true;
+        _error = null;
+        _report = null;
+        StateHasChanged();
+
+        try
+        {
+            Guid? payeeId = string.IsNullOrWhiteSpace(_selectedPayeeId) ? null : Guid.Parse(_selectedPayeeId);
+
+            _report = await ReportsApi.GetCategoryTotalsAsync(_fromDate, _toDate, _selectedNature, payeeId);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            _error = "You are not authorized to view this report. Please log in again.";
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to load report: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void ResetFilters()
+    {
+        _fromDate = DateHelper.GetCurrentMonthStart();
+        _toDate = DateHelper.GetCurrentMonthEnd();
+        _selectedNature = AccountNature.Expense;
+        _selectedPayeeId = "";
+        _report = null;
+        _error = null;
+    }
+}
