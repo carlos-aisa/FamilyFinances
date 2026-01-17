@@ -68,6 +68,8 @@ public static class DependencyInjection
         services.AddScoped<GetAccountGroupByIdHandler>();
         services.AddScoped<AddAccountToGroupHandler>();
         services.AddScoped<RemoveAccountFromGroupHandler>();
+        services.AddScoped<RenameAccountGroupHandler>();
+        services.AddScoped<DeleteAccountGroupHandler>();
         services.AddScoped<GetAccountGroupTotalsHandler>();
         return services;
     }
