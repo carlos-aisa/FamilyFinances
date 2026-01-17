@@ -13,6 +13,16 @@ namespace FamilyFinances.Api.Controllers.V1;
 [Route("api/v{version:apiVersion}/transactions")]
 public sealed class TransactionsController : ControllerBase
 {
+    [HttpGet("any")]
+    [Authorize(Policy = Policies.CanRead)]
+    public async Task<ActionResult<object>> HasAny(
+        [FromServices] HasAnyTransactionHandler handler,
+        CancellationToken ct)
+    {
+        var hasAny = await handler.HandleAsync(ct);
+        return Ok(new { hasAny });
+    }
+
     [HttpPost]
     [Authorize(Policy = Policies.CanWrite)]
     public async Task<ActionResult<TransactionDto>> Create(

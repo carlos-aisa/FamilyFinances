@@ -53,6 +53,7 @@ public static class DependencyInjection
         services.AddScoped<ListTransactionsHandler>();
         services.AddScoped<DeleteTransactionHandler>();
         services.AddScoped<UpdateTransactionHandler>();
+        services.AddScoped<HasAnyTransactionHandler>();
 
         services.AddScoped<CreatePayeeHandler>();
         services.AddScoped<ListPayeesHandler>();
@@ -167,5 +168,8 @@ public static class DependencyInjection
 
         // Seed roles + default admin user
         await Infrastructure.Identity.IdentitySeeder.SeedAsync(scope.ServiceProvider);
+        
+        // Ensure Opening Balance equity account exists
+        await Infrastructure.Ledger.LedgerSeeder.EnsureOpeningBalanceAccountAsync(ledgerDb);
     }
 }

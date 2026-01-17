@@ -1,0 +1,329 @@
+@page "/opening-balance"
+@rendermode InteractiveServer
+@using System.ComponentModel.DataAnnotations
+@using FamilyFinances.Application.Ledger.Accounts.Dtos
+@using FamilyFinances.Application.Ledger.Transactions.Requests
+@using FamilyFinances.Domain.Ledger.Accounts
+@using FamilyFinances.Web.Api
+@using FamilyFinances.Web.Components.Base
+@using Microsoft.AspNetCore.Components.Authorization
+@inherits ApiPageBase
+@inject AccountsApi AccountsApi
+@inject TransactionsApi TransactionsApi
+
+<AuthorizeView>
+    <Authorized>
+        <div class="container py-4">
+            <div class="mb-4">
+                <h3 class="mb-2">
+                    <i class="bi bi-clipboard-check me-2"></i>Opening Balances
+                </h3>
+                <p class="text-muted">Set the starting balances for your accounts to begin tracking your finances.</p>
+            </div>
+
+            @if (_error is not null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2"></i>@_error
+                    <button type="button" class="btn-close" @onclick="@(() => _error = null)"></button>
+                </div>
+            }
+
+            @if (_isLoading)
+            {
+                <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="text-muted">Loading accounts...</p>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <EditForm Model="@_model" OnValidSubmit="SaveAsync" Context="editContext">
+                    <DataAnnotationsValidator />
+
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">
+                                <i class="bi bi-calendar3 me-2"></i>Opening Balance Date
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label class="form-label">Date</label>
+                                    <InputDate class="form-control" @bind-Value="_model.Date" />
+                                    <ValidationMessage For="@(() => _model.Date)" />
+                                    <small class="form-text text-muted">The date when these opening balances are effective.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (_model.Lines.Count > 0)
+                    {
+                        <div class="row g-4">
+                            @foreach (var nature in new[] { AccountNature.Asset, AccountNature.Liability })
+                            {
+                                var linesForNature = _model.Lines.Where(l => l.AccountNature == nature).ToList();
+
+                                if (linesForNature.Count == 0)
+                                    continue;
+
+                                <div class="col-md-6">
+                                    <div class="card shadow-sm h-100 border-start border-4 @GetNatureBorderClass(nature)">
+                                        <div class="card-header @GetNatureHeaderClass(nature)">
+                                            <h5 class="mb-0 @GetNatureTextClass(nature)">
+                                                <i class="@GetNatureIcon(nature) me-2"></i>@nature Accounts
+                                            </h5>
+                                        </div>
+                                        <div class="card-body">
+                                            @foreach (var line in linesForNature)
+                                            {
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-semibold">
+                                                        <i class="bi bi-wallet2 me-1"></i>@line.AccountName
+                                                    </label>
+                                                    <div class="input-group">
+                                                        <span class="input-group-text">€</span>
+                                                        <input type="number" 
+                                                               class="form-control" 
+                                                               step="0.01" 
+                                                               min="0"
+                                                               @bind="line.Amount" 
+                                                               @bind:event="oninput"
+                                                               placeholder="0.00" />
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="card shadow-sm mt-4 border-info">
+                            <div class="card-body bg-info bg-opacity-10">
+                                <div class="row align-items-center">
+                                    <div class="col-md-8">
+                                        <h6 class="mb-1">
+                                            <i class="bi bi-info-circle me-2 text-info"></i>Net Worth
+                                        </h6>
+                                        <small class="text-muted">Assets minus Liabilities</small>
+                                    </div>
+                                    <div class="col-md-4 text-md-end">
+                                        <h4 class="mb-0 @(NetWorth >= 0 ? "text-success" : "text-danger")">
+                                            @FormatCurrency(NetWorth)
+                                        </h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            No Asset or Liability accounts found. Create some accounts first.
+                        </div>
+                    }
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <button type="button" class="btn btn-outline-secondary" @onclick="Cancel" disabled="@_isBusy">
+                            <i class="bi bi-x-circle me-1"></i>Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary" disabled="@(_isBusy || _model.Lines.Count == 0)">
+                            @if (_isBusy)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-check-circle me-1"></i>
+                            }
+                            Save Opening Balances
+                        </button>
+                    </div>
+                </EditForm>
+            }
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="container py-4">
+            <div class="alert alert-warning">
+                <i class="bi bi-shield-lock me-2"></i>
+                You must be logged in to set opening balances.
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private bool _isLoading = true;
+    private bool _isBusy;
+    private string? _error;
+    private OpeningBalanceModel _model = new();
+    private Guid? _openingBalanceAccountId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ExecuteApiAsync(async ct =>
+        {
+            var accounts = await AccountsApi.ListAsync(ct);
+
+            // Find the Opening Balance equity account
+            _openingBalanceAccountId = accounts
+                .FirstOrDefault(a => a.Nature == AccountNature.Equity && a.Name == "Opening Balance")?.Id;
+
+            if (_openingBalanceAccountId is null)
+            {
+                _error = "Opening Balance equity account not found. Please contact support.";
+                _isLoading = false;
+                return;
+            }
+
+            // Get Asset and Liability accounts
+            var relevantAccounts = accounts
+                .Where(a => !a.IsClosed && (a.Nature == AccountNature.Asset || a.Nature == AccountNature.Liability))
+                .OrderBy(a => a.Nature)
+                .ThenBy(a => a.Name)
+                .ToList();
+
+            _model.Lines = relevantAccounts
+                .Select(a => new OpeningBalanceLine
+                {
+                    AccountId = a.Id,
+                    AccountName = a.Name,
+                    AccountNature = a.Nature,
+                    Amount = 0
+                })
+                .ToList();
+
+            _isLoading = false;
+        });
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_openingBalanceAccountId is null)
+        {
+            _error = "Opening Balance account not found.";
+            return;
+        }
+
+        _isBusy = true;
+        _error = null;
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                var linesToCreate = _model.Lines.Where(l => l.Amount != 0).ToList();
+
+                if (linesToCreate.Count == 0)
+                {
+                    _error = "Please enter at least one non-zero amount.";
+                    return;
+                }
+
+                // Create one transaction per account
+                foreach (var line in linesToCreate)
+                {
+                    // For assets: positive split on asset, negative on equity
+                    // For liabilities: negative split on liability, positive on equity
+                    var amountCents = (long)Math.Round(line.Amount * 100m);
+
+                    var splits = line.AccountNature == AccountNature.Asset
+                        ? new[]
+                        {
+                            new TransactionSplitInput(line.AccountId, amountCents, null),
+                            new TransactionSplitInput(_openingBalanceAccountId.Value, -amountCents, null)
+                        }
+                        : new[]
+                        {
+                            new TransactionSplitInput(line.AccountId, -amountCents, null),
+                            new TransactionSplitInput(_openingBalanceAccountId.Value, amountCents, null)
+                        };
+
+                    var request = new CreateTransactionRequest(
+                        _model.Date,
+                        $"Opening balance",
+                        splits,
+                        null
+                    );
+
+                    await TransactionsApi.CreateAsync(request, ct);
+                }
+            });
+
+            if (string.IsNullOrWhiteSpace(_error))
+            {
+                Nav.NavigateTo("/", replace: true);
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = $"Error saving opening balances: {ex.Message}";
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private void Cancel() => Nav.NavigateTo("/");
+
+    private decimal NetWorth =>
+        _model.Lines.Where(l => l.AccountNature == AccountNature.Asset).Sum(l => l.Amount) -
+        _model.Lines.Where(l => l.AccountNature == AccountNature.Liability).Sum(l => l.Amount);
+
+    private static string FormatCurrency(decimal amount)
+        => amount.ToString("C2", System.Globalization.CultureInfo.GetCultureInfo("es-ES"));
+
+    private static string GetNatureBorderClass(AccountNature nature) => nature switch
+    {
+        AccountNature.Asset => "border-primary",
+        AccountNature.Liability => "border-warning",
+        _ => "border-secondary"
+    };
+
+    private static string GetNatureHeaderClass(AccountNature nature) => nature switch
+    {
+        AccountNature.Asset => "bg-primary-subtle",
+        AccountNature.Liability => "bg-warning-subtle",
+        _ => "bg-light"
+    };
+
+    private static string GetNatureTextClass(AccountNature nature) => nature switch
+    {
+        AccountNature.Asset => "text-primary-emphasis",
+        AccountNature.Liability => "text-warning-emphasis",
+        _ => "text-body"
+    };
+
+    private static string GetNatureIcon(AccountNature nature) => nature switch
+    {
+        AccountNature.Asset => "bi bi-bank",
+        AccountNature.Liability => "bi bi-credit-card",
+        _ => "bi bi-wallet2"
+    };
+
+    private sealed class OpeningBalanceModel
+    {
+        [Required]
+        public DateOnly Date { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+
+        public List<OpeningBalanceLine> Lines { get; set; } = new();
+    }
+
+    private sealed class OpeningBalanceLine
+    {
+        public Guid AccountId { get; set; }
+        public string AccountName { get; set; } = "";
+        public AccountNature AccountNature { get; set; }
+        public decimal Amount { get; set; }
+    }
+}
