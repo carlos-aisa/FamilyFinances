@@ -2,7 +2,6 @@ namespace FamilyFinances.Domain.Ledger.Transactions;
 
 public enum TransactionLinkType
 {
-    Refund = 1,
-    Reversal = 2,
-    Adjustment = 3
+    Refund = 1
+    // Future: Split, Recurring, etc.
 }
