@@ -1,3 +1,5 @@
+using FamilyFinances.Application.Ledger.Transactions.Abstractions;
+using FamilyFinances.Infrastructure.Persistence.Repositories;
 using FamilyFinances.Web.Api;
 using FamilyFinances.Web.Auth;
 using FamilyFinances.Web.Components;
@@ -20,6 +22,7 @@ builder.Services.AddScoped<IApiTokenStore, ApiTokenStore>();
 builder.Services.AddScoped<ISessionInitializationService, SessionInitializationService>();
 
 builder.Services.AddScoped<IAccountsApi, AccountsApi>();
+builder.Services.AddScoped<ITransactionLinkRepository, TransactionLinkRepository>(); 
 builder.Services.AddScoped<PayeesApi>();
 builder.Services.AddScoped<TransactionsApi>();
 builder.Services.AddScoped<ReportsApi>();

@@ -21,13 +21,12 @@ public static class RefundTransactionFactory
             description,
             new[]
             {
-                new TransactionSplitInput(expenseAccountId, -cents, null),
-                new TransactionSplitInput(destinationAccountId, +cents, memo)
+                new TransactionSplitInput(expenseAccountId, +cents, null),
+                new TransactionSplitInput(destinationAccountId, -cents, memo)
             },
-            PayeeId: null,  // Transfers typically don't have payees,
-            RelatedTransactionId = relatedTransactionId
+            PayeeId: payeeId,
+            RelatedTransactionId: relatedTransactionId
         );
-
     }
 
     private static class Money
