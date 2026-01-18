@@ -139,6 +139,67 @@
     </div>
 </EditForm>
 
+@if (Mode == QuickEntryType.Refund)
+{
+    <div class="col-12 mt-2">
+        <div class="card border-secondary">
+            <div class="card-header bg-secondary-subtle" style="cursor: pointer;" @onclick="ToggleExpenseSearch">
+                <small class="text-muted">
+                    <i class="bi bi-link-45deg me-1"></i>
+                    <strong>Link to original expense (optional)</strong>
+                    <i class="bi @(_showExpenseSearch ? "bi-chevron-up" : "bi-chevron-down") float-end"></i>
+                </small>
+            </div>
+            @if (_showExpenseSearch)
+            {
+                <div class="card-body">
+                    <input type="text" 
+                           class="form-control mb-2" 
+                           placeholder="Search by payee, description, or expense account..."
+                           @bind="_expenseSearchQuery" 
+                           @bind:event="oninput"
+                           @bind:after="SearchExpensesAsync" />
+                    
+                    @if (_isSearching)
+                    {
+                        <div class="text-center py-2">
+                            <span class="spinner-border spinner-border-sm" role="status"></span>
+                        </div>
+                    }
+                    else if (_expenseSearchResults.Any())
+                    {
+                        <div class="list-group">
+                            @foreach (var expense in _expenseSearchResults)
+                            {
+                                <button type="button" 
+                                        class="list-group-item list-group-item-action @(_model.RelatedTransactionId == expense.Id ? "active" : "")"
+                                        @onclick="() => SelectExpense(expense)">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <strong>@expense.Description</strong>
+                                            <small class="d-block text-muted">@expense.BookedOn.ToString("MMM dd, yyyy") • @expense.PayeeName</small>
+                                        </div>
+                                        <span class="badge bg-primary">€@expense.Amount.ToString("F2")</span>
+                                    </div>
+                                </button>
+                            }
+                        </div>
+                    }
+                    
+                    @if (_model.RelatedTransactionId is not null)
+                    {
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="ClearExpenseLink">
+                                <i class="bi bi-x-circle me-1"></i>Clear link
+                            </button>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}
+
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<AccountDto> Accounts { get; set; } = Array.Empty<AccountDto>();
     [Parameter, EditorRequired] public IReadOnlyList<PayeeDto> Payees { get; set; } = Array.Empty<PayeeDto>();
@@ -169,6 +230,11 @@
 
     private string? FromAccountName => Accounts.FirstOrDefault(a => a.Id == SelectedFromAccountId)?.Name;
     private string? ToAccountName => Accounts.FirstOrDefault(a => a.Id == SelectedToAccountId)?.Name;
+
+    private bool _showExpenseSearch = false;
+    private bool _isSearching = false;
+    private string _expenseSearchQuery = "";
+    private List<ExpenseSearchResultDto> _expenseSearchResults = new();
 
     protected override void OnParametersSet()
     {
@@ -297,6 +363,16 @@
                         amount: _model.Amount,
                         memo: null),
 
+                    QuickEntryType.Refund => RefundTransactionFactory.Build(
+                        bookedOn: _model.BookedOn,
+                        description: _model.Description.Trim(),
+                        expenseAccountId: SelectedFromAccountId!.Value,
+                        destinationAccountId: SelectedToAccountId!.Value,
+                        amount: _model.Amount,
+                        payeeId: _model.PayeeId,
+                        memo: null,
+                        relatedTransactionId: _model.RelatedTransactionId),
+
                     _ => throw new InvalidOperationException($"Unknown transaction type: {Mode}")
                 };
 
@@ -338,6 +414,49 @@
         await OnSwapAccounts.InvokeAsync();
     }
 
+    private void ToggleExpenseSearch()
+    {
+        _showExpenseSearch = !_showExpenseSearch;
+    }
+
+    private async Task SearchExpensesAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_expenseSearchQuery) || _expenseSearchQuery.Length < 2)
+        {
+            _expenseSearchResults.Clear();
+            return;
+        }
+
+        _isSearching = true;
+        StateHasChanged();
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                _expenseSearchResults = await TransactionsApi.SearchExpensesAsync(
+                    query: _expenseSearchQuery,
+                    expenseAccountId: SelectedFromAccountId,
+                    limit: 20,
+                    ct);
+            });
+        }
+        finally
+        {
+            _isSearching = false;
+        }
+    }
+
+    private void SelectExpense(ExpenseSearchResultDto expense)
+    {
+        _model.RelatedTransactionId = expense.Id;
+    }
+
+    private void ClearExpenseLink()
+    {
+        _model.RelatedTransactionId = null;
+    }
+
     private sealed class QuickEntryModel
     {
         [Required]
@@ -352,5 +471,14 @@
         public Guid? PayeeId { get; set; }
 
         public bool KeepSource { get; set; } = true;
+
+        public Guid? RelatedTransactionId { get; set; }
     }
+
+    public sealed record ExpenseSearchResultDto(
+        Guid Id,
+        string Description,
+        DateOnly BookedOn,
+        string? PayeeName,
+        decimal Amount);
 }
