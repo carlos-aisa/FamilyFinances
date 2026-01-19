@@ -21,8 +21,8 @@ public static class RefundTransactionFactory
             description,
             new[]
             {
-                new TransactionSplitInput(expenseAccountId, +cents, null),
-                new TransactionSplitInput(destinationAccountId, -cents, memo)
+                new TransactionSplitInput(expenseAccountId, -cents, null),
+                new TransactionSplitInput(destinationAccountId, +cents, memo)
             },
             PayeeId: payeeId,
             RelatedTransactionId: relatedTransactionId
