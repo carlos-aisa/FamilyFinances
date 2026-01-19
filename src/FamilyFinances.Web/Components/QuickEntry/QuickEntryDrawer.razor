@@ -4,6 +4,7 @@
 @using System.Globalization
 @using FamilyFinances.Application.Ledger.Accounts.Dtos
 @using FamilyFinances.Application.Ledger.Payees.Dtos
+@using FamilyFinances.Application.Ledger.Transactions.Dtos
 @using FamilyFinances.Domain.Ledger.Accounts
 @using FamilyFinances.Web.Components.Dashboard
 @using FamilyFinances.Web.Features.Transactions
@@ -49,7 +50,7 @@
 {
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
         <i class="bi bi-exclamation-triangle me-2"></i>@_error
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <button type="button" class="btn-close" @onclick="@(() => _error = null)"></button>
     </div>
 }
 
@@ -57,7 +58,7 @@
 {
     <div class="alert alert-success alert-dismissible fade show" role="alert">
         <i class="bi bi-check-circle me-2"></i>@_info
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <button type="button" class="btn-close" @onclick="@(() => _info = null)"></button>
     </div>
 }
 
@@ -108,6 +109,82 @@
                               @bind-SelectedPayeeId:after="OnPayeeChanged" />
             </div>
         }
+
+        @if (Mode == QuickEntryType.Refund)
+        {
+            <div class="col-12 mt-2">
+                <div class="card border-secondary">
+                    <div class="card-header bg-secondary-subtle" style="cursor: pointer;" @onclick="ToggleExpenseSearch">
+                        <small class="text-muted">
+                            <i class="bi bi-link-45deg me-1"></i>
+                            <strong>Link to original expense (optional)</strong>
+                            <i class="bi @(_showExpenseSearch ? "bi-chevron-up" : "bi-chevron-down") float-end"></i>
+                        </small>
+                    </div>
+                    @if (_showExpenseSearch)
+                    {
+                        <div class="card-body">
+                            <input type="text" 
+                                   class="form-control mb-2" 
+                                   placeholder="Search by payee, description, or expense account..."
+                                   @bind="_expenseSearchQuery" 
+                                   @bind:event="oninput"
+                                   @bind:after="SearchExpensesAsync" />
+                            
+                            @if (_isSearching)
+                            {
+                                <div class="text-center py-2">
+                                    <span class="spinner-border spinner-border-sm" role="status"></span>
+                                </div>
+                            }
+                            else if (_expenseSearchResults.Any())
+                            {
+                                <div class="list-group">
+                                    @foreach (var expense in _expenseSearchResults)
+                                    {
+                                        <button type="button" 
+                                                class="list-group-item list-group-item-action @(_model.RelatedTransactionId == expense.Id ? "active" : "")"
+                                                @onclick="() => SelectExpense(expense)">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div class="flex-grow-1">
+                                                    <strong>@expense.Description</strong>
+                                                    <small class="d-block text-muted">
+                                                        @expense.BookedOn.ToString("MMM dd, yyyy")
+                                                        @if (!string.IsNullOrWhiteSpace(expense.PayeeName))
+                                                        {
+                                                            <span> • @expense.PayeeName</span>
+                                                        }
+                                                        <br />
+                                                        <i class="bi bi-tag me-1"></i>@expense.ExpenseAccountName
+                                                    </small>
+                                                </div>
+                                                <span class="badge bg-primary">€@expense.Amount.ToString("F2")</span>
+                                            </div>
+                                        </button>
+                                    }
+                                </div>
+                            }
+                            else if (!string.IsNullOrWhiteSpace(_expenseSearchQuery) && _expenseSearchQuery.Length >= 2 && !_isSearching)
+                            {
+                                <div class="alert alert-info mb-0">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    <small>No expenses found matching your search.</small>
+                                </div>
+                            }
+                            
+                            @if (_model.RelatedTransactionId is not null)
+                            {
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="ClearExpenseLink">
+                                        <i class="bi bi-x-circle me-1"></i>Clear link
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
     </div>
 
     @if (!string.IsNullOrWhiteSpace(_formError))
@@ -138,67 +215,6 @@
         </button>
     </div>
 </EditForm>
-
-@if (Mode == QuickEntryType.Refund)
-{
-    <div class="col-12 mt-2">
-        <div class="card border-secondary">
-            <div class="card-header bg-secondary-subtle" style="cursor: pointer;" @onclick="ToggleExpenseSearch">
-                <small class="text-muted">
-                    <i class="bi bi-link-45deg me-1"></i>
-                    <strong>Link to original expense (optional)</strong>
-                    <i class="bi @(_showExpenseSearch ? "bi-chevron-up" : "bi-chevron-down") float-end"></i>
-                </small>
-            </div>
-            @if (_showExpenseSearch)
-            {
-                <div class="card-body">
-                    <input type="text" 
-                           class="form-control mb-2" 
-                           placeholder="Search by payee, description, or expense account..."
-                           @bind="_expenseSearchQuery" 
-                           @bind:event="oninput"
-                           @bind:after="SearchExpensesAsync" />
-                    
-                    @if (_isSearching)
-                    {
-                        <div class="text-center py-2">
-                            <span class="spinner-border spinner-border-sm" role="status"></span>
-                        </div>
-                    }
-                    else if (_expenseSearchResults.Any())
-                    {
-                        <div class="list-group">
-                            @foreach (var expense in _expenseSearchResults)
-                            {
-                                <button type="button" 
-                                        class="list-group-item list-group-item-action @(_model.RelatedTransactionId == expense.Id ? "active" : "")"
-                                        @onclick="() => SelectExpense(expense)">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <strong>@expense.Description</strong>
-                                            <small class="d-block text-muted">@expense.BookedOn.ToString("MMM dd, yyyy") • @expense.PayeeName</small>
-                                        </div>
-                                        <span class="badge bg-primary">€@expense.Amount.ToString("F2")</span>
-                                    </div>
-                                </button>
-                            }
-                        </div>
-                    }
-                    
-                    @if (_model.RelatedTransactionId is not null)
-                    {
-                        <div class="mt-2">
-                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="ClearExpenseLink">
-                                <i class="bi bi-x-circle me-1"></i>Clear link
-                            </button>
-                        </div>
-                    }
-                </div>
-            }
-        </div>
-    </div>
-}
 
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<AccountDto> Accounts { get; set; } = Array.Empty<AccountDto>();
@@ -278,6 +294,7 @@
             {
                 "Transfer" => "Select a From account from the list.",
                 "Income" => "Select a Source account from the list.",
+                "Refund" => "Select an Expense account from the list.",
                 _ => "Select a Paid from account from the list."
             };
         }
@@ -287,6 +304,7 @@
             {
                 "Transfer" => "Select a To account from the list.",
                 "Income" => "Select a Destination account from the list.",
+                "Refund" => "Select a Destination account from the list.",
                 _ => "Select a Category account from the list."
             };
         }
@@ -384,7 +402,11 @@
             _model.Amount = 0m;
             _model.Description = "";
             _model.PayeeId = null;
+            _model.RelatedTransactionId = null;
             _amountText = "";
+            _expenseSearchQuery = "";
+            _expenseSearchResults.Clear();
+            _showExpenseSearch = false;
 
             await OnTransactionCreated.InvokeAsync();
 
@@ -441,6 +463,11 @@
                     ct);
             });
         }
+        catch (Exception ex)
+        {
+            _error = $"Failed to search expenses: {ex.Message}";
+            _expenseSearchResults.Clear();
+        }
         finally
         {
             _isSearching = false;
@@ -474,11 +501,4 @@
 
         public Guid? RelatedTransactionId { get; set; }
     }
-
-    public sealed record ExpenseSearchResultDto(
-        Guid Id,
-        string Description,
-        DateOnly BookedOn,
-        string? PayeeName,
-        decimal Amount);
 }
