@@ -128,12 +128,21 @@ public sealed class ReportingReadRepository : IReportingReadRepository
 
         var items = data
             .GroupBy(x => new { x.AccountId, x.AccountName })
-            .Select(g => new CategoryTotalItemDto(
-                g.Key.AccountId.Value,
-                g.Key.AccountName,
-                g.Sum(x => x.Amount.Abs().Cents),
-                g.Select(x => x.TransactionId).Distinct().Count()
-            ))
+            .Select(g =>
+            {
+                // Sum with sign: expenses are negative, income/refunds are positive
+                var signedSum = g.Sum(x => x.Amount.Cents);
+                // For expense accounts, negate to show as positive spending
+                // For income accounts, keep as is (positive income)
+                var displayTotal = nature == AccountNature.Expense ? -signedSum : signedSum;
+                
+                return new CategoryTotalItemDto(
+                    g.Key.AccountId.Value,
+                    g.Key.AccountName,
+                    displayTotal,
+                    g.Select(x => x.TransactionId).Distinct().Count()
+                );
+            })
             .OrderByDescending(x => x.Total)
             .ThenBy(x => x.AccountName)
             .ToList();
@@ -269,12 +278,21 @@ public sealed class ReportingReadRepository : IReportingReadRepository
 
         var items = data
             .GroupBy(x => new { x.AccountId, x.AccountName })
-            .Select(g => new AccountGroupTotalItemDto(
-                g.Key.AccountId.Value,
-                g.Key.AccountName,
-                g.Sum(x => x.Amount.Abs().Cents),
-                g.Select(x => x.TransactionId).Distinct().Count()
-            ))
+            .Select(g =>
+            {
+                // Sum with sign: expenses are negative, refunds are positive
+                var signedSum = g.Sum(x => x.Amount.Cents);
+                // For expense accounts, negate to show as positive spending
+                // (refunds will naturally subtract)
+                var displayTotal = nature == AccountNature.Expense ? -signedSum : signedSum;
+                
+                return new AccountGroupTotalItemDto(
+                    g.Key.AccountId.Value,
+                    g.Key.AccountName,
+                    displayTotal,
+                    g.Select(x => x.TransactionId).Distinct().Count()
+                );
+            })
             .OrderByDescending(x => x.TotalCents)
             .ThenBy(x => x.AccountName)
             .ToList();
