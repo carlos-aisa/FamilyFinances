@@ -207,6 +207,9 @@ else
             TransactionListItemType.Transfer => @<span class="badge bg-primary-subtle text-primary">
                 <i class="bi bi-arrow-left-right me-1"></i>Transfer
             </span>,
+            TransactionListItemType.Refund => @<span class="badge bg-info-subtle text-info">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>Refund
+            </span>,
             _ => @<span class="badge bg-secondary-subtle text-secondary">
                 <i class="bi bi-question-circle me-1"></i>Other
             </span>
@@ -220,6 +223,7 @@ else
             TransactionListItemType.Expense => "bg-danger-subtle text-danger",
             TransactionListItemType.Income => "bg-success-subtle text-success",
             TransactionListItemType.Transfer => "bg-info-subtle text-info",
+            TransactionListItemType.Refund => "bg-info-subtle text-info",
             _ => "bg-secondary-subtle text-secondary"
         };
     }

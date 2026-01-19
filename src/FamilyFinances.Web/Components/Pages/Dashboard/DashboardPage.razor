@@ -102,6 +102,21 @@
                                         OnClearSelection="ClearSelection"
                                         OnSwapAccounts="SwapTransferAccounts" />
                     </QuickEntryCard>
+
+                    <QuickEntryCard Title="@Specs[QuickEntryType.Refund].Title"
+                                    Subtitle="@Specs[QuickEntryType.Refund].Hint"
+                                    IsActive="@(_activeEntry == QuickEntryType.Refund)"
+                                    OnHeaderClick="@(() => SetActive(QuickEntryType.Refund))">
+                        <QuickEntryDrawer Mode="_activeEntry"
+                                        Specs="Specs"
+                                        Accounts="_accounts"
+                                        Payees="_payees"
+                                        SelectedFromAccountId="_refundFromExpenseId"
+                                        SelectedToAccountId="_refundToAssetId"
+                                        OnTransactionCreated="OnTransactionCreatedAsync"
+                                        OnClearSelection="ClearSelection"
+                                        OnSwapAccounts="SwapTransferAccounts" />
+                    </QuickEntryCard>
                 </div>
 
                 <div class="col-12 col-lg-5">
@@ -192,6 +207,9 @@
     private Guid? _transferFromAssetId;
     private Guid? _transferToAssetId;
 
+    private Guid? _refundFromExpenseId;
+    private Guid? _refundToAssetId;
+
     private void GoToOpeningBalance() => Nav.NavigateTo("/opening-balance");
 
     private static readonly AccountNature[] _natureOrder =
@@ -199,7 +217,7 @@
         AccountNature.Asset,
         AccountNature.Liability,
         AccountNature.Expense,
-        AccountNature.Income
+        AccountNature.Income    
     ];
 
     protected override async Task OnInitializedAsync()
@@ -264,6 +282,11 @@
                 _transferFromAssetId = accountId;
                 _selectedFromAccountId = accountId;
                 break;
+
+            case QuickEntryType.Refund:
+                _refundFromExpenseId = accountId;
+                _selectedFromAccountId = accountId;
+                break;
         }
     }
 
@@ -303,6 +326,11 @@
                 }
 
                 break;
+
+            case QuickEntryType.Refund:
+                _refundToAssetId = accountId;
+                _selectedToAccountId = accountId;
+                break;
         }
     }
 
@@ -321,6 +349,9 @@
 
             case QuickEntryType.Transfer:
                 _transferToAssetId = null;
+                break;
+            case QuickEntryType.Refund:
+                _refundToAssetId = null;
                 break;
         }
 
@@ -346,6 +377,10 @@
             case QuickEntryType.Transfer:
                 _transferFromAssetId = null;
                 _transferToAssetId = null;
+                break;
+            case QuickEntryType.Refund:
+                _refundFromExpenseId = null;
+                _refundToAssetId = null;
                 break;
         }
 
@@ -376,6 +411,10 @@
             case QuickEntryType.Transfer:
                 _selectedFromAccountId = _transferFromAssetId;
                 _selectedToAccountId = _transferToAssetId;
+                break;
+            case QuickEntryType.Refund:
+                _selectedFromAccountId = _refundFromExpenseId;
+                _selectedToAccountId = _refundToAssetId;
                 break;
         }
     }
@@ -472,5 +511,12 @@
             FromAllowed: new() { AccountNature.Asset, AccountNature.Liability },
             ToAllowed: new() { AccountNature.Asset, AccountNature.Liability},
             ReplaceToWhenBothSelected: true),
+
+        [QuickEntryType.Refund] = new(
+            Title: "Refund",
+            Hint: "Select an expense category and destination account",
+            FromAllowed: new() { AccountNature.Expense },
+            ToAllowed: new() { AccountNature.Asset, AccountNature.Liability },
+            ReplaceToWhenBothSelected: false),
     };
 }

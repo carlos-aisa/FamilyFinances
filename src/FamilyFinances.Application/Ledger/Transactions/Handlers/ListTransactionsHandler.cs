@@ -18,8 +18,12 @@ public sealed class ListTransactionsHandler
 
         return items.Select(t =>
         {
-            var expenseSplit = t.Splits
+            // Expense splits: positive = normal expense, negative = refund (reduces expense)
+            var expenseSplitPositive = t.Splits
                 .FirstOrDefault(s => s.Amount.Cents > 0 && s.Account.Nature == AccountNature.Expense);
+
+            var expenseSplitNegative = t.Splits
+                .FirstOrDefault(s => s.Amount.Cents < 0 && s.Account.Nature == AccountNature.Expense);
 
             var incomeSplit = t.Splits
                 .FirstOrDefault(s => s.Amount.Cents < 0 && s.Account.Nature == AccountNature.Income);
@@ -31,10 +35,16 @@ public sealed class ListTransactionsHandler
             TransactionListItemType type;
             string headline;
 
-            if (expenseSplit is not null)
+            // Refund detection: expense account decreased and asset account increased
+            if (expenseSplitNegative is not null && assetSplits.Any(s => s.Amount.Cents > 0))
+            {
+                type = TransactionListItemType.Refund;
+                headline = expenseSplitNegative.Account.Name;
+            }
+            else if (expenseSplitPositive is not null)
             {
                 type = TransactionListItemType.Expense;
-                headline = expenseSplit.Account.Name;
+                headline = expenseSplitPositive.Account.Name;
             }
             else if (incomeSplit is not null)
             {
@@ -74,9 +84,7 @@ public sealed class ListTransactionsHandler
 
     private static decimal CalculateAmount(Transaction transaction)
     {
-        // UX rule:
-        // Show the absolute value of the "main" money movement.
-        // Convention: sum of negative splits (money leaving an account).
+        // UX rule: show absolute value of money leaving accounts (sum of negative splits)
         var totalCents = transaction.Splits
             .Where(s => s.Amount.Cents < 0)
             .Sum(s => s.Amount.Abs().Cents);

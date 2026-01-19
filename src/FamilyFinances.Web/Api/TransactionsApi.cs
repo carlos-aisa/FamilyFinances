@@ -142,5 +142,33 @@ public sealed class TransactionsApi
         return result?.HasAny ?? false;
     }
 
+    public async Task<List<ExpenseSearchResultDto>> SearchExpensesAsync(
+        string query,
+        Guid? expenseAccountId,
+        int limit,
+        CancellationToken ct)
+    {
+        var token = _tokenStore.GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("No access token available.");
+
+        var queryString = $"api/v1/transactions/search-expenses?q={Uri.EscapeDataString(query)}&limit={limit}";
+        if (expenseAccountId.HasValue)
+            queryString += $"&expenseAccountId={expenseAccountId.Value}";
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, queryString);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _http.SendAsync(request, ct);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
+
+        response.EnsureSuccessStatusCode();
+
+        var results = await response.Content.ReadFromJsonAsync<List<ExpenseSearchResultDto>>(cancellationToken: ct);
+        return results ?? new List<ExpenseSearchResultDto>();
+    }
+
     private sealed record HasAnyResponse(bool HasAny);
 }

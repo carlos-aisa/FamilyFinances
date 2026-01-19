@@ -4,4 +4,5 @@ public sealed record CreateTransactionRequest(
     DateOnly BookedOn,
     string Description,
     IReadOnlyList<TransactionSplitInput> Splits,
-    Guid? PayeeId);
+    Guid? PayeeId,
+    Guid? RelatedTransactionId = null);

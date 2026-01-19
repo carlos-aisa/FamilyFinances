@@ -16,6 +16,7 @@ public sealed class CreateTransactionHandlerTests
     {
         var repo = new Mock<ITransactionRepository>(MockBehavior.Strict);
         var payeeRepo = new Mock<IPayeeRepository>(MockBehavior.Strict);
+        var linksRepo = new Mock<ITransactionLinkRepository>(MockBehavior.Strict);
         var uow = new Mock<ILedgerUnitOfWork>(MockBehavior.Strict);
 
         repo.Setup(r => r.AddAsync(It.IsAny<Transaction>(), It.IsAny<CancellationToken>()))
@@ -24,7 +25,7 @@ public sealed class CreateTransactionHandlerTests
         uow.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
-        var handler = new CreateTransactionHandler(repo.Object, payeeRepo.Object, uow.Object);
+        var handler = new CreateTransactionHandler(repo.Object, payeeRepo.Object, linksRepo.Object, uow.Object);
 
         var bankId = Guid.NewGuid();
         var expenseId = Guid.NewGuid();
@@ -63,9 +64,10 @@ public sealed class CreateTransactionHandlerTests
     {
         var repo = new Mock<ITransactionRepository>(MockBehavior.Strict);
         var payeeRepo = new Mock<IPayeeRepository>(MockBehavior.Strict);
+        var linksRepo = new Mock<ITransactionLinkRepository>(MockBehavior.Strict);
         var uow = new Mock<ILedgerUnitOfWork>(MockBehavior.Strict);
 
-        var handler = new CreateTransactionHandler(repo.Object, payeeRepo.Object, uow.Object);
+        var handler = new CreateTransactionHandler(repo.Object, payeeRepo.Object, linksRepo.Object, uow.Object);
 
         var a = Guid.NewGuid();
         var b = Guid.NewGuid();
