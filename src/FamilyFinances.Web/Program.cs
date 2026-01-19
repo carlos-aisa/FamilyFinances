@@ -1,3 +1,6 @@
+using FamilyFinances.Application.Ledger.Transactions.Abstractions;
+using FamilyFinances.Application.Ledger.Transactions.Handlers;
+using FamilyFinances.Infrastructure.Persistence.Repositories;
 using FamilyFinances.Web.Api;
 using FamilyFinances.Web.Auth;
 using FamilyFinances.Web.Components;
@@ -19,14 +22,15 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IApiTokenStore, ApiTokenStore>();
 builder.Services.AddScoped<ISessionInitializationService, SessionInitializationService>();
 
+// API clients
 builder.Services.AddScoped<IAccountsApi, AccountsApi>();
 builder.Services.AddScoped<PayeesApi>();
 builder.Services.AddScoped<TransactionsApi>();
 builder.Services.AddScoped<ReportsApi>();
 builder.Services.AddScoped<AccountGroupsApi>();
 
+// Authentication
 builder.Services.AddScoped<JwtAuthStateProvider>();
-// Also register it as the framework abstraction.
 builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
     sp.GetRequiredService<JwtAuthStateProvider>());
 
@@ -38,6 +42,8 @@ builder.Services.AddHttpClient("FamilyFinancesApi", (sp, client) =>
         new MediaTypeWithQualityHeaderValue("application/json"));
 });
 
+// Note: do NOT register application/infrastructure handlers or repositories that depend on DbContext here.
+
 var app = builder.Build();
 
 app.UseHttpsRedirection();
@@ -47,7 +53,6 @@ app.UseAntiforgery();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-// Map authentication endpoints
 app.MapAuthEndpoints();
 
 app.Run();

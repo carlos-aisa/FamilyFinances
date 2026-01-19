@@ -5,6 +5,7 @@ public enum TransactionListItemType
     Expense,
     Income,
     Transfer,
+    Refund,
     Other
 }
 

@@ -1,4 +1,5 @@
 using FamilyFinances.Application.Ledger.Transactions.Abstractions;
+using FamilyFinances.Application.Ledger.Transactions.Dtos;
 using FamilyFinances.Domain.Common;
 using FamilyFinances.Domain.Ledger.Accounts;
 using FamilyFinances.Domain.Ledger.Payees;
@@ -66,19 +67,18 @@ public sealed class TransactionRepository : ITransactionRepository
         if (existing.Splits.Count != 2)
             throw new InvalidOperationException("Only 2-split transactions can be edited.");
 
-        // Build new splits (Convention A)
         var money = Money.FromEuros(amount);
 
         var splits = new[]
         {
-        TransactionSplit.Create(
-            new AccountId(fromAccountId),
-            new Money(-money.Cents)), // Negate amount
+            TransactionSplit.Create(
+                new AccountId(fromAccountId),
+                new Money(-money.Cents)),
 
-        TransactionSplit.Create(
-            new AccountId(toAccountId),
-            money)
-    };
+            TransactionSplit.Create(
+                new AccountId(toAccountId),
+                money)
+        };
 
         var newTransaction = Transaction.Create(
             bookedOn,
@@ -86,9 +86,7 @@ public sealed class TransactionRepository : ITransactionRepository
             splits,
             payeeId is null ? null : new PayeeId(payeeId.Value));
 
-        // Force same identity
         await RemoveAsync(new TransactionId(id), ct);
-        //_db.Entry(existing).State = EntityState.Detached;
 
         _db.Transactions.Add(Transaction.Create(
             bookedOn,
@@ -104,5 +102,57 @@ public sealed class TransactionRepository : ITransactionRepository
     public async Task<bool> HasAnyAsync(CancellationToken ct)
     {
         return await _db.Transactions.AnyAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<ExpenseSearchResultDto>> SearchExpensesAsync(
+        string query,
+        Guid? expenseAccountId,
+        int limit,
+        CancellationToken ct)
+    {
+        var queryLower = query.ToLowerInvariant();
+
+        var expenseTransactions = _db.Transactions
+            .AsNoTracking()
+            .Include(t => t.Payee)
+            .Include(t => t.Splits)
+                .ThenInclude(s => s.Account)
+            .Where(t => t.Splits.Any(s => s.Account.Nature == AccountNature.Expense));
+
+        // Filter by expense account if provided
+        if (expenseAccountId.HasValue)
+        {
+            expenseTransactions = expenseTransactions
+                .Where(t => t.Splits.Any(s => s.AccountId == new AccountId(expenseAccountId.Value)));
+        }
+
+        // Search by description, payee name, or expense account name
+        var results = await expenseTransactions
+            .Where(t =>
+                t.Description.ToLower().Contains(queryLower) ||
+                (t.Payee != null && t.Payee.Name.ToLower().Contains(queryLower)) ||
+                t.Splits.Any(s => s.Account.Nature == AccountNature.Expense 
+                    && s.Account.Name.ToLower().Contains(queryLower)))
+            .OrderByDescending(t => t.BookedOn)
+            .ThenByDescending(t => t.Id)
+            .Take(limit)
+            .Select(t => new
+            {
+                t.Id,
+                t.Description,
+                t.BookedOn,
+                PayeeName = t.Payee != null ? t.Payee.Name : null,
+                ExpenseSplit = t.Splits.First(s => s.Account.Nature == AccountNature.Expense)
+            })
+            .ToListAsync(ct);
+
+        return results.Select(r => new ExpenseSearchResultDto(
+            r.Id.Value,
+            r.Description,
+            r.BookedOn,
+            r.PayeeName,
+            Math.Abs(r.ExpenseSplit.Amount.ToEuros()),
+            r.ExpenseSplit.Account.Name
+        )).ToList();
     }
 }

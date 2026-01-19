@@ -1,3 +1,4 @@
+using FamilyFinances.Application.Ledger.Transactions.Dtos;
 using FamilyFinances.Domain.Ledger.Transactions;
 
 namespace FamilyFinances.Application.Ledger.Transactions.Abstractions;
@@ -18,4 +19,10 @@ public interface ITransactionRepository
         decimal amount,
         CancellationToken ct);
     Task<bool> HasAnyAsync(CancellationToken ct);
+    
+    Task<IReadOnlyList<ExpenseSearchResultDto>> SearchExpensesAsync(
+        string query, 
+        Guid? expenseAccountId, 
+        int limit, 
+        CancellationToken ct);
 }

@@ -50,6 +50,19 @@ public sealed class TransactionsController : ControllerBase
         CancellationToken ct)
     => Ok(await handler.HandleAsync(take, ct));
 
+    [HttpGet("search-expenses")]
+    [Authorize(Policy = Policies.CanRead)]
+    public async Task<ActionResult<IReadOnlyList<ExpenseSearchResultDto>>> SearchExpenses(
+        [FromServices] SearchExpensesHandler handler,
+        [FromQuery] string q,
+        [FromQuery] Guid? expenseAccountId,
+        [FromQuery] int limit = 20,
+        CancellationToken ct = default)
+    {
+        var results = await handler.HandleAsync(q, expenseAccountId, limit, ct);
+        return Ok(results);
+    }
+
     [HttpPut("{id:guid}")]
     [Authorize(Policy = Policies.CanWrite)]
     public async Task<IActionResult> Update(
