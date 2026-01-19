@@ -1,5 +1,4 @@
-﻿
-using System.Text;
+﻿using System.Text;
 using FamilyFinances.Application.Ledger;
 using FamilyFinances.Application.Ledger.AccountGroups.Abstractions;
 using FamilyFinances.Application.Ledger.AccountGroups.Handlers;
@@ -33,37 +32,48 @@ public static class DependencyInjection
         services.AddIdentityServices();
         services.AddJwtAuthentication(configuration);
         services.AddAuthorizationPolicies();
+        
+        // Unit of Work
         services.AddScoped<ILedgerUnitOfWork, LedgerUnitOfWork>();
+        
+        // Repositories
         services.AddScoped<IAccountRepository, AccountRepository>();
         services.AddScoped<ITransactionRepository, TransactionRepository>();
+        services.AddScoped<ITransactionLinkRepository, TransactionLinkRepository>(); 
         services.AddScoped<IPayeeRepository, PayeeRepository>();
         services.AddScoped<IReportingReadRepository, ReportingReadRepository>();
         services.AddScoped<IAccountGroupRepository, AccountGroupRepository>();
         services.AddScoped<IAccountGroupMembershipRepository, AccountGroupMembershipRepository>();
 
+        // Accounts Handlers
+        services.AddScoped<CloseAccountHandler>();
         services.AddScoped<CreateAccountHandler>();
+        services.AddScoped<DeleteAccountHandler>();
         services.AddScoped<ListAccountsHandler>();
         services.AddScoped<RenameAccountHandler>();
-        services.AddScoped<CloseAccountHandler>();
         services.AddScoped<ReopenAccountHandler>();
-        services.AddScoped<DeleteAccountHandler>();
 
+        // Transaction Handlers
         services.AddScoped<CreateTransactionHandler>();
         services.AddScoped<GetTransactionByIdHandler>();
         services.AddScoped<ListTransactionsHandler>();
         services.AddScoped<DeleteTransactionHandler>();
         services.AddScoped<UpdateTransactionHandler>();
         services.AddScoped<HasAnyTransactionHandler>();
+        services.AddScoped<SearchExpensesHandler>(); 
 
+        // Payee Handlers
         services.AddScoped<CreatePayeeHandler>();
         services.AddScoped<ListPayeesHandler>();
         services.AddScoped<RenamePayeeHandler>();
         services.AddScoped<DeletePayeeHandler>();
 
+        // Reporting Handlers
         services.AddScoped<GetMonthlySummaryHandler>();
         services.AddScoped<GetCategoryTotalsHandler>();
         services.AddScoped<GetAccountTotalsHandler>();
 
+        // Account Group Handlers
         services.AddScoped<CreateAccountGroupHandler>();
         services.AddScoped<ListAccountGroupsHandler>();
         services.AddScoped<GetAccountGroupByIdHandler>();
@@ -72,6 +82,7 @@ public static class DependencyInjection
         services.AddScoped<RenameAccountGroupHandler>();
         services.AddScoped<DeleteAccountGroupHandler>();
         services.AddScoped<GetAccountGroupTotalsHandler>();
+        
         return services;
     }
 
