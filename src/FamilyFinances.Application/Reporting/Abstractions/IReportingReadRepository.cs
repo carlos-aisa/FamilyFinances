@@ -31,4 +31,21 @@ public interface IReportingReadRepository
         DateOnly toExclusive,
         AccountNature nature,
         CancellationToken ct);
+
+    /// <summary>
+    /// Gets movements for a specific account within a date range.
+    /// </summary>
+    Task<AccountMovementsDto> GetAccountMovementsAsync(
+        Guid accountId,
+        DateOnly fromInclusive,
+        DateOnly toExclusive,
+        string? searchQuery = null,
+        int skip = 0,
+        int take = 50,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets current balances for all accounts.
+    /// </summary>
+    Task<IReadOnlyList<AccountBalanceDto>> GetAccountBalancesAsync(CancellationToken ct = default);
 }
