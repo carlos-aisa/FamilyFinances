@@ -2,6 +2,8 @@ using Asp.Versioning;
 using FamilyFinances.Application.Ledger.Accounts.Dtos;
 using FamilyFinances.Application.Ledger.Accounts.Handlers;
 using FamilyFinances.Application.Ledger.Accounts.Requests;
+using FamilyFinances.Application.Reporting.Abstractions;
+using FamilyFinances.Application.Reporting.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using static FamilyFinances.Infrastructure.Identity.AuthConstants;
@@ -27,6 +29,53 @@ public sealed class AccountsController : ControllerBase
         [FromServices] ListAccountsHandler handler,
         CancellationToken ct)
         => Ok(await handler.HandleAsync(ct));
+
+    [HttpGet("balances")]
+    [Authorize(Policy = Policies.CanRead)]
+    public async Task<ActionResult<IReadOnlyList<AccountBalanceDto>>> GetBalances(
+        [FromServices] IReportingReadRepository reportingRepo,
+        CancellationToken ct)
+        => Ok(await reportingRepo.GetAccountBalancesAsync(ct));
+
+    [HttpGet("{id:guid}/movements")]
+    [Authorize(Policy = Policies.CanRead)]
+    public async Task<ActionResult<AccountMovementsDto>> GetMovements(
+        [FromRoute] Guid id,
+        [FromServices] IReportingReadRepository reportingRepo,
+        [FromQuery] string? from = null,
+        [FromQuery] string? to = null,
+        [FromQuery] string? q = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        CancellationToken ct = default)
+    {
+        // Default date range: current month
+        var fromDate = !string.IsNullOrWhiteSpace(from) 
+            ? DateOnly.Parse(from) 
+            : new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1);
+        
+        var toDate = !string.IsNullOrWhiteSpace(to) 
+            ? DateOnly.Parse(to) 
+            : fromDate.AddMonths(1);
+
+        // Validate pagination
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 50;
+        if (pageSize > 100) pageSize = 100;
+
+        var skip = (page - 1) * pageSize;
+
+        try
+        {
+            var result = await reportingRepo.GetAccountMovementsAsync(
+                id, fromDate, toDate, q, skip, pageSize, ct);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
 
     [HttpPatch("{id:guid}/rename")]
     [Authorize(Policy = Policies.CanWrite)]
@@ -72,6 +121,4 @@ public sealed class AccountsController : ControllerBase
         var ok = await handler.HandleAsync(id, ct);
         return ok ? NoContent() : NotFound();
     }
-
-
 }
