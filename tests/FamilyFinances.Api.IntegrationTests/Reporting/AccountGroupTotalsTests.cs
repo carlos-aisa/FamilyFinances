@@ -107,6 +107,78 @@ public sealed class AccountGroupTotalsTests
         dto.Items.Should().Contain(i => i.AccountId == fixedBills.Id && i.TotalCents == 40_000 && i.TransactionsCount == 1);
     }
 
+    [Fact]
+    public async Task AccountGroupTotals_Refunds_Subtract_From_Total()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        // Accounts
+        var bank = await TestHelpers.CreateAccountAsync(client, "Main Bank", "Asset", "Checking");
+        var groceries = await TestHelpers.CreateAccountAsync(client, "Groceries", "Expense", "Other");
+
+        // Create group
+        var createGroupRes = await client.PostAsJsonAsync("/api/v1/account-groups", new
+        {
+            name = "Shopping",
+            description = "Shopping expenses"
+        });
+        createGroupRes.EnsureSuccessStatusCode();
+
+        var group = await createGroupRes.Content.ReadFromJsonAsync<AccountGroupDto>();
+        group.Should().NotBeNull();
+
+        // Add groceries account to group
+        (await client.PostAsync($"/api/v1/account-groups/{group!.Id}/accounts/{groceries.Id}", null))
+            .StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        // Create expense: 50 euros
+        (await client.PostAsJsonAsync("/api/v1/transactions", new
+        {
+            bookedOn = "2026-01-10",
+            description = "Amazon purchase",
+            splits = new[]
+            {
+                new { accountId = bank.Id, amountCents = 5000, memo = "Payment" },
+                new { accountId = groceries.Id, amountCents = -5000, memo = "Expense" }
+            }
+        })).EnsureSuccessStatusCode();
+
+        // Create refund: 15 euros (reduces total expense)
+        (await client.PostAsJsonAsync("/api/v1/transactions", new
+        {
+            bookedOn = "2026-01-15",
+            description = "Amazon refund",
+            splits = new[]
+            {
+                new { accountId = groceries.Id, amountCents = 1500, memo = "Refund" }, // Positive in expense account
+                new { accountId = bank.Id, amountCents = -1500, memo = "Refund received" }
+            }
+        })).EnsureSuccessStatusCode();
+
+        // Act
+        var res = await client.GetAsync(
+            $"/api/v1/reports/account-groups/{group.Id}/totals?from=2026-01-01&to=2026-02-01");
+
+        // Assert
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var dto = await res.Content.ReadFromJsonAsync<AccountGroupTotalsDto>();
+        dto.Should().NotBeNull();
+
+        dto!.GroupId.Should().Be(group.Id);
+        dto.Nature.Should().Be(AccountNature.Expense);
+        
+        // Net expense should be 50 - 15 = 35 euros = 3500 cents
+        dto.TotalCents.Should().Be(3500, "because refund should subtract from total expenses");
+        dto.TransactionsCount.Should().Be(2);
+
+        dto.Items.Should().HaveCount(1);
+        dto.Items[0].AccountId.Should().Be(groceries.Id);
+        dto.Items[0].TotalCents.Should().Be(3500, "because 5000 (expense) - 1500 (refund) = 3500");
+        dto.Items[0].TransactionsCount.Should().Be(2);
+    }
+
     // minimal DTOs for test deserialization
     public sealed record AccountGroupDto(Guid Id, string Name, string? Description);
 

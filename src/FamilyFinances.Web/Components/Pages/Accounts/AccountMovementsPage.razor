@@ -1,0 +1,308 @@
+@page "/accounts/{Id:guid}/movements"
+@rendermode InteractiveServer
+@using System.Globalization
+@using Microsoft.AspNetCore.Components.Forms
+@using FamilyFinances.Application.Reporting.Dtos
+@using FamilyFinances.Web.Api
+@using FamilyFinances.Web.Components.Base
+@using Microsoft.AspNetCore.Components.Authorization
+@inherits ApiPageBase
+
+@inject IAccountsApi AccountsApi
+@inject NavigationManager Nav
+
+<AuthorizeView>
+    <Authorized Context="auth">
+        <!-- Header -->
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-2">
+                        <li class="breadcrumb-item"><a href="/accounts">Accounts</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Movements</li>
+                    </ol>
+                </nav>
+                <h3 class="mb-0">
+                    <i class="bi bi-list-ul me-2"></i>@(_movements?.AccountName ?? "Account Movements")
+                </h3>
+            </div>
+
+            <button class="btn btn-outline-secondary" @onclick="GoBack">
+                <i class="bi bi-arrow-left me-1"></i>Back to Accounts
+            </button>
+        </div>
+
+        <!-- Filters -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-funnel me-2"></i>Filters
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">From Date</label>
+                        <InputDate @bind-Value="_fromDate" class="form-control" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">To Date</label>
+                        <InputDate @bind-Value="_toDate" class="form-control" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Search</label>
+                        <input type="text" class="form-control" placeholder="Search by description or payee..." @bind="_searchQuery" @bind:event="oninput" />
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label">&nbsp;</label>
+                        <button class="btn btn-primary w-100" @onclick="LoadMovementsAsync" disabled="@_isBusy">
+                            @if (_isBusy)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                            }
+                            <i class="bi bi-search me-1"></i>Search
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alerts -->
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle me-2"></i>@_error
+                <button type="button" class="btn-close" @onclick="@(() => _error = null)"></button>
+            </div>
+        }
+
+        <!-- Content -->
+        @if (_movements is null)
+        {
+            <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+                <div class="text-center">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted">Loading movements...</p>
+                </div>
+            </div>
+        }
+        else if (_movements.Items.Count == 0)
+        {
+            <div class="card shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-inbox display-1 text-muted mb-3"></i>
+                    <h5 class="text-muted">No movements found</h5>
+                    <p class="text-muted">
+                        @if (string.IsNullOrWhiteSpace(_searchQuery))
+                        {
+                            <span>No transactions for this account in the selected date range.</span>
+                        }
+                        else
+                        {
+                            <span>No transactions match your search criteria. Try adjusting your filters.</span>
+                        }
+                    </p>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-list-ul me-2"></i>Movements
+                        </h5>
+                        <span class="badge bg-primary">
+                            @_movements.Items.Count of @_movements.TotalCount total
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="border-0 ps-3" style="width: 120px;">
+                                        <i class="bi bi-calendar3 me-1"></i>Date
+                                    </th>
+                                    <th class="border-0">
+                                        <i class="bi bi-file-text me-1"></i>Description
+                                    </th>
+                                    <th class="border-0" style="width: 200px;">
+                                        <i class="bi bi-person me-1"></i>Payee
+                                    </th>
+                                    <th class="border-0" style="width: 200px;">
+                                        <i class="bi bi-arrow-left-right me-1"></i>Counterparty
+                                    </th>
+                                    <th class="border-0 text-end pe-3" style="width: 160px;">
+                                        <i class="bi bi-currency-euro me-1"></i>Amount
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var movement in _movements.Items)
+                                {
+                                    <tr class="movement-row" style="cursor: pointer;" @onclick="@(() => NavigateToTransaction(movement.TransactionId))">
+                                        <td class="ps-3">
+                                            <div class="d-flex flex-column">
+                                                <span class="fw-semibold">@movement.BookedOn.ToString("dd MMM", new CultureInfo("es-ES"))</span>
+                                                <small class="text-muted">@movement.BookedOn.Year</small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="fw-semibold text-dark">@movement.Description</span>
+                                        </td>
+                                        <td>
+                                            @if (!string.IsNullOrWhiteSpace(movement.PayeeName))
+                                            {
+                                                <span class="badge bg-secondary-subtle text-secondary">
+                                                    <i class="bi bi-person me-1"></i>@movement.PayeeName
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">—</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (!string.IsNullOrWhiteSpace(movement.CounterpartyAccountName))
+                                            {
+                                                <small class="text-muted">
+                                                    <i class="bi bi-arrow-left-right me-1"></i>@movement.CounterpartyAccountName
+                                                </small>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">—</span>
+                                            }
+                                        </td>
+                                        <td class="text-end pe-3">
+                                            <span class="badge @GetAmountBadgeClass(movement.SignedAmount) fs-6 px-3 py-2">
+                                                @FormatAmount(movement.SignedAmount)
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Footer with pagination info -->
+                <div class="card-footer bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            Showing @_movements.Items.Count of @_movements.TotalCount movements
+                        </small>
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle me-1"></i>Click on a movement to view transaction details
+                        </small>
+                    </div>
+                </div>
+            </div>
+        }
+    </Authorized>
+
+    <NotAuthorized>
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-shield-lock display-1 text-muted mb-3"></i>
+                <h5 class="text-muted">Authentication Required</h5>
+                <p class="text-muted">You must be logged in to view account movements.</p>
+                <a class="btn btn-primary mt-3" href="/login">
+                    <i class="bi bi-box-arrow-in-right me-1"></i>Login
+                </a>
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+<style>
+    .movement-row {
+        transition: background-color 0.2s ease-in-out;
+    }
+
+        .movement-row:hover {
+            background-color: rgba(13, 110, 253, 0.05) !important;
+        }
+</style>
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private AccountMovementsDto? _movements;
+    private string? _error;
+    private bool _isBusy;
+
+    private DateTime _fromDate = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private DateTime _toDate = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(1);
+    private string _searchQuery = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMovementsAsync();
+    }
+
+    private async Task LoadMovementsAsync()
+    {
+        if (_isBusy)
+            return;
+
+        _isBusy = true;
+        _error = null;
+        _movements = null;
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                var from = DateOnly.FromDateTime(_fromDate);
+                var to = DateOnly.FromDateTime(_toDate);
+                var search = string.IsNullOrWhiteSpace(_searchQuery) ? null : _searchQuery.Trim();
+
+                _movements = await AccountsApi.GetMovementsAsync(Id, from, to, search, 1, 50, ct);
+            });
+        }
+        catch (KeyNotFoundException)
+        {
+            _error = "Account not found.";
+        }
+        catch (Exception ex)
+        {
+            _error = $"Error loading movements: {ex.Message}";
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private void GoBack()
+    {
+        Nav.NavigateTo("/accounts");
+    }
+
+    private void NavigateToTransaction(Guid transactionId)
+    {
+        Nav.NavigateTo($"/transactions/{transactionId}");
+    }
+
+    private string GetAmountBadgeClass(decimal amount)
+    {
+        return amount < 0 ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger";
+    }
+
+    private string FormatAmount(decimal amount)
+    {
+        var sign = amount < 0 ? "+" : "-";
+        var absAmount = Math.Abs(amount);
+        return $"{sign}{absAmount.ToString("C2", CultureInfo.CurrentCulture)}";
+    }
+}

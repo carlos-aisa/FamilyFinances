@@ -1,5 +1,6 @@
 ﻿using FamilyFinances.Application.Ledger.Accounts.Dtos;
 using FamilyFinances.Application.Ledger.Accounts.Requests;
+using FamilyFinances.Application.Reporting.Dtos;
 using FamilyFinances.Web.Auth;
 using System.Net;
 using System.Net.Http.Headers;
@@ -37,6 +38,73 @@ public sealed class AccountsApi : IAccountsApi
 
         var items = await response.Content.ReadFromJsonAsync<IReadOnlyList<AccountDto>>(cancellationToken: ct);
         return items ?? Array.Empty<AccountDto>();
+    }
+
+    public async Task<IReadOnlyList<AccountBalanceDto>> GetBalancesAsync(CancellationToken ct)
+    {
+        var token = _tokenStore.GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("No access token available.");
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "api/v1/accounts/balances");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _http.SendAsync(request, ct);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
+
+        response.EnsureSuccessStatusCode();
+
+        var items = await response.Content.ReadFromJsonAsync<IReadOnlyList<AccountBalanceDto>>(cancellationToken: ct);
+        return items ?? Array.Empty<AccountBalanceDto>();
+    }
+
+    public async Task<AccountMovementsDto> GetMovementsAsync(
+        Guid accountId, 
+        DateOnly? fromInclusive = null, 
+        DateOnly? toExclusive = null, 
+        string? searchQuery = null, 
+        int page = 1, 
+        int pageSize = 50, 
+        CancellationToken ct = default)
+    {
+        var token = _tokenStore.GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("No access token available.");
+
+        var url = $"api/v1/accounts/{accountId}/movements";
+        var queryParams = new List<string>();
+
+        if (fromInclusive.HasValue)
+            queryParams.Add($"from={fromInclusive.Value:yyyy-MM-dd}");
+        if (toExclusive.HasValue)
+            queryParams.Add($"to={toExclusive.Value:yyyy-MM-dd}");
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+            queryParams.Add($"q={Uri.EscapeDataString(searchQuery)}");
+        if (page != 1)
+            queryParams.Add($"page={page}");
+        if (pageSize != 50)
+            queryParams.Add($"pageSize={pageSize}");
+
+        if (queryParams.Count > 0)
+            url += "?" + string.Join("&", queryParams);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _http.SendAsync(request, ct);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            throw new KeyNotFoundException($"Account with ID {accountId} not found.");
+
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<AccountMovementsDto>(cancellationToken: ct);
+        return result ?? throw new InvalidOperationException("Empty response payload.");
     }
 
     public async Task<AccountDto> CreateAsync(CreateAccountRequest requestBody, CancellationToken ct)
