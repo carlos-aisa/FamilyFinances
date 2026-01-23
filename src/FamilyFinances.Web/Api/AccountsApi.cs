@@ -181,6 +181,50 @@ public sealed class AccountsApi : IAccountsApi
         await PatchNoBodyAsync($"api/v1/accounts/{accountId}/reopen", ct);
     }
 
+    public async Task<ReconcileAccountResponse> ReconcileAsync(
+        Guid accountId,
+        decimal actualBalance,
+        DateOnly asOfDate,
+        string? note,
+        CancellationToken ct)
+    {
+        var token = _tokenStore.GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("No access token available.");
+
+        var requestBody = new
+        {
+            actualBalance,
+            asOfDate = asOfDate.ToString("yyyy-MM-dd"),
+            note
+        };
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"api/v1/accounts/{accountId}/reconcile")
+        {
+            Content = JsonContent.Create(requestBody)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _http.SendAsync(request, ct);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            throw new KeyNotFoundException($"Account with ID {accountId} not found.");
+
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+        {
+            var errorMessage = await ReadErrorAsync(response, ct);
+            throw new InvalidOperationException(errorMessage);
+        }
+
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<ReconcileAccountResponse>(cancellationToken: ct);
+        return result ?? throw new InvalidOperationException("Empty response payload.");
+    }
+
     public async Task DeleteAsync(Guid accountId, CancellationToken ct)
     {
         var token = _tokenStore.GetAccessToken();
