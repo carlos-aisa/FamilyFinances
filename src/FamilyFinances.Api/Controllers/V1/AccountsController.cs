@@ -77,6 +77,25 @@ public sealed class AccountsController : ControllerBase
         }
     }
 
+    [HttpPost("{id:guid}/reconcile")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<ActionResult<ReconcileAccountResponse>> Reconcile(
+        [FromRoute] Guid id,
+        [FromBody] ReconcileAccountRequest request,
+        [FromServices] ReconcileAccountHandler handler,
+        CancellationToken ct)
+    {
+        try
+        {
+            var result = await handler.HandleAsync(id, request, ct);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+    }
+
     [HttpPatch("{id:guid}/rename")]
     [Authorize(Policy = Policies.CanWrite)]
     public async Task<IActionResult> Rename(

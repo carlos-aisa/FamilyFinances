@@ -45,11 +45,15 @@ public static class DependencyInjection
         services.AddScoped<IAccountGroupRepository, AccountGroupRepository>();
         services.AddScoped<IAccountGroupMembershipRepository, AccountGroupMembershipRepository>();
 
+        // Services
+        services.AddScoped<IAccountBalanceService, Persistence.Services.AccountBalanceService>();
+
         // Accounts Handlers
         services.AddScoped<CloseAccountHandler>();
         services.AddScoped<CreateAccountHandler>();
         services.AddScoped<DeleteAccountHandler>();
         services.AddScoped<ListAccountsHandler>();
+        services.AddScoped<ReconcileAccountHandler>();
         services.AddScoped<RenameAccountHandler>();
         services.AddScoped<ReopenAccountHandler>();
 
