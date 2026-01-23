@@ -1,5 +1,6 @@
 @page "/accounts/{Id:guid}/movements"
 @rendermode InteractiveServer
+@using System.ComponentModel.DataAnnotations
 @using System.Globalization
 @using Microsoft.AspNetCore.Components.Forms
 @using FamilyFinances.Application.Reporting.Dtos
@@ -27,9 +28,14 @@
                 </h3>
             </div>
 
-            <button class="btn btn-outline-secondary" @onclick="GoBack">
-                <i class="bi bi-arrow-left me-1"></i>Back to Accounts
-            </button>
+            <div class="d-flex gap-2">
+                <button class="btn btn-warning" @onclick="OpenReconcileModal" disabled="@_isBusy">
+                    <i class="bi bi-check2-square me-1"></i>Reconcile
+                </button>
+                <button class="btn btn-outline-secondary" @onclick="GoBack">
+                    <i class="bi bi-arrow-left me-1"></i>Back to Accounts
+                </button>
+            </div>
         </div>
 
         <!-- Filters -->
@@ -71,6 +77,14 @@
         </div>
 
         <!-- Alerts -->
+        @if (!string.IsNullOrWhiteSpace(_success))
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle me-2"></i>@_success
+                <button type="button" class="btn-close" @onclick="@(() => _success = null)"></button>
+            </div>
+        }
+
         @if (!string.IsNullOrWhiteSpace(_error))
         {
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -223,6 +237,79 @@
     </NotAuthorized>
 </AuthorizeView>
 
+<!-- Reconciliation Modal -->
+@if (_showReconcileModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title">
+                        <i class="bi bi-check2-square me-2"></i>Reconcile Account
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CloseReconcileModal" disabled="@_isReconciling"></button>
+                </div>
+                <EditForm Model="_reconcileModel" OnValidSubmit="SubmitReconcileAsync">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body">
+                        @if (!string.IsNullOrWhiteSpace(_reconcileError))
+                        {
+                            <div class="alert alert-danger">
+                                <i class="bi bi-exclamation-triangle me-2"></i>@_reconcileError
+                            </div>
+                        }
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Actual Balance</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-currency-euro"></i>
+                                </span>
+                                <InputNumber @bind-Value="_reconcileModel.ActualBalance" class="form-control" step="0.01" />
+                            </div>
+                            <ValidationMessage For="@(() => _reconcileModel.ActualBalance)" class="text-danger small" />
+                            <small class="text-muted">Enter the real balance as shown in your bank statement or wallet.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">As of Date</label>
+                            <InputDate @bind-Value="_reconcileModel.AsOfDate" class="form-control" />
+                            <ValidationMessage For="@(() => _reconcileModel.AsOfDate)" class="text-danger small" />
+                            <small class="text-muted">The date when this balance was accurate.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Note (Optional)</label>
+                            <InputText @bind-Value="_reconcileModel.Note" class="form-control" placeholder="e.g., Bank statement reconciliation" />
+                            <ValidationMessage For="@(() => _reconcileModel.Note)" class="text-danger small" />
+                            <small class="text-muted">Optional note to explain this adjustment.</small>
+                        </div>
+
+                        <div class="alert alert-info mb-0">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <small>
+                                This will create an adjustment transaction if needed. Historical transactions will NOT be modified.
+                            </small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CloseReconcileModal" disabled="@_isReconciling">
+                            <i class="bi bi-x-circle me-1"></i>Cancel
+                        </button>
+                        <button type="submit" class="btn btn-warning" disabled="@_isReconciling">
+                            @if (_isReconciling)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                            }
+                            <i class="bi bi-check2-square me-1"></i>Reconcile
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
 <style>
     .movement-row {
         transition: background-color 0.2s ease-in-out;
@@ -234,16 +321,23 @@
 </style>
 
 @code {
-    [Parameter]
-    public Guid Id { get; set; }
+[Parameter]
+public Guid Id { get; set; }
 
-    private AccountMovementsDto? _movements;
-    private string? _error;
-    private bool _isBusy;
+private AccountMovementsDto? _movements;
+private string? _error;
+private string? _success;
+private bool _isBusy;
 
-    private DateTime _fromDate = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-    private DateTime _toDate = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(1);
-    private string _searchQuery = string.Empty;
+private DateTime _fromDate = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+private DateTime _toDate = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(1);
+private string _searchQuery = string.Empty;
+
+// Reconciliation
+private bool _showReconcileModal;
+private bool _isReconciling;
+private string? _reconcileError;
+private readonly ReconcileModel _reconcileModel = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -299,10 +393,92 @@
         return amount < 0 ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger";
     }
 
+    private void OpenReconcileModal()
+    {
+        _reconcileModel.ActualBalance = 0m;
+        _reconcileModel.AsOfDate = DateTime.Today;
+        _reconcileModel.Note = string.Empty;
+        _reconcileError = null;
+        _showReconcileModal = true;
+    }
+
+    private void CloseReconcileModal()
+    {
+        _showReconcileModal = false;
+        _reconcileError = null;
+    }
+
+    private async Task SubmitReconcileAsync()
+    {
+        if (_isReconciling)
+            return;
+
+        _isReconciling = true;
+        _reconcileError = null;
+        _success = null;
+        _error = null;
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                var result = await AccountsApi.ReconcileAsync(
+                    Id,
+                    _reconcileModel.ActualBalance,
+                    DateOnly.FromDateTime(_reconcileModel.AsOfDate),
+                    string.IsNullOrWhiteSpace(_reconcileModel.Note) ? null : _reconcileModel.Note.Trim(),
+                    ct);
+
+                _showReconcileModal = false;
+
+                if (result.AdjustmentCreated)
+                {
+                    _success = $"Reconciliation complete! {result.Message} (Computed: {result.ComputedBalance:C2}, Actual: {result.ActualBalance:C2}, Difference: {result.Difference:C2})";
+                }
+                else
+                {
+                    _success = result.Message;
+                }
+
+                // Reload movements to show the new adjustment transaction
+                await LoadMovementsAsync();
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _reconcileError = ex.Message;
+        }
+        catch (KeyNotFoundException ex)
+        {
+            _reconcileError = ex.Message;
+            _showReconcileModal = false;
+        }
+        catch (Exception ex)
+        {
+            _reconcileError = $"Unexpected error: {ex.Message}";
+        }
+        finally
+        {
+            _isReconciling = false;
+        }
+    }
+
     private string FormatAmount(decimal amount)
     {
         var sign = amount < 0 ? "+" : "-";
         var absAmount = Math.Abs(amount);
         return $"{sign}{absAmount.ToString("C2", CultureInfo.CurrentCulture)}";
+    }
+
+    private sealed class ReconcileModel
+    {
+        [Required]
+        public decimal ActualBalance { get; set; }
+
+        [Required]
+        public DateTime AsOfDate { get; set; } = DateTime.Today;
+
+        [MaxLength(200)]
+        public string Note { get; set; } = string.Empty;
     }
 }
