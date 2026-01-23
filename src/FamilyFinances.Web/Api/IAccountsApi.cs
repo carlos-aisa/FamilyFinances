@@ -20,6 +20,12 @@ public interface IAccountsApi
     Task RenameAsync(Guid accountId, string name, CancellationToken ct);
     Task CloseAsync(Guid accountId, CancellationToken ct);
     Task ReopenAsync(Guid accountId, CancellationToken ct);
+    Task<ReconcileAccountResponse> ReconcileAsync(
+        Guid accountId,
+        decimal actualBalance,
+        DateOnly asOfDate,
+        string? note,
+        CancellationToken ct);
     Task DeleteAsync(Guid accountId, CancellationToken ct);
 }
 
