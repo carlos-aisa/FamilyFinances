@@ -17,6 +17,13 @@
             <DataAnnotationsValidator />
 
             <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold">
+                        <i class="bi bi-calendar-event me-1"></i>Date *
+                    </label>
+                    <InputDate class="form-control" @bind-Value="_model.BookedOn" @bind-Value:after="ValidateAndNotify" />
+                </div>
+
                 <div class="col-md-12">
                     <label class="form-label small fw-semibold">
                         <i class="bi bi-bank me-1"></i>Payment Account * (where payment comes from)
@@ -205,6 +212,7 @@
 
         var preset = new MortgagePresetModel
         {
+            BookedOn = _model.BookedOn,
             PaymentAccountId = _model.PaymentAccountId,
             MortgagePrincipalAccountId = _model.MortgagePrincipalAccountId,
             InterestExpenseAccountId = _model.InterestExpenseAccountId,
@@ -232,6 +240,7 @@
 
     private sealed class PresetFormModel
     {
+        public DateOnly BookedOn { get; set; } = DateOnly.FromDateTime(DateTime.Today);
         public Guid PaymentAccountId { get; set; }
         public Guid MortgagePrincipalAccountId { get; set; }
         public Guid InterestExpenseAccountId { get; set; }
@@ -241,6 +250,7 @@
 
     public sealed class MortgagePresetModel
     {
+        public DateOnly BookedOn { get; set; }
         public Guid PaymentAccountId { get; set; }
         public Guid MortgagePrincipalAccountId { get; set; }
         public Guid InterestExpenseAccountId { get; set; }

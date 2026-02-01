@@ -1,0 +1,128 @@
+@using FamilyFinances.Application.Ledger.Accounts.Dtos
+@using FamilyFinances.Application.Ledger.Transactions.Requests
+@using FamilyFinances.Domain.Ledger.Accounts
+@using FamilyFinances.Web.Api
+@using FamilyFinances.Web.Components.Shared
+@inject TransactionsApi TransactionsApi
+@inject NavigationManager Nav
+
+<div class="card shadow-sm mb-3 border-start border-4 border-info">
+    <div class="card-header bg-info-subtle cursor-pointer" @onclick="ToggleExpanded">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h6 class="mb-0 text-info-emphasis">
+                    <i class="bi bi-house me-2"></i>Mortgage Payment
+                </h6>
+                <small class="text-muted">Quick entry for mortgage payments</small>
+            </div>
+            <i class="bi @(_isExpanded ? "bi-chevron-up" : "bi-chevron-down") text-info-emphasis"></i>
+        </div>
+    </div>
+
+    @if (_isExpanded)
+    {
+        <div class="card-body">
+            @if (!string.IsNullOrWhiteSpace(_error))
+            {
+                <div class="alert alert-danger alert-sm" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2"></i>@_error
+                </div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(_success))
+            {
+                <div class="alert alert-success alert-sm" role="alert">
+                    <i class="bi bi-check-circle me-2"></i>@_success
+                </div>
+            }
+
+            <MortgagePaymentPreset Accounts="Accounts" OnPresetApplied="CreateTransactionAsync" />
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<AccountDto> Accounts { get; set; } = Array.Empty<AccountDto>();
+    [Parameter] public EventCallback OnTransactionCreated { get; set; }
+    [Parameter] public bool IsExpanded { get; set; }
+    [Parameter] public EventCallback<string> OnToggle { get; set; }
+
+    private bool _isSaving = false;
+    private string? _error;
+    private string? _success;
+
+    private bool _isExpanded => IsExpanded;
+
+    private async Task ToggleExpanded()
+    {
+        _error = null;
+        _success = null;
+        await OnToggle.InvokeAsync("mortgage");
+    }
+
+    private async Task CreateTransactionAsync(MortgagePaymentPreset.MortgagePresetModel preset)
+    {
+        if (_isSaving)
+            return;
+
+        _isSaving = true;
+        _error = null;
+        _success = null;
+        StateHasChanged();
+
+        try
+        {
+            var totalPayment = preset.PrincipalAmount + preset.InterestAmount;
+
+            var splits = new List<TransactionSplitInput>
+            {
+                new TransactionSplitInput(preset.PaymentAccountId, ToCents(-totalPayment), "Payment"),
+                new TransactionSplitInput(preset.MortgagePrincipalAccountId, ToCents(preset.PrincipalAmount), "Principal"),
+                new TransactionSplitInput(preset.InterestExpenseAccountId, ToCents(preset.InterestAmount), "Interest")
+            };
+
+            // Use the mortgage liability account name in the description
+            var mortgageAccount = Accounts.FirstOrDefault(a => a.Id == preset.MortgagePrincipalAccountId);
+            var description = mortgageAccount != null 
+                ? $"{mortgageAccount.Name} - {preset.BookedOn:MMM yyyy}"
+                : $"Mortgage Payment - {preset.BookedOn:MMM yyyy}";
+
+            var request = new CreateTransactionRequest(
+                preset.BookedOn,
+                description,
+                splits,
+                null,
+                null
+            );
+
+            await TransactionsApi.CreateAsync(request, CancellationToken.None);
+
+            _success = "Mortgage payment created successfully!";
+            StateHasChanged();
+            await Task.Delay(3000); // Show success message for 3 seconds
+            await OnTransactionCreated.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to create transaction: {ex.Message}";
+        }
+        finally
+        {
+            _isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private static long ToCents(decimal amount)
+        => (long)Math.Round(amount * 100m, MidpointRounding.AwayFromZero);
+}
+
+<style>
+    .cursor-pointer {
+        cursor: pointer;
+    }
+
+    .cursor-pointer:hover {
+        opacity: 0.9;
+    }
+</style>

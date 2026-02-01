@@ -32,6 +32,10 @@ public sealed class ListTransactionsHandler
                 .Where(s => s.Account.Nature is AccountNature.Asset or AccountNature.Liability)
                 .ToList();
 
+            // Check for Liability splits (e.g., mortgage payments)
+            var liabilitySplit = t.Splits
+                .FirstOrDefault(s => s.Amount.Cents > 0 && s.Account.Nature == AccountNature.Liability);
+
             TransactionListItemType type;
             string headline;
 
@@ -40,6 +44,12 @@ public sealed class ListTransactionsHandler
             {
                 type = TransactionListItemType.Refund;
                 headline = expenseSplitNegative.Account.Name;
+            }
+            else if (liabilitySplit is not null)
+            {
+                // Mortgage/liability payment: show the liability account name (e.g., "Santa Isabel")
+                type = TransactionListItemType.Expense;
+                headline = liabilitySplit.Account.Name;
             }
             else if (expenseSplitPositive is not null)
             {
