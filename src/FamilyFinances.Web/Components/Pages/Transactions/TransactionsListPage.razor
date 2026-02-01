@@ -25,9 +25,34 @@
         <button class="btn btn-outline-secondary" @onclick="LoadAsync" disabled="@(_items is null)">
             <i class="bi bi-arrow-clockwise me-1"></i>Refresh
         </button>
-        <a class="btn btn-primary" href="/">
-            <i class="bi bi-plus-circle me-1"></i>New Transaction
-        </a>
+        <div class="btn-group">
+            <a class="btn btn-primary" href="/">
+                <i class="bi bi-plus-circle me-1"></i>New Transaction
+            </a>
+            <button type="button" 
+                    class="btn btn-primary dropdown-toggle dropdown-toggle-split" 
+                    data-bs-toggle="dropdown" 
+                    aria-expanded="false">
+                <span class="visually-hidden">Toggle Dropdown</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                    <a class="dropdown-item" href="/">
+                        <i class="bi bi-lightning me-2"></i>Quick Entry
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="/transactions/new">
+                        <i class="bi bi-pencil me-2"></i>Simple Transaction
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="/transactions/new-multi">
+                        <i class="bi bi-distribute-vertical me-2"></i>Multi-Split Transaction
+                    </a>
+                </li>
+            </ul>
+        </div>
     </div>
 </div>
 
