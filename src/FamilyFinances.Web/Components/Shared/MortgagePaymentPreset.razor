@@ -1,0 +1,250 @@
+@using System.ComponentModel.DataAnnotations
+@using FamilyFinances.Application.Ledger.Accounts.Dtos
+@using FamilyFinances.Domain.Ledger.Accounts
+
+<div class="card border-primary">
+    <div class="card-header bg-primary text-white">
+        <h6 class="mb-0">
+            <i class="bi bi-house me-2"></i>Mortgage Payment Preset
+        </h6>
+    </div>
+    <div class="card-body">
+        <p class="small text-muted mb-3">
+            Configure a mortgage payment split into principal and interest components.
+        </p>
+
+        <EditForm Model="_model" OnValidSubmit="@(() => Task.CompletedTask)">
+            <DataAnnotationsValidator />
+
+            <div class="row g-3">
+                <div class="col-md-12">
+                    <label class="form-label small fw-semibold">
+                        <i class="bi bi-bank me-1"></i>Payment Account * (where payment comes from)
+                    </label>
+                    <select class="form-select" @bind="_model.PaymentAccountId" @bind:after="ValidateAndNotify">
+                        <option value="">— select account —</option>
+                        @foreach (var account in Accounts.Where(a => a.Nature == AccountNature.Asset || a.Nature == AccountNature.Liability))
+                        {
+                            <option value="@account.Id">@account.Name (@account.Nature)</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold">
+                        <i class="bi bi-house-door me-1"></i>Mortgage Account * (Liability)
+                    </label>
+                    <select class="form-select" @bind="_model.MortgagePrincipalAccountId" @bind:after="ValidateAndNotify">
+                        <option value="">— select account —</option>
+                        @foreach (var account in Accounts.Where(a => a.Nature == AccountNature.Liability))
+                        {
+                            <option value="@account.Id">@account.Name</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold">
+                        <i class="bi bi-percent me-1"></i>Interest Expense Account *
+                    </label>
+                    <select class="form-select" @bind="_model.InterestExpenseAccountId" @bind:after="ValidateAndNotify">
+                        <option value="">— select account —</option>
+                        @foreach (var account in Accounts.Where(a => a.Nature == AccountNature.Expense))
+                        {
+                            <option value="@account.Id">@account.Name</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold">
+                        <i class="bi bi-currency-euro me-1"></i>Principal Amount (€) *
+                    </label>
+                    <input type="text" 
+                           class="form-control" 
+                           placeholder="0.00"
+                           @bind="_principalText" 
+                           @bind:event="oninput"
+                           @bind:after="OnPrincipalChanged" />
+                    <small class="text-muted">Amount applied to mortgage balance</small>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold">
+                        <i class="bi bi-currency-euro me-1"></i>Interest Amount (€) *
+                    </label>
+                    <input type="text" 
+                           class="form-control" 
+                           placeholder="0.00"
+                           @bind="_interestText" 
+                           @bind:event="oninput"
+                           @bind:after="OnInterestChanged" />
+                    <small class="text-muted">Interest expense for this period</small>
+                </div>
+
+                <div class="col-12">
+                    <div class="alert @GetTotalAlertClass() mb-0" role="alert">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fw-semibold">Total Payment:</span>
+                            <span class="fs-5 fw-bold">@((_model.PrincipalAmount + _model.InterestAmount).ToString("F2")) €</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_validationMessage))
+            {
+                <div class="alert alert-warning mt-3 small mb-0" role="alert">
+                    <i class="bi bi-exclamation-triangle me-1"></i>@_validationMessage
+                </div>
+            }
+        </EditForm>
+
+        <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-primary btn-sm" 
+                    @onclick="ApplyPreset" 
+                    disabled="@(!_isValid)">
+                <i class="bi bi-check-circle me-1"></i>Apply Preset
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" @onclick="Clear">
+                <i class="bi bi-x-circle me-1"></i>Clear
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<AccountDto> Accounts { get; set; } = Array.Empty<AccountDto>();
+    [Parameter] public EventCallback<MortgagePresetModel> OnPresetApplied { get; set; }
+
+    private PresetFormModel _model = new();
+    private string _principalText = "";
+    private string _interestText = "";
+    private bool _isValid;
+    private string? _validationMessage;
+
+    private void OnPrincipalChanged()
+    {
+        var normalizedText = _principalText?.Replace(',', '.');
+        
+        if (decimal.TryParse(normalizedText,
+                            System.Globalization.NumberStyles.AllowDecimalPoint | System.Globalization.NumberStyles.AllowLeadingSign,
+                            System.Globalization.CultureInfo.InvariantCulture,
+                            out var amount))
+        {
+            _model.PrincipalAmount = amount;
+        }
+        else
+        {
+            _model.PrincipalAmount = 0m;
+        }
+        ValidateAndNotify();
+    }
+
+    private void OnInterestChanged()
+    {
+        var normalizedText = _interestText?.Replace(',', '.');
+        
+        if (decimal.TryParse(normalizedText,
+                            System.Globalization.NumberStyles.AllowDecimalPoint | System.Globalization.NumberStyles.AllowLeadingSign,
+                            System.Globalization.CultureInfo.InvariantCulture,
+                            out var amount))
+        {
+            _model.InterestAmount = amount;
+        }
+        else
+        {
+            _model.InterestAmount = 0m;
+        }
+        ValidateAndNotify();
+    }
+
+    private void ValidateAndNotify()
+    {
+        _validationMessage = null;
+        _isValid = false;
+
+        if (_model.PaymentAccountId == Guid.Empty)
+        {
+            _validationMessage = "Payment account is required.";
+            return;
+        }
+
+        if (_model.MortgagePrincipalAccountId == Guid.Empty)
+        {
+            _validationMessage = "Mortgage account is required.";
+            return;
+        }
+
+        if (_model.InterestExpenseAccountId == Guid.Empty)
+        {
+            _validationMessage = "Interest expense account is required.";
+            return;
+        }
+
+        if (_model.PrincipalAmount <= 0)
+        {
+            _validationMessage = "Principal amount must be greater than zero.";
+            return;
+        }
+
+        if (_model.InterestAmount <= 0)
+        {
+            _validationMessage = "Interest amount must be greater than zero.";
+            return;
+        }
+
+        // All valid
+        _isValid = true;
+    }
+
+    private async Task ApplyPreset()
+    {
+        if (!_isValid)
+            return;
+
+        var preset = new MortgagePresetModel
+        {
+            PaymentAccountId = _model.PaymentAccountId,
+            MortgagePrincipalAccountId = _model.MortgagePrincipalAccountId,
+            InterestExpenseAccountId = _model.InterestExpenseAccountId,
+            PrincipalAmount = _model.PrincipalAmount,
+            InterestAmount = _model.InterestAmount
+        };
+
+        await OnPresetApplied.InvokeAsync(preset);
+    }
+
+    private void Clear()
+    {
+        _model = new PresetFormModel();
+        _principalText = "";
+        _interestText = "";
+        _isValid = false;
+        _validationMessage = null;
+    }
+
+    private string GetTotalAlertClass()
+    {
+        var total = _model.PrincipalAmount + _model.InterestAmount;
+        return total > 0 ? "alert-info" : "alert-secondary";
+    }
+
+    private sealed class PresetFormModel
+    {
+        public Guid PaymentAccountId { get; set; }
+        public Guid MortgagePrincipalAccountId { get; set; }
+        public Guid InterestExpenseAccountId { get; set; }
+        public decimal PrincipalAmount { get; set; }
+        public decimal InterestAmount { get; set; }
+    }
+
+    public sealed class MortgagePresetModel
+    {
+        public Guid PaymentAccountId { get; set; }
+        public Guid MortgagePrincipalAccountId { get; set; }
+        public Guid InterestExpenseAccountId { get; set; }
+        public decimal PrincipalAmount { get; set; }
+        public decimal InterestAmount { get; set; }
+    }
+}

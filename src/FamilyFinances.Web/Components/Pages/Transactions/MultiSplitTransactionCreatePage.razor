@@ -23,6 +23,36 @@
     </a>
 </div>
 
+<!-- Preset Selector -->
+<div class="mb-4">
+    <div class="btn-group" role="group">
+        <input type="radio" class="btn-check" name="presetMode" id="presetManual" 
+               checked="@(!_useMortgagePreset)" @onchange="@(() => SetPresetMode(false))">
+        <label class="btn btn-outline-primary" for="presetManual">
+            <i class="bi bi-pencil me-1"></i>Manual Entry
+        </label>
+
+        <input type="radio" class="btn-check" name="presetMode" id="presetMortgage" 
+               checked="@_useMortgagePreset" @onchange="@(() => SetPresetMode(true))">
+        <label class="btn btn-outline-primary" for="presetMortgage">
+            <i class="bi bi-house me-1"></i>Mortgage Payment
+        </label>
+    </div>
+</div>
+
+@if (_useMortgagePreset)
+{
+    <MortgagePaymentPreset Accounts="_accounts" OnPresetApplied="ApplyMortgagePreset" />
+    
+    @if (_mortgagePresetApplied)
+    {
+        <div class="alert alert-success mt-3" role="alert">
+            <i class="bi bi-check-circle me-2"></i>
+            Mortgage preset applied successfully. Review the transaction details below and create when ready.
+        </div>
+    }
+}
+
 @if (!string.IsNullOrWhiteSpace(_error))
 {
     <div class="alert alert-danger" role="alert">
@@ -40,8 +70,11 @@
 }
 else
 {
-    <MultiSplitTransactionEditor Accounts="_accounts"
+    <MultiSplitTransactionEditor @key="_editorKey"
+                                 Accounts="_accounts"
                                  Payees="_payees"
+                                 InitialSplits="@GetInitialSplits()"
+                                 InitialDescription="@GetInitialDescription()"
                                  OnValidStateChanged="OnEditorStateChanged" />
 
     <div class="mt-4 d-flex gap-2">
@@ -71,6 +104,11 @@ else
     private bool _canSave;
     private string? _error;
     
+    private bool _useMortgagePreset;
+    private bool _mortgagePresetApplied;
+    private MortgagePaymentPreset.MortgagePresetModel? _appliedPreset;
+    private int _editorKey = 0;
+    
     private IReadOnlyList<AccountDto> _accounts = Array.Empty<AccountDto>();
     private IReadOnlyList<PayeeDto> _payees = Array.Empty<PayeeDto>();
     
@@ -85,6 +123,23 @@ else
         });
         
         _loading = false;
+    }
+    
+    private void SetPresetMode(bool useMortgage)
+    {
+        _useMortgagePreset = useMortgage;
+        _mortgagePresetApplied = false;
+        _appliedPreset = null;
+    }
+    
+    private void ApplyMortgagePreset(MortgagePaymentPreset.MortgagePresetModel preset)
+    {
+        _appliedPreset = preset;
+        _mortgagePresetApplied = true;
+        _editorKey++; // Force component re-creation
+        
+        // We'll initialize the editor via parameters - need to trigger a re-render
+        StateHasChanged();
     }
     
     private void OnEditorStateChanged(MultiSplitTransactionEditor.TransactionEditorModel? model)
@@ -140,4 +195,45 @@ else
     
     private static long ToCents(decimal amount)
         => (long)Math.Round(amount * 100m, MidpointRounding.AwayFromZero);
+    
+    private List<MultiSplitTransactionEditor.SplitModel>? GetInitialSplits()
+    {
+        if (!_mortgagePresetApplied || _appliedPreset == null)
+            return null;
+        
+        var totalPayment = _appliedPreset.PrincipalAmount + _appliedPreset.InterestAmount;
+        
+        return new List<MultiSplitTransactionEditor.SplitModel>
+        {
+            new MultiSplitTransactionEditor.SplitModel
+            {
+                AccountId = _appliedPreset.PaymentAccountId,
+                Amount = -totalPayment,
+                AmountText = (-totalPayment).ToString("F2"),
+                Memo = "Payment"
+            },
+            new MultiSplitTransactionEditor.SplitModel
+            {
+                AccountId = _appliedPreset.MortgagePrincipalAccountId,
+                Amount = _appliedPreset.PrincipalAmount,
+                AmountText = _appliedPreset.PrincipalAmount.ToString("F2"),
+                Memo = "Principal"
+            },
+            new MultiSplitTransactionEditor.SplitModel
+            {
+                AccountId = _appliedPreset.InterestExpenseAccountId,
+                Amount = _appliedPreset.InterestAmount,
+                AmountText = _appliedPreset.InterestAmount.ToString("F2"),
+                Memo = "Interest"
+            }
+        };
+    }
+    
+    private string GetInitialDescription()
+    {
+        if (_mortgagePresetApplied)
+            return $"Mortgage Payment - {DateOnly.FromDateTime(DateTime.Today):MMM yyyy}";
+        
+        return "";
+    }
 }

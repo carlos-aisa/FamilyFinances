@@ -48,8 +48,8 @@ else if (_isMultiSplit)
     <MultiSplitTransactionEditor Accounts="_accounts"
                                  Payees="_payees"
                                  InitialDate="_originalTransaction!.BookedOn"
-                                 InitialDescription="_originalTransaction.Description"
-                                 InitialPayeeId="_originalTransaction.PayeeId"
+                                 InitialDescription="@_originalTransaction.Description"
+                                 InitialPayeeId="@_originalTransaction.PayeeId"
                                  InitialSplits="_multiSplitModel"
                                  OnValidStateChanged="OnMultiSplitEditorStateChanged" />
 
@@ -155,6 +155,12 @@ else
             <a class="btn btn-secondary" href="@($"/transactions/{Id}")">
                 <i class="bi bi-x-circle me-1"></i>Cancel
             </a>
+            
+            <div class="ms-auto">
+                <button class="btn btn-outline-info" type="button" @onclick="ConvertToMultiSplit">
+                    <i class="bi bi-distribute-vertical me-1"></i>Add Another Split
+                </button>
+            </div>
         </div>
     </EditForm>
 }
@@ -247,6 +253,39 @@ else
     {
         _multiSplitEditorModel = model;
         _canSaveMultiSplit = model != null;
+        StateHasChanged();
+    }
+    
+    private void ConvertToMultiSplit()
+    {
+        if (_twoSplitModel == null)
+            return;
+        
+        // Convert the 2-split model to multi-split format
+        _multiSplitModel = new List<MultiSplitTransactionEditor.SplitModel>
+        {
+            // From account (negative amount)
+            new MultiSplitTransactionEditor.SplitModel
+            {
+                AccountId = _twoSplitModel.FromAccountId,
+                Amount = -_twoSplitModel.Amount,
+                AmountText = (-_twoSplitModel.Amount).ToString("F2"),
+                Memo = null
+            },
+            // To account (positive amount)
+            new MultiSplitTransactionEditor.SplitModel
+            {
+                AccountId = _twoSplitModel.ToAccountId,
+                Amount = _twoSplitModel.Amount,
+                AmountText = _twoSplitModel.Amount.ToString("F2"),
+                Memo = null
+            },
+            // Empty third split for user to fill
+            new MultiSplitTransactionEditor.SplitModel()
+        };
+        
+        // Switch to multi-split mode
+        _isMultiSplit = true;
         StateHasChanged();
     }
 

@@ -17,7 +17,11 @@
             <label class="form-label">
                 <i class="bi bi-pencil me-1"></i>Description *
             </label>
-            <InputText class="form-control" @bind-Value="_formModel.Description" @bind-Value:after="ValidateForm" placeholder="Enter transaction description" />
+            <InputText class="form-control" 
+                       @bind-Value="_formModel.Description" 
+                       @bind-Value:after="ValidateForm" 
+                       placeholder="Enter transaction description"
+                       autocomplete="off" />
         </div>
 
         <div class="col-md-6">
@@ -40,6 +44,12 @@
             <h5 class="mb-0">
                 <i class="bi bi-distribute-vertical me-2"></i>Transaction Splits
             </h5>
+            <small class="d-block mt-2">
+                <i class="bi bi-info-circle me-1"></i>
+                Use <strong>negative</strong> amounts for money leaving accounts (payments, expenses).
+                Use <strong>positive</strong> amounts for money entering accounts (income, asset increases).
+                Total must equal zero to balance.
+            </small>
         </div>
         <div class="card-body">
             @for (int i = 0; i < _splits.Count; i++)
@@ -80,11 +90,13 @@
                     </div>
 
                     <div class="col-12">
-                        <label class="form-label small">Memo (optional)</label>
+                        <label class="form-label small">
+                            <i class="bi bi-sticky me-1"></i>Memo (optional note for this split)
+                        </label>
                         <input type="text" 
                                class="form-control form-control-sm" 
                                @bind="split.Memo"
-                               placeholder="Optional memo for this split" />
+                               placeholder="e.g., 'Principal payment', 'Interest', 'Tax portion'" />
                     </div>
                 </div>
             }
@@ -198,7 +210,13 @@
     
     private void OnAmountChanged(SplitModel split)
     {
-        if (decimal.TryParse(split.AmountText, out var amount))
+        // Replace comma with dot and try parsing
+        var normalizedText = split.AmountText?.Replace(',', '.');
+        
+        if (decimal.TryParse(normalizedText, 
+                            System.Globalization.NumberStyles.AllowDecimalPoint | System.Globalization.NumberStyles.AllowLeadingSign,
+                            System.Globalization.CultureInfo.InvariantCulture, 
+                            out var amount))
         {
             split.Amount = amount;
         }
