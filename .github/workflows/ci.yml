@@ -34,6 +34,8 @@ jobs:
     runs-on: windows-latest
     needs: build-and-test
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout repository
