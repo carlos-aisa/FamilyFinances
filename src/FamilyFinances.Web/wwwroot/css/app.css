@@ -194,3 +194,128 @@
 [data-bs-theme="light"] .text-muted {
     color: #495057 !important;
 }
+
+/* Fix for text-dark in dark mode */
+[data-bs-theme="dark"] .text-dark {
+    color: #e9ecef !important;
+}
+
+/* Fix for bg-white in dark mode */
+[data-bs-theme="dark"] .bg-white {
+    background-color: #2b3035 !important;
+    border-color: #495057 !important;
+}
+
+/* Improve btn-outline-primary visibility in dark mode */
+[data-bs-theme="dark"] .btn-outline-primary {
+    border-color: #6c94d6;
+    color: #6c94d6;
+}
+
+[data-bs-theme="dark"] .btn-outline-primary:hover {
+    background-color: #2c5282;
+    border-color: #6c94d6;
+    color: #ffffff;
+}
+
+[data-bs-theme="dark"] .btn-outline-primary.active {
+    background-color: #3d6ba8;
+    border-color: #6c94d6;
+    color: #ffffff;
+}
+
+/* Improve btn-outline-secondary visibility in dark mode */
+[data-bs-theme="dark"] .btn-outline-secondary {
+    border-color: #6c757d;
+    color: #adb5bd;
+}
+
+[data-bs-theme="dark"] .btn-outline-secondary:hover {
+    background-color: #495057;
+    border-color: #6c757d;
+    color: #ffffff;
+}
+
+/* Fix badge contrast in dark mode */
+[data-bs-theme="dark"] .badge.bg-secondary-subtle {
+    background-color: #495057 !important;
+    color: #e9ecef !important;
+}
+
+[data-bs-theme="dark"] .badge.text-secondary {
+    color: #e9ecef !important;
+}
+
+/* Improve bg-warning contrast in dark mode */
+[data-bs-theme="dark"] .bg-warning {
+    background-color: #997404 !important;
+    color: #000000 !important;
+}
+
+[data-bs-theme="dark"] .badge.bg-warning {
+    background-color: #997404 !important;
+    color: #000000 !important;
+}
+
+/* Fix bg-secondary-subtle in dark mode */
+[data-bs-theme="dark"] .bg-secondary-subtle {
+    background-color: #343a40 !important;
+    color: #e9ecef !important;
+}
+
+/* Fix modal styling in dark mode */
+[data-bs-theme="dark"] .modal-content {
+    background-color: #2b3035;
+    border-color: #495057;
+    color: #e9ecef;
+}
+
+[data-bs-theme="dark"] .modal-header {
+    border-bottom-color: #495057;
+}
+
+[data-bs-theme="dark"] .modal-footer {
+    border-top-color: #495057;
+}
+
+[data-bs-theme="dark"] .modal-header .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* Improve placeholder text visibility in dark mode */
+[data-bs-theme="dark"] ::placeholder {
+    color: #6c757d !important;
+    opacity: 1;
+}
+
+[data-bs-theme="dark"] input::placeholder,
+[data-bs-theme="dark"] textarea::placeholder,
+[data-bs-theme="dark"] select::placeholder {
+    color: #6c757d !important;
+}
+
+/* Fix table borders in dark mode */
+[data-bs-theme="dark"] .table {
+    border-color: #495057;
+}
+
+[data-bs-theme="dark"] .table > :not(caption) > * > * {
+    border-bottom-color: #495057;
+}
+
+/* Improve hover states on table rows in dark mode */
+[data-bs-theme="dark"] .table-hover tbody tr:hover {
+    background-color: #343a40;
+}
+
+/* Fix progress bar in dark mode */
+[data-bs-theme="dark"] .progress {
+    background-color: #343a40;
+}
+
+/* Improve input-group-text in dark mode */
+[data-bs-theme="dark"] .input-group-text {
+    background-color: #343a40;
+    border-color: #495057;
+    color: #adb5bd;
+}

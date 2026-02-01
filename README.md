@@ -1,37 +1,57 @@
 # FamilyFinances
 
-A modular monolith in .NET for **family/personal finance management**, built with a dual purpose:
+A modular monolith in .NET for **family / personal finance management**, built with a dual purpose:
 
 1) A **truly usable** app to manage real finances  
 2) A **technical lab** to learn architecture, best practices, and modern integrations
 
+FamilyFinances is actively used to manage real finances, and its roadmap is driven by **real usage needs**, not just planned features.
+
+---
+
 ## Core Functional Goals
 
-FamilyFinances is a ledger-first system:
+FamilyFinances is a **ledger-first system**:
 
-- Manage **accounts**, **income**, **expenses**, **transfers**, **loans/debts**
+- Manage **accounts**, **income**, **expenses**, **transfers**, **refunds/reimbursements**, **adjustments**
 - Accounting-style **ledger model**:
   - A `Transaction` can contain multiple `TransactionSplits`
-  - Splits must be **balanced** (sum = 0)
+  - Splits must always be **balanced** (sum = 0)
+- All balance corrections are done via **new transactions**, never by editing the past
 
 ### Examples
 
 - **Mortgage payment**
-  - Bank account → Principal + Interest
+  - Bank account → Principal + Interest (Liability)
 - **Salary**
   - Income → Bank account + Withholdings/Taxes
+- **Refund / reimbursement**
+  - Expense → Asset or Liability
+- **Balance adjustment**
+  - Asset → Adjustments (Expense / Income)
 
-### Additional features (planned)
+---
 
-- Transaction references: refunds, adjustments, reversals
-- Payees/merchants:
-  - Autocomplete
-  - Default category suggestions
-- Templates to minimize repetitive entry
-- Reports:
-  - Monthly summary
-  - By category
-  - By account
+## Key Features Implemented
+
+- Ledger with transactions and balanced splits
+- Accounts:
+  - Assets
+  - Liabilities
+  - Expenses
+  - Income
+- Transfers, refunds, reimbursements
+- Account reconciliation via adjustment transactions
+- Payees with autocomplete
+- Reports & visibility:
+  - Account balances
+  - Account movements (ledger per account)
+  - Monthly summaries
+  - Totals by account and account group
+- Authentication & authorization
+- Real-time usage feedback driving UX improvements
+
+---
 
 ## Architecture
 
@@ -41,9 +61,12 @@ FamilyFinances is a ledger-first system:
 - `Application` — use cases, commands/queries, validation, authorization requirements
 - `Infrastructure` — EF Core, SQLite, Identity persistence, logging plumbing
 - `Api` — REST endpoints, authentication, authorization, versioning (`/api/v1`)
+- `Web` — Blazor Web App (Interactive Server), consuming the API as an external client
 - `Tests` — unit + integration tests
 
 Persistence: **SQLite + EF Core**.
+
+---
 
 ## API Versioning
 
@@ -51,7 +74,9 @@ API is versioned by route:
 
 - `/api/v1/...`
 
-## Infrastructure from Day 1
+---
+
+## Infrastructure from Day One
 
 - Structured logging with **Serilog**
 - Authentication & authorization:
@@ -60,8 +85,10 @@ API is versioned by route:
   - Policies: `CanRead`, `CanWrite`
 - Health checks
 - Prepared for future observability:
-  - Elastic stack integration
   - OpenTelemetry
+  - Elastic stack integration
+
+---
 
 ## Repository Workflow
 
@@ -81,35 +108,71 @@ Examples:
 - `feat(auth): add role-based authorization`
 - `fix(ledger): prevent unbalanced splits`
 
-## Roadmap
+---
 
-- `v0.1.0` Infrastructure base (auth, logging, db, CI)
-- `v0.2.0` Ledger (transactions + splits + links)
-- `v0.3.0` Payees + templates + import
-- `v0.4.0` Reports
-- `v0.5.0` Account gropus
-- `v1.0.0` Stable version for real usage
+## Roadmap (realistic & usage-driven)
 
-## Non-Goals (for now)
+### Completed
+- `v0.1.x` Infrastructure base (auth, logging, db, CI)
+- `v0.2.x` Ledger core (transactions, splits, balancing rules)
+- `v0.3.x` Payees and basic entry flows
+- `v0.4.x` Reporting foundations
+- `v0.5.x` Account groups and categorization
+- `v0.6.2` Opening balance onboarding
+- `v0.6.3` Refunds / reimbursements
+- `v0.6.4` Reports & visibility (balances, account movements)
+- `v0.6.5` Account adjustments & reconciliation
+- `v0.6.6` Polish & bugfix sprint ✅
+  - Sign convention fixes (income positive, expenses negative)
+  - Transaction timestamps & stable ordering
+  - Running balance calculation
+  - Date range presets & filters
+  - Account/payee search functionality
+  - Dark mode polish & visibility improvements
+  - UX consistency across reports
 
-- Fancy UI (will decide later: Blazor / WinForms / MAUI)
-- Multi-tenant / cloud sync
-- Complex budgeting features (envelopes, forecasting) — maybe later
+### In progress / planned
+- `v0.6.7` Distributable Windows build (ZIP)
+- `v0.6.8` Internationalization (i18n)
 
-## Code Style & Language
-
-- **All code and comments in English**
-- Focus on clarity, maintainability, and learning-by-building
+### Future (v0.7+)
+- Advanced reports and visualizations
+- Templates for repetitive transactions
+- Grouped reports (by payee, category)
+- Optional automation / import
+- Optional observability integrations
 
 ---
 
-## Getting Started (soon)
+## Non-Goals (for now)
 
-After `v0.1.0`, you should be able to:
+- Cloud sync / multi-tenant
+- Complex budgeting systems (envelopes, forecasting)
+- Over-engineered UI frameworks
+- Mobile-first focus
 
-- Run the API locally
-- Create an admin user
-- Call `/api/v1/...` endpoints
-- Observe structured logs
-- Confirm health checks
-- Run tests in CI
+---
+
+## Code Style & Language
+
+- **All code, comments, and documentation in English**
+- Focus on:
+  - correctness
+  - auditability
+  - clarity
+  - learning by building real features
+
+---
+
+## Getting Started
+
+At the current stage, you can:
+
+- Run API and Web locally
+- Manage real accounts and transactions
+- Inspect balances and movements
+- Reconcile accounts safely
+- Run unit and integration tests
+- Follow a clean, documented architecture
+
+Distribution and end-user packaging will come after the polish phase.

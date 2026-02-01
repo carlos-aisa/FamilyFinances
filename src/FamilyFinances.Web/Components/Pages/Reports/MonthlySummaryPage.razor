@@ -62,14 +62,14 @@
                                        Label="Account (optional)"
                                        Placeholder="All accounts"
                                        IsRequired="false"
-                                       ShowSearch="true" />
+                                       ShowSearch="false" />
                     </div>
 
                     <!-- Payee Filter -->
                     <div class="col-12 col-md-3">
                         <PayeeSelectorSimple Payees="@(_payees ?? Array.Empty<PayeeDto>())"
                                            @bind-SelectedPayeeId="_selectedPayeeGuid"
-                                           ShowSearch="true" />
+                                           ShowSearch="false" />
                     </div>
                 </div>
 
