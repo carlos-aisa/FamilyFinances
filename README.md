@@ -130,9 +130,13 @@ Examples:
   - Account/payee search functionality
   - Dark mode polish & visibility improvements
   - UX consistency across reports
+- `v0.6.7` Windows ZIP distribution ✅
+  - Self-contained win-x64 executable (no .NET installation required)
+  - Portable SQLite database & logs
+  - One-click launcher with health checks
+  - Automated builds via GitHub Actions
 
 ### In progress / planned
-- `v0.6.7` Distributable Windows build (ZIP)
 - `v0.6.8` Internationalization (i18n)
 
 ### Future (v0.7+)
@@ -166,13 +170,33 @@ Examples:
 
 ## Getting Started
 
+### For End Users (Windows)
+
+**Download the latest Windows ZIP distribution:**
+1. Go to the [Releases page](https://github.com/carlos-aisa/FamilyFinances/releases)
+2. Download `FamilyFinances-vX.X.X-win-x64.zip`
+3. Extract the ZIP folder
+4. Double-click `Start FamilyFinances.bat`
+5. Use the app in your browser at `http://localhost:5019`
+
+**No .NET installation required!** Everything is self-contained.
+
+See the included `README.txt` for troubleshooting and detailed instructions.
+
+### For Developers
+
 At the current stage, you can:
 
-- Run API and Web locally
+- Clone the repository
+- Run API and Web locally (requires .NET 9.0 SDK)
+- Build the Windows distribution using `build-windows-dist.ps1`
 - Manage real accounts and transactions
 - Inspect balances and movements
 - Reconcile accounts safely
 - Run unit and integration tests
 - Follow a clean, documented architecture
 
-Distribution and end-user packaging will come after the polish phase.
+**API:** `http://localhost:5084`  
+**Web:** `http://localhost:5019`
+
+See [Windows Distribution Build Guide](docs/windows-distribution-build.md) for packaging details.

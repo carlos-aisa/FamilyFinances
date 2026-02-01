@@ -397,7 +397,13 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 .idea/
+
 # SQLite database files
 *.db
 *.db-shm
 *.db-wal
+
+# Windows distribution artifacts
+publish-temp/
+dist/FamilyFinances-v*/
+dist/*.zip

@@ -2,7 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
+    tags:
+      - 'v*.*.*'
   pull_request:
     branches: [ "main" ]
 
@@ -27,3 +29,138 @@ jobs:
 
       - name: Test
         run: dotnet test --configuration Release --no-build
+
+  windows-distribution:
+    runs-on: windows-latest
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Extract version from tag
+        id: get_version
+        shell: pwsh
+        run: |
+          if ("${{ github.ref }}" -match "refs/tags/v(.*)") {
+            $version = $matches[1]
+          } else {
+            $version = "0.6.7-dev"
+          }
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+          echo "Building version: $version"
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Publish API (win-x64)
+        run: |
+          dotnet publish src/FamilyFinances.Api/FamilyFinances.Api.csproj `
+            --configuration Release `
+            --runtime win-x64 `
+            --self-contained true `
+            --output publish-temp/api `
+            /p:PublishTrimmed=false `
+            /p:PublishSingleFile=false
+
+      - name: Publish Web (win-x64)
+        run: |
+          dotnet publish src/FamilyFinances.Web/FamilyFinances.Web.csproj `
+            --configuration Release `
+            --runtime win-x64 `
+            --self-contained true `
+            --output publish-temp/web `
+            /p:PublishTrimmed=false `
+            /p:PublishSingleFile=false
+
+      - name: Create distribution folder
+        shell: pwsh
+        run: |
+          $version = "${{ steps.get_version.outputs.VERSION }}"
+          $distDir = "dist/FamilyFinances-v$version-win-x64"
+          
+          # Create folder structure
+          New-Item -ItemType Directory -Path "$distDir/api" -Force | Out-Null
+          New-Item -ItemType Directory -Path "$distDir/web" -Force | Out-Null
+          New-Item -ItemType Directory -Path "$distDir/data" -Force | Out-Null
+          New-Item -ItemType Directory -Path "$distDir/logs" -Force | Out-Null
+          
+          # Copy published files
+          Copy-Item -Path "publish-temp/api/*" -Destination "$distDir/api" -Recurse -Force
+          Copy-Item -Path "publish-temp/web/*" -Destination "$distDir/web" -Recurse -Force
+          
+          # Copy scripts and documentation
+          Copy-Item -Path "dist/Start FamilyFinances.bat" -Destination $distDir -Force
+          Copy-Item -Path "dist/Stop FamilyFinances.bat" -Destination $distDir -Force
+          Copy-Item -Path "dist/README.txt" -Destination $distDir -Force
+          
+          echo "DIST_DIR=$distDir" >> $env:GITHUB_OUTPUT
+
+      - name: Verify distribution contents
+        shell: pwsh
+        run: |
+          $version = "${{ steps.get_version.outputs.VERSION }}"
+          $distDir = "dist/FamilyFinances-v$version-win-x64"
+          
+          # Check required files exist
+          $requiredFiles = @(
+            "$distDir/Start FamilyFinances.bat",
+            "$distDir/Stop FamilyFinances.bat",
+            "$distDir/README.txt",
+            "$distDir/api/FamilyFinances.Api.exe",
+            "$distDir/web/FamilyFinances.Web.exe",
+            "$distDir/api/appsettings.Production.json",
+            "$distDir/web/appsettings.Production.json"
+          )
+          
+          $missing = @()
+          foreach ($file in $requiredFiles) {
+            if (-not (Test-Path $file)) {
+              $missing += $file
+            }
+          }
+          
+          if ($missing.Count -gt 0) {
+            Write-Host "ERROR: Missing required files:" -ForegroundColor Red
+            $missing | ForEach-Object { Write-Host "  - $_" -ForegroundColor Red }
+            exit 1
+          }
+          
+          Write-Host "All required files present!" -ForegroundColor Green
+
+      - name: Create ZIP archive
+        shell: pwsh
+        run: |
+          $version = "${{ steps.get_version.outputs.VERSION }}"
+          $distDir = "dist/FamilyFinances-v$version-win-x64"
+          $zipPath = "FamilyFinances-v$version-win-x64.zip"
+          
+          Compress-Archive -Path $distDir -DestinationPath $zipPath -Force
+          
+          echo "ZIP_PATH=$zipPath" >> $env:GITHUB_OUTPUT
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FamilyFinances-v${{ steps.get_version.outputs.VERSION }}-win-x64
+          path: FamilyFinances-v${{ steps.get_version.outputs.VERSION }}-win-x64.zip
+          retention-days: 90
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: FamilyFinances-v${{ steps.get_version.outputs.VERSION }}-win-x64.zip
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -90,8 +90,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// Skip HTTPS redirection in Testing environment to avoid issues with test clients
-if (!app.Environment.IsEnvironment("Testing"))
+// Only use HTTPS redirection in Development (when we have proper HTTPS setup)
+// Skip in Testing and Production (ZIP distribution uses HTTP-only for local access)
+if (app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
