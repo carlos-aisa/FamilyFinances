@@ -8,45 +8,98 @@
 @using FamilyFinances.Application.Ledger.Transactions.Requests
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web.Components.Shared
 @inject TransactionsApi TransactionsApi
 @inject IAccountsApi AccountsApi
 @inject PayeesApi PayeesApi
 @inject NavigationManager NavigationManager
 
 <div class="d-flex align-items-center justify-content-between mb-3">
-    <h3 class="m-0">Edit transaction</h3>
-    <a class="btn btn-sm btn-outline-secondary" href="@($"/transactions/{Id}")">Back</a>
+    <h3 class="m-0">
+        <i class="bi bi-pencil me-2"></i>Edit transaction
+        @if (_isMultiSplit)
+        {
+            <span class="badge bg-info ms-2">Multi-Split</span>
+        }
+    </h3>
+    <a class="btn btn-sm btn-outline-secondary" href="@($"/transactions/{Id}")">
+        <i class="bi bi-arrow-left me-1"></i>Back
+    </a>
 </div>
 
 @if (!string.IsNullOrWhiteSpace(_error))
 {
-    <div class="alert alert-danger" role="alert">@_error</div>
+    <div class="alert alert-danger" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>@_error
+    </div>
 }
 
-@if (_model is null)
+@if (_loading)
 {
-    <p>Loading...</p>
+    <div class="text-center py-5">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (_isMultiSplit)
+{
+    <!-- Multi-Split Editor -->
+    <MultiSplitTransactionEditor Accounts="_accounts"
+                                 Payees="_payees"
+                                 InitialDate="_originalTransaction!.BookedOn"
+                                 InitialDescription="_originalTransaction.Description"
+                                 InitialPayeeId="_originalTransaction.PayeeId"
+                                 InitialSplits="_multiSplitModel"
+                                 OnValidStateChanged="OnMultiSplitEditorStateChanged" />
+
+    <div class="mt-4 d-flex gap-2">
+        <button class="btn btn-primary" 
+                @onclick="SaveMultiSplitAsync" 
+                disabled="@(!_canSaveMultiSplit || _saving)">
+            @if (_saving)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+            }
+            else
+            {
+                <i class="bi bi-check-circle me-1"></i>
+            }
+            Save Changes
+        </button>
+        
+        <a class="btn btn-secondary" href="@($"/transactions/{Id}")">
+            <i class="bi bi-x-circle me-1"></i>Cancel
+        </a>
+    </div>
 }
 else
 {
-    <EditForm Model="_model" OnValidSubmit="SaveAsync">
+    <!-- 2-Split Editor (Existing) -->
+    <EditForm Model="_twoSplitModel" OnValidSubmit="SaveTwoSplitAsync">
         <DataAnnotationsValidator />
         <ValidationSummary />
 
         <div class="row g-3">
             <div class="col-12 col-md-3">
-                <label class="form-label">Booked on</label>
-                <InputDate class="form-control" @bind-Value="_model.BookedOn" />
+                <label class="form-label">
+                    <i class="bi bi-calendar-event me-1"></i>Booked on
+                </label>
+                <InputDate class="form-control" @bind-Value="_twoSplitModel!.BookedOn" />
             </div>
 
             <div class="col-12 col-md-5">
-                <label class="form-label">Description</label>
-                <InputText class="form-control" @bind-Value="_model.Description" />
+                <label class="form-label">
+                    <i class="bi bi-pencil me-1"></i>Description
+                </label>
+                <InputText class="form-control" @bind-Value="_twoSplitModel!.Description" />
             </div>
 
             <div class="col-12 col-md-4">
-                <label class="form-label">Payee</label>
-                <InputSelect class="form-select" @bind-Value="_model.PayeeId">
+                <label class="form-label">
+                    <i class="bi bi-person me-1"></i>Payee
+                </label>
+                <InputSelect class="form-select" @bind-Value="_twoSplitModel!.PayeeId">
                     <option value="">—</option>
                     @foreach (var p in _payees)
                     {
@@ -56,8 +109,10 @@ else
             </div>
 
             <div class="col-12 col-md-4">
-                <label class="form-label">From account</label>
-                <InputSelect class="form-select" @bind-Value="_model.FromAccountId">
+                <label class="form-label">
+                    <i class="bi bi-arrow-up-right me-1"></i>From account
+                </label>
+                <InputSelect class="form-select" @bind-Value="_twoSplitModel!.FromAccountId">
                     @foreach (var a in _accounts)
                     {
                         <option value="@a.Id">@a.Name</option>
@@ -66,8 +121,10 @@ else
             </div>
 
             <div class="col-12 col-md-4">
-                <label class="form-label">To account</label>
-                <InputSelect class="form-select" @bind-Value="_model.ToAccountId">
+                <label class="form-label">
+                    <i class="bi bi-arrow-down-left me-1"></i>To account
+                </label>
+                <InputSelect class="form-select" @bind-Value="_twoSplitModel!.ToAccountId">
                     @foreach (var a in _accounts)
                     {
                         <option value="@a.Id">@a.Name</option>
@@ -76,14 +133,28 @@ else
             </div>
 
             <div class="col-12 col-md-4">
-                <label class="form-label">Amount</label>
-                <InputNumber class="form-control" @bind-Value="_model.Amount" />
+                <label class="form-label">
+                    <i class="bi bi-currency-euro me-1"></i>Amount
+                </label>
+                <InputNumber class="form-control" @bind-Value="_twoSplitModel!.Amount" />
             </div>
         </div>
 
         <div class="d-flex gap-2 mt-4">
-            <button class="btn btn-primary" type="submit" disabled="@_saving">Save</button>
-            <a class="btn btn-outline-secondary" href="@($"/transactions/{Id}")">Cancel</a>
+            <button class="btn btn-primary" type="submit" disabled="@_saving">
+                @if (_saving)
+                {
+                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                }
+                else
+                {
+                    <i class="bi bi-check-circle me-1"></i>
+                }
+                Save Changes
+            </button>
+            <a class="btn btn-secondary" href="@($"/transactions/{Id}")">
+                <i class="bi bi-x-circle me-1"></i>Cancel
+            </a>
         </div>
     </EditForm>
 }
@@ -94,7 +165,18 @@ else
     private IReadOnlyList<AccountDto> _accounts = Array.Empty<AccountDto>();
     private IReadOnlyList<PayeeDto> _payees = Array.Empty<PayeeDto>();
 
-    private EditTransactionModel? _model;
+    private TransactionDto? _originalTransaction;
+    private bool _isMultiSplit;
+    private bool _loading = true;
+    
+    // For 2-split editing
+    private EditTransactionModel? _twoSplitModel;
+    
+    // For multi-split editing
+    private List<MultiSplitTransactionEditor.SplitModel> _multiSplitModel = new();
+    private MultiSplitTransactionEditor.TransactionEditorModel? _multiSplitEditorModel;
+    private bool _canSaveMultiSplit;
+    
     private string? _error;
     private bool _saving;
 
@@ -106,6 +188,7 @@ else
     private async Task LoadAsync()
     {
         _error = null;
+        _loading = true;
 
         try
         {
@@ -115,35 +198,61 @@ else
                 _payees = await PayeesApi.ListAsync(ct);
 
                 var tx = await TransactionsApi.GetByIdAsync(Id, ct);
+                _originalTransaction = tx;
 
-                if (tx.Splits.Count != 2)
-                    throw new InvalidOperationException("Only 2-split transactions can be edited.");
+                // Determine if it's a multi-split transaction
+                _isMultiSplit = tx.Splits.Count > 2;
 
-                // Convention A: From split is negative, To split is positive
-                var from = tx.Splits.Single(s => s.Amount < 0);
-                var to = tx.Splits.Single(s => s.Amount > 0);
-
-                _model = new EditTransactionModel
+                if (_isMultiSplit)
                 {
-                    Id = tx.Id,
-                    BookedOn = tx.BookedOn,
-                    Description = tx.Description,
-                    PayeeId = tx.PayeeId,
-                    FromAccountId = from.AccountId,
-                    ToAccountId = to.AccountId,
-                    Amount = Math.Abs(from.Amount)
-                };
+                    // Load multi-split model
+                    _multiSplitModel = tx.Splits.Select(s => new MultiSplitTransactionEditor.SplitModel
+                    {
+                        AccountId = s.AccountId,
+                        Amount = s.Amount,
+                        AmountText = s.Amount.ToString("F2"),
+                        Memo = s.Memo
+                    }).ToList();
+                }
+                else
+                {
+                    // Load 2-split model (existing logic)
+                    var from = tx.Splits.Single(s => s.Amount < 0);
+                    var to = tx.Splits.Single(s => s.Amount > 0);
+
+                    _twoSplitModel = new EditTransactionModel
+                    {
+                        Id = tx.Id,
+                        BookedOn = tx.BookedOn,
+                        Description = tx.Description,
+                        PayeeId = tx.PayeeId,
+                        FromAccountId = from.AccountId,
+                        ToAccountId = to.AccountId,
+                        Amount = Math.Abs(from.Amount)
+                    };
+                }
             });
         }
         catch (Exception ex)
         {
             _error = ex.Message;
         }
+        finally
+        {
+            _loading = false;
+        }
     }
 
-    private async Task SaveAsync()
+    private void OnMultiSplitEditorStateChanged(MultiSplitTransactionEditor.TransactionEditorModel? model)
     {
-        if (_model is null)
+        _multiSplitEditorModel = model;
+        _canSaveMultiSplit = model != null;
+        StateHasChanged();
+    }
+
+    private async Task SaveTwoSplitAsync()
+    {
+        if (_twoSplitModel is null)
             return;
 
         _error = null;
@@ -154,13 +263,13 @@ else
             await ExecuteApiAsync(async ct =>
             {
                 var req = new UpdateTransactionRequest(
-                    _model.Id,
-                    _model.BookedOn,
-                    _model.Description,
-                    _model.PayeeId,
-                    _model.FromAccountId,
-                    _model.ToAccountId,
-                    _model.Amount);
+                    _twoSplitModel.Id,
+                    _twoSplitModel.BookedOn,
+                    _twoSplitModel.Description,
+                    _twoSplitModel.PayeeId,
+                    _twoSplitModel.FromAccountId,
+                    _twoSplitModel.ToAccountId,
+                    _twoSplitModel.Amount);
 
                 await TransactionsApi.UpdateAsync(Id, req, ct);
             });
@@ -176,6 +285,49 @@ else
             _saving = false;
         }
     }
+
+    private async Task SaveMultiSplitAsync()
+    {
+        if (_multiSplitEditorModel is null || _saving)
+            return;
+
+        _error = null;
+        _saving = true;
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                var splits = _multiSplitEditorModel.Splits.Select(s => new TransactionSplitInput(
+                    s.AccountId,
+                    ToCents(s.Amount),
+                    s.Memo
+                )).ToList();
+
+                var req = new UpdateMultiSplitTransactionRequest(
+                    Id,
+                    _multiSplitEditorModel.BookedOn,
+                    _multiSplitEditorModel.Description,
+                    _multiSplitEditorModel.PayeeId,
+                    splits);
+
+                await TransactionsApi.UpdateMultiSplitAsync(Id, req, ct);
+            });
+
+            NavigationManager.NavigateTo($"/transactions/{Id}?result=updated", replace: true);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private static long ToCents(decimal amount)
+        => (long)Math.Round(amount * 100m, MidpointRounding.AwayFromZero);
 
     private sealed class EditTransactionModel
     {
