@@ -1,5 +1,6 @@
 using FamilyFinances.Application.Ledger.Transactions.Abstractions;
 using FamilyFinances.Application.Ledger.Transactions.Dtos;
+using FamilyFinances.Application.Ledger.Transactions.Requests;
 using FamilyFinances.Domain.Common;
 using FamilyFinances.Domain.Ledger.Accounts;
 using FamilyFinances.Domain.Ledger.Payees;
@@ -92,6 +93,34 @@ public sealed class TransactionRepository : ITransactionRepository
             bookedOn,
             description,
             splits,
+            payeeId is null ? null : new PayeeId(payeeId.Value),
+            existing.Id.Value));
+
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
+    public async Task<bool> UpdateMultiSplitAsync(
+        Guid id,
+        DateOnly bookedOn,
+        string description,
+        Guid? payeeId,
+        IReadOnlyList<TransactionSplitInput> splits,
+        CancellationToken ct)
+    {
+        var existing = await GetByIdAsync(new TransactionId(id), ct);
+        if (existing is null)
+            return false;
+
+        var domainSplits = splits.Select(s =>
+            TransactionSplit.Create(new AccountId(s.AccountId), new Money(s.AmountCents), s.Memo));
+
+        await RemoveAsync(new TransactionId(id), ct);
+
+        _db.Transactions.Add(Transaction.Create(
+            bookedOn,
+            description,
+            domainSplits,
             payeeId is null ? null : new PayeeId(payeeId.Value),
             existing.Id.Value));
 

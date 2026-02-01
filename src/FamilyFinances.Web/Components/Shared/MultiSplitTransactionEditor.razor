@@ -1,0 +1,315 @@
+@using System.ComponentModel.DataAnnotations
+@using FamilyFinances.Application.Ledger.Accounts.Dtos
+@using FamilyFinances.Application.Ledger.Payees.Dtos
+
+<EditForm Model="_formModel" OnValidSubmit="@(() => Task.CompletedTask)">
+    <DataAnnotationsValidator />
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <label class="form-label">
+                <i class="bi bi-calendar-event me-1"></i>Date *
+            </label>
+            <InputDate class="form-control" @bind-Value="_formModel.BookedOn" @bind-Value:after="ValidateForm" />
+        </div>
+
+        <div class="col-md-9">
+            <label class="form-label">
+                <i class="bi bi-pencil me-1"></i>Description *
+            </label>
+            <InputText class="form-control" 
+                       @bind-Value="_formModel.Description" 
+                       @bind-Value:after="ValidateForm" 
+                       placeholder="Enter transaction description"
+                       autocomplete="off" />
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">
+                <i class="bi bi-person me-1"></i>Payee (optional)
+            </label>
+            <InputSelect class="form-select" @bind-Value="_formModel.PayeeId">
+                <option value="">— none —</option>
+                @foreach (var p in Payees)
+                {
+                    <option value="@p.Id">@p.Name</option>
+                }
+            </InputSelect>
+        </div>
+    </div>
+
+    <!-- Splits Section -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="bi bi-distribute-vertical me-2"></i>Transaction Splits
+            </h5>
+            <small class="d-block mt-2">
+                <i class="bi bi-info-circle me-1"></i>
+                Use <strong>negative</strong> amounts for money leaving accounts (payments, expenses).
+                Use <strong>positive</strong> amounts for money entering accounts (income, asset increases).
+                Total must equal zero to balance.
+            </small>
+        </div>
+        <div class="card-body">
+            @for (int i = 0; i < _splits.Count; i++)
+            {
+                var index = i;
+                var split = _splits[index];
+                
+                <div class="row g-3 mb-3 pb-3 @(index < _splits.Count - 1 ? "border-bottom" : "")">
+                    <div class="col-md-5">
+                        <label class="form-label small">Account *</label>
+                        <select class="form-select" @bind="split.AccountId" @bind:after="ValidateForm">
+                            <option value="">— select account —</option>
+                            @foreach (var account in Accounts)
+                            {
+                                <option value="@account.Id">@account.Name (@account.Nature)</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small">Amount (€) *</label>
+                        <input type="text" 
+                               class="form-control" 
+                               @bind="split.AmountText" 
+                               @bind:event="oninput"
+                               @bind:after="() => OnAmountChanged(split)"
+                               placeholder="0.00" />
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label small">Actions</label>
+                        <button type="button" 
+                                class="btn btn-outline-danger btn-sm w-100" 
+                                @onclick="() => RemoveSplit(index)"
+                                disabled="@(_splits.Count <= 2)">
+                            <i class="bi bi-trash me-1"></i>Remove
+                        </button>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label small">
+                            <i class="bi bi-sticky me-1"></i>Memo (optional note for this split)
+                        </label>
+                        <input type="text" 
+                               class="form-control form-control-sm" 
+                               @bind="split.Memo"
+                               placeholder="e.g., 'Principal payment', 'Interest', 'Tax portion'" />
+                    </div>
+                </div>
+            }
+
+            @if (_splits.Count < MaxSplits)
+            {
+                <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddSplit">
+                    <i class="bi bi-plus-circle me-1"></i>Add Split
+                </button>
+            }
+            else
+            {
+                <div class="alert alert-warning small mt-2 mb-0">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    Maximum of @MaxSplits splits reached.
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Balance Indicator -->
+    <div class="card mt-3 @GetBalanceCardClass()">
+        <div class="card-body py-2">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="fw-bold">
+                    @if (_balance == 0)
+                    {
+                        <i class="bi bi-check-circle text-success me-1"></i>
+                        <span class="text-success">Balanced</span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-exclamation-circle text-warning me-1"></i>
+                        <span class="text-warning">Remaining to balance:</span>
+                    }
+                </span>
+                <span class="fs-5 fw-bold @(_balance == 0 ? "text-success" : "text-warning")">
+                    @_balance.ToString("F2") €
+                </span>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_validationError))
+    {
+        <div class="alert alert-warning mt-3" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>@_validationError
+        </div>
+    }
+</EditForm>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<AccountDto> Accounts { get; set; } = Array.Empty<AccountDto>();
+    [Parameter, EditorRequired] public IReadOnlyList<PayeeDto> Payees { get; set; } = Array.Empty<PayeeDto>();
+    
+    [Parameter] public DateOnly? InitialDate { get; set; }
+    [Parameter] public string? InitialDescription { get; set; }
+    [Parameter] public Guid? InitialPayeeId { get; set; }
+    [Parameter] public List<SplitModel>? InitialSplits { get; set; }
+    
+    [Parameter] public EventCallback<TransactionEditorModel> OnValidStateChanged { get; set; }
+    
+    private const int MaxSplits = 10;
+    
+    private FormModel _formModel = new();
+    private List<SplitModel> _splits = new();
+    private decimal _balance = 0m;
+    private string? _validationError;
+    
+    protected override void OnInitialized()
+    {
+        _formModel.BookedOn = InitialDate ?? DateOnly.FromDateTime(DateTime.Today);
+        _formModel.Description = InitialDescription ?? "";
+        _formModel.PayeeId = InitialPayeeId;
+        
+        if (InitialSplits != null && InitialSplits.Any())
+        {
+            _splits = InitialSplits;
+        }
+        else
+        {
+            // Start with 3 empty splits for new transactions
+            _splits = new List<SplitModel>
+            {
+                new SplitModel(),
+                new SplitModel(),
+                new SplitModel()
+            };
+        }
+        
+        ValidateForm();
+    }
+    
+    private void AddSplit()
+    {
+        if (_splits.Count < MaxSplits)
+        {
+            _splits.Add(new SplitModel());
+            ValidateForm();
+        }
+    }
+    
+    private void RemoveSplit(int index)
+    {
+        if (_splits.Count > 2)
+        {
+            _splits.RemoveAt(index);
+            ValidateForm();
+        }
+    }
+    
+    private void OnAmountChanged(SplitModel split)
+    {
+        // Replace comma with dot and try parsing
+        var normalizedText = split.AmountText?.Replace(',', '.');
+        
+        if (decimal.TryParse(normalizedText, 
+                            System.Globalization.NumberStyles.AllowDecimalPoint | System.Globalization.NumberStyles.AllowLeadingSign,
+                            System.Globalization.CultureInfo.InvariantCulture, 
+                            out var amount))
+        {
+            split.Amount = amount;
+        }
+        else
+        {
+            split.Amount = 0m;
+        }
+        
+        ValidateForm();
+    }
+    
+    private void ValidateForm()
+    {
+        _validationError = null;
+        
+        // Validate description
+        if (string.IsNullOrWhiteSpace(_formModel.Description))
+        {
+            _validationError = "Description is required.";
+        }
+        
+        // Validate splits
+        var splitsWithAccount = _splits.Where(s => s.AccountId != Guid.Empty).ToList();
+        
+        if (splitsWithAccount.Count < 2)
+        {
+            _validationError = "At least 2 splits with accounts selected are required.";
+        }
+        
+        // Calculate balance
+        _balance = _splits.Sum(s => s.Amount);
+        
+        // Check if balanced
+        bool isBalanced = Math.Abs(_balance) < 0.01m; // Allow small rounding errors
+        
+        if (isBalanced && splitsWithAccount.Count >= 2 && !string.IsNullOrWhiteSpace(_formModel.Description))
+        {
+            // Valid state - notify parent
+            var model = new TransactionEditorModel
+            {
+                BookedOn = _formModel.BookedOn,
+                Description = _formModel.Description.Trim(),
+                PayeeId = _formModel.PayeeId == Guid.Empty ? null : _formModel.PayeeId,
+                Splits = _splits
+                    .Where(s => s.AccountId != Guid.Empty)
+                    .Select(s => new SplitModel 
+                    { 
+                        AccountId = s.AccountId, 
+                        Amount = s.Amount, 
+                        Memo = string.IsNullOrWhiteSpace(s.Memo) ? null : s.Memo.Trim(),
+                        AmountText = s.AmountText
+                    })
+                    .ToList()
+            };
+            
+            OnValidStateChanged.InvokeAsync(model);
+        }
+        else
+        {
+            // Invalid state
+            OnValidStateChanged.InvokeAsync(null!);
+        }
+    }
+    
+    private string GetBalanceCardClass()
+    {
+        return Math.Abs(_balance) < 0.01m ? "border-success" : "border-warning";
+    }
+    
+    public sealed class FormModel
+    {
+        [Required]
+        public DateOnly BookedOn { get; set; }
+        
+        [Required, StringLength(200)]
+        public string Description { get; set; } = "";
+        
+        public Guid? PayeeId { get; set; }
+    }
+    
+    public sealed class SplitModel
+    {
+        public Guid AccountId { get; set; }
+        public decimal Amount { get; set; }
+        public string? Memo { get; set; }
+        public string AmountText { get; set; } = "";
+    }
+    
+    public sealed class TransactionEditorModel
+    {
+        public DateOnly BookedOn { get; set; }
+        public string Description { get; set; } = "";
+        public Guid? PayeeId { get; set; }
+        public List<SplitModel> Splits { get; set; } = new();
+    }
+}

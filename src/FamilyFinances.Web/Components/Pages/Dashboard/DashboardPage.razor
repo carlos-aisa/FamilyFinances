@@ -55,7 +55,7 @@
                                     Subtitle="@Specs[QuickEntryType.Expense].Hint"
                                     IsActive="@(_activeEntry == QuickEntryType.Expense)"
                                     OnHeaderClick="@(() => SetActive(QuickEntryType.Expense))">
-                        <QuickEntryDrawer Mode="_activeEntry"
+                        <QuickEntryDrawer Mode="@(_activeEntry ?? QuickEntryType.Expense)"
                                     Specs="Specs" 
                                     Accounts="_accounts"
                                     Payees="_payees"
@@ -77,7 +77,7 @@
                                     Subtitle="@Specs[QuickEntryType.Income].Hint"
                                     IsActive="@(_activeEntry == QuickEntryType.Income)"
                                     OnHeaderClick="@(() => SetActive(QuickEntryType.Income))">
-                        <QuickEntryDrawer Mode="_activeEntry"
+                        <QuickEntryDrawer Mode="@(_activeEntry ?? QuickEntryType.Income)"
                                         Specs="Specs" 
                                         Accounts="_accounts"
                                         Payees="_payees"
@@ -92,7 +92,7 @@
                                     Subtitle="@Specs[QuickEntryType.Transfer].Hint"
                                     IsActive="@(_activeEntry == QuickEntryType.Transfer)"
                                     OnHeaderClick="@(() => SetActive(QuickEntryType.Transfer))">
-                        <QuickEntryDrawer Mode="_activeEntry"
+                        <QuickEntryDrawer Mode="@(_activeEntry ?? QuickEntryType.Transfer)"
                                         Specs="Specs"
                                         Accounts="_accounts"
                                         Payees="_payees"
@@ -107,7 +107,7 @@
                                     Subtitle="@Specs[QuickEntryType.Refund].Hint"
                                     IsActive="@(_activeEntry == QuickEntryType.Refund)"
                                     OnHeaderClick="@(() => SetActive(QuickEntryType.Refund))">
-                        <QuickEntryDrawer Mode="_activeEntry"
+                        <QuickEntryDrawer Mode="@(_activeEntry ?? QuickEntryType.Refund)"
                                         Specs="Specs"
                                         Accounts="_accounts"
                                         Payees="_payees"
@@ -117,6 +117,18 @@
                                         OnClearSelection="ClearSelection"
                                         OnSwapAccounts="SwapTransferAccounts" />
                     </QuickEntryCard>
+
+                    <!-- Multi-Split Widgets -->
+                    <MortgagePaymentWidget Accounts="_accounts" 
+                                          IsExpanded="@(_expandedWidget == "mortgage")"
+                                          OnToggle="OnWidgetToggle"
+                                          OnTransactionCreated="OnWidgetTransactionCreatedAsync" />
+                    
+                    <MultiSplitWidget Accounts="_accounts" 
+                                     Payees="_payees"
+                                     IsExpanded="@(_expandedWidget == "multisplit")"
+                                     OnToggle="OnWidgetToggle"
+                                     OnTransactionCreated="OnWidgetTransactionCreatedAsync" />
                 </div>
 
                 <div class="col-12 col-lg-5">
@@ -206,7 +218,7 @@
     private Guid? _selectedFromAccountId;
     private Guid? _selectedToAccountId;
 
-    private QuickEntryType _activeEntry = QuickEntryType.Expense;
+    private QuickEntryType? _activeEntry = QuickEntryType.Expense;
 
     private Guid? _expenseFromAssetId;
     private Guid? _expenseToCategoryId;
@@ -227,7 +239,7 @@
         { AccountNature.Expense, "" },
         { AccountNature.Income, "" }
     };
-
+    private string? _expandedWidget;
     private void GoToOpeningBalance() => Nav.NavigateTo("/opening-balance");
 
     private static readonly AccountNature[] _natureOrder =
@@ -255,7 +267,10 @@
 
     private void OnAccountClicked(AccountDto account)
     {
-        var spec = Specs[_activeEntry];
+        if (!_activeEntry.HasValue)
+            return;
+            
+        var spec = Specs[_activeEntry.Value];
 
         var canBeFrom = spec.FromAllowed.Contains(account.Nature);
         var canBeTo = spec.ToAllowed.Contains(account.Nature);
@@ -284,7 +299,10 @@
 
     private void SetFromForActiveEntry(Guid accountId)
     {
-        switch (_activeEntry)
+        if (!_activeEntry.HasValue)
+            return;
+            
+        switch (_activeEntry.Value)
         {
             case QuickEntryType.Expense:
                 _expenseFromAssetId = accountId;
@@ -310,7 +328,10 @@
 
     private void SetToForActiveEntry(Guid accountId, bool replaceWhenBothSelected)
     {
-        switch (_activeEntry)
+        if (!_activeEntry.HasValue)
+            return;
+            
+        switch (_activeEntry.Value)
         {
             case QuickEntryType.Expense:
                 _expenseToCategoryId = accountId;
@@ -355,7 +376,10 @@
 
     private Task OnTransactionCreatedAsync()
     {
-        switch (_activeEntry)
+        if (!_activeEntry.HasValue)
+            return Task.CompletedTask;
+            
+        switch (_activeEntry.Value)
         {
             case QuickEntryType.Expense:
                 _expenseToCategoryId = null;
@@ -376,6 +400,26 @@
         _selectedToAccountId = null;
         StateHasChanged();
         return Task.CompletedTask;
+    }
+
+    private Task OnWidgetTransactionCreatedAsync()
+    {
+        // Widgets don't interact with QuickEntry state
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private void OnWidgetToggle(string widgetName)
+    {
+        // Close QuickEntry when a widget is opened
+        if (_expandedWidget != widgetName)
+        {
+            _activeEntry = null;
+        }
+        
+        // Toggle widget: close if same, open if different
+        _expandedWidget = _expandedWidget == widgetName ? null : widgetName;
+        StateHasChanged();
     }
 
     private void ClearSelection()
@@ -409,12 +453,19 @@
     private void SetActive(QuickEntryType type)
     {
         _activeEntry = type;
+        
+        // Close any open widget when a QuickEntry is opened
+        _expandedWidget = null;
+        
         SyncSelectionForActiveEntry();
     }
 
     private void SyncSelectionForActiveEntry()
     {
-        switch (_activeEntry)
+        if (!_activeEntry.HasValue)
+            return;
+            
+        switch (_activeEntry.Value)
         {
             case QuickEntryType.Expense:
                 _selectedFromAccountId = _expenseFromAssetId;

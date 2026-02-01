@@ -76,6 +76,19 @@ public sealed class TransactionsController : ControllerBase
         return ok ? NoContent() : NotFound();
     }
 
+    [HttpPut("{id:guid}/multi-split")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<IActionResult> UpdateMultiSplit(
+        Guid id,
+        [FromServices] UpdateMultiSplitTransactionHandler handler,
+        [FromBody] UpdateMultiSplitTransactionRequest request,
+        CancellationToken ct)
+    {
+        var ok = await handler.HandleAsync(request, ct);
+
+        return ok ? NoContent() : NotFound();
+    }
+
     [HttpDelete("{id:guid}")]
     [Authorize(Policy = Policies.CanWrite)]
     public async Task<IActionResult> Delete(

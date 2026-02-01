@@ -1,0 +1,166 @@
+@using FamilyFinances.Application.Ledger.Accounts.Dtos
+@using FamilyFinances.Application.Ledger.Payees.Dtos
+@using FamilyFinances.Application.Ledger.Transactions.Requests
+@using FamilyFinances.Web.Api
+@using FamilyFinances.Web.Components.Shared
+@inject TransactionsApi TransactionsApi
+@inject NavigationManager Nav
+
+<div class="card shadow-sm mb-3 border-start border-4 border-warning">
+    <div class="card-header bg-warning-subtle cursor-pointer" @onclick="ToggleExpanded">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h6 class="mb-0 text-warning-emphasis">
+                    <i class="bi bi-distribute-vertical me-2"></i>Multi-Split Transaction
+                </h6>
+                <small class="text-muted">Create transactions with 3+ splits</small>
+            </div>
+            <i class="bi @(_isExpanded ? "bi-chevron-up" : "bi-chevron-down") text-warning-emphasis"></i>
+        </div>
+    </div>
+
+    @if (_isExpanded)
+    {
+        <div class="card-body">
+            @if (!string.IsNullOrWhiteSpace(_error))
+            {
+                <div class="alert alert-danger alert-sm" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2"></i>@_error
+                </div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(_success))
+            {
+                <div class="alert alert-success alert-sm" role="alert">
+                    <i class="bi bi-check-circle me-2"></i>@_success
+                </div>
+            }
+
+            <MultiSplitTransactionEditor @key="_editorKey"
+                                         Accounts="Accounts"
+                                         Payees="Payees"
+                                         OnValidStateChanged="OnEditorStateChanged" />
+
+            <div class="mt-3 d-flex gap-2">
+                <button class="btn btn-primary btn-sm"
+                        @onclick="CreateAsync"
+                        disabled="@(!_canSave || _isSaving)">
+                    @if (_isSaving)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-check-circle me-1"></i>
+                    }
+                    Create Transaction
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" @onclick="Clear">
+                    <i class="bi bi-x-circle me-1"></i>Clear
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<AccountDto> Accounts { get; set; } = Array.Empty<AccountDto>();
+    [Parameter, EditorRequired] public IReadOnlyList<PayeeDto> Payees { get; set; } = Array.Empty<PayeeDto>();
+    [Parameter] public EventCallback OnTransactionCreated { get; set; }
+    [Parameter] public bool IsExpanded { get; set; }
+    [Parameter] public EventCallback<string> OnToggle { get; set; }
+
+    private bool _isSaving = false;
+    private bool _canSave = false;
+    private string? _error;
+    private string? _success;
+    private int _editorKey = 0;
+
+    private MultiSplitTransactionEditor.TransactionEditorModel? _editorModel;
+
+    private bool _isExpanded => IsExpanded;
+
+    private async Task ToggleExpanded()
+    {
+        _error = null;
+        _success = null;
+        await OnToggle.InvokeAsync("multisplit");
+    }
+
+    private void OnEditorStateChanged(MultiSplitTransactionEditor.TransactionEditorModel? model)
+    {
+        _editorModel = model;
+        _canSave = model != null;
+        StateHasChanged();
+    }
+
+    private async Task CreateAsync()
+    {
+        if (_editorModel == null || _isSaving)
+            return;
+
+        _isSaving = true;
+        _error = null;
+        _success = null;
+        StateHasChanged();
+
+        try
+        {
+            var splits = _editorModel.Splits.Select(s => new TransactionSplitInput(
+                s.AccountId,
+                ToCents(s.Amount),
+                s.Memo
+            )).ToList();
+
+            var request = new CreateTransactionRequest(
+                _editorModel.BookedOn,
+                _editorModel.Description,
+                splits,
+                _editorModel.PayeeId,
+                null
+            );
+
+            await TransactionsApi.CreateAsync(request, CancellationToken.None);
+
+            _success = "Transaction created successfully!";
+            StateHasChanged();
+            await Task.Delay(3000); // Show success message for 3 seconds
+            await OnTransactionCreated.InvokeAsync();
+            
+            // Clear the form
+            Clear();
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to create transaction: {ex.Message}";
+        }
+        finally
+        {
+            _isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private void Clear()
+    {
+        _editorKey++; // Force component re-creation
+        _editorModel = null;
+        _canSave = false;
+        _error = null;
+        _success = null;
+        StateHasChanged();
+    }
+
+    private static long ToCents(decimal amount)
+        => (long)Math.Round(amount * 100m, MidpointRounding.AwayFromZero);
+}
+
+<style>
+    .cursor-pointer {
+        cursor: pointer;
+    }
+
+    .cursor-pointer:hover {
+        opacity: 0.9;
+    }
+</style>

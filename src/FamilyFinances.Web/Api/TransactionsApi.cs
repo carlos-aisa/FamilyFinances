@@ -122,6 +122,27 @@ public sealed class TransactionsApi
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task UpdateMultiSplitAsync(Guid id, UpdateMultiSplitTransactionRequest requestBody, CancellationToken ct)
+    {
+        var token = _tokenStore.GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("No access token available.");
+
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"api/v1/transactions/{id}/multi-split");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        request.Content = JsonContent.Create(requestBody);
+
+        var response = await _http.SendAsync(request, ct);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            throw new InvalidOperationException("Transaction not found.");
+
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task<bool> HasAnyAsync(CancellationToken ct)
     {
         var token = _tokenStore.GetAccessToken();
