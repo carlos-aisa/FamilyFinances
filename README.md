@@ -137,6 +137,12 @@ Examples:
   - Automated builds via GitHub Actions
 
 ### In progress / planned
+- `v0.7.0` Multi-split transactions ✅
+  - Support for transactions with 3+ splits
+  - Mortgage payment preset widget on dashboard
+  - Multi-split editor with live validation
+  - Exclusive widget collapse behavior
+  - Date picker for backdating payments
 - `v0.6.8` Internationalization (i18n)
 
 ### Future (v0.7+)
