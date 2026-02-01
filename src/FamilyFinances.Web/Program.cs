@@ -46,7 +46,13 @@ builder.Services.AddHttpClient("FamilyFinancesApi", (sp, client) =>
 
 var app = builder.Build();
 
-app.UseHttpsRedirection();
+// Only use HTTPS redirection in Development (when we have proper HTTPS setup)
+// Skip in Production (ZIP distribution uses HTTP-only for local access)
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseStaticFiles();
 app.UseAntiforgery();
 
