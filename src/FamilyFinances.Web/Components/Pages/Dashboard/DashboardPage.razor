@@ -138,8 +138,18 @@
                             </div>
 
                             <div class="card-body p-0">
+                                @if (items.Count > 8)
+                                {
+                                    <div class="p-2 border-bottom">
+                                        <input type="text" 
+                                               class="form-control form-control-sm" 
+                                               placeholder="Search @nature.ToString().ToLower() accounts..."
+                                               @bind="_accountSearchQueries[nature]" 
+                                               @bind:event="oninput" />
+                                    </div>
+                                }
                                 <div class="list-group list-group-flush">
-                                    @foreach (var a in items)
+                                    @foreach (var a in GetFilteredAccounts(nature, items))
                                     {
                                         var isSelectedFrom = _selectedFromAccountId == a.Id;
                                         var isSelectedTo = _selectedToAccountId == a.Id;
@@ -209,6 +219,14 @@
 
     private Guid? _refundFromExpenseId;
     private Guid? _refundToAssetId;
+
+    private Dictionary<AccountNature, string> _accountSearchQueries = new()
+    {
+        { AccountNature.Asset, "" },
+        { AccountNature.Liability, "" },
+        { AccountNature.Expense, "" },
+        { AccountNature.Income, "" }
+    };
 
     private void GoToOpeningBalance() => Nav.NavigateTo("/opening-balance");
 
@@ -432,6 +450,18 @@
         return _accounts
             .Where(a => a.Nature == nature && !a.IsClosed)
             .OrderBy(a => a.Name)
+            .ToList();
+    }
+
+    private IReadOnlyList<AccountDto> GetFilteredAccounts(AccountNature nature, IReadOnlyList<AccountDto> accounts)
+    {
+        var searchQuery = _accountSearchQueries[nature];
+        
+        if (string.IsNullOrWhiteSpace(searchQuery))
+            return accounts;
+        
+        return accounts
+            .Where(a => a.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase))
             .ToList();
     }
 

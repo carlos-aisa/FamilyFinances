@@ -6,6 +6,7 @@
 @using FamilyFinances.Domain.Ledger.Accounts
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web.Components.Shared
 @using FamilyFinances.Web.Features.Reports
 @using Microsoft.AspNetCore.Components.Authorization
 @inject AccountGroupsApi AccountGroupsApi
@@ -42,8 +43,20 @@
             </div>
             <div class="card-body">
                 <div class="row g-3">
+                    <!-- Quick Date Presets -->
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar-range me-1"></i>Quick Select
+                        </label>
+                        <div>
+                            <DateRangePresets OnPresetSelected="HandlePresetSelected" ActivePreset="@_activePreset" />
+                        </div>
+                    </div>
+
                     <div class="col-md-4">
-                        <label class="form-label">Account Group</label>
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-collection me-1"></i>Account Group
+                        </label>
                         <select class="form-select" @bind="_selectedGroupId">
                             <option value="">-- Select Group --</option>
                             @if (_groups is not null)
@@ -57,17 +70,23 @@
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label">From Date</label>
-                        <input type="date" class="form-control" @bind="_fromDate" />
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar3 me-1"></i>From Date
+                        </label>
+                        <input type="date" class="form-control" @bind="_fromDate" @bind:event="oninput" @bind:after="OnDateChanged" />
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label">To Date</label>
-                        <input type="date" class="form-control" @bind="_toDate" />
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar3 me-1"></i>To Date
+                        </label>
+                        <input type="date" class="form-control" @bind="_toDate" @bind:event="oninput" @bind:after="OnDateChanged" />
                     </div>
 
                     <div class="col-md-2">
-                        <label class="form-label">Nature</label>
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-tag me-1"></i>Nature
+                        </label>
                         <select class="form-select" @bind="_nature">
                             <option value="">All</option>
                             <option value="@AccountNature.Expense">Expense</option>
@@ -81,7 +100,11 @@
                             {
                                 <span class="spinner-border spinner-border-sm me-1" role="status"></span>
                             }
-                            <i class="bi bi-bar-chart me-1"></i>Generate Report
+                            else
+                            {
+                                <i class="bi bi-bar-chart me-1"></i>
+                            }
+                            Generate Report
                         </button>
                     </div>
                 </div>
@@ -246,6 +269,7 @@
     private DateOnly _fromDate = DateHelper.GetCurrentMonthStart();
     private DateOnly _toDate = DateHelper.GetCurrentMonthEnd();
     private string _nature = string.Empty;
+    private string? _activePreset = "this-month";
 
     private string? _error;
     private bool _isBusy;
@@ -253,6 +277,19 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadGroupsAsync();
+    }
+
+    private async Task HandlePresetSelected(DateRangePresets.DateRangePreset preset)
+    {
+        var (from, to) = preset.GetDateRange();
+        _fromDate = from;
+        _toDate = to;
+        _activePreset = preset.Type.ToString().ToLowerInvariant().Replace("_", "-");
+    }
+
+    private void OnDateChanged()
+    {
+        _activePreset = null; // Clear preset when manually changing dates
     }
 
     private async Task LoadGroupsAsync()

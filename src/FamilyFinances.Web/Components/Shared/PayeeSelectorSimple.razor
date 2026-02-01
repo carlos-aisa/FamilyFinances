@@ -1,0 +1,68 @@
+@using FamilyFinances.Application.Ledger.Payees.Dtos
+
+<div>
+    <label class="form-label fw-semibold">
+        <i class="bi @IconClass me-1"></i>@Label
+    </label>
+    
+    @if (ShowSearch && FilteredPayees.Count > 10)
+    {
+        <input type="text" 
+               class="form-control form-control-sm mb-1" 
+               placeholder="Search payees..."
+               @bind="_searchQuery" 
+               @bind:event="oninput"
+               disabled="@IsDisabled" />
+    }
+    
+    <select class="form-select" 
+            @bind="SelectedValue" 
+            @bind:after="OnSelectionChanged"
+            disabled="@IsDisabled">
+        <option value="">@Placeholder</option>
+        @foreach (var payee in FilteredPayees.OrderBy(p => p.Name))
+        {
+            <option value="@payee.Id">@payee.Name</option>
+        }
+    </select>
+</div>
+
+@code {
+    [Parameter] public IReadOnlyList<PayeeDto> Payees { get; set; } = Array.Empty<PayeeDto>();
+    [Parameter] public Guid? SelectedPayeeId { get; set; }
+    [Parameter] public EventCallback<Guid?> SelectedPayeeIdChanged { get; set; }
+    
+    [Parameter] public string Label { get; set; } = "Payee (optional)";
+    [Parameter] public string IconClass { get; set; } = "bi-person";
+    [Parameter] public string Placeholder { get; set; } = "All payees";
+    [Parameter] public bool IsDisabled { get; set; } = false;
+    [Parameter] public bool ShowSearch { get; set; } = true;
+
+    private string _searchQuery = "";
+    
+    private string SelectedValue
+    {
+        get => SelectedPayeeId?.ToString() ?? "";
+        set
+        {
+            SelectedPayeeId = string.IsNullOrWhiteSpace(value) ? null : Guid.Parse(value);
+        }
+    }
+
+    private IReadOnlyList<PayeeDto> FilteredPayees
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(_searchQuery))
+                return Payees;
+            
+            var query = _searchQuery.ToLowerInvariant();
+            return Payees.Where(p => p.Name.ToLowerInvariant().Contains(query)).ToList();
+        }
+    }
+
+    private async Task OnSelectionChanged()
+    {
+        await SelectedPayeeIdChanged.InvokeAsync(SelectedPayeeId);
+    }
+}

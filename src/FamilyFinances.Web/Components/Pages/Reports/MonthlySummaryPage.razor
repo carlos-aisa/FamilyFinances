@@ -57,36 +57,19 @@
 
                     <!-- Account Filter -->
                     <div class="col-12 col-md-3">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-wallet2 me-1"></i>Account (optional)
-                        </label>
-                        <select class="form-select" @bind="_selectedAccountId">
-                            <option value="">All accounts</option>
-                            @if (_accounts is not null)
-                            {
-                                @foreach (var account in _accounts.OrderBy(a => a.Name))
-                                {
-                                    <option value="@account.Id">@account.Name</option>
-                                }
-                            }
-                        </select>
+                        <AccountSelector Accounts="@(_accounts ?? Array.Empty<AccountDto>())"
+                                       @bind-SelectedAccountId="_selectedAccountGuid"
+                                       Label="Account (optional)"
+                                       Placeholder="All accounts"
+                                       IsRequired="false"
+                                       ShowSearch="true" />
                     </div>
 
                     <!-- Payee Filter -->
                     <div class="col-12 col-md-3">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-person me-1"></i>Payee (optional)
-                        </label>
-                        <select class="form-select" @bind="_selectedPayeeId">
-                            <option value="">All payees</option>
-                            @if (_payees is not null)
-                            {
-                                @foreach (var payee in _payees.OrderBy(p => p.Name))
-                                {
-                                    <option value="@payee.Id">@payee.Name</option>
-                                }
-                            }
-                        </select>
+                        <PayeeSelectorSimple Payees="@(_payees ?? Array.Empty<PayeeDto>())"
+                                           @bind-SelectedPayeeId="_selectedPayeeGuid"
+                                           ShowSearch="true" />
                     </div>
                 </div>
 
@@ -233,8 +216,8 @@
 
     private DateOnly? _fromDate;
     private DateOnly? _toDate;
-    private string _selectedAccountId = "";
-    private string _selectedPayeeId = "";
+    private Guid? _selectedAccountGuid;
+    private Guid? _selectedPayeeGuid;
     private string? _activePreset;
 
     protected override async Task OnInitializedAsync()
@@ -279,10 +262,7 @@
                 return;
             }
 
-            Guid? accountId = string.IsNullOrWhiteSpace(_selectedAccountId) ? null : Guid.Parse(_selectedAccountId);
-            Guid? payeeId = string.IsNullOrWhiteSpace(_selectedPayeeId) ? null : Guid.Parse(_selectedPayeeId);
-
-            _report = await ReportsApi.GetMonthlySummaryAsync(_fromDate.Value, _toDate.Value, accountId, payeeId);
+            _report = await ReportsApi.GetMonthlySummaryAsync(_fromDate.Value, _toDate.Value, _selectedAccountGuid, _selectedPayeeGuid);
         }
         catch (UnauthorizedAccessException)
         {
@@ -302,8 +282,8 @@
     {
         _fromDate = null;
         _toDate = null;
-        _selectedAccountId = "";
-        _selectedPayeeId = "";
+        _selectedAccountGuid = null;
+        _selectedPayeeGuid = null;
         _activePreset = null;
         _report = null;
         _error = null;

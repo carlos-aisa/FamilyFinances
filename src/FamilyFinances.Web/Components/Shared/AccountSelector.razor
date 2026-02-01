@@ -1,0 +1,101 @@
+@using FamilyFinances.Application.Ledger.Accounts.Dtos
+@using FamilyFinances.Domain.Ledger.Accounts
+
+<div>
+    <label class="form-label fw-semibold">
+        <i class="bi @IconClass me-1"></i>@Label
+        @if (IsRequired)
+        {
+            <span class="text-danger">*</span>
+        }
+    </label>
+    
+    @if (ShowSearch && FilteredAccounts.Count > 10)
+    {
+        <input type="text" 
+               class="form-control mb-2" 
+               placeholder="Search accounts..."
+               @bind="_searchQuery" 
+               @bind:event="oninput"
+               disabled="@IsDisabled" />
+    }
+    
+    <select class="form-select @(IsValid ? "" : "is-invalid")" 
+            @bind="SelectedValue" 
+            @bind:after="OnSelectionChanged"
+            disabled="@IsDisabled">
+        <option value="">@Placeholder</option>
+        @foreach (var account in FilteredAccounts.OrderBy(a => a.Name))
+        {
+            <option value="@account.Id">@account.Name (@account.Nature)</option>
+        }
+    </select>
+    
+    @if (!IsValid && !string.IsNullOrWhiteSpace(ValidationMessage))
+    {
+        <div class="invalid-feedback d-block">
+            @ValidationMessage
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public IReadOnlyList<AccountDto> Accounts { get; set; } = Array.Empty<AccountDto>();
+    [Parameter] public Guid? SelectedAccountId { get; set; }
+    [Parameter] public EventCallback<Guid?> SelectedAccountIdChanged { get; set; }
+    
+    [Parameter] public string Label { get; set; } = "Account";
+    [Parameter] public string IconClass { get; set; } = "bi-wallet2";
+    [Parameter] public string Placeholder { get; set; } = "Select an account";
+    [Parameter] public bool IsRequired { get; set; } = true;
+    [Parameter] public bool IsDisabled { get; set; } = false;
+    [Parameter] public bool ShowSearch { get; set; } = true;
+    [Parameter] public string? ValidationMessage { get; set; }
+    [Parameter] public bool IsValid { get; set; } = true;
+    
+    [Parameter] public AccountNature? FilterByNature { get; set; }
+    [Parameter] public HashSet<AccountNature>? AllowedNatures { get; set; }
+
+    private string _searchQuery = "";
+    
+    private string SelectedValue
+    {
+        get => SelectedAccountId?.ToString() ?? "";
+        set
+        {
+            SelectedAccountId = string.IsNullOrWhiteSpace(value) ? null : Guid.Parse(value);
+        }
+    }
+
+    private IReadOnlyList<AccountDto> FilteredAccounts
+    {
+        get
+        {
+            var accounts = Accounts.AsEnumerable();
+            
+            // Filter by nature if specified
+            if (FilterByNature.HasValue)
+                accounts = accounts.Where(a => a.Nature == FilterByNature.Value);
+            
+            // Filter by allowed natures if specified
+            if (AllowedNatures is not null && AllowedNatures.Count > 0)
+                accounts = accounts.Where(a => AllowedNatures.Contains(a.Nature));
+            
+            // Filter by search query
+            if (!string.IsNullOrWhiteSpace(_searchQuery))
+            {
+                var query = _searchQuery.ToLowerInvariant();
+                accounts = accounts.Where(a => 
+                    a.Name.ToLowerInvariant().Contains(query) ||
+                    a.Nature.ToString().ToLowerInvariant().Contains(query));
+            }
+            
+            return accounts.ToList();
+        }
+    }
+
+    private async Task OnSelectionChanged()
+    {
+        await SelectedAccountIdChanged.InvokeAsync(SelectedAccountId);
+    }
+}
