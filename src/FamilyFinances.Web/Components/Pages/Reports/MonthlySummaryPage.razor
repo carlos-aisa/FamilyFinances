@@ -144,7 +144,7 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Income</h6>
-                                    <h4 class="mb-0 text-success">@MoneyFormatter.FormatCents(_report.IncomeTotal)</h4>
+                                    <h4 class="mb-0 text-success">@MoneyFormatter.FormatCentsWithSign(_report.IncomeTotal)</h4>
                                 </div>
                                 <i class="bi bi-arrow-down-circle text-success fs-2 opacity-50"></i>
                             </div>
@@ -158,7 +158,7 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Expenses</h6>
-                                    <h4 class="mb-0 text-danger">@MoneyFormatter.FormatCents(_report.ExpenseTotal)</h4>
+                                    <h4 class="mb-0 text-danger">@MoneyFormatter.FormatCentsWithSign(_report.ExpenseTotal)</h4>
                                 </div>
                                 <i class="bi bi-arrow-up-circle text-danger fs-2 opacity-50"></i>
                             </div>

@@ -46,8 +46,8 @@ public sealed class AccountGroupTotalsTests
             description = "Salary",
             splits = new[]
             {
-                new { accountId = bank.Id, amountCents = -100_000, memo = "Salary in" },
-                new { accountId = salary.Id, amountCents = 100_000, memo = "Salary" }
+                new { accountId = bank.Id, amountCents = 100_000, memo = "Salary in" },
+                new { accountId = salary.Id, amountCents = -100_000, memo = "Salary" }
             }
         })).EnsureSuccessStatusCode();
 
@@ -58,8 +58,8 @@ public sealed class AccountGroupTotalsTests
             description = "Groceries",
             splits = new[]
             {
-                new { accountId = bank.Id, amountCents = 20_000, memo = "Payment" },
-                new { accountId = groceries.Id, amountCents = -20_000, memo = "Expense" }
+                new { accountId = bank.Id, amountCents = -20_000, memo = "Payment" },
+                new { accountId = groceries.Id, amountCents = 20_000, memo = "Expense" }
             }
         })).EnsureSuccessStatusCode();
 
@@ -70,8 +70,8 @@ public sealed class AccountGroupTotalsTests
             description = "Electricity",
             splits = new[]
             {
-                new { accountId = bank.Id, amountCents = 40_000, memo = "Payment" },
-                new { accountId = fixedBills.Id, amountCents = -40_000, memo = "Expense" }
+                new { accountId = bank.Id, amountCents = -40_000, memo = "Payment" },
+                new { accountId = fixedBills.Id, amountCents = 40_000, memo = "Expense" }
             }
         })).EnsureSuccessStatusCode();
 
@@ -82,8 +82,8 @@ public sealed class AccountGroupTotalsTests
             description = "Later expense",
             splits = new[]
             {
-                new { accountId = bank.Id, amountCents = 5_000, memo = "Payment" },
-                new { accountId = groceries.Id, amountCents = -5_000, memo = "Expense" }
+                new { accountId = bank.Id, amountCents = -5_000, memo = "Payment" },
+                new { accountId = groceries.Id, amountCents = 5_000, memo = "Expense" }
             }
         })).EnsureSuccessStatusCode();
 
@@ -99,12 +99,13 @@ public sealed class AccountGroupTotalsTests
 
         dto!.GroupId.Should().Be(group.Id);
         dto.Nature.Should().Be(AccountNature.Expense);
-        dto.TotalCents.Should().Be(60_000);
+        // New sign convention: expenses are displayed as negative
+        dto.TotalCents.Should().Be(-60_000, "because expenses are shown as negative for user-friendly display");
         dto.TransactionsCount.Should().Be(2);
 
         dto.Items.Should().HaveCount(2);
-        dto.Items.Should().Contain(i => i.AccountId == groceries.Id && i.TotalCents == 20_000 && i.TransactionsCount == 1);
-        dto.Items.Should().Contain(i => i.AccountId == fixedBills.Id && i.TotalCents == 40_000 && i.TransactionsCount == 1);
+        dto.Items.Should().Contain(i => i.AccountId == groceries.Id && i.TotalCents == -20_000 && i.TransactionsCount == 1);
+        dto.Items.Should().Contain(i => i.AccountId == fixedBills.Id && i.TotalCents == -40_000 && i.TransactionsCount == 1);
     }
 
     [Fact]
@@ -132,27 +133,27 @@ public sealed class AccountGroupTotalsTests
         (await client.PostAsync($"/api/v1/account-groups/{group!.Id}/accounts/{groceries.Id}", null))
             .StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-        // Create expense: 50 euros
+        // Create expense: 50 euros (correct accounting: asset decreases, expense increases)
         (await client.PostAsJsonAsync("/api/v1/transactions", new
         {
             bookedOn = "2026-01-10",
             description = "Amazon purchase",
             splits = new[]
             {
-                new { accountId = bank.Id, amountCents = 5000, memo = "Payment" },
-                new { accountId = groceries.Id, amountCents = -5000, memo = "Expense" }
+                new { accountId = bank.Id, amountCents = -5000, memo = "Payment" },
+                new { accountId = groceries.Id, amountCents = 5000, memo = "Expense" }
             }
         })).EnsureSuccessStatusCode();
 
-        // Create refund: 15 euros (reduces total expense)
+        // Create refund: 15 euros (refund reduces expense: expense decreases, asset increases)
         (await client.PostAsJsonAsync("/api/v1/transactions", new
         {
             bookedOn = "2026-01-15",
             description = "Amazon refund",
             splits = new[]
             {
-                new { accountId = groceries.Id, amountCents = 1500, memo = "Refund" }, // Positive in expense account
-                new { accountId = bank.Id, amountCents = -1500, memo = "Refund received" }
+                new { accountId = groceries.Id, amountCents = -1500, memo = "Refund" }, // Negative in expense account (reduces expense)
+                new { accountId = bank.Id, amountCents = 1500, memo = "Refund received" }
             }
         })).EnsureSuccessStatusCode();
 
@@ -169,13 +170,14 @@ public sealed class AccountGroupTotalsTests
         dto!.GroupId.Should().Be(group.Id);
         dto.Nature.Should().Be(AccountNature.Expense);
         
-        // Net expense should be 50 - 15 = 35 euros = 3500 cents
-        dto.TotalCents.Should().Be(3500, "because refund should subtract from total expenses");
+        // New sign convention: expenses are negative
+        // Net expense: -50 + 15 = -35 euros = -3500 cents (stored: 5000 - 1500 = 3500, displayed: -3500)
+        dto.TotalCents.Should().Be(-3500, "because refund reduces the negative expense total");
         dto.TransactionsCount.Should().Be(2);
 
         dto.Items.Should().HaveCount(1);
         dto.Items[0].AccountId.Should().Be(groceries.Id);
-        dto.Items[0].TotalCents.Should().Be(3500, "because 5000 (expense) - 1500 (refund) = 3500");
+        dto.Items[0].TotalCents.Should().Be(-3500, "because -(5000 - 1500) = -3500");
         dto.Items[0].TransactionsCount.Should().Be(2);
     }
 

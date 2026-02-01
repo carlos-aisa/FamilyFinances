@@ -181,7 +181,7 @@
                                             }
                                             else
                                             {
-                                                <span class="text-muted">—</span>
+                                                <span class="text-muted fst-italic">â€”</span>
                                             }
                                         </td>
                                         <td>
@@ -193,7 +193,7 @@
                                             }
                                             else
                                             {
-                                                <span class="text-muted">—</span>
+                                                <span class="text-muted fst-italic">â€”</span>
                                             }
                                         </td>
                                         <td class="text-end pe-3">
@@ -465,9 +465,8 @@ private readonly ReconcileModel _reconcileModel = new();
 
     private string FormatAmount(decimal amount)
     {
-        var sign = amount < 0 ? "+" : "-";
-        var absAmount = Math.Abs(amount);
-        return $"{sign}{absAmount.ToString("C2", CultureInfo.CurrentCulture)}";
+        // Display with correct sign: positive for inflows, negative for outflows
+        return amount.ToString("C2", CultureInfo.CurrentCulture);
     }
 
     private sealed class ReconcileModel

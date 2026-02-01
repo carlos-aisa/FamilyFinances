@@ -29,7 +29,7 @@ public interface IReportingReadRepository
         Guid groupId,
         DateOnly fromInclusive,
         DateOnly toExclusive,
-        AccountNature nature,
+        AccountNature? nature,
         CancellationToken ct);
 
     /// <summary>

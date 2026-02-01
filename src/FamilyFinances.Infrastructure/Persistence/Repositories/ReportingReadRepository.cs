@@ -75,13 +75,16 @@ public sealed class ReportingReadRepository : IReportingReadRepository
         // Materialize the query to perform aggregations in memory
         var data = await q.ToListAsync(ct);
 
+        // Sign convention for user-friendly display:
+        // - Income accounts have NEGATIVE splits (credit) → negate to show as POSITIVE
+        // - Expense accounts have POSITIVE splits (debit) → negate to show as NEGATIVE
         var incomeCentsTotal = data
             .Where(x => x.Nature == AccountNature.Income)
-            .Sum(x => x.Amount.Abs().Cents);
+            .Sum(x => -x.Amount.Cents); // Negate: stored as negative, display as positive
 
         var expenseCentsTotal = data
             .Where(x => x.Nature == AccountNature.Expense)
-            .Sum(x => x.Amount.Abs().Cents);
+            .Sum(x => -x.Amount.Cents); // Negate: stored as positive, display as negative
 
         var transactionsCountTotal = data
             .Select(x => x.TransactionId)
@@ -93,7 +96,7 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             Month: month,
             IncomeTotal: incomeCentsTotal,
             ExpenseTotal: expenseCentsTotal,
-            Net: incomeCentsTotal - expenseCentsTotal,
+            Net: incomeCentsTotal + expenseCentsTotal, // Now: positive income + negative expenses
             TransactionsCount: transactionsCountTotal
         );
     }
@@ -130,11 +133,12 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             .GroupBy(x => new { x.AccountId, x.AccountName })
             .Select(g =>
             {
-                // Sum with sign: expenses are negative, income/refunds are positive
+                // Sign convention for user-friendly display:
+                // - Income accounts: stored as NEGATIVE (credit) → negate to show as POSITIVE
+                // - Expense accounts: stored as POSITIVE (debit) → negate to show as NEGATIVE
+                // Refunds (negative expense splits) will naturally make expenses less negative
                 var signedSum = g.Sum(x => x.Amount.Cents);
-                // For expense accounts, negate to show as positive spending
-                // For income accounts, keep as is (positive income)
-                var displayTotal = nature == AccountNature.Expense ? -signedSum : signedSum;
+                var displayTotal = -signedSum; // Always negate for consistent sign convention
                 
                 return new CategoryTotalItemDto(
                     g.Key.AccountId.Value,
@@ -218,7 +222,7 @@ public sealed class ReportingReadRepository : IReportingReadRepository
         Guid groupId,
         DateOnly fromInclusive,
         DateOnly toExclusive,
-        AccountNature nature,
+        AccountNature? nature,
         CancellationToken ct)
     {
         var groupIdVo = new AccountGroupId(groupId);
@@ -245,7 +249,7 @@ public sealed class ReportingReadRepository : IReportingReadRepository
                 group.Name,
                 fromInclusive,
                 toExclusive,
-                nature,
+                nature ?? AccountNature.Expense, // Default for empty result
                 0,
                 0,
                 0,
@@ -261,14 +265,20 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             join a in _db.Accounts.AsNoTracking()
                 on s.AccountId equals a.Id
             where t.BookedOn >= fromInclusive && t.BookedOn < toExclusive
-            where a.Nature == nature
             select new
             {
                 TransactionId = t.Id,
                 AccountId = a.Id,
                 AccountName = a.Name,
+                AccountNature = a.Nature,
                 Amount = s.Amount
             };
+
+        // Filter by nature if specified (null means include all natures)
+        if (nature.HasValue)
+        {
+            q = q.Where(x => x.AccountNature == nature.Value);
+        }
 
         // Filter by group membership
         q = q.Where(x => accountIds.Contains(x.AccountId));
@@ -280,11 +290,12 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             .GroupBy(x => new { x.AccountId, x.AccountName })
             .Select(g =>
             {
-                // Sum with sign: expenses are negative, refunds are positive
+                // Sign convention for user-friendly display:
+                // - Income accounts: stored as NEGATIVE (credit) → negate to show as POSITIVE
+                // - Expense accounts: stored as POSITIVE (debit) → negate to show as NEGATIVE
+                // Refunds (negative expense splits) will naturally make expenses less negative
                 var signedSum = g.Sum(x => x.Amount.Cents);
-                // For expense accounts, negate to show as positive spending
-                // (refunds will naturally subtract)
-                var displayTotal = nature == AccountNature.Expense ? -signedSum : signedSum;
+                var displayTotal = -signedSum; // Always negate for consistent sign convention
                 
                 return new AccountGroupTotalItemDto(
                     g.Key.AccountId.Value,
@@ -307,7 +318,7 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             group.Name,
             fromInclusive,
             toExclusive,
-            nature,
+            nature ?? AccountNature.Expense, // Return the queried nature or default
             total,
             txCount,
             accountsCount,

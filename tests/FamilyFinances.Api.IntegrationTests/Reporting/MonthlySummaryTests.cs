@@ -19,26 +19,28 @@ public sealed class MonthlySummaryTests
         var groceries = await TestHelpers.CreateAccountAsync(client, "Groceries", "Expense", "Other");
 
         // January 2026 income
+        // Correct accounting: Asset increases (debit, positive), Income decreases (credit, negative)
         await client.PostAsJsonAsync("/api/v1/transactions", new
         {
             bookedOn = "2026-01-05",
             description = "Salary",
             splits = new[]
             {
-                new { accountId = bank.Id, amountCents = -100_000, memo = "Salary in" },
-                new { accountId = income.Id, amountCents = 100_000, memo = "Salary" }
+                new { accountId = bank.Id, amountCents = 100_000, memo = "Salary in" },  // Asset increase
+                new { accountId = income.Id, amountCents = -100_000, memo = "Salary" }    // Income credit
             }
         });
 
         // January 2026 expense
+        // Correct accounting: Asset decreases (credit, negative), Expense increases (debit, positive)
         await client.PostAsJsonAsync("/api/v1/transactions", new
         {
             bookedOn = "2026-01-10",
             description = "Groceries",
             splits = new[]
             {
-                new { accountId = bank.Id, amountCents = 20_000, memo = "Payment" },
-                new { accountId = groceries.Id, amountCents = -20_000, memo = "Expense" }
+                new { accountId = bank.Id, amountCents = -20_000, memo = "Payment" },     // Asset decrease
+                new { accountId = groceries.Id, amountCents = 20_000, memo = "Expense" }  // Expense debit
             }
         });
 
@@ -49,8 +51,8 @@ public sealed class MonthlySummaryTests
             description = "Later expense",
             splits = new[]
             {
-                new { accountId = bank.Id, amountCents = 5_000, memo = "Payment" },
-                new { accountId = groceries.Id, amountCents = -5_000, memo = "Expense" }
+                new { accountId = bank.Id, amountCents = -5_000, memo = "Payment" },
+                new { accountId = groceries.Id, amountCents = 5_000, memo = "Expense" }
             }
         });
 
@@ -65,9 +67,10 @@ public sealed class MonthlySummaryTests
 
         summary!.Year.Should().Be(2026);
         summary.Month.Should().Be(1);
-        summary.IncomeTotal.Should().Be(100_000);
-        summary.ExpenseTotal.Should().Be(20_000);
-        summary.Net.Should().Be(80_000);
+        // New sign convention: Income is positive, Expenses are negative
+        summary.IncomeTotal.Should().Be(100_000);  // Income stored as -100k, displayed as +100k
+        summary.ExpenseTotal.Should().Be(-20_000); // Expense stored as +20k, displayed as -20k
+        summary.Net.Should().Be(80_000);           // 100k + (-20k) = 80k
         summary.TransactionsCount.Should().Be(2);
     }
 

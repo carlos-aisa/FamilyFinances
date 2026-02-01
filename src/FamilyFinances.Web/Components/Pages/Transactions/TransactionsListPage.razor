@@ -123,15 +123,32 @@ else
             </div>
         </div>
         
-        <!-- Footer with pagination info -->
+        <!-- Footer with pagination -->
         <div class="card-footer bg-light">
             <div class="d-flex justify-content-between align-items-center">
                 <small class="text-muted">
                     Showing @_items.Count transaction@(_items.Count != 1 ? "s" : "")
                 </small>
-                <small class="text-muted">
-                    <i class="bi bi-info-circle me-1"></i>Click on a transaction to view details
-                </small>
+                @if (_items.Count >= _pageSize)
+                {
+                    <button class="btn btn-sm btn-primary" @onclick="LoadMoreAsync" disabled="@_isLoadingMore">
+                        @if (_isLoadingMore)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-arrow-down-circle me-1"></i>
+                        }
+                        Load More
+                    </button>
+                }
+                else
+                {
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle me-1"></i>Click on a transaction to view details
+                    </small>
+                }
             </div>
         </div>
     </div>
@@ -151,6 +168,8 @@ else
     private IReadOnlyList<TransactionListItemDto>? _items;
     private string? _error;
     private string? _result;
+    private bool _isLoadingMore;
+    private readonly int _pageSize = 50;
 
     protected override async Task OnInitializedAsync()
     {
@@ -167,13 +186,39 @@ else
         {
             await ExecuteApiAsync(async ct =>
             {
-                _items = await TransactionsApi.ListAsync(take: 50, ct);
+                _items = await TransactionsApi.ListAsync(take: _pageSize, ct);
             });
         }
         catch (Exception ex)
         {
             _error = ex.Message;
             _items = Array.Empty<TransactionListItemDto>();
+        }
+    }
+
+    private async Task LoadMoreAsync()
+    {
+        if (_isLoadingMore || _items is null)
+            return;
+
+        _isLoadingMore = true;
+        _error = null;
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                var newItems = await TransactionsApi.ListAsync(take: _items.Count + _pageSize, ct);
+                _items = newItems;
+            });
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to load more transactions: {ex.Message}";
+        }
+        finally
+        {
+            _isLoadingMore = false;
         }
     }
 

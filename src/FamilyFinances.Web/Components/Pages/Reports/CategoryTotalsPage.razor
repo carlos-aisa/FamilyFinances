@@ -169,7 +169,7 @@
                                             </td>
                                             <td class="text-end">
                                                 <span class="badge bg-primary bg-opacity-10 text-primary fs-6 fw-semibold">
-                                                    @MoneyFormatter.FormatCents(item.Total)
+                                                    @MoneyFormatter.FormatCentsWithSign(item.Total)
                                                 </span>
                                             </td>
                                             <td class="text-end pe-3">
@@ -183,7 +183,7 @@
                                         <th class="ps-3">Total</th>
                                         <th class="text-end">
                                             <span class="badge bg-success bg-opacity-10 text-success fs-6 fw-bold">
-                                                @MoneyFormatter.FormatCents(_report.Items.Sum(i => i.Total))
+                                                @MoneyFormatter.FormatCentsWithSign(_report.Items.Sum(i => i.Total))
                                             </span>
                                         </th>
                                         <th class="text-end pe-3">
