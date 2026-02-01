@@ -26,6 +26,10 @@ public sealed class TransactionConfiguration : IEntityTypeConfiguration<Transact
             .HasMaxLength(500)
             .IsRequired();
 
+        builder.Property(x => x.CreatedAt)
+            .IsRequired()
+            .HasDefaultValueSql("datetime('now')");
+
         // Splits are stored in a separate table with a shadow FK "TransactionId"
         builder.HasMany(x => x.Splits)
             .WithOne()

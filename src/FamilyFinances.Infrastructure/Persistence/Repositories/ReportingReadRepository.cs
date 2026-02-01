@@ -365,6 +365,7 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             {
                 TransactionId = t.Id,
                 BookedOn = t.BookedOn,
+                CreatedAt = t.CreatedAt,
                 Description = t.Description,
                 PayeeName = payee != null ? payee.Name : null,
                 SignedAmount = s.Amount // This is the signed amount relative to this account
@@ -385,36 +386,90 @@ public sealed class ReportingReadRepository : IReportingReadRepository
         // Apply ordering and pagination
         var movements = await q
             .OrderByDescending(x => x.BookedOn)
+            .ThenByDescending(x => x.CreatedAt)
             .ThenByDescending(x => x.TransactionId)
             .Skip(skip)
             .Take(take)
             .ToListAsync(ct);
 
-        // For each movement, find the counterparty account (nice to have)
+        // Calculate running balance for each movement
+        // First, get all splits for this account up to and including the last movement in our page
+        var lastMovementDate = movements.Any() ? movements.Last().BookedOn : fromInclusive;
+        
+        // Get balance at the start of the period (before fromInclusive)
+        var balanceBeforePeriod = await _db.TransactionSplits
+            .AsNoTracking()
+            .Where(s => s.AccountId == accountIdVo)
+            .Join(_db.Transactions.AsNoTracking(), 
+                  s => EF.Property<TransactionId>(s, "TransactionId"), 
+                  t => t.Id, 
+                  (s, t) => new { s.Amount, t.BookedOn })
+            .Where(x => x.BookedOn < fromInclusive)
+            .Select(x => x.Amount)
+            .ToListAsync(ct);
+
+        var startingBalance = balanceBeforePeriod.Sum(m => m.ToEuros());
+
+        // For each movement, find the counterparty account and calculate running balance
         var movementItems = new List<AccountMovementDto>();
 
-        foreach (var movement in movements)
+        // We need to calculate balance chronologically, but movements are sorted descending
+        // So we need to get all movements between fromInclusive and the last movement in our page
+        // in ascending order, then take only the ones we want
+        
+        if (movements.Any())
         {
-            // Find the counterparty account name (the OTHER split in this transaction)
-            string? counterpartyAccountName = null;
+            var oldestInPage = movements.Last().BookedOn;
+            var newestInPage = movements.First().BookedOn;
+            
+            // Get ALL movements from fromInclusive to newestInPage (to calculate running balance correctly)
+            var allMovementsForBalance = await (
+                from t in _db.Transactions.AsNoTracking()
+                join s in _db.TransactionSplits.AsNoTracking()
+                    on t.Id equals EF.Property<TransactionId>(s, "TransactionId")
+                where s.AccountId == accountIdVo
+                where t.BookedOn >= fromInclusive && t.BookedOn <= newestInPage
+                orderby t.BookedOn, t.CreatedAt, t.Id
+                select new { t.Id, t.BookedOn, t.CreatedAt, s.Amount }
+            ).ToListAsync(ct);
+            
+            // Calculate cumulative balance
+            var runningBalance = startingBalance;
+            var balanceByTransaction = new Dictionary<TransactionId, decimal>();
+            
+            foreach (var m in allMovementsForBalance)
+            {
+                runningBalance += m.Amount.ToEuros();
+                balanceByTransaction[m.Id] = runningBalance;
+            }
+            
+            // Now build the DTOs for our paginated movements
+            foreach (var movement in movements)
+            {
+                // Find the counterparty account name (the OTHER split in this transaction)
+                string? counterpartyAccountName = null;
 
-            var otherSplit = await _db.TransactionSplits
-                .AsNoTracking()
-                .Where(s => EF.Property<TransactionId>(s, "TransactionId") == movement.TransactionId && s.AccountId != accountIdVo)
-                .Join(_db.Accounts.AsNoTracking(), s => s.AccountId, a => a.Id, (s, a) => a.Name)
-                .FirstOrDefaultAsync(ct);
+                var otherSplit = await _db.TransactionSplits
+                    .AsNoTracking()
+                    .Where(s => EF.Property<TransactionId>(s, "TransactionId") == movement.TransactionId && s.AccountId != accountIdVo)
+                    .Join(_db.Accounts.AsNoTracking(), s => s.AccountId, a => a.Id, (s, a) => a.Name)
+                    .FirstOrDefaultAsync(ct);
 
-            if (otherSplit != null)
-                counterpartyAccountName = otherSplit;
+                if (otherSplit != null)
+                    counterpartyAccountName = otherSplit;
 
-            movementItems.Add(new AccountMovementDto(
-                movement.TransactionId.Value,
-                movement.BookedOn,
-                movement.Description,
-                movement.PayeeName,
-                movement.SignedAmount.ToEuros(), // Convert cents to euros
-                counterpartyAccountName
-            ));
+                var balance = balanceByTransaction.GetValueOrDefault(movement.TransactionId, 0m);
+
+                movementItems.Add(new AccountMovementDto(
+                    movement.TransactionId.Value,
+                    movement.BookedOn,
+                    movement.Description,
+                    movement.PayeeName,
+                    movement.SignedAmount.ToEuros(), // Convert cents to euros
+                    counterpartyAccountName,
+                    balance
+                ));
+            }
         }
 
         return new AccountMovementsDto(

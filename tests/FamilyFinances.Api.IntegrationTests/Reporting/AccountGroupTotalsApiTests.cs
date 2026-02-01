@@ -20,15 +20,15 @@ public sealed class AccountGroupTotalsApiTests
         var group = await CreateGroupAsync(client, "Home", "Home expenses");
         await AddAccountToGroupAsync(client, group.Id, groceries.Id);
 
-        // Jan expense
+        // Jan expense (correct accounting: asset decreases, expense increases)
         (await client.PostAsJsonAsync("/api/v1/transactions", new
         {
             bookedOn = "2026-01-10",
             description = "Groceries",
             splits = new[]
             {
-                new { accountId = bank.Id, amountCents = 20_000, memo = "Payment" },
-                new { accountId = groceries.Id, amountCents = -20_000, memo = "Expense" }
+                new { accountId = bank.Id, amountCents = -20_000, memo = "Payment" },
+                new { accountId = groceries.Id, amountCents = 20_000, memo = "Expense" }
             }
         })).EnsureSuccessStatusCode();
 
@@ -40,9 +40,10 @@ public sealed class AccountGroupTotalsApiTests
         var dto = await res.Content.ReadFromJsonAsync<AccountGroupTotalsDto>();
         dto.Should().NotBeNull();
         dto!.Nature.Should().Be(AccountNature.Expense);
-        dto.TotalCents.Should().Be(20_000);
+        // New sign convention: expenses displayed as negative
+        dto.TotalCents.Should().Be(-20_000);
         dto.TransactionsCount.Should().Be(1);
-        dto.Items.Should().ContainSingle(i => i.AccountId == groceries.Id && i.TotalCents == 20_000);
+        dto.Items.Should().ContainSingle(i => i.AccountId == groceries.Id && i.TotalCents == -20_000);
     }
 
     [Fact]
@@ -57,15 +58,15 @@ public sealed class AccountGroupTotalsApiTests
         var group = await CreateGroupAsync(client, "Carlos income", null);
         await AddAccountToGroupAsync(client, group.Id, income.Id);
 
-        // Jan income
+        // Jan income (correct accounting: asset increases, income credits)
         (await client.PostAsJsonAsync("/api/v1/transactions", new
         {
             bookedOn = "2026-01-05",
             description = "Salary",
             splits = new[]
             {
-                new { accountId = bank.Id, amountCents = -100_000, memo = "Salary in" },
-                new { accountId = income.Id, amountCents = 100_000, memo = "Income" }
+                new { accountId = bank.Id, amountCents = 100_000, memo = "Salary in" },
+                new { accountId = income.Id, amountCents = -100_000, memo = "Income" }
             }
         })).EnsureSuccessStatusCode();
 
@@ -77,6 +78,7 @@ public sealed class AccountGroupTotalsApiTests
         var dto = await res.Content.ReadFromJsonAsync<AccountGroupTotalsDto>();
         dto.Should().NotBeNull();
 
+        // New sign convention: income displayed as positive (negated from storage)
         dto!.TotalCents.Should().Be(100_000);
         dto.TransactionsCount.Should().Be(1);
         dto.Items.Should().ContainSingle(i => i.AccountId == income.Id && i.TotalCents == 100_000);
