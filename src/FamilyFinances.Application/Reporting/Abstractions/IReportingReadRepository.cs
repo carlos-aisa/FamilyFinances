@@ -6,8 +6,8 @@ namespace FamilyFinances.Application.Reporting.Abstractions;
 public interface IReportingReadRepository
 {
     Task<MonthlySummaryDto> GetMonthlySummaryAsync(
-        int year,
-        int month,
+        DateOnly fromInclusive,
+        DateOnly toExclusive,
         Guid? accountId,
         Guid? payeeId,
         CancellationToken ct);

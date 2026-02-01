@@ -3,6 +3,8 @@
 @using FamilyFinances.Application.Ledger.Transactions.Dtos
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web.Components.Shared
+@using FamilyFinances.Web.Features.Reports
 @using System.Globalization
 @inject TransactionsApi TransactionsApi
 
@@ -29,19 +31,72 @@
     </div>
 </div>
 
+<!-- Filters Card -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <!-- Quick Date Presets -->
+            <div class="col-12">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-calendar-range me-1"></i>Quick Date Filter
+                </label>
+                <div class="d-flex flex-wrap gap-2">
+                    <DateRangePresets OnPresetSelected="HandlePresetSelected" ActivePreset="@_activePreset" />
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="ClearDateFilter">
+                        <i class="bi bi-x-circle me-1"></i>All Time
+                    </button>
+                </div>
+            </div>
+
+            <!-- Date Range -->
+            <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-calendar3 me-1"></i>From Date
+                </label>
+                <input type="date" class="form-control" @bind="_fromDate" @bind:event="oninput" />
+            </div>
+
+            <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-calendar3 me-1"></i>To Date
+                </label>
+                <input type="date" class="form-control" @bind="_toDate" @bind:event="oninput" />
+            </div>
+
+            <!-- Search -->
+            <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-search me-1"></i>Search
+                </label>
+                <input type="text" class="form-control" placeholder="Description or payee..."
+                       @bind="_searchQuery" @bind:event="oninput" />
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <button class="btn btn-primary" @onclick="ApplyFilters">
+                <i class="bi bi-filter me-1"></i>Apply Filters
+            </button>
+            <button class="btn btn-outline-secondary ms-2" @onclick="ResetFilters">
+                <i class="bi bi-x-circle me-1"></i>Reset
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- Alerts -->
 @if (_result == "deleted")
 {
     <div class="alert alert-success alert-dismissible fade show" role="alert">
         <i class="bi bi-check-circle me-2"></i>Transaction deleted successfully.
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <button type="button" class="btn-close" @onclick="@(() => _result = null)"></button>
     </div>
 }
 @if (!string.IsNullOrWhiteSpace(_error))
 {
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
         <i class="bi bi-exclamation-triangle me-2"></i>@_error
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <button type="button" class="btn-close" @onclick="@(() => _error = null)"></button>
     </div>
 }
 
@@ -129,7 +184,7 @@ else
                 <small class="text-muted">
                     Showing @_items.Count transaction@(_items.Count != 1 ? "s" : "")
                 </small>
-                @if (_items.Count >= _pageSize)
+                @if (_items.Count >= _pageSize && _allItems is not null && _items.Count < _allItems.Count)
                 {
                     <button class="btn btn-sm btn-primary" @onclick="LoadMoreAsync" disabled="@_isLoadingMore">
                         @if (_isLoadingMore)
@@ -166,15 +221,92 @@ else
 
 @code {
     private IReadOnlyList<TransactionListItemDto>? _items;
+    private IReadOnlyList<TransactionListItemDto>? _allItems;
     private string? _error;
     private string? _result;
     private bool _isLoadingMore;
     private readonly int _pageSize = 50;
 
+    private DateOnly? _fromDate;
+    private DateOnly? _toDate;
+    private string _searchQuery = "";
+    private string? _activePreset;
+
     protected override async Task OnInitializedAsync()
     {
         _result = GetQueryParam("result");
         await LoadAsync();
+    }
+
+    private async Task HandlePresetSelected(DateRangePresets.DateRangePreset preset)
+    {
+        var (from, to) = preset.GetDateRange();
+        _fromDate = from;
+        _toDate = to;
+        _activePreset = preset.Type.ToString().ToLowerInvariant();
+        await ApplyFilters();
+    }
+
+    private async Task ClearDateFilter()
+    {
+        _fromDate = null;
+        _toDate = null;
+        _activePreset = null;
+        await ApplyFilters();
+    }
+
+    private async Task ApplyFilters()
+    {
+        _error = null;
+        _items = null; // Show loading state
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                if (_allItems is null)
+                    _allItems = await TransactionsApi.ListAsync(take: 1000, ct);
+                
+                _items = FilterTransactions(_allItems);
+            });
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            _items = Array.Empty<TransactionListItemDto>();
+        }
+    }
+
+    private async Task ResetFilters()
+    {
+        _fromDate = null;
+        _toDate = null;
+        _searchQuery = "";
+        _activePreset = null;
+        await LoadAsync();
+    }
+
+    private IReadOnlyList<TransactionListItemDto> FilterTransactions(IReadOnlyList<TransactionListItemDto> items)
+    {
+        var filtered = items.AsEnumerable();
+
+        // Date filters
+        if (_fromDate.HasValue)
+            filtered = filtered.Where(t => t.BookedOn >= _fromDate.Value);
+
+        if (_toDate.HasValue)
+            filtered = filtered.Where(t => t.BookedOn < _toDate.Value);
+
+        // Search filter
+        if (!string.IsNullOrWhiteSpace(_searchQuery))
+        {
+            var query = _searchQuery.ToLowerInvariant();
+            filtered = filtered.Where(t =>
+                t.Headline.ToLowerInvariant().Contains(query) ||
+                (t.Subheadline?.ToLowerInvariant().Contains(query) ?? false));
+        }
+
+        return filtered.ToList();
     }
 
     private async Task LoadAsync()
@@ -186,7 +318,8 @@ else
         {
             await ExecuteApiAsync(async ct =>
             {
-                _items = await TransactionsApi.ListAsync(take: _pageSize, ct);
+                _allItems = await TransactionsApi.ListAsync(take: 1000, ct);
+                _items = _allItems.Take(_pageSize).ToList();
             });
         }
         catch (Exception ex)
@@ -198,7 +331,7 @@ else
 
     private async Task LoadMoreAsync()
     {
-        if (_isLoadingMore || _items is null)
+        if (_isLoadingMore || _items is null || _allItems is null)
             return;
 
         _isLoadingMore = true;
@@ -206,11 +339,19 @@ else
 
         try
         {
-            await ExecuteApiAsync(async ct =>
+            await Task.Delay(300); // Small delay for UX
+            var currentCount = _items.Count;
+            var hasFilters = _fromDate.HasValue || _toDate.HasValue || !string.IsNullOrWhiteSpace(_searchQuery);
+            
+            if (hasFilters)
             {
-                var newItems = await TransactionsApi.ListAsync(take: _items.Count + _pageSize, ct);
-                _items = newItems;
-            });
+                var filtered = FilterTransactions(_allItems);
+                _items = filtered.Take(currentCount + _pageSize).ToList();
+            }
+            else
+            {
+                _items = _allItems.Take(currentCount + _pageSize).ToList();
+            }
         }
         catch (Exception ex)
         {

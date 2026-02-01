@@ -1,8 +1,8 @@
 namespace FamilyFinances.Application.Reporting.Dtos;
 
 public sealed record MonthlySummaryDto(
-    int Year,
-    int Month,
+    DateOnly From,
+    DateOnly To,
     long IncomeTotal,
     long ExpenseTotal,
     long Net,

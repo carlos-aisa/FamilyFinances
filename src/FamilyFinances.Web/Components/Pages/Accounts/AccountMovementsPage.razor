@@ -154,11 +154,8 @@
                                     <th class="border-0" style="width: 200px;">
                                         <i class="bi bi-arrow-left-right me-1"></i>Counterparty
                                     </th>
-                                    <th class="border-0 text-end pe-3" style="width: 140px;">
+                                    <th class="border-0 text-end pe-3" style="width: 160px;">
                                         <i class="bi bi-currency-euro me-1"></i>Amount
-                                    </th>
-                                    <th class="border-0 text-end pe-3" style="width: 140px;">
-                                        <i class="bi bi-wallet2 me-1"></i>Balance
                                     </th>
                                 </tr>
                             </thead>
@@ -184,7 +181,7 @@
                                             }
                                             else
                                             {
-                                                <span class="text-muted fst-italic">—</span>
+                                                <span class="text-muted">�</span>
                                             }
                                         </td>
                                         <td>
@@ -196,17 +193,12 @@
                                             }
                                             else
                                             {
-                                                <span class="text-muted fst-italic">—</span>
+                                                <span class="text-muted">�</span>
                                             }
                                         </td>
                                         <td class="text-end pe-3">
                                             <span class="badge @GetAmountBadgeClass(movement.SignedAmount) fs-6 px-3 py-2">
                                                 @FormatAmount(movement.SignedAmount)
-                                            </span>
-                                        </td>
-                                        <td class="text-end pe-3">
-                                            <span class="fw-semibold @GetBalanceClass(movement.RunningBalance)">
-                                                @FormatAmount(movement.RunningBalance)
                                             </span>
                                         </td>
                                     </tr>
@@ -398,8 +390,7 @@ private readonly ReconcileModel _reconcileModel = new();
 
     private string GetAmountBadgeClass(decimal amount)
     {
-        // Positive (income) = green, Negative (expense) = red
-        return amount >= 0 ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger";
+        return amount < 0 ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger";
     }
 
     private void OpenReconcileModal()
@@ -476,11 +467,6 @@ private readonly ReconcileModel _reconcileModel = new();
     {
         // Display with correct sign: positive for inflows, negative for outflows
         return amount.ToString("C2", CultureInfo.CurrentCulture);
-    }
-
-    private string GetBalanceClass(decimal balance)
-    {
-        return balance < 0 ? "text-danger" : "text-dark";
     }
 
     private sealed class ReconcileModel

@@ -57,7 +57,7 @@ public sealed class MonthlySummaryTests
         });
 
         // Act
-        var res = await client.GetAsync("/api/v1/reports/monthly-summary?year=2026&month=1");
+        var res = await client.GetAsync("/api/v1/reports/monthly-summary?from=2026-01-01&to=2026-02-01");
 
         // Assert
         res.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -65,8 +65,8 @@ public sealed class MonthlySummaryTests
         var summary = await res.Content.ReadFromJsonAsync<MonthlySummaryDto>();
         summary.Should().NotBeNull();
 
-        summary!.Year.Should().Be(2026);
-        summary.Month.Should().Be(1);
+        summary!.From.Should().Be(new DateOnly(2026, 1, 1));
+        summary.To.Should().Be(new DateOnly(2026, 2, 1));
         // New sign convention: Income is positive, Expenses are negative
         summary.IncomeTotal.Should().Be(100_000);  // Income stored as -100k, displayed as +100k
         summary.ExpenseTotal.Should().Be(-20_000); // Expense stored as +20k, displayed as -20k
@@ -75,8 +75,8 @@ public sealed class MonthlySummaryTests
     }
 
     public sealed record MonthlySummaryDto(
-        int Year,
-        int Month,
+        DateOnly From,
+        DateOnly To,
         long IncomeTotal,
         long ExpenseTotal,
         long Net,

@@ -14,20 +14,17 @@ public sealed class ReportingReadRepository : IReportingReadRepository
     public ReportingReadRepository(LedgerDbContext db) => _db = db;
 
     public async Task<MonthlySummaryDto> GetMonthlySummaryAsync(
-        int year,
-        int month,
+        DateOnly fromInclusive,
+        DateOnly toExclusive,
         Guid? accountId,
         Guid? payeeId,
         CancellationToken ct)
     {
-        var fromDate = new DateOnly(year, month, 1);
-        var toDate = fromDate.AddMonths(1);
-
         var q =
             from t in _db.Transactions.AsNoTracking()
             join s in _db.TransactionSplits.AsNoTracking() on t.Id equals EF.Property<TransactionId>(s, "TransactionId")
             join a in _db.Accounts.AsNoTracking() on s.AccountId equals a.Id
-            where t.BookedOn >= fromDate && t.BookedOn < toDate
+            where t.BookedOn >= fromInclusive && t.BookedOn < toExclusive
             select new
             {
                 TransactionId = t.Id,
@@ -63,8 +60,8 @@ public sealed class ReportingReadRepository : IReportingReadRepository
                 .Count();
 
             return new MonthlySummaryDto(
-                Year: year,
-                Month: month,
+                From: fromInclusive,
+                To: toExclusive,
                 IncomeTotal: inflowCents,
                 ExpenseTotal: outflowCents,
                 Net: inflowCents - outflowCents,
@@ -92,8 +89,8 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             .Count();
 
         return new MonthlySummaryDto(
-            Year: year,
-            Month: month,
+            From: fromInclusive,
+            To: toExclusive,
             IncomeTotal: incomeCentsTotal,
             ExpenseTotal: expenseCentsTotal,
             Net: incomeCentsTotal + expenseCentsTotal, // Now: positive income + negative expenses

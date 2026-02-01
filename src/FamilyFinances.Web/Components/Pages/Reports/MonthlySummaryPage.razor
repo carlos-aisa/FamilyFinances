@@ -5,6 +5,7 @@
 @using FamilyFinances.Application.Reporting.Dtos
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web.Components.Shared
 @using FamilyFinances.Web.Features.Reports
 @using Microsoft.AspNetCore.Components.Authorization
 @inherits ApiPageBase
@@ -18,9 +19,9 @@
         <div class="d-flex align-items-center justify-content-between mb-4">
             <div>
                 <h3 class="mb-1">
-                    <i class="bi bi-calendar-month me-2"></i>Monthly Summary
+                    <i class="bi bi-calendar-month me-2"></i>Period Summary
                 </h3>
-                <p class="text-muted mb-0">Income, expenses, and net balance for the selected month</p>
+                <p class="text-muted mb-0">Income, expenses, and net balance for the selected period</p>
             </div>
             <a class="btn btn-outline-secondary" href="/reports">
                 <i class="bi bi-arrow-left me-1"></i>Back to Reports
@@ -30,36 +31,32 @@
         <!-- Filters Card -->
         <div class="card shadow-sm mb-4">
             <div class="card-body">
+                <!-- Quick Date Presets -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-calendar-range me-1"></i>Quick Select
+                    </label>
+                    <DateRangePresets OnPresetSelected="HandlePresetSelected" ActivePreset="@_activePreset" />
+                </div>
+
                 <div class="row g-3">
-                    <!-- Month/Year Selector -->
-                    <div class="col-12 col-md-4">
+                    <!-- Date Range -->
+                    <div class="col-12 col-md-3">
                         <label class="form-label fw-semibold">
-                            <i class="bi bi-calendar3 me-1"></i>Month
+                            <i class="bi bi-calendar3 me-1"></i>From Date
                         </label>
-                        <div class="input-group">
-                            <button class="btn btn-outline-secondary" @onclick="PreviousMonth" type="button">
-                                <i class="bi bi-chevron-left"></i>
-                            </button>
-                            <select class="form-select" @bind="_selectedMonth">
-                                @for (int m = 1; m <= 12; m++)
-                                {
-                                    <option value="@m">@DateHelper.GetMonthName(m)</option>
-                                }
-                            </select>
-                            <select class="form-select" style="max-width: 100px;" @bind="_selectedYear">
-                                @for (int y = _selectedYear - 5; y <= _selectedYear + 1; y++)
-                                {
-                                    <option value="@y">@y</option>
-                                }
-                            </select>
-                            <button class="btn btn-outline-secondary" @onclick="NextMonth" type="button">
-                                <i class="bi bi-chevron-right"></i>
-                            </button>
-                        </div>
+                        <input type="date" class="form-control" @bind="_fromDate" />
+                    </div>
+
+                    <div class="col-12 col-md-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar3 me-1"></i>To Date
+                        </label>
+                        <input type="date" class="form-control" @bind="_toDate" />
                     </div>
 
                     <!-- Account Filter -->
-                    <div class="col-12 col-md-4">
+                    <div class="col-12 col-md-3">
                         <label class="form-label fw-semibold">
                             <i class="bi bi-wallet2 me-1"></i>Account (optional)
                         </label>
@@ -76,7 +73,7 @@
                     </div>
 
                     <!-- Payee Filter -->
-                    <div class="col-12 col-md-4">
+                    <div class="col-12 col-md-3">
                         <label class="form-label fw-semibold">
                             <i class="bi bi-person me-1"></i>Payee (optional)
                         </label>
@@ -234,10 +231,11 @@
     private string? _error;
     private bool _isLoading;
 
-    private int _selectedYear = DateHelper.GetCurrentYear();
-    private int _selectedMonth = DateHelper.GetCurrentMonth();
+    private DateOnly? _fromDate;
+    private DateOnly? _toDate;
     private string _selectedAccountId = "";
     private string _selectedPayeeId = "";
+    private string? _activePreset;
 
     protected override async Task OnInitializedAsync()
     {
@@ -257,6 +255,15 @@
         }
     }
 
+    private async Task HandlePresetSelected(DateRangePresets.DateRangePreset preset)
+    {
+        var (from, to) = preset.GetDateRange();
+        _fromDate = from;
+        _toDate = to;
+        _activePreset = preset.Type.ToString();
+        await LoadReportAsync();
+    }
+
     private async Task LoadReportAsync()
     {
         _isLoading = true;
@@ -266,10 +273,16 @@
 
         try
         {
+            if (_fromDate is null || _toDate is null)
+            {
+                _error = "Please select both From and To dates";
+                return;
+            }
+
             Guid? accountId = string.IsNullOrWhiteSpace(_selectedAccountId) ? null : Guid.Parse(_selectedAccountId);
             Guid? payeeId = string.IsNullOrWhiteSpace(_selectedPayeeId) ? null : Guid.Parse(_selectedPayeeId);
 
-            _report = await ReportsApi.GetMonthlySummaryAsync(_selectedYear, _selectedMonth, accountId, payeeId);
+            _report = await ReportsApi.GetMonthlySummaryAsync(_fromDate.Value, _toDate.Value, accountId, payeeId);
         }
         catch (UnauthorizedAccessException)
         {
@@ -285,38 +298,13 @@
         }
     }
 
-    private void PreviousMonth()
-    {
-        if (_selectedMonth == 1)
-        {
-            _selectedMonth = 12;
-            _selectedYear--;
-        }
-        else
-        {
-            _selectedMonth--;
-        }
-    }
-
-    private void NextMonth()
-    {
-        if (_selectedMonth == 12)
-        {
-            _selectedMonth = 1;
-            _selectedYear++;
-        }
-        else
-        {
-            _selectedMonth++;
-        }
-    }
-
     private void ResetFilters()
     {
-        _selectedYear = DateHelper.GetCurrentYear();
-        _selectedMonth = DateHelper.GetCurrentMonth();
+        _fromDate = null;
+        _toDate = null;
         _selectedAccountId = "";
         _selectedPayeeId = "";
+        _activePreset = null;
         _report = null;
         _error = null;
     }
