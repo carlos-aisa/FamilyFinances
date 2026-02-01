@@ -16,12 +16,9 @@ public sealed class GetMonthlySummaryHandler
 
     public Task<MonthlySummaryDto> HandleAsync(GetMonthlySummaryQuery query, CancellationToken ct)
     {
-        ReportingGuards.EnsureValidYear(query.Year);
-        ReportingGuards.EnsureValidMonth(query.Month);
-
         return _repo.GetMonthlySummaryAsync(
-            query.Year,
-            query.Month,
+            query.From,
+            query.To,
             query.AccountId,
             query.PayeeId,
             ct);

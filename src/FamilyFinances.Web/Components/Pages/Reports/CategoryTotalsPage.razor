@@ -5,6 +5,7 @@
 @using FamilyFinances.Domain.Ledger.Accounts
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web.Components.Shared
 @using FamilyFinances.Web.Features.Reports
 @using Microsoft.AspNetCore.Components.Authorization
 @inherits ApiPageBase
@@ -30,6 +31,16 @@
         <div class="card shadow-sm mb-4">
             <div class="card-body">
                 <div class="row g-3">
+                    <!-- Quick Date Presets -->
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar-range me-1"></i>Quick Select
+                        </label>
+                        <div>
+                            <DateRangePresets OnPresetSelected="HandlePresetSelected" ActivePreset="@_activePreset" />
+                        </div>
+                    </div>
+
                     <!-- Date Range -->
                     <div class="col-12 col-md-3">
                         <label class="form-label fw-semibold">
@@ -60,19 +71,7 @@
 
                     <!-- Payee Filter -->
                     <div class="col-12 col-md-3">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-person me-1"></i>Payee (optional)
-                        </label>
-                        <select class="form-select" @bind="_selectedPayeeId">
-                            <option value="">All payees</option>
-                            @if (_payees is not null)
-                            {
-                                @foreach (var payee in _payees.OrderBy(p => p.Name))
-                                {
-                                    <option value="@payee.Id">@payee.Name</option>
-                                }
-                            }
-                        </select>
+                        <PayeeSelectorSimple @bind-SelectedPayeeId="_selectedPayeeId" />
                     </div>
                 </div>
 
@@ -169,7 +168,7 @@
                                             </td>
                                             <td class="text-end">
                                                 <span class="badge bg-primary bg-opacity-10 text-primary fs-6 fw-semibold">
-                                                    @MoneyFormatter.FormatCents(item.Total)
+                                                    @MoneyFormatter.FormatCentsWithSign(item.Total)
                                                 </span>
                                             </td>
                                             <td class="text-end pe-3">
@@ -183,7 +182,7 @@
                                         <th class="ps-3">Total</th>
                                         <th class="text-end">
                                             <span class="badge bg-success bg-opacity-10 text-success fs-6 fw-bold">
-                                                @MoneyFormatter.FormatCents(_report.Items.Sum(i => i.Total))
+                                                @MoneyFormatter.FormatCentsWithSign(_report.Items.Sum(i => i.Total))
                                             </span>
                                         </th>
                                         <th class="text-end pe-3">
@@ -228,7 +227,6 @@
 </AuthorizeView>
 
 @code {
-    private IReadOnlyList<PayeeDto>? _payees;
     private CategoryTotalsDto? _report;
     private string? _error;
     private bool _isLoading;
@@ -236,23 +234,18 @@
     private DateOnly _fromDate = DateHelper.GetCurrentMonthStart();
     private DateOnly _toDate = DateHelper.GetCurrentMonthEnd();
     private AccountNature _selectedNature = AccountNature.Expense;
-    private string _selectedPayeeId = "";
+    private Guid? _selectedPayeeId;
+    private string? _activePreset = "this-month";
 
-    protected override async Task OnInitializedAsync()
+    private async Task HandlePresetSelected(DateRangePresets.DateRangePreset preset)
     {
-        await LoadFiltersDataAsync();
-    }
-
-    private async Task LoadFiltersDataAsync()
-    {
-        try
-        {
-            _payees = await PayeesApi.ListAsync(default);
-        }
-        catch (Exception ex)
-        {
-            _error = $"Failed to load filter data: {ex.Message}";
-        }
+        var (from, to) = preset.GetDateRange();
+        _fromDate = from;
+        _toDate = to;
+        _activePreset = preset.Type.ToString().ToLowerInvariant().Replace("_", "-");
+        
+        // Auto-load report when preset selected
+        await LoadReportAsync();
     }
 
     private async Task LoadReportAsync()
@@ -271,9 +264,7 @@
 
         try
         {
-            Guid? payeeId = string.IsNullOrWhiteSpace(_selectedPayeeId) ? null : Guid.Parse(_selectedPayeeId);
-
-            _report = await ReportsApi.GetCategoryTotalsAsync(_fromDate, _toDate, _selectedNature, payeeId);
+            _report = await ReportsApi.GetCategoryTotalsAsync(_fromDate, _toDate, _selectedNature, _selectedPayeeId);
         }
         catch (UnauthorizedAccessException)
         {
@@ -294,7 +285,8 @@
         _fromDate = DateHelper.GetCurrentMonthStart();
         _toDate = DateHelper.GetCurrentMonthEnd();
         _selectedNature = AccountNature.Expense;
-        _selectedPayeeId = "";
+        _selectedPayeeId = null;
+        _activePreset = "this-month";
         _report = null;
         _error = null;
     }

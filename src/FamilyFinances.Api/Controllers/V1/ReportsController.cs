@@ -16,15 +16,15 @@ public sealed class ReportsController : ControllerBase
     [Authorize(Policy = Policies.CanRead)]
     [HttpGet("monthly-summary")]
     public async Task<IActionResult> GetMonthlySummary(
-        [FromQuery] int year,
-        [FromQuery] int month,
+        [FromQuery] DateOnly from,
+        [FromQuery] DateOnly to,
         [FromQuery] Guid? accountId,
         [FromQuery] Guid? payeeId,
         [FromServices] GetMonthlySummaryHandler handler,
         CancellationToken ct)
     {
         var dto = await handler.HandleAsync(
-            new GetMonthlySummaryQuery(year, month, accountId, payeeId),
+            new GetMonthlySummaryQuery(from, to, accountId, payeeId),
             ct);
 
         return Ok(dto);

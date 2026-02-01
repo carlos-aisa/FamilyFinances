@@ -19,13 +19,12 @@ public sealed class GetAccountGroupTotalsHandler
     {
         ReportingGuards.EnsureValidPeriod(query.FromInclusive, query.ToExclusive);
 
-        var nature = query.Nature ?? AccountNature.Expense;
-
+        // Pass nature as-is; null means "all natures"
         return _repo.GetAccountGroupTotalsAsync(
             groupId: query.GroupId,
             fromInclusive: query.FromInclusive,
             toExclusive: query.ToExclusive,
-            nature: nature,
+            nature: query.Nature,
             ct: ct);
     }
 }

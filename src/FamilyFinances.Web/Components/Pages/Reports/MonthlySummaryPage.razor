@@ -5,6 +5,7 @@
 @using FamilyFinances.Application.Reporting.Dtos
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web.Components.Shared
 @using FamilyFinances.Web.Features.Reports
 @using Microsoft.AspNetCore.Components.Authorization
 @inherits ApiPageBase
@@ -18,9 +19,9 @@
         <div class="d-flex align-items-center justify-content-between mb-4">
             <div>
                 <h3 class="mb-1">
-                    <i class="bi bi-calendar-month me-2"></i>Monthly Summary
+                    <i class="bi bi-calendar-month me-2"></i>Period Summary
                 </h3>
-                <p class="text-muted mb-0">Income, expenses, and net balance for the selected month</p>
+                <p class="text-muted mb-0">Income, expenses, and net balance for the selected period</p>
             </div>
             <a class="btn btn-outline-secondary" href="/reports">
                 <i class="bi bi-arrow-left me-1"></i>Back to Reports
@@ -30,66 +31,45 @@
         <!-- Filters Card -->
         <div class="card shadow-sm mb-4">
             <div class="card-body">
+                <!-- Quick Date Presets -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-calendar-range me-1"></i>Quick Select
+                    </label>
+                    <DateRangePresets OnPresetSelected="HandlePresetSelected" ActivePreset="@_activePreset" />
+                </div>
+
                 <div class="row g-3">
-                    <!-- Month/Year Selector -->
-                    <div class="col-12 col-md-4">
+                    <!-- Date Range -->
+                    <div class="col-12 col-md-3">
                         <label class="form-label fw-semibold">
-                            <i class="bi bi-calendar3 me-1"></i>Month
+                            <i class="bi bi-calendar3 me-1"></i>From Date
                         </label>
-                        <div class="input-group">
-                            <button class="btn btn-outline-secondary" @onclick="PreviousMonth" type="button">
-                                <i class="bi bi-chevron-left"></i>
-                            </button>
-                            <select class="form-select" @bind="_selectedMonth">
-                                @for (int m = 1; m <= 12; m++)
-                                {
-                                    <option value="@m">@DateHelper.GetMonthName(m)</option>
-                                }
-                            </select>
-                            <select class="form-select" style="max-width: 100px;" @bind="_selectedYear">
-                                @for (int y = _selectedYear - 5; y <= _selectedYear + 1; y++)
-                                {
-                                    <option value="@y">@y</option>
-                                }
-                            </select>
-                            <button class="btn btn-outline-secondary" @onclick="NextMonth" type="button">
-                                <i class="bi bi-chevron-right"></i>
-                            </button>
-                        </div>
+                        <input type="date" class="form-control" @bind="_fromDate" />
+                    </div>
+
+                    <div class="col-12 col-md-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar3 me-1"></i>To Date
+                        </label>
+                        <input type="date" class="form-control" @bind="_toDate" />
                     </div>
 
                     <!-- Account Filter -->
-                    <div class="col-12 col-md-4">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-wallet2 me-1"></i>Account (optional)
-                        </label>
-                        <select class="form-select" @bind="_selectedAccountId">
-                            <option value="">All accounts</option>
-                            @if (_accounts is not null)
-                            {
-                                @foreach (var account in _accounts.OrderBy(a => a.Name))
-                                {
-                                    <option value="@account.Id">@account.Name</option>
-                                }
-                            }
-                        </select>
+                    <div class="col-12 col-md-3">
+                        <AccountSelector Accounts="@(_accounts ?? Array.Empty<AccountDto>())"
+                                       @bind-SelectedAccountId="_selectedAccountGuid"
+                                       Label="Account (optional)"
+                                       Placeholder="All accounts"
+                                       IsRequired="false"
+                                       ShowSearch="false" />
                     </div>
 
                     <!-- Payee Filter -->
-                    <div class="col-12 col-md-4">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-person me-1"></i>Payee (optional)
-                        </label>
-                        <select class="form-select" @bind="_selectedPayeeId">
-                            <option value="">All payees</option>
-                            @if (_payees is not null)
-                            {
-                                @foreach (var payee in _payees.OrderBy(p => p.Name))
-                                {
-                                    <option value="@payee.Id">@payee.Name</option>
-                                }
-                            }
-                        </select>
+                    <div class="col-12 col-md-3">
+                        <PayeeSelectorSimple Payees="@(_payees ?? Array.Empty<PayeeDto>())"
+                                           @bind-SelectedPayeeId="_selectedPayeeGuid"
+                                           ShowSearch="false" />
                     </div>
                 </div>
 
@@ -144,7 +124,7 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Income</h6>
-                                    <h4 class="mb-0 text-success">@MoneyFormatter.FormatCents(_report.IncomeTotal)</h4>
+                                    <h4 class="mb-0 text-success">@MoneyFormatter.FormatCentsWithSign(_report.IncomeTotal)</h4>
                                 </div>
                                 <i class="bi bi-arrow-down-circle text-success fs-2 opacity-50"></i>
                             </div>
@@ -158,7 +138,7 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Expenses</h6>
-                                    <h4 class="mb-0 text-danger">@MoneyFormatter.FormatCents(_report.ExpenseTotal)</h4>
+                                    <h4 class="mb-0 text-danger">@MoneyFormatter.FormatCentsWithSign(_report.ExpenseTotal)</h4>
                                 </div>
                                 <i class="bi bi-arrow-up-circle text-danger fs-2 opacity-50"></i>
                             </div>
@@ -234,10 +214,11 @@
     private string? _error;
     private bool _isLoading;
 
-    private int _selectedYear = DateHelper.GetCurrentYear();
-    private int _selectedMonth = DateHelper.GetCurrentMonth();
-    private string _selectedAccountId = "";
-    private string _selectedPayeeId = "";
+    private DateOnly? _fromDate;
+    private DateOnly? _toDate;
+    private Guid? _selectedAccountGuid;
+    private Guid? _selectedPayeeGuid;
+    private string? _activePreset;
 
     protected override async Task OnInitializedAsync()
     {
@@ -257,6 +238,15 @@
         }
     }
 
+    private async Task HandlePresetSelected(DateRangePresets.DateRangePreset preset)
+    {
+        var (from, to) = preset.GetDateRange();
+        _fromDate = from;
+        _toDate = to;
+        _activePreset = preset.Type.ToString();
+        await LoadReportAsync();
+    }
+
     private async Task LoadReportAsync()
     {
         _isLoading = true;
@@ -266,10 +256,13 @@
 
         try
         {
-            Guid? accountId = string.IsNullOrWhiteSpace(_selectedAccountId) ? null : Guid.Parse(_selectedAccountId);
-            Guid? payeeId = string.IsNullOrWhiteSpace(_selectedPayeeId) ? null : Guid.Parse(_selectedPayeeId);
+            if (_fromDate is null || _toDate is null)
+            {
+                _error = "Please select both From and To dates";
+                return;
+            }
 
-            _report = await ReportsApi.GetMonthlySummaryAsync(_selectedYear, _selectedMonth, accountId, payeeId);
+            _report = await ReportsApi.GetMonthlySummaryAsync(_fromDate.Value, _toDate.Value, _selectedAccountGuid, _selectedPayeeGuid);
         }
         catch (UnauthorizedAccessException)
         {
@@ -285,38 +278,13 @@
         }
     }
 
-    private void PreviousMonth()
-    {
-        if (_selectedMonth == 1)
-        {
-            _selectedMonth = 12;
-            _selectedYear--;
-        }
-        else
-        {
-            _selectedMonth--;
-        }
-    }
-
-    private void NextMonth()
-    {
-        if (_selectedMonth == 12)
-        {
-            _selectedMonth = 1;
-            _selectedYear++;
-        }
-        else
-        {
-            _selectedMonth++;
-        }
-    }
-
     private void ResetFilters()
     {
-        _selectedYear = DateHelper.GetCurrentYear();
-        _selectedMonth = DateHelper.GetCurrentMonth();
-        _selectedAccountId = "";
-        _selectedPayeeId = "";
+        _fromDate = null;
+        _toDate = null;
+        _selectedAccountGuid = null;
+        _selectedPayeeGuid = null;
+        _activePreset = null;
         _report = null;
         _error = null;
     }

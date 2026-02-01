@@ -12,8 +12,12 @@
             <label class="form-label">
                 <i class="bi bi-person me-1"></i>Payee @(IsRequired ? "*" : "(Optional)")
             </label>
+            
             <InputSelect class="@GetSelectCssClass()" 
-                        @bind-Value="@SelectedPayeeId" 
+                        TValue="Guid?"
+                        Value="@SelectedPayeeId" 
+                        ValueExpression="@(() => SelectedPayeeId)"
+                        ValueChanged="@(async (Guid? value) => { SelectedPayeeId = value; await SelectedPayeeIdChanged.InvokeAsync(value); })"
                         disabled="@IsDisabled">
                 <option value="">-- Select Payee --</option>
                 @if (_payees is not null)

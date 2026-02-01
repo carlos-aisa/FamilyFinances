@@ -6,6 +6,8 @@
 @using FamilyFinances.Application.Reporting.Dtos
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web.Components.Shared
+@using FamilyFinances.Web.Features.Reports
 @using Microsoft.AspNetCore.Components.Authorization
 @inherits ApiPageBase
 
@@ -47,21 +49,40 @@
             </div>
             <div class="card-body">
                 <div class="row g-3">
+                    <!-- Quick Date Presets -->
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar-range me-1"></i>Quick Select
+                        </label>
+                        <div>
+                            <DateRangePresets OnPresetSelected="HandlePresetSelected" ActivePreset="@_activePreset" />
+                        </div>
+                    </div>
+
+                    <!-- Date Range -->
                     <div class="col-md-3">
-                        <label class="form-label">From Date</label>
-                        <InputDate @bind-Value="_fromDate" class="form-control" />
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar3 me-1"></i>From Date
+                        </label>
+                        <input type="date" class="form-control" @bind="_fromDate" @bind:event="oninput" @bind:after="OnDateChanged" />
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label">To Date</label>
-                        <InputDate @bind-Value="_toDate" class="form-control" />
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar3 me-1"></i>To Date
+                        </label>
+                        <input type="date" class="form-control" @bind="_toDate" @bind:event="oninput" @bind:after="OnDateChanged" />
                     </div>
 
+                    <!-- Search -->
                     <div class="col-md-4">
-                        <label class="form-label">Search</label>
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-search me-1"></i>Search
+                        </label>
                         <input type="text" class="form-control" placeholder="Search by description or payee..." @bind="_searchQuery" @bind:event="oninput" />
                     </div>
 
+                    <!-- Actions -->
                     <div class="col-md-2">
                         <label class="form-label">&nbsp;</label>
                         <button class="btn btn-primary w-100" @onclick="LoadMovementsAsync" disabled="@_isBusy">
@@ -69,7 +90,11 @@
                             {
                                 <span class="spinner-border spinner-border-sm me-1" role="status"></span>
                             }
-                            <i class="bi bi-search me-1"></i>Search
+                            else
+                            {
+                                <i class="bi bi-search me-1"></i>
+                            }
+                            Search
                         </button>
                     </div>
                 </div>
@@ -170,7 +195,7 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <span class="fw-semibold text-dark">@movement.Description</span>
+                                            <span class="fw-semibold">@movement.Description</span>
                                         </td>
                                         <td>
                                             @if (!string.IsNullOrWhiteSpace(movement.PayeeName))
@@ -181,7 +206,7 @@
                                             }
                                             else
                                             {
-                                                <span class="text-muted">—</span>
+                                                <span class="text-muted">â€”</span>
                                             }
                                         </td>
                                         <td>
@@ -193,7 +218,7 @@
                                             }
                                             else
                                             {
-                                                <span class="text-muted">—</span>
+                                                <span class="text-muted">â€”</span>
                                             }
                                         </td>
                                         <td class="text-end pe-3">
@@ -329,15 +354,32 @@ private string? _error;
 private string? _success;
 private bool _isBusy;
 
-private DateTime _fromDate = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-private DateTime _toDate = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(1);
+private DateOnly _fromDate = DateHelper.GetCurrentMonthStart();
+private DateOnly _toDate = DateHelper.GetCurrentMonthEnd();
 private string _searchQuery = string.Empty;
+private string? _activePreset = "this-month";
 
 // Reconciliation
 private bool _showReconcileModal;
 private bool _isReconciling;
 private string? _reconcileError;
 private readonly ReconcileModel _reconcileModel = new();
+
+    private async Task HandlePresetSelected(DateRangePresets.DateRangePreset preset)
+    {
+        var (from, to) = preset.GetDateRange();
+        _fromDate = from;
+        _toDate = to;
+        _activePreset = preset.Type.ToString().ToLowerInvariant().Replace("_", "-");
+        
+        // Auto-load movements when preset selected
+        await LoadMovementsAsync();
+    }
+
+    private void OnDateChanged()
+    {
+        _activePreset = null; // Clear preset when manually changing dates
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -357,11 +399,9 @@ private readonly ReconcileModel _reconcileModel = new();
         {
             await ExecuteApiAsync(async ct =>
             {
-                var from = DateOnly.FromDateTime(_fromDate);
-                var to = DateOnly.FromDateTime(_toDate);
                 var search = string.IsNullOrWhiteSpace(_searchQuery) ? null : _searchQuery.Trim();
 
-                _movements = await AccountsApi.GetMovementsAsync(Id, from, to, search, 1, 50, ct);
+                _movements = await AccountsApi.GetMovementsAsync(Id, _fromDate, _toDate, search, 1, 50, ct);
             });
         }
         catch (KeyNotFoundException)
@@ -465,9 +505,8 @@ private readonly ReconcileModel _reconcileModel = new();
 
     private string FormatAmount(decimal amount)
     {
-        var sign = amount < 0 ? "+" : "-";
-        var absAmount = Math.Abs(amount);
-        return $"{sign}{absAmount.ToString("C2", CultureInfo.CurrentCulture)}";
+        // Display with correct sign: positive for inflows, negative for outflows
+        return amount.ToString("C2", CultureInfo.CurrentCulture);
     }
 
     private sealed class ReconcileModel

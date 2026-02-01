@@ -4,6 +4,7 @@
 @using FamilyFinances.Domain.Ledger.Accounts
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web.Components.Shared
 @using FamilyFinances.Web.Features.Reports
 @using Microsoft.AspNetCore.Components.Authorization
 @inherits ApiPageBase
@@ -28,19 +29,29 @@
         <div class="card shadow-sm mb-4">
             <div class="card-body">
                 <div class="row g-3">
+                    <!-- Quick Date Presets -->
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar-range me-1"></i>Quick Select
+                        </label>
+                        <div>
+                            <DateRangePresets OnPresetSelected="HandlePresetSelected" ActivePreset="@_activePreset" />
+                        </div>
+                    </div>
+
                     <!-- Date Range -->
                     <div class="col-12 col-md-4">
                         <label class="form-label fw-semibold">
                             <i class="bi bi-calendar3 me-1"></i>From Date
                         </label>
-                        <input type="date" class="form-control" @bind="_fromDate" />
+                        <input type="date" class="form-control" @bind="_fromDate" @bind:event="oninput" @bind:after="OnDateChanged" />
                     </div>
 
                     <div class="col-12 col-md-4">
                         <label class="form-label fw-semibold">
                             <i class="bi bi-calendar3 me-1"></i>To Date (exclusive)
                         </label>
-                        <input type="date" class="form-control" @bind="_toDate" />
+                        <input type="date" class="form-control" @bind="_toDate" @bind:event="oninput" @bind:after="OnDateChanged" />
                     </div>
 
                     <!-- Include Zero Accounts -->
@@ -239,6 +250,23 @@
     private DateOnly _fromDate = DateHelper.GetCurrentMonthStart();
     private DateOnly _toDate = DateHelper.GetCurrentMonthEnd();
     private bool _includeZeroAccounts = false;
+    private string? _activePreset = "this-month";
+
+    private async Task HandlePresetSelected(DateRangePresets.DateRangePreset preset)
+    {
+        var (from, to) = preset.GetDateRange();
+        _fromDate = from;
+        _toDate = to;
+        _activePreset = preset.Type.ToString().ToLowerInvariant().Replace("_", "-");
+        
+        // Auto-load report when preset selected
+        await LoadReportAsync();
+    }
+
+    private void OnDateChanged()
+    {
+        _activePreset = null; // Clear preset when manually changing dates
+    }
 
     private async Task LoadReportAsync()
     {
@@ -277,6 +305,7 @@
         _fromDate = DateHelper.GetCurrentMonthStart();
         _toDate = DateHelper.GetCurrentMonthEnd();
         _includeZeroAccounts = false;
+        _activePreset = "this-month";
         _report = null;
         _error = null;
     }

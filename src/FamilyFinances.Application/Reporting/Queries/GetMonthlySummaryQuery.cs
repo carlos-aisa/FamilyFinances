@@ -1,8 +1,8 @@
 namespace FamilyFinances.Application.Reporting.Queries;
 
 public sealed record GetMonthlySummaryQuery(
-    int Year,
-    int Month,
+    DateOnly From,
+    DateOnly To,
     Guid? AccountId = null,
     Guid? PayeeId = null
 );

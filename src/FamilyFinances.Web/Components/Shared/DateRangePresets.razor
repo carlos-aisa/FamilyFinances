@@ -1,0 +1,80 @@
+@using Microsoft.AspNetCore.Components
+
+<div class="d-inline-flex flex-wrap gap-2">
+    <button type="button" class="btn btn-sm btn-outline-primary @(IsActive("ThisMonth") ? "active" : "")" 
+            @onclick="() => OnPresetSelected.InvokeAsync(new DateRangePreset { Type = PresetType.ThisMonth })">
+        <i class="bi bi-calendar-month me-1"></i>This Month
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-primary @(IsActive("LastMonth") ? "active" : "")" 
+            @onclick="() => OnPresetSelected.InvokeAsync(new DateRangePreset { Type = PresetType.LastMonth })">
+        <i class="bi bi-calendar-week me-1"></i>Last Month
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-primary @(IsActive("ThisQuarter") ? "active" : "")" 
+            @onclick="() => OnPresetSelected.InvokeAsync(new DateRangePreset { Type = PresetType.ThisQuarter })">
+        <i class="bi bi-calendar3 me-1"></i>This Quarter
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-primary @(IsActive("ThisYear") ? "active" : "")" 
+            @onclick="() => OnPresetSelected.InvokeAsync(new DateRangePreset { Type = PresetType.ThisYear })">
+        <i class="bi bi-calendar-event me-1"></i>This Year
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-primary @(IsActive("LastYear") ? "active" : "")" 
+            @onclick="() => OnPresetSelected.InvokeAsync(new DateRangePreset { Type = PresetType.LastYear })">
+        <i class="bi bi-calendar-check me-1"></i>Last Year
+    </button>
+</div>
+
+@code {
+    [Parameter] public EventCallback<DateRangePreset> OnPresetSelected { get; set; }
+    [Parameter] public string? ActivePreset { get; set; }
+
+    private bool IsActive(string presetType) => ActivePreset == presetType;
+
+    public enum PresetType
+    {
+        ThisMonth,
+        LastMonth,
+        ThisQuarter,
+        ThisYear,
+        LastYear
+    }
+
+    public class DateRangePreset
+    {
+        public PresetType Type { get; set; }
+
+        public (DateOnly From, DateOnly To) GetDateRange()
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            
+            return Type switch
+            {
+                PresetType.ThisMonth => (
+                    new DateOnly(today.Year, today.Month, 1),
+                    new DateOnly(today.Year, today.Month, 1).AddMonths(1)
+                ),
+                PresetType.LastMonth => (
+                    new DateOnly(today.Year, today.Month, 1).AddMonths(-1),
+                    new DateOnly(today.Year, today.Month, 1)
+                ),
+                PresetType.ThisQuarter => GetCurrentQuarter(today),
+                PresetType.ThisYear => (
+                    new DateOnly(today.Year, 1, 1),
+                    new DateOnly(today.Year + 1, 1, 1)
+                ),
+                PresetType.LastYear => (
+                    new DateOnly(today.Year - 1, 1, 1),
+                    new DateOnly(today.Year, 1, 1)
+                ),
+                _ => (today, today.AddDays(1))
+            };
+        }
+
+        private static (DateOnly From, DateOnly To) GetCurrentQuarter(DateOnly date)
+        {
+            var quarterStartMonth = ((date.Month - 1) / 3) * 3 + 1;
+            var from = new DateOnly(date.Year, quarterStartMonth, 1);
+            var to = from.AddMonths(3);
+            return (from, to);
+        }
+    }
+}

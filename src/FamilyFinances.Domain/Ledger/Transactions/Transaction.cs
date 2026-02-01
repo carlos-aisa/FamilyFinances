@@ -10,6 +10,7 @@ public sealed class Transaction
     public TransactionId Id { get; }
     public DateOnly BookedOn { get; }
     public string Description { get; }
+    public DateTime CreatedAt { get; private set; }
 
     public PayeeId? PayeeId { get; }
     public Payee? Payee { get; }
@@ -30,7 +31,8 @@ public sealed class Transaction
         Id = id;
         BookedOn = bookedOn;
         Description = description;
-        PayeeId = payeeId; 
+        PayeeId = payeeId;
+        CreatedAt = DateTime.UtcNow;
         _splits.AddRange(splits);
     }
 

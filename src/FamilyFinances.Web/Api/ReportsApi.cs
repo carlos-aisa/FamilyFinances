@@ -19,8 +19,8 @@ public sealed class ReportsApi
     }
 
     public async Task<MonthlySummaryDto> GetMonthlySummaryAsync(
-        int year,
-        int month,
+        DateOnly from,
+        DateOnly to,
         Guid? accountId = null,
         Guid? payeeId = null,
         CancellationToken ct = default)
@@ -29,7 +29,7 @@ public sealed class ReportsApi
         if (string.IsNullOrWhiteSpace(token))
             throw new UnauthorizedAccessException("No access token available.");
 
-        var url = $"api/v1/reports/monthly-summary?year={year}&month={month}";
+        var url = $"api/v1/reports/monthly-summary?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}";
         if (accountId.HasValue)
             url += $"&accountId={accountId.Value}";
         if (payeeId.HasValue)

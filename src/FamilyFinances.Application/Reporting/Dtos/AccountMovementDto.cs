@@ -12,7 +12,8 @@ public sealed record AccountMovementDto(
     string Description,
     string? PayeeName,
     decimal SignedAmount,
-    string? CounterpartyAccountName
+    string? CounterpartyAccountName,
+    decimal RunningBalance
 );
 
 public sealed record AccountMovementsDto(
