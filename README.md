@@ -1,208 +1,249 @@
 # FamilyFinances
 
-A modular monolith in .NET for **family / personal finance management**, built with a dual purpose:
+## Overview
 
-1) A **truly usable** app to manage real finances  
-2) A **technical lab** to learn architecture, best practices, and modern integrations
+### Purpose
+FamilyFinances is a ledger-first personal finance application built as a modular monolith in .NET.
 
-FamilyFinances is actively used to manage real finances, and its roadmap is driven by **real usage needs**, not just planned features.
+Its goals are:
+- Manage real family/personal finances with double-entry style transactions.
+- Keep accounting correctness (balanced splits, immutable historical behavior through adjustment transactions).
+- Provide a practical architecture playground for clean layering, testing, and operational practices.
 
----
+### Architecture
+The solution follows a layered modular monolith:
 
-## Core Functional Goals
+```text
+[FamilyFinances.Web (Blazor UI)]
+             |
+             v
+     [FamilyFinances.Api]
+             |
+             v
+      [Application Layer]
+             |
+             v
+        [Domain Layer]
+             ^
+             |
+   [Infrastructure Layer]
+    (EF Core, Identity, SQLite)
+```
 
-FamilyFinances is a **ledger-first system**:
+Main architectural characteristics:
+- `Domain`: entities, value objects, and business rules.
+- `Application`: use-case handlers and application orchestration.
+- `Infrastructure`: repositories, EF Core contexts/configuration/migrations, Identity, JWT wiring.
+- `Api`: REST controllers, auth/authz, versioning, health checks, Swagger.
+- `Web`: Blazor Web App (Interactive Server) that consumes the API.
 
-- Manage **accounts**, **income**, **expenses**, **transfers**, **refunds/reimbursements**, **adjustments**
-- Accounting-style **ledger model**:
-  - A `Transaction` can contain multiple `TransactionSplits`
-  - Splits must always be **balanced** (sum = 0)
-- All balance corrections are done via **new transactions**, never by editing the past
+## Technologies
 
-### Examples
+### Backend
+- .NET 9 (`net9.0`)
+- ASP.NET Core Web API
+- ASP.NET Core Identity
+- JWT Bearer authentication
+- EF Core 9
+- SQLite (current runtime persistence)
+- Serilog
+- Swagger / OpenAPI (Swashbuckle)
+- API Versioning (`Asp.Versioning.Mvc`)
 
-- **Mortgage payment**
-  - Bank account → Principal + Interest (Liability)
-- **Salary**
-  - Income → Bank account + Withholdings/Taxes
-- **Refund / reimbursement**
-  - Expense → Asset or Liability
-- **Balance adjustment**
-  - Asset → Adjustments (Expense / Income)
+### Frontend
+- ASP.NET Core Blazor Web App (Interactive Server)
+- Razor Components
+- Bootstrap (static assets)
 
----
+### DevOps & Testing
+- xUnit
+- FluentAssertions
+- Moq
+- bUnit (web component tests)
+- `Microsoft.AspNetCore.Mvc.Testing` (integration tests)
+- Coverlet collector
+- GitHub Actions (CI + Windows ZIP distribution build)
+- Docker/PostgreSQL: not wired as default runtime in current codebase (see setup notes)
+- Cypress: not committed in the repository as of now (setup path provided below)
 
-## Key Features Implemented
+## Folder Structure
 
-- Ledger with transactions and balanced splits
-- Accounts:
-  - Assets
-  - Liabilities
-  - Expenses
-  - Income
-- Transfers, refunds, reimbursements
-- Account reconciliation via adjustment transactions
-- Payees with autocomplete
-- Reports & visibility:
-  - Account balances
-  - Account movements (ledger per account)
-  - Monthly summaries
-  - Totals by account and account group
-- Authentication & authorization
-- Real-time usage feedback driving UX improvements
+```text
+FamilyFinances/
+|-- src/
+|   |-- FamilyFinances.Domain/
+|   |-- FamilyFinances.Application/
+|   |-- FamilyFinances.Infrastructure/
+|   |-- FamilyFinances.Api/
+|   `-- FamilyFinances.Web/
+|-- tests/
+|   |-- FamilyFinances.Domain.Tests/
+|   |-- FamilyFinances.Application.Tests/
+|   |-- FamilyFinances.Api.IntegrationTests/
+|   `-- FamilyFinances.Web.Tests/
+|-- docs/
+|-- dist/
+|-- openspec/
+|-- FamilyFinances.sln
+`-- README.md
+```
 
----
+## Setup Instructions
 
-## Architecture
+### Prerequisites
+- .NET 9 SDK
+- Git
+- Docker Desktop (for PostgreSQL container workflow)
+- Node.js 20+ (only if you want Cypress E2E locally)
 
-**Modular Monolith** in .NET:
+1. Clone the Repository
 
-- `Domain` — business rules, entities, value objects (no external dependencies)
-- `Application` — use cases, commands/queries, validation, authorization requirements
-- `Infrastructure` — EF Core, SQLite, Identity persistence, logging plumbing
-- `Api` — REST endpoints, authentication, authorization, versioning (`/api/v1`)
-- `Web` — Blazor Web App (Interactive Server), consuming the API as an external client
-- `Tests` — unit + integration tests
+```bash
+git clone https://github.com/carlos-aisa/FamilyFinances.git
+cd FamilyFinances
+```
 
-Persistence: **SQLite + EF Core**.
+2. Environment Configuration
 
----
+Backend and frontend run with default local settings:
+- API defaults to `http://localhost:5084`
+- Web defaults to `http://localhost:5019`
 
-## API Versioning
+Relevant files:
+- `src/FamilyFinances.Api/appsettings.json`
+- `src/FamilyFinances.Api/appsettings.Development.json`
+- `src/FamilyFinances.Web/appsettings.json`
 
-API is versioned by route:
+Default seeded admin account (created on startup):
+- Email: `admin@familyfinances.local`
+- Password: `Admin123!`
 
-- `/api/v1/...`
+3. Database Setup
 
----
+Current implementation:
+- The app uses SQLite through EF Core (`UseSqlite`) and creates/migrates DB on startup.
+- Default development connection string: `Data Source=familyfinances.db`.
 
-## Infrastructure from Day One
+PostgreSQL via Docker (optional environment bootstrap):
 
-- Structured logging with **Serilog**
-- Authentication & authorization:
-  - **ASP.NET Core Identity**
-  - Roles: `Admin`, `Reader`
-  - Policies: `CanRead`, `CanWrite`
-- Health checks
-- Prepared for future observability:
-  - OpenTelemetry
-  - Elastic stack integration
+```bash
+docker run --name familyfinances-postgres \
+  -e POSTGRES_DB=familyfinances \
+  -e POSTGRES_USER=familyfinances \
+  -e POSTGRES_PASSWORD=familyfinances \
+  -p 5432:5432 \
+  -d postgres:16-alpine
+```
 
----
+Important:
+- PostgreSQL is not the active runtime provider in current code.
+- To run the app on PostgreSQL, code changes are required (EF provider/wiring currently targets SQLite).
 
-## Repository Workflow
+4. Backend Setup
 
-- GitHub repository
-- Semantic Versioning (**SemVer**)
-- Conventional Commits
-- GitHub Releases when milestones are cut
+```bash
+dotnet restore
+dotnet run --project src/FamilyFinances.Api
+```
 
-### Conventional Commits
+Backend endpoints:
+- API base URL: `http://localhost:5084`
+- Health check: `http://localhost:5084/health`
+- Swagger UI (Development): `http://localhost:5084/swagger`
 
-Allowed types:
+5. Frontend Setup
 
-- `feat`, `fix`, `refactor`, `test`, `chore`, `docs`
+In a second terminal:
 
-Examples:
+```bash
+dotnet run --project src/FamilyFinances.Web
+```
 
-- `feat(auth): add role-based authorization`
-- `fix(ledger): prevent unbalanced splits`
+Frontend URL:
+- `http://localhost:5019`
 
----
+6. Testing Setup
 
-## Roadmap (realistic & usage-driven)
+Backend and web test projects are included in the solution and run with `dotnet test`.
 
-### Completed
-- `v0.1.x` Infrastructure base (auth, logging, db, CI)
-- `v0.2.x` Ledger core (transactions, splits, balancing rules)
-- `v0.3.x` Payees and basic entry flows
-- `v0.4.x` Reporting foundations
-- `v0.5.x` Account groups and categorization
-- `v0.6.2` Opening balance onboarding
-- `v0.6.3` Refunds / reimbursements
-- `v0.6.4` Reports & visibility (balances, account movements)
-- `v0.6.5` Account adjustments & reconciliation
-- `v0.6.6` Polish & bugfix sprint ✅
-  - Sign convention fixes (income positive, expenses negative)
-  - Transaction timestamps & stable ordering
-  - Running balance calculation
-  - Date range presets & filters
-  - Account/payee search functionality
-  - Dark mode polish & visibility improvements
-  - UX consistency across reports
-- `v0.6.7` Windows ZIP distribution ✅
-  - Self-contained win-x64 executable (no .NET installation required)
-  - Portable SQLite database & logs
-  - One-click launcher with health checks
-  - Automated builds via GitHub Actions
+Cypress testing suite setup (optional, not committed in repo yet):
 
-### In progress / planned
-- `v0.7.0` Multi-split transactions ✅
-  - Support for transactions with 3+ splits
-  - Mortgage payment preset widget on dashboard
-  - Multi-split editor with live validation
-  - Exclusive widget collapse behavior
-  - Date picker for backdating payments
-- `v0.6.8` Internationalization (i18n)
+```bash
+npm init -y
+npm install --save-dev cypress
+npx cypress open
+```
 
-### Future (v0.7+)
-- Advanced reports and visualizations
-- Templates for repetitive transactions
-- Grouped reports (by payee, category)
-- Optional automation / import
-- Optional observability integrations
+Recommended Cypress base URL:
+- `http://localhost:5019`
 
----
+## Testing
 
-## Non-Goals (for now)
+### Backend Tests
+Run all tests:
+```bash
+dotnet test
+```
 
-- Cloud sync / multi-tenant
-- Complex budgeting systems (envelopes, forecasting)
-- Over-engineered UI frameworks
-- Mobile-first focus
+Run specific suites:
+```bash
+dotnet test tests/FamilyFinances.Domain.Tests
+dotnet test tests/FamilyFinances.Application.Tests
+dotnet test tests/FamilyFinances.Api.IntegrationTests
+```
 
----
+### Frontend Tests
+Web/component tests:
+```bash
+dotnet test tests/FamilyFinances.Web.Tests
+```
 
-## Code Style & Language
+E2E tests:
+- Cypress suite is not currently versioned in this repository.
+- If initialized locally, run with your Cypress commands (`npx cypress open` / `npx cypress run`).
 
-- **All code, comments, and documentation in English**
-- Focus on:
-  - correctness
-  - auditability
-  - clarity
-  - learning by building real features
+## Database schema
+The system uses two EF Core contexts:
 
----
+- `AppIdentityDbContext` (Identity)
+  - ASP.NET Core Identity tables for users, roles, claims, logins, tokens.
 
-## Getting Started
+- `LedgerDbContext` (finance domain)
+  - `Accounts`
+  - `Payees`
+  - `Transactions`
+  - `TransactionSplits`
+  - `TransactionLinks`
+  - `AccountGroups`
+  - `AccountGroupMembers`
 
-### For End Users (Windows)
+Schema source:
+- EF Core migrations under `src/FamilyFinances.Infrastructure/Persistence/Migrations/Ledger`
+- Identity migrations under `src/FamilyFinances.Infrastructure/Migrations`
 
-**Download the latest Windows ZIP distribution:**
-1. Go to the [Releases page](https://github.com/carlos-aisa/FamilyFinances/releases)
-2. Download `FamilyFinances-vX.X.X-win-x64.zip`
-3. Extract the ZIP folder
-4. Double-click `Start FamilyFinances.bat`
-5. Use the app in your browser at `http://localhost:5019`
+## API Documentation
+- Route versioning format: `/api/v1/...`
+- Swagger/OpenAPI is enabled in Development mode.
+- Primary endpoint groups include:
+  - Auth
+  - Accounts
+  - Payees
+  - Transactions
+  - Account Groups
+  - Reports
+  - Health
 
-**No .NET installation required!** Everything is self-contained.
+## Contributing
+Suggested workflow:
+- Create a feature branch from `main`.
+- Keep changes aligned with layered architecture boundaries.
+- Add/adjust tests in the corresponding test project.
+- Use conventional commit messages (`feat`, `fix`, `refactor`, `test`, `docs`, `chore`).
+- Open a pull request with scope, rationale, and testing evidence.
 
-See the included `README.txt` for troubleshooting and detailed instructions.
+## License
+No `LICENSE` file is currently present in the repository.
 
-### For Developers
-
-At the current stage, you can:
-
-- Clone the repository
-- Run API and Web locally (requires .NET 9.0 SDK)
-- Build the Windows distribution using `build-windows-dist.ps1`
-- Manage real accounts and transactions
-- Inspect balances and movements
-- Reconcile accounts safely
-- Run unit and integration tests
-- Follow a clean, documented architecture
-
-**API:** `http://localhost:5084`  
-**Web:** `http://localhost:5019`
-
-See [Windows Distribution Build Guide](docs/windows-distribution-build.md) for packaging details.
+## Support
+- Open an issue in the GitHub repository for bugs or feature requests.
+- Include environment details, reproduction steps, and logs when reporting runtime problems.
