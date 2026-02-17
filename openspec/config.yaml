@@ -1,0 +1,38 @@
+schema: spec-driven
+context: |
+  Tech stack summary:
+  - Backend: .NET 9, ASP.NET Core Web API, ASP.NET Core Identity, JWT Bearer auth.
+  - Frontend: Blazor Web App (Interactive Server) consuming the API.
+  - Persistence: EF Core 9 with SQLite as current runtime provider.
+  - Supporting: Serilog, API versioning, Swagger/OpenAPI in Development.
+
+  Non-negotiable architecture rules:
+  - Layered architecture is mandatory: Domain, Application, Infrastructure, Presentation.
+  - Dependency direction is strict:
+    - Presentation -> Application
+    - Application -> Domain
+    - Infrastructure -> Application and Domain
+    - Domain -> no external layers/frameworks
+  - Do not introduce new architecture patterns or bypass layer boundaries.
+
+  Non-negotiable testing rules:
+  - Test stack: xUnit + FluentAssertions (with Moq/NSubstitute where needed).
+  - Any logic/behavior change must include test updates.
+  - EF Core integration tests must use a real relational provider (SQLite or PostgreSQL).
+  - EF Core InMemory provider is forbidden for integration tests.
+  - Tests must be deterministic, isolated, and CI-safe.
+
+  Non-negotiable documentation rules:
+  - All documentation, code comments, and technical explanations must be in English.
+  - Documentation must be updated when behavior, API, data model, migrations, or configuration changes.
+
+  Git workflow:
+  - Use Conventional Commits: feat, fix, refactor, test, docs, chore.
+
+rules:
+  proposal:
+    - Include explicit non-goals.
+    - Include a rollback plan.
+  tasks:
+    - Include validation steps (build/test/docs checks).
+    - Include required test updates for behavioral changes.

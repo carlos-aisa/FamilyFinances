@@ -1,0 +1,1729 @@
+openapi: 3.0.3
+info:
+  title: FamilyFinances API
+  version: v1
+  description: |
+    As-built OpenAPI specification for FamilyFinances.
+
+    Scope covered:
+    - REST API endpoints hosted by `FamilyFinances.Api` (`/api/v1/...`, `/health`)
+    - Session endpoints hosted by `FamilyFinances.Web` (`/auth/session`)
+
+    Notes:
+    - Authentication in API endpoints is JWT Bearer-based.
+    - Web session endpoints proxy login and manage the `ff_access_token` HttpOnly cookie.
+  contact:
+    name: FamilyFinances Maintainers
+    url: https://github.com/carlos-aisa/FamilyFinances
+
+servers:
+  - url: http://localhost:5084
+    description: Development API server (`FamilyFinances.Api`) and ZIP production default API endpoint
+  - url: https://localhost:7249
+    description: Development HTTPS API profile (`FamilyFinances.Api`)
+
+tags:
+  - name: Auth
+  - name: Accounts
+  - name: Payees
+  - name: Transactions
+  - name: AccountGroups
+  - name: Reports
+  - name: Health
+  - name: WebSession
+
+paths:
+  /api/v1/ping:
+    get:
+      tags: [Health]
+      summary: Ping endpoint
+      description: Returns a simple status payload.
+      operationId: Ping_Get
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful ping.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PingResponse'
+              example:
+                status: ok
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Authenticate user
+      description: Validates email/password and returns a JWT access token.
+      operationId: Auth_Login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: admin@familyfinances.local
+              password: Admin123!
+      responses:
+        '200':
+          description: Login successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessTokenResponse'
+              example:
+                accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/accounts:
+    post:
+      tags: [Accounts]
+      summary: Create account
+      operationId: Accounts_Create
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAccountRequest'
+      responses:
+        '200':
+          description: Account created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    get:
+      tags: [Accounts]
+      summary: List accounts
+      operationId: Accounts_List
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Accounts list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/accounts/balances:
+    get:
+      tags: [Accounts]
+      summary: Get account balances
+      operationId: Accounts_GetBalances
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Account balances.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountBalanceDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/accounts/{id}/movements:
+    get:
+      tags: [Accounts]
+      summary: Get account movements
+      description: Returns paginated movements and running balances for one account.
+      operationId: Accounts_GetMovements
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AccountIdPath'
+        - in: query
+          name: from
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Start date (inclusive). Defaults to first day of current month if omitted.
+        - in: query
+          name: to
+          required: false
+          schema:
+            type: string
+            format: date
+          description: End date (exclusive). Defaults to one month after `from` when omitted.
+        - in: query
+          name: q
+          required: false
+          schema:
+            type: string
+          description: Optional text filter over description and payee.
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 1
+        - in: query
+          name: pageSize
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 50
+          description: Clamped by server to max 100.
+      responses:
+        '200':
+          description: Account movements.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountMovementsDto'
+        '404':
+          description: Account not found (response body may be empty in this endpoint).
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/accounts/{id}/reconcile:
+    post:
+      tags: [Accounts]
+      summary: Reconcile account
+      description: Reconciles account balance by creating adjustment transaction when needed.
+      operationId: Accounts_Reconcile
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AccountIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReconcileAccountRequest'
+      responses:
+        '200':
+          description: Reconciliation result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReconcileAccountResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: Account not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/accounts/{id}/rename:
+    patch:
+      tags: [Accounts]
+      summary: Rename account
+      operationId: Accounts_Rename
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AccountIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenameAccountRequest'
+      responses:
+        '204':
+          description: Account renamed.
+        '404':
+          description: Account not found (response body may be empty).
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/accounts/{id}/close:
+    patch:
+      tags: [Accounts]
+      summary: Close account
+      operationId: Accounts_Close
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AccountIdPath'
+      responses:
+        '204':
+          description: Account closed.
+        '404':
+          description: Account not found (response body may be empty).
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/accounts/{id}/reopen:
+    patch:
+      tags: [Accounts]
+      summary: Reopen account
+      operationId: Accounts_Reopen
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AccountIdPath'
+      responses:
+        '204':
+          description: Account reopened.
+        '404':
+          description: Account not found (response body may be empty).
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/accounts/{id}:
+    delete:
+      tags: [Accounts]
+      summary: Delete account
+      operationId: Accounts_Delete
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AccountIdPath'
+      responses:
+        '204':
+          description: Account deleted.
+        '404':
+          description: Account not found (response body may be empty).
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/payees:
+    post:
+      tags: [Payees]
+      summary: Create payee
+      operationId: Payees_Create
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePayeeRequest'
+      responses:
+        '200':
+          description: Payee created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayeeDto'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    get:
+      tags: [Payees]
+      summary: List payees
+      operationId: Payees_List
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Payees list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PayeeDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/payees/{id}/rename:
+    patch:
+      tags: [Payees]
+      summary: Rename payee
+      operationId: Payees_Rename
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PayeeIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenamePayeeRequest'
+      responses:
+        '204':
+          description: Payee renamed.
+        '404':
+          description: Payee not found (response body may be empty).
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/payees/{id}:
+    delete:
+      tags: [Payees]
+      summary: Delete payee
+      operationId: Payees_Delete
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PayeeIdPath'
+      responses:
+        '204':
+          description: Payee deleted.
+        '404':
+          description: Payee not found (response body may be empty).
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/transactions/any:
+    get:
+      tags: [Transactions]
+      summary: Check if any transaction exists
+      operationId: Transactions_HasAny
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Presence flag.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HasAnyResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/transactions:
+    post:
+      tags: [Transactions]
+      summary: Create transaction
+      description: Creates a balanced transaction; can optionally link to a related transaction.
+      operationId: Transactions_Create
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransactionRequest'
+      responses:
+        '200':
+          description: Transaction created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    get:
+      tags: [Transactions]
+      summary: List transactions
+      operationId: Transactions_List
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: take
+          required: false
+          schema:
+            type: integer
+            format: int32
+          description: Maximum number of transactions to return.
+      responses:
+        '200':
+          description: Transactions list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TransactionListItemDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/transactions/{id}:
+    get:
+      tags: [Transactions]
+      summary: Get transaction by id
+      operationId: Transactions_GetById
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TransactionIdPath'
+      responses:
+        '200':
+          description: Transaction found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionDto'
+        '404':
+          description: Transaction not found (response body may be empty).
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    put:
+      tags: [Transactions]
+      summary: Update two-split transaction
+      operationId: Transactions_Update
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TransactionIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTransactionRequest'
+      responses:
+        '204':
+          description: Transaction updated.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: Transaction not found (response body may be empty).
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags: [Transactions]
+      summary: Delete transaction
+      operationId: Transactions_Delete
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TransactionIdPath'
+      responses:
+        '204':
+          description: Transaction deleted.
+        '404':
+          description: Transaction not found (response body may be empty).
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/transactions/{id}/multi-split:
+    put:
+      tags: [Transactions]
+      summary: Update multi-split transaction
+      operationId: Transactions_UpdateMultiSplit
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TransactionIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMultiSplitTransactionRequest'
+      responses:
+        '204':
+          description: Transaction updated.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: Transaction not found (response body may be empty).
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/transactions/search-expenses:
+    get:
+      tags: [Transactions]
+      summary: Search expense transactions
+      operationId: Transactions_SearchExpenses
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema:
+            type: string
+          description: Search text.
+        - in: query
+          name: expenseAccountId
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 20
+          description: Requested maximum results (server caps at 50).
+      responses:
+        '200':
+          description: Matching expense transactions.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExpenseSearchResultDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/account-groups:
+    post:
+      tags: [AccountGroups]
+      summary: Create account group
+      operationId: AccountGroups_Create
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAccountGroupRequest'
+      responses:
+        '200':
+          description: Account group created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountGroupDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    get:
+      tags: [AccountGroups]
+      summary: List account groups
+      operationId: AccountGroups_List
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Account groups list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountGroupDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/account-groups/{id}:
+    get:
+      tags: [AccountGroups]
+      summary: Get account group by id
+      operationId: AccountGroups_GetById
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GroupIdPath'
+      responses:
+        '200':
+          description: Account group details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountGroupDetailsDto'
+        '404':
+          description: Account group not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    delete:
+      tags: [AccountGroups]
+      summary: Delete account group
+      operationId: AccountGroups_Delete
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GroupIdPath'
+      responses:
+        '204':
+          description: Account group deleted.
+        '404':
+          description: Account group not found (response body may be empty).
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/account-groups/{id}/accounts/{accountId}:
+    post:
+      tags: [AccountGroups]
+      summary: Add account to group
+      operationId: AccountGroups_AddAccount
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GroupIdPath'
+        - $ref: '#/components/parameters/AccountIdPath2'
+      responses:
+        '204':
+          description: Membership added (idempotent if already present).
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags: [AccountGroups]
+      summary: Remove account from group
+      operationId: AccountGroups_RemoveAccount
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GroupIdPath'
+        - $ref: '#/components/parameters/AccountIdPath2'
+      responses:
+        '204':
+          description: Membership removed (idempotent).
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/account-groups/{id}/rename:
+    patch:
+      tags: [AccountGroups]
+      summary: Rename account group
+      operationId: AccountGroups_Rename
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GroupIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenameAccountGroupRequest'
+      responses:
+        '204':
+          description: Account group renamed.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: Account group not found (response body may be empty).
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/reports/monthly-summary:
+    get:
+      tags: [Reports]
+      summary: Get monthly summary
+      operationId: Reports_GetMonthlySummary
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: from
+          required: true
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: to
+          required: true
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: accountId
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: payeeId
+          required: false
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Monthly summary.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MonthlySummaryDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/reports/category-totals:
+    get:
+      tags: [Reports]
+      summary: Get category totals
+      operationId: Reports_GetCategoryTotals
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: from
+          required: true
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: to
+          required: true
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: nature
+          required: true
+          schema:
+            $ref: '#/components/schemas/AccountNature'
+        - in: query
+          name: payeeId
+          required: false
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Category totals.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryTotalsDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/reports/account-totals:
+    get:
+      tags: [Reports]
+      summary: Get account totals
+      operationId: Reports_GetAccountTotals
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: from
+          required: true
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: to
+          required: true
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: includeZeroAccounts
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Account totals.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountTotalsDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/reports/account-groups/{groupId}/totals:
+    get:
+      tags: [Reports]
+      summary: Get account-group totals
+      operationId: Reports_GetAccountGroupTotals
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: groupId
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: from
+          required: true
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: to
+          required: true
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: nature
+          required: false
+          schema:
+            $ref: '#/components/schemas/AccountNature'
+      responses:
+        '200':
+          description: Account-group totals.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountGroupTotalsDto'
+        '404':
+          description: Group not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      description: Health checks endpoint. Exact payload contract is not explicitly defined in code.
+      operationId: Health_Get
+      security: []
+      responses:
+        '200':
+          description: Healthy response (body contract UNKNOWN).
+        '503':
+          description: Unhealthy response (body contract UNKNOWN).
+
+  /auth/session:
+    servers:
+      - url: http://localhost:5019
+        description: Development web host (`FamilyFinances.Web`) and ZIP production default web endpoint
+      - url: https://localhost:7143
+        description: Development HTTPS web profile (`FamilyFinances.Web`)
+    post:
+      tags: [WebSession]
+      summary: Create web session
+      description: |
+        Proxies credentials to API login endpoint, then stores token in `ff_access_token` HttpOnly cookie.
+      operationId: WebSession_Login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Session established.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessTokenResponse'
+        '400':
+          description: Invalid login request payload.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Upstream API rejected credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Session endpoint internal error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        default:
+          description: Upstream authentication failure or unexpected session error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+    get:
+      tags: [WebSession]
+      summary: Get web session token
+      operationId: WebSession_Get
+      security: []
+      responses:
+        '200':
+          description: Session token exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessTokenResponse'
+        '204':
+          description: No session token cookie found.
+    delete:
+      tags: [WebSession]
+      summary: Delete web session
+      operationId: WebSession_Logout
+      security: []
+      responses:
+        '200':
+          description: Session cookie removed.
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    cookieToken:
+      type: apiKey
+      in: cookie
+      name: ff_access_token
+      description: Token cookie used by the web host session flow.
+
+  parameters:
+    AccountIdPath:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+    AccountIdPath2:
+      in: path
+      name: accountId
+      required: true
+      schema:
+        type: string
+        format: uuid
+    PayeeIdPath:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+    TransactionIdPath:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+    GroupIdPath:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    Unauthorized:
+      description: Unauthorized.
+    Forbidden:
+      description: Forbidden.
+    BadRequest:
+      description: Bad request.
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: '#/components/schemas/ErrorResponse'
+              - $ref: '#/components/schemas/ProblemDetails'
+    Conflict:
+      description: Conflict.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalServerError:
+      description: Unexpected server error (response body contract may be empty or framework-defined).
+
+  schemas:
+    UnknownObject:
+      type: object
+      additionalProperties: true
+      description: Payload contract is not explicitly defined by code.
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+
+    ProblemDetails:
+      type: object
+      description: RFC 7807 problem details payload.
+      properties:
+        type:
+          type: string
+          nullable: true
+        title:
+          type: string
+          nullable: true
+        status:
+          type: integer
+          format: int32
+          nullable: true
+        detail:
+          type: string
+          nullable: true
+        instance:
+          type: string
+          nullable: true
+      additionalProperties: true
+
+    PingResponse:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+
+    HasAnyResponse:
+      type: object
+      properties:
+        hasAny:
+          type: boolean
+      required: [hasAny]
+
+    AccessTokenResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+      required: [accessToken]
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required: [email, password]
+
+    AccountNature:
+      type: integer
+      format: int32
+      enum: [1, 2, 3, 4, 5]
+      description: 'Numeric enum: 1=Asset, 2=Liability, 3=Income, 4=Expense, 5=Equity.'
+
+    AccountKind:
+      type: integer
+      format: int32
+      enum: [1, 2, 3, 4, 5, 6, 7, 8, 9, 99]
+      description: 'Numeric enum: 1=Checking, 2=Savings, 3=CreditCard, 4=Cash, 5=Investment, 6=ExpenseCategory, 7=IncomeSource, 8=Mortgage, 9=Loan, 99=Other.'
+
+    TransactionListItemType:
+      type: integer
+      format: int32
+      enum: [0, 1, 2, 3, 4]
+      description: 'Numeric enum: 0=Expense, 1=Income, 2=Transfer, 3=Refund, 4=Other.'
+
+    CreateAccountRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        nature:
+          $ref: '#/components/schemas/AccountNature'
+        kind:
+          $ref: '#/components/schemas/AccountKind'
+        openedOn:
+          type: string
+          format: date
+      required: [name, nature, kind, openedOn]
+
+    RenameAccountRequest:
+      type: object
+      properties:
+        name:
+          type: string
+      required: [name]
+
+    ReconcileAccountRequest:
+      type: object
+      properties:
+        actualBalance:
+          type: number
+        asOfDate:
+          type: string
+          format: date
+        note:
+          type: string
+          nullable: true
+      required: [actualBalance, asOfDate]
+
+    ReconcileAccountResponse:
+      type: object
+      properties:
+        adjustmentCreated:
+          type: boolean
+        transactionId:
+          type: string
+          format: uuid
+          nullable: true
+        computedBalance:
+          type: number
+        actualBalance:
+          type: number
+        difference:
+          type: number
+        message:
+          type: string
+      required: [adjustmentCreated, transactionId, computedBalance, actualBalance, difference, message]
+
+    AccountDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        nature:
+          $ref: '#/components/schemas/AccountNature'
+        kind:
+          $ref: '#/components/schemas/AccountKind'
+        openedOn:
+          type: string
+          format: date
+        isClosed:
+          type: boolean
+        closedOn:
+          type: string
+          format: date
+          nullable: true
+      required: [id, name, nature, kind, openedOn, isClosed, closedOn]
+
+    AccountBalanceDto:
+      type: object
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        balance:
+          type: number
+      required: [accountId, balance]
+
+    AccountMovementDto:
+      type: object
+      properties:
+        transactionId:
+          type: string
+          format: uuid
+        bookedOn:
+          type: string
+          format: date
+        description:
+          type: string
+        payeeName:
+          type: string
+          nullable: true
+        signedAmount:
+          type: number
+        counterpartyAccountName:
+          type: string
+          nullable: true
+        runningBalance:
+          type: number
+      required: [transactionId, bookedOn, description, payeeName, signedAmount, counterpartyAccountName, runningBalance]
+
+    AccountMovementsDto:
+      type: object
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        accountName:
+          type: string
+        fromInclusive:
+          type: string
+          format: date
+        toExclusive:
+          type: string
+          format: date
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountMovementDto'
+        totalCount:
+          type: integer
+          format: int32
+      required: [accountId, accountName, fromInclusive, toExclusive, items, totalCount]
+
+    CreatePayeeRequest:
+      type: object
+      properties:
+        name:
+          type: string
+      required: [name]
+
+    RenamePayeeRequest:
+      type: object
+      properties:
+        name:
+          type: string
+      required: [name]
+
+    PayeeDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+      required: [id, name]
+
+    TransactionSplitInput:
+      type: object
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        amountCents:
+          type: integer
+          format: int64
+        memo:
+          type: string
+          nullable: true
+      required: [accountId, amountCents]
+
+    CreateTransactionRequest:
+      type: object
+      properties:
+        bookedOn:
+          type: string
+          format: date
+        description:
+          type: string
+        splits:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionSplitInput'
+        payeeId:
+          type: string
+          format: uuid
+          nullable: true
+        relatedTransactionId:
+          type: string
+          format: uuid
+          nullable: true
+      required: [bookedOn, description, splits]
+
+    UpdateTransactionRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        bookedOn:
+          type: string
+          format: date
+        description:
+          type: string
+        payeeId:
+          type: string
+          format: uuid
+          nullable: true
+        fromAccountId:
+          type: string
+          format: uuid
+        toAccountId:
+          type: string
+          format: uuid
+        amount:
+          type: number
+      required: [id, bookedOn, description, fromAccountId, toAccountId, amount]
+
+    UpdateMultiSplitTransactionRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        bookedOn:
+          type: string
+          format: date
+        description:
+          type: string
+        payeeId:
+          type: string
+          format: uuid
+          nullable: true
+        splits:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionSplitInput'
+      required: [id, bookedOn, description, splits]
+
+    TransactionSplitDto:
+      type: object
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        amount:
+          type: number
+        memo:
+          type: string
+          nullable: true
+      required: [accountId, amount, memo]
+
+    TransactionDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        bookedOn:
+          type: string
+          format: date
+        description:
+          type: string
+        payeeId:
+          type: string
+          format: uuid
+          nullable: true
+        payeeName:
+          type: string
+          nullable: true
+        splits:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionSplitDto'
+      required: [id, bookedOn, description, payeeId, payeeName, splits]
+
+    TransactionListItemDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        bookedOn:
+          type: string
+          format: date
+        headline:
+          type: string
+        subheadline:
+          type: string
+          nullable: true
+        amount:
+          type: number
+        type:
+          $ref: '#/components/schemas/TransactionListItemType'
+      required: [id, bookedOn, headline, subheadline, amount, type]
+
+    ExpenseSearchResultDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        description:
+          type: string
+        bookedOn:
+          type: string
+          format: date
+        payeeName:
+          type: string
+          nullable: true
+        amount:
+          type: number
+        expenseAccountName:
+          type: string
+      required: [id, description, bookedOn, payeeName, amount, expenseAccountName]
+
+    CreateAccountGroupRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+      required: [name]
+
+    RenameAccountGroupRequest:
+      type: object
+      properties:
+        name:
+          type: string
+      required: [name]
+
+    AccountGroupDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+      required: [id, name, description]
+
+    AccountRefDto:
+      type: object
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        nature:
+          $ref: '#/components/schemas/AccountNature'
+        kind:
+          $ref: '#/components/schemas/AccountKind'
+      required: [accountId, name, nature, kind]
+
+    AccountGroupDetailsDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountRefDto'
+      required: [id, name, description, accounts]
+
+    MonthlySummaryDto:
+      type: object
+      properties:
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+        incomeTotal:
+          type: integer
+          format: int64
+        expenseTotal:
+          type: integer
+          format: int64
+        net:
+          type: integer
+          format: int64
+        transactionsCount:
+          type: integer
+          format: int32
+      required: [from, to, incomeTotal, expenseTotal, net, transactionsCount]
+
+    CategoryTotalItemDto:
+      type: object
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        accountName:
+          type: string
+        total:
+          type: integer
+          format: int64
+        transactionsCount:
+          type: integer
+          format: int32
+      required: [accountId, accountName, total, transactionsCount]
+
+    CategoryTotalsDto:
+      type: object
+      properties:
+        fromInclusive:
+          type: string
+          format: date
+        toExclusive:
+          type: string
+          format: date
+        nature:
+          $ref: '#/components/schemas/AccountNature'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryTotalItemDto'
+      required: [fromInclusive, toExclusive, nature, items]
+
+    AccountTotalItemDto:
+      type: object
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        accountName:
+          type: string
+        accountNature:
+          $ref: '#/components/schemas/AccountNature'
+        accountKind:
+          $ref: '#/components/schemas/AccountKind'
+        netChange:
+          type: integer
+          format: int64
+        transactionsCount:
+          type: integer
+          format: int32
+      required: [accountId, accountName, accountNature, accountKind, netChange, transactionsCount]
+
+    AccountTotalsDto:
+      type: object
+      properties:
+        fromInclusive:
+          type: string
+          format: date
+        toExclusive:
+          type: string
+          format: date
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountTotalItemDto'
+      required: [fromInclusive, toExclusive, items]
+
+    AccountGroupTotalItemDto:
+      type: object
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        accountName:
+          type: string
+        totalCents:
+          type: integer
+          format: int64
+        transactionsCount:
+          type: integer
+          format: int32
+      required: [accountId, accountName, totalCents, transactionsCount]
+
+    AccountGroupTotalsDto:
+      type: object
+      properties:
+        groupId:
+          type: string
+          format: uuid
+        groupName:
+          type: string
+        fromInclusive:
+          type: string
+          format: date
+        toExclusive:
+          type: string
+          format: date
+        nature:
+          $ref: '#/components/schemas/AccountNature'
+        totalCents:
+          type: integer
+          format: int64
+        transactionsCount:
+          type: integer
+          format: int32
+        accountsCount:
+          type: integer
+          format: int32
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountGroupTotalItemDto'
+      required: [groupId, groupName, fromInclusive, toExclusive, nature, totalCents, transactionsCount, accountsCount, items]
