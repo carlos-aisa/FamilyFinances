@@ -182,6 +182,9 @@
                                     <th class="border-0 text-end pe-3" style="width: 160px;">
                                         <i class="bi bi-currency-euro me-1"></i>Amount
                                     </th>
+                                    <th class="border-0 text-end pe-3" style="width: 180px;">
+                                        <i class="bi bi-graph-up-arrow me-1"></i>Running Balance
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -224,6 +227,11 @@
                                         <td class="text-end pe-3">
                                             <span class="badge @GetAmountBadgeClass(movement.SignedAmount) fs-6 px-3 py-2">
                                                 @FormatAmount(movement.SignedAmount)
+                                            </span>
+                                        </td>
+                                        <td class="text-end pe-3">
+                                            <span class="fw-semibold @GetRunningBalanceClass(movement.RunningBalance)">
+                                                @FormatAmount(movement.RunningBalance)
                                             </span>
                                         </td>
                                     </tr>
@@ -431,6 +439,15 @@ private readonly ReconcileModel _reconcileModel = new();
     private string GetAmountBadgeClass(decimal amount)
     {
         return amount < 0 ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger";
+    }
+
+    private string GetRunningBalanceClass(decimal runningBalance)
+    {
+        if (runningBalance > 0)
+            return "text-success";
+        if (runningBalance < 0)
+            return "text-danger";
+        return "text-muted";
     }
 
     private void OpenReconcileModal()

@@ -96,6 +96,22 @@ Given an account id that does not exist
 When the client calls `PATCH /api/v{version:apiVersion}/accounts/{id}/rename`  
 Then the API returns `404 NotFound`
 
+### Requirement: Account Movements View Must Display Running Balance Evolution
+#### Scenario: Running balance shown per movement row
+Given an authenticated user opens `/accounts/{id}/movements` and movements are returned  
+When the movements list is rendered  
+Then each movement row displays its `RunningBalance` value in a dedicated running-balance column
+
+#### Scenario: Running balance uses backend-provided value
+Given movement data is rendered in the account movements table  
+When the running-balance value is displayed  
+Then the value comes from `AccountMovementDto.RunningBalance` without frontend recomputation
+
+#### Scenario: Running balance formatting remains monetary
+Given a running-balance value is displayed  
+When the value is rendered  
+Then it is formatted as currency with sign-preserving semantics consistent with movement amount formatting
+
 ### Requirement: Account Reconciliation Must Return Reconciliation Result
 #### Scenario: Reconcile existing account
 Given an existing account id and valid `ReconcileAccountRequest`  
