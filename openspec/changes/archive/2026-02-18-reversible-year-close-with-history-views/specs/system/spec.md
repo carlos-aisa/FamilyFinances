@@ -1,6 +1,8 @@
 ## MODIFIED Requirements
 
 ### Requirement: Account Movements View Must Display Running Balance Evolution
+The system SHALL display running-balance evolution per movement row using backend-provided values in both current-year and historical movement views.
+
 #### Scenario: Running balance shown per movement row
 Given an authenticated user opens `/accounts/{id}/movements` and movements are returned  
 When the movements list is rendered  
@@ -23,6 +25,8 @@ Then running balance is displayed for each row
 And mutation actions (create/edit/delete) are not available from that historical view
 
 ### Requirement: Account Reconciliation Must Return Reconciliation Result
+The system SHALL return a structured reconciliation result for successful reconciliations and SHALL reject reconciliation requests that target closed fiscal years.
+
 #### Scenario: Reconcile existing account
 Given an existing account id and valid `ReconcileAccountRequest`  
 When the client calls `POST /api/v{version:apiVersion}/accounts/{id}/reconcile`  
@@ -36,6 +40,8 @@ Then the API returns `400 BadRequest`
 And the response body uses `{ error }` describing the closed-year restriction
 
 ### Requirement: Transactions Must Enforce Balanced Splits and Support Query/Mutation Endpoints
+The system SHALL enforce balanced transaction splits and SHALL reject transaction create, update, and delete mutations when they target closed fiscal years.
+
 #### Scenario: Unbalanced transaction creation is rejected
 Given a `CreateTransactionRequest` where split cents do not sum to zero  
 When the client calls `POST /api/v{version:apiVersion}/transactions`  

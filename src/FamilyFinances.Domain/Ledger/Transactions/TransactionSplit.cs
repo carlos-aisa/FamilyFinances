@@ -7,7 +7,7 @@ public sealed class TransactionSplit
 {
     public TransactionSplitId Id { get; }
     public AccountId AccountId { get; }
-    public Account Account { get; }
+    public Account Account { get; } = default!;
     public Money Amount { get; }
     public string? Memo { get; }
 

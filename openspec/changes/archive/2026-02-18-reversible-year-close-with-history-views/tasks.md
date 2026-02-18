@@ -57,3 +57,9 @@
 - [x] 9.2 Run relevant test suites (`tests/FamilyFinances.Application.Tests`, `tests/FamilyFinances.Api.IntegrationTests`, `tests/FamilyFinances.Web.Tests`) and confirm deterministic pass.
 - [x] 9.3 Perform manual end-to-end validation: close year -> mutation blocked -> historical browsing works -> reopen year -> mutation allowed -> re-close recomputes snapshots.
 - [x] 9.4 Confirm docs/spec consistency and ensure no accidental API version, auth policy, or archival-storage model changes were introduced beyond approved scope.
+
+## 10. Post-Verification Warning Fixes
+
+- [x] 10.1 Ensure `src/FamilyFinances.Web/Components/Pages/Transactions/TransactionCreatePage.razor` catches and surfaces backend/domain errors (including closed-year rejections) without unhandled UI exceptions.
+- [x] 10.2 Add API integration coverage for `GET /api/v1/fiscal-years` contract metadata in `tests/FamilyFinances.Api.IntegrationTests/Ledger/FiscalYears/FiscalYearGovernanceApiTests.cs`.
+- [x] 10.3 Add read-only history drilldown links to transaction detail from historical transactions/movements, keeping mutation controls hidden in read-only mode.

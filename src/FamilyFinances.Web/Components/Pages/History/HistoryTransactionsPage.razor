@@ -82,7 +82,10 @@ else
                                 <td>@GetTypeBadge(item.Type)</td>
                                 <td>
                                     <div class="d-flex flex-column">
-                                        <span class="fw-semibold">@item.Headline</span>
+                                        <a class="fw-semibold text-decoration-none"
+                                           href='@BuildReadOnlyDetailUrl(item.Id, "history-transactions")'>
+                                            @item.Headline
+                                        </a>
                                         <small class="text-muted">@item.Subheadline</small>
                                     </div>
                                 </td>
@@ -175,6 +178,9 @@ else
         TransactionListItemType.Refund => "bg-info-subtle text-info",
         _ => "bg-secondary-subtle text-secondary"
     };
+
+    private static string BuildReadOnlyDetailUrl(Guid transactionId, string returnTo)
+        => $"/transactions/{transactionId}?readonly=true&returnTo={Uri.EscapeDataString(returnTo)}";
 
     private void OnHistoryRefreshRequested()
     {

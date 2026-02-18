@@ -165,14 +165,14 @@ Service contract (target):
 1. User opens `History > Transactions`.
 2. User selects year `Y`.
 3. List loads only transactions booked in `Y`.
-4. Row detail navigation is read-only (edit/delete controls hidden/disabled).
+4. Row detail navigation opens transaction detail in read-only mode (edit/delete controls hidden/disabled) and supports returning to History.
 
 ### Flow 5: Browse historical account movements (read-only)
 
 1. User opens `History > Movements`.
 2. User selects year + account.
 3. Movement list renders with running balance computed from snapshot baseline + in-range deltas.
-4. Page exposes no mutation actions.
+4. Movement rows can open transaction detail in read-only mode; page exposes no mutation actions.
 
 ### Flow 6: Operational transactions remain for active/open workflows
 

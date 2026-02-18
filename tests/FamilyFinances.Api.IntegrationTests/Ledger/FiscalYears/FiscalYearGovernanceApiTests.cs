@@ -116,6 +116,31 @@ public sealed class FiscalYearGovernanceApiTests
     }
 
     [Fact]
+    public async Task ListFiscalYears_ReturnsStatusMetadata()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var close = await client.PostAsync("/api/v1/fiscal-years/2025/close", null);
+        close.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var reopen = await client.PostAsync("/api/v1/fiscal-years/2025/reopen", null);
+        reopen.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var list = await client.GetAsync("/api/v1/fiscal-years");
+        list.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var statuses = await list.Content.ReadFromJsonAsync<List<FiscalYearStatusDto>>();
+        statuses.Should().NotBeNull();
+        statuses.Should().NotBeEmpty();
+
+        var year2025 = statuses!.Single(x => x.Year == 2025);
+        year2025.IsClosed.Should().BeFalse();
+        year2025.ClosedAtUtc.Should().NotBeNull();
+        year2025.ReopenedAtUtc.Should().NotBeNull();
+    }
+
+    [Fact]
     public async Task HistoricalEndpoints_FilterByYear_AndReturnRunningBalances()
     {
         using var factory = TestClient.CreateFactoryWithFreshDb(out _);

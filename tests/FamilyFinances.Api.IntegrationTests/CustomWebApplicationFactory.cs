@@ -35,6 +35,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 ["Jwt:Issuer"] = "FamilyFinances",
                 ["Jwt:Audience"] = "FamilyFinances",
                 ["Jwt:Key"] = TestJwtKey,
+                ["Persistence:IgnoreNonTransactionalMigrationWarnings"] = "true",
                 // Minimal Serilog config for tests
                 ["Serilog:MinimumLevel:Default"] = "Warning"
             };

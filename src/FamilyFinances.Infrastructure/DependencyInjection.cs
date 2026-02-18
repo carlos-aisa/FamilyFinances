@@ -18,6 +18,7 @@ using FamilyFinances.Infrastructure.Persistence.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
@@ -106,10 +107,24 @@ public static class DependencyInjection
         IConfiguration configuration)
     {
         services.AddDbContext<AppIdentityDbContext>(options =>
-            options.UseSqlite(configuration.GetConnectionString("Default")));
+        {
+            options.UseSqlite(configuration.GetConnectionString("Default"));
+            if (configuration.GetValue("Persistence:IgnoreNonTransactionalMigrationWarnings", false))
+            {
+                options.ConfigureWarnings(w =>
+                    w.Ignore(RelationalEventId.NonTransactionalMigrationOperationWarning));
+            }
+        });
         
         services.AddDbContext<LedgerDbContext>(options =>
-            options.UseSqlite(configuration.GetConnectionString("Default")));
+        {
+            options.UseSqlite(configuration.GetConnectionString("Default"));
+            if (configuration.GetValue("Persistence:IgnoreNonTransactionalMigrationWarnings", false))
+            {
+                options.ConfigureWarnings(w =>
+                    w.Ignore(RelationalEventId.NonTransactionalMigrationOperationWarning));
+            }
+        });
 
         return services;
     }

@@ -77,6 +77,8 @@ public sealed class HistoryTransactionsPageTests : TestContext
 
         cut.Markup.Should().NotContain("Edit");
         cut.Markup.Should().NotContain("Delete");
+        cut.Markup.Should().Contain("readonly=true");
+        cut.Markup.Should().Contain("returnTo=history-transactions");
     }
 
     private sealed class TestTokenStore : IApiTokenStore

@@ -139,32 +139,40 @@
 
         _isBusy = true;
         _error = null;
-
-        await ExecuteApiAsync(async ct =>
+        try
         {
-            var cents = Money.ToCents(_model.Amount);
+            await ExecuteApiAsync(async ct =>
+            {
+                var cents = Money.ToCents(_model.Amount);
 
-            var request = new FamilyFinances.Application.Ledger.Transactions.Requests.CreateTransactionRequest(
-                _model.BookedOn,
-                _model.Description.Trim(),
-                new[]
-                {
-                    new FamilyFinances.Application.Ledger.Transactions.Requests.TransactionSplitInput(
-                        _model.FromAccountId!.Value, -cents, null),
+                var request = new FamilyFinances.Application.Ledger.Transactions.Requests.CreateTransactionRequest(
+                    _model.BookedOn,
+                    _model.Description.Trim(),
+                    new[]
+                    {
+                        new FamilyFinances.Application.Ledger.Transactions.Requests.TransactionSplitInput(
+                            _model.FromAccountId!.Value, -cents, null),
 
-                    new FamilyFinances.Application.Ledger.Transactions.Requests.TransactionSplitInput(
-                        _model.ToAccountId!.Value, +cents, string.IsNullOrWhiteSpace(_model.Memo) ? null : _model.Memo.Trim())
-                },
-                _model.PayeeId
-            );
+                        new FamilyFinances.Application.Ledger.Transactions.Requests.TransactionSplitInput(
+                            _model.ToAccountId!.Value, +cents, string.IsNullOrWhiteSpace(_model.Memo) ? null : _model.Memo.Trim())
+                    },
+                    _model.PayeeId
+                );
 
-            await TransactionsApi.CreateAsync(request, ct);
-        });
+                await TransactionsApi.CreateAsync(request, ct);
+            });
 
-        _isBusy = false;
-
-        if (string.IsNullOrWhiteSpace(_error))
-            Nav.NavigateTo("/transactions");
+            if (string.IsNullOrWhiteSpace(_error))
+                Nav.NavigateTo("/transactions");
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
     }
 
     private void Cancel() => Nav.NavigateTo("/transactions");

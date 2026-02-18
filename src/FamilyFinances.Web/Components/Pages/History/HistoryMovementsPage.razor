@@ -100,7 +100,12 @@ else
                                         <small class="text-muted">@movement.BookedOn.Year</small>
                                     </div>
                                 </td>
-                                <td>@movement.Description</td>
+                                <td>
+                                    <a class="text-decoration-none"
+                                       href='@BuildReadOnlyDetailUrl(movement.TransactionId, "history-movements")'>
+                                        @movement.Description
+                                    </a>
+                                </td>
                                 <td>@(string.IsNullOrWhiteSpace(movement.PayeeName) ? "-" : movement.PayeeName)</td>
                                 <td>@(string.IsNullOrWhiteSpace(movement.CounterpartyAccountName) ? "-" : movement.CounterpartyAccountName)</td>
                                 <td class="text-end pe-3">@movement.SignedAmount.ToString("C", CultureInfo.CurrentCulture)</td>
@@ -204,4 +209,7 @@ else
     {
         _refreshSubscription?.Dispose();
     }
+
+    private static string BuildReadOnlyDetailUrl(Guid transactionId, string returnTo)
+        => $"/transactions/{transactionId}?readonly=true&returnTo={Uri.EscapeDataString(returnTo)}";
 }
