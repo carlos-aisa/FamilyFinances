@@ -1,7 +1,11 @@
 using FamilyFinances.Application.Ledger;
+using FamilyFinances.Application.Ledger.FiscalYears.Abstractions;
 using FamilyFinances.Application.Ledger.Transactions.Abstractions;
 using FamilyFinances.Application.Ledger.Transactions.Handlers;
 using FamilyFinances.Application.Ledger.Transactions.Requests;
+using FamilyFinances.Domain.Common;
+using FamilyFinances.Domain.Ledger.Accounts;
+using FamilyFinances.Domain.Ledger.Transactions;
 using FluentAssertions;
 using Moq;
 
@@ -12,97 +16,180 @@ public sealed class UpdateTransactionHandlerTests
     [Fact]
     public async Task HandleAsync_UpdatesTransaction_ReturnsTrue()
     {
-        // Arrange
         var repo = new Mock<ITransactionRepository>(MockBehavior.Strict);
+        var fiscalYearGuard = new Mock<IFiscalYearGuard>(MockBehavior.Strict);
         var uow = new Mock<ILedgerUnitOfWork>(MockBehavior.Strict);
 
         var txId = Guid.NewGuid();
         var fromAccountId = Guid.NewGuid();
         var toAccountId = Guid.NewGuid();
         var bookedOn = new DateOnly(2026, 1, 10);
-        var description = "Updated Transfer";
-        var amount = 75.50m;
+        var existing = CreateTransaction(txId, new DateOnly(2026, 1, 5));
+
+        repo.Setup(r => r.GetByIdAsync(new TransactionId(txId), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        fiscalYearGuard
+            .Setup(x => x.EnsureYearOpenAsync(2026, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         repo.Setup(r => r.UpdateTwoSplitAsync(
                 txId,
                 bookedOn,
-                description,
+                "Updated Transfer",
                 null,
                 fromAccountId,
                 toAccountId,
-                amount,
+                75.50m,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        var handler = new UpdateTransactionHandler(uow.Object, repo.Object);
+        var handler = new UpdateTransactionHandler(uow.Object, repo.Object, fiscalYearGuard.Object);
 
         var request = new UpdateTransactionRequest(
-            Id: txId,
-            BookedOn: bookedOn,
-            Description: description,
-            PayeeId: null,
-            FromAccountId: fromAccountId,
-            ToAccountId: toAccountId,
-            Amount: amount);
-
-        // Act
-        var result = await handler.HandleAsync(request, CancellationToken.None);
-
-        // Assert
-        result.Should().BeTrue();
-
-        repo.Verify(r => r.UpdateTwoSplitAsync(
             txId,
             bookedOn,
-            description,
+            "Updated Transfer",
             null,
             fromAccountId,
             toAccountId,
-            amount,
-            It.IsAny<CancellationToken>()), Times.Once);
+            75.50m);
 
-        repo.VerifyNoOtherCalls();
-        uow.VerifyNoOtherCalls();
+        var result = await handler.HandleAsync(request, CancellationToken.None);
+
+        result.Should().BeTrue();
+        repo.Verify(r => r.GetByIdAsync(new TransactionId(txId), It.IsAny<CancellationToken>()), Times.Once);
+        fiscalYearGuard.Verify(x => x.EnsureYearOpenAsync(2026, It.IsAny<CancellationToken>()), Times.Exactly(2));
+        repo.Verify(r => r.UpdateTwoSplitAsync(
+            txId,
+            bookedOn,
+            "Updated Transfer",
+            null,
+            fromAccountId,
+            toAccountId,
+            75.50m,
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task HandleAsync_WhenTransactionNotFound_ReturnsFalse()
     {
-        // Arrange
         var repo = new Mock<ITransactionRepository>(MockBehavior.Strict);
+        var fiscalYearGuard = new Mock<IFiscalYearGuard>(MockBehavior.Strict);
+        var uow = new Mock<ILedgerUnitOfWork>(MockBehavior.Strict);
+        var txId = Guid.NewGuid();
+
+        repo.Setup(r => r.GetByIdAsync(new TransactionId(txId), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Transaction?)null);
+
+        var handler = new UpdateTransactionHandler(uow.Object, repo.Object, fiscalYearGuard.Object);
+
+        var request = new UpdateTransactionRequest(
+            txId,
+            new DateOnly(2026, 1, 10),
+            "Test",
+            null,
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            50.00m);
+
+        var result = await handler.HandleAsync(request, CancellationToken.None);
+
+        result.Should().BeFalse();
+        repo.Verify(r => r.UpdateTwoSplitAsync(
+            It.IsAny<Guid>(),
+            It.IsAny<DateOnly>(),
+            It.IsAny<string>(),
+            It.IsAny<Guid?>(),
+            It.IsAny<Guid>(),
+            It.IsAny<Guid>(),
+            It.IsAny<decimal>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WithPayee_ValidatesExistingAndTargetYears()
+    {
+        var repo = new Mock<ITransactionRepository>(MockBehavior.Strict);
+        var fiscalYearGuard = new Mock<IFiscalYearGuard>(MockBehavior.Strict);
         var uow = new Mock<ILedgerUnitOfWork>(MockBehavior.Strict);
 
         var txId = Guid.NewGuid();
+        var payeeId = Guid.NewGuid();
         var fromAccountId = Guid.NewGuid();
         var toAccountId = Guid.NewGuid();
+        var existing = CreateTransaction(txId, new DateOnly(2025, 12, 31));
+
+        repo.Setup(r => r.GetByIdAsync(new TransactionId(txId), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        fiscalYearGuard
+            .Setup(x => x.EnsureYearOpenAsync(2025, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        fiscalYearGuard
+            .Setup(x => x.EnsureYearOpenAsync(2026, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         repo.Setup(r => r.UpdateTwoSplitAsync(
-                It.IsAny<Guid>(),
-                It.IsAny<DateOnly>(),
-                It.IsAny<string>(),
-                It.IsAny<Guid?>(),
-                It.IsAny<Guid>(),
-                It.IsAny<Guid>(),
-                It.IsAny<decimal>(),
+                txId,
+                new DateOnly(2026, 1, 15),
+                "Payment to vendor",
+                payeeId,
+                fromAccountId,
+                toAccountId,
+                100.00m,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
+            .ReturnsAsync(true);
 
-        var handler = new UpdateTransactionHandler(uow.Object, repo.Object);
+        var handler = new UpdateTransactionHandler(uow.Object, repo.Object, fiscalYearGuard.Object);
 
         var request = new UpdateTransactionRequest(
-            Id: txId,
-            BookedOn: new DateOnly(2026, 1, 10),
-            Description: "Test",
-            PayeeId: null,
-            FromAccountId: fromAccountId,
-            ToAccountId: toAccountId,
-            Amount: 50.00m);
+            txId,
+            new DateOnly(2026, 1, 15),
+            "Payment to vendor",
+            payeeId,
+            fromAccountId,
+            toAccountId,
+            100.00m);
 
-        // Act
         var result = await handler.HandleAsync(request, CancellationToken.None);
 
-        // Assert
-        result.Should().BeFalse();
+        result.Should().BeTrue();
+        fiscalYearGuard.Verify(x => x.EnsureYearOpenAsync(2025, It.IsAny<CancellationToken>()), Times.Once);
+        fiscalYearGuard.Verify(x => x.EnsureYearOpenAsync(2026, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task HandleAsync_Throws_WhenFiscalYearIsClosed()
+    {
+        var repo = new Mock<ITransactionRepository>(MockBehavior.Strict);
+        var fiscalYearGuard = new Mock<IFiscalYearGuard>(MockBehavior.Strict);
+        var uow = new Mock<ILedgerUnitOfWork>(MockBehavior.Strict);
+
+        var txId = Guid.NewGuid();
+        var existing = CreateTransaction(txId, new DateOnly(2025, 10, 1));
+
+        repo.Setup(r => r.GetByIdAsync(new TransactionId(txId), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        fiscalYearGuard
+            .Setup(x => x.EnsureYearOpenAsync(2025, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new DomainException("Year 2025 is closed. Reopen the year to modify movements."));
+
+        var handler = new UpdateTransactionHandler(uow.Object, repo.Object, fiscalYearGuard.Object);
+        var request = new UpdateTransactionRequest(
+            txId,
+            new DateOnly(2025, 10, 2),
+            "Blocked update",
+            null,
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            10m);
+
+        var act = () => handler.HandleAsync(request, CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<DomainException>();
+        ex.Which.Message.Should().Contain("Year 2025 is closed");
 
         repo.Verify(r => r.UpdateTwoSplitAsync(
             It.IsAny<Guid>(),
@@ -112,60 +199,23 @@ public sealed class UpdateTransactionHandlerTests
             It.IsAny<Guid>(),
             It.IsAny<Guid>(),
             It.IsAny<decimal>(),
-            It.IsAny<CancellationToken>()), Times.Once);
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    [Fact]
-    public async Task HandleAsync_WithPayee_UpdatesTransactionWithPayeeId()
+    private static Transaction CreateTransaction(Guid id, DateOnly bookedOn)
     {
-        // Arrange
-        var repo = new Mock<ITransactionRepository>(MockBehavior.Strict);
-        var uow = new Mock<ILedgerUnitOfWork>(MockBehavior.Strict);
+        var from = AccountId.New();
+        var to = AccountId.New();
 
-        var txId = Guid.NewGuid();
-        var payeeId = Guid.NewGuid();
-        var fromAccountId = Guid.NewGuid();
-        var toAccountId = Guid.NewGuid();
-        var bookedOn = new DateOnly(2026, 1, 15);
-        var description = "Payment to vendor";
-        var amount = 100.00m;
-
-        repo.Setup(r => r.UpdateTwoSplitAsync(
-                txId,
-                bookedOn,
-                description,
-                payeeId,
-                fromAccountId,
-                toAccountId,
-                amount,
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
-
-        var handler = new UpdateTransactionHandler(uow.Object, repo.Object);
-
-        var request = new UpdateTransactionRequest(
-            Id: txId,
-            BookedOn: bookedOn,
-            Description: description,
-            PayeeId: payeeId,
-            FromAccountId: fromAccountId,
-            ToAccountId: toAccountId,
-            Amount: amount);
-
-        // Act
-        var result = await handler.HandleAsync(request, CancellationToken.None);
-
-        // Assert
-        result.Should().BeTrue();
-
-        repo.Verify(r => r.UpdateTwoSplitAsync(
-            txId,
+        return Transaction.Create(
             bookedOn,
-            description,
-            payeeId,
-            fromAccountId,
-            toAccountId,
-            amount,
-            It.IsAny<CancellationToken>()), Times.Once);
+            "Existing",
+            new[]
+            {
+                TransactionSplit.Create(from, new Money(-1000), "From"),
+                TransactionSplit.Create(to, new Money(1000), "To")
+            },
+            null,
+            id);
     }
 }

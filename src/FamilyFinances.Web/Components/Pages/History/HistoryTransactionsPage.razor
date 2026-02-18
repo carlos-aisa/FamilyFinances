@@ -1,0 +1,193 @@
+@page "/history/transactions"
+@inherits ApiPageBase
+@implements IDisposable
+@using System.Globalization
+@using FamilyFinances.Application.Ledger.Transactions.Dtos
+@using FamilyFinances.Web.Api
+@using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web.State
+@inject HistoryApi HistoryApi
+@inject HistoryRefreshNotifier HistoryRefreshNotifier
+
+<HistoryTabs />
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-12 col-md-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-calendar3 me-1"></i>Year
+                </label>
+                <InputSelect class="form-select" @bind-Value="_selectedYear" @bind-Value:after="LoadTransactionsAsync">
+                    @foreach (var year in _yearOptions)
+                    {
+                        <option value="@year">@year</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-12 col-md-3">
+                <button class="btn btn-outline-secondary" @onclick="LoadTransactionsAsync" disabled="@_isBusy">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <div class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle me-2"></i>@_error
+    </div>
+}
+
+@if (_isBusy)
+{
+    <div class="d-flex justify-content-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (_items.Count == 0)
+{
+    <div class="alert alert-info mb-0">
+        <i class="bi bi-info-circle me-2"></i>No historical transactions found for @_selectedYear.
+    </div>
+}
+else
+{
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3" style="width: 120px;">Date</th>
+                            <th style="width: 100px;">Type</th>
+                            <th>Description</th>
+                            <th class="text-end pe-3" style="width: 180px;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in _items)
+                        {
+                            <tr>
+                                <td class="ps-3">
+                                    <div class="d-flex flex-column">
+                                        <span class="fw-semibold">@item.BookedOn.ToString("dd MMM", new CultureInfo("es-ES"))</span>
+                                        <small class="text-muted">@item.BookedOn.Year</small>
+                                    </div>
+                                </td>
+                                <td>@GetTypeBadge(item.Type)</td>
+                                <td>
+                                    <div class="d-flex flex-column">
+                                        <span class="fw-semibold">@item.Headline</span>
+                                        <small class="text-muted">@item.Subheadline</small>
+                                    </div>
+                                </td>
+                                <td class="text-end pe-3">
+                                    <span class="badge @GetAmountBadgeClass(item.Type) fs-6 px-3 py-2">
+                                        @item.Amount.ToString("C", CultureInfo.CurrentCulture)
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private readonly List<int> _yearOptions = new();
+    private readonly List<TransactionListItemDto> _items = new();
+    private int _selectedYear = DateTime.Today.Year;
+    private bool _isBusy;
+    private string? _error;
+    private IDisposable? _refreshSubscription;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _refreshSubscription = HistoryRefreshNotifier.Subscribe(OnHistoryRefreshRequested);
+        await LoadYearsAsync();
+        await LoadTransactionsAsync();
+    }
+
+    private async Task LoadYearsAsync()
+    {
+        await ExecuteApiAsync(async ct =>
+        {
+            var years = await HistoryApi.ListFiscalYearsAsync(ct);
+            _yearOptions.Clear();
+            _yearOptions.AddRange(years.Select(x => x.Year).Distinct().OrderByDescending(x => x));
+
+            if (_yearOptions.Count == 0)
+                _yearOptions.Add(DateTime.Today.Year);
+
+            if (!_yearOptions.Contains(_selectedYear))
+                _selectedYear = _yearOptions[0];
+        });
+    }
+
+    private async Task LoadTransactionsAsync()
+    {
+        if (_isBusy)
+            return;
+
+        _isBusy = true;
+        _error = null;
+        _items.Clear();
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                var items = await HistoryApi.ListHistoricalTransactionsAsync(_selectedYear, 1000, ct);
+                _items.AddRange(items);
+            });
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private static RenderFragment GetTypeBadge(TransactionListItemType type) => type switch
+    {
+        TransactionListItemType.Expense => @<span class="badge bg-danger-subtle text-danger">Expense</span>,
+        TransactionListItemType.Income => @<span class="badge bg-success-subtle text-success">Income</span>,
+        TransactionListItemType.Transfer => @<span class="badge bg-primary-subtle text-primary">Transfer</span>,
+        TransactionListItemType.Refund => @<span class="badge bg-info-subtle text-info">Refund</span>,
+        _ => @<span class="badge bg-secondary-subtle text-secondary">Other</span>
+    };
+
+    private static string GetAmountBadgeClass(TransactionListItemType type) => type switch
+    {
+        TransactionListItemType.Expense => "bg-danger-subtle text-danger",
+        TransactionListItemType.Income => "bg-success-subtle text-success",
+        TransactionListItemType.Transfer => "bg-info-subtle text-info",
+        TransactionListItemType.Refund => "bg-info-subtle text-info",
+        _ => "bg-secondary-subtle text-secondary"
+    };
+
+    private void OnHistoryRefreshRequested()
+    {
+        _ = InvokeAsync(async () =>
+        {
+            await LoadYearsAsync();
+            await LoadTransactionsAsync();
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose()
+    {
+        _refreshSubscription?.Dispose();
+    }
+}

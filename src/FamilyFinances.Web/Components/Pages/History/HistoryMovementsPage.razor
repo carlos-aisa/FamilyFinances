@@ -1,0 +1,207 @@
+@page "/history/movements"
+@inherits ApiPageBase
+@implements IDisposable
+@using System.Globalization
+@using FamilyFinances.Application.Ledger.Accounts.Dtos
+@using FamilyFinances.Application.Reporting.Dtos
+@using FamilyFinances.Web.Api
+@using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web.State
+@inject HistoryApi HistoryApi
+@inject IAccountsApi AccountsApi
+@inject HistoryRefreshNotifier HistoryRefreshNotifier
+
+<HistoryTabs />
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-12 col-md-3">
+                <label class="form-label fw-semibold">Year</label>
+                <InputSelect class="form-select" @bind-Value="_selectedYear" @bind-Value:after="LoadMovementsAsync">
+                    @foreach (var year in _yearOptions)
+                    {
+                        <option value="@year">@year</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold">Account</label>
+                <InputSelect class="form-select" @bind-Value="_selectedAccountId" @bind-Value:after="LoadMovementsAsync" disabled="@(!_accounts.Any())">
+                    @foreach (var account in _accounts)
+                    {
+                        <option value="@account.Id">@account.Name</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label fw-semibold">Search</label>
+                <input type="text" class="form-control" @bind="_searchQuery" @bind:event="oninput" placeholder="Description or payee..." />
+            </div>
+            <div class="col-12 col-md-2">
+                <button class="btn btn-primary w-100" @onclick="LoadMovementsAsync" disabled="@_isBusy || !_accounts.Any()">
+                    <i class="bi bi-search me-1"></i>Search
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <div class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle me-2"></i>@_error
+    </div>
+}
+
+@if (_isBusy)
+{
+    <div class="d-flex justify-content-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (_movements is null)
+{
+    <div class="alert alert-info mb-0">
+        <i class="bi bi-info-circle me-2"></i>Select an account to load historical movements.
+    </div>
+}
+else if (_movements.Items.Count == 0)
+{
+    <div class="alert alert-info mb-0">
+        <i class="bi bi-info-circle me-2"></i>No movements found for the selected year and filters.
+    </div>
+}
+else
+{
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3" style="width: 120px;">Date</th>
+                            <th>Description</th>
+                            <th style="width: 220px;">Payee</th>
+                            <th style="width: 220px;">Counterparty</th>
+                            <th class="text-end pe-3" style="width: 160px;">Amount</th>
+                            <th class="text-end pe-3" style="width: 200px;">Running Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var movement in _movements.Items)
+                        {
+                            <tr>
+                                <td class="ps-3">
+                                    <div class="d-flex flex-column">
+                                        <span class="fw-semibold">@movement.BookedOn.ToString("dd MMM", new CultureInfo("es-ES"))</span>
+                                        <small class="text-muted">@movement.BookedOn.Year</small>
+                                    </div>
+                                </td>
+                                <td>@movement.Description</td>
+                                <td>@(string.IsNullOrWhiteSpace(movement.PayeeName) ? "-" : movement.PayeeName)</td>
+                                <td>@(string.IsNullOrWhiteSpace(movement.CounterpartyAccountName) ? "-" : movement.CounterpartyAccountName)</td>
+                                <td class="text-end pe-3">@movement.SignedAmount.ToString("C", CultureInfo.CurrentCulture)</td>
+                                <td class="text-end pe-3 fw-semibold">@movement.RunningBalance.ToString("C", CultureInfo.CurrentCulture)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private readonly List<int> _yearOptions = new();
+    private readonly List<AccountDto> _accounts = new();
+    private AccountMovementsDto? _movements;
+    private int _selectedYear = DateTime.Today.Year;
+    private Guid _selectedAccountId;
+    private bool _isBusy;
+    private string _searchQuery = string.Empty;
+    private string? _error;
+    private IDisposable? _refreshSubscription;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _refreshSubscription = HistoryRefreshNotifier.Subscribe(OnHistoryRefreshRequested);
+        await LoadFiltersAsync();
+        if (_accounts.Count > 0)
+            await LoadMovementsAsync();
+    }
+
+    private async Task LoadFiltersAsync()
+    {
+        await ExecuteApiAsync(async ct =>
+        {
+            var years = await HistoryApi.ListFiscalYearsAsync(ct);
+            _yearOptions.Clear();
+            _yearOptions.AddRange(years.Select(x => x.Year).Distinct().OrderByDescending(x => x));
+
+            if (_yearOptions.Count == 0)
+                _yearOptions.Add(DateTime.Today.Year);
+
+            if (!_yearOptions.Contains(_selectedYear))
+                _selectedYear = _yearOptions[0];
+
+            _accounts.Clear();
+            _accounts.AddRange((await AccountsApi.ListAsync(ct))
+                .OrderBy(x => x.Nature)
+                .ThenBy(x => x.Name));
+
+            if (_accounts.Count > 0 && _selectedAccountId == Guid.Empty)
+                _selectedAccountId = _accounts[0].Id;
+        });
+    }
+
+    private async Task LoadMovementsAsync()
+    {
+        if (_isBusy || _selectedAccountId == Guid.Empty)
+            return;
+
+        _isBusy = true;
+        _error = null;
+        _movements = null;
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                _movements = await HistoryApi.GetHistoricalMovementsAsync(
+                    _selectedAccountId,
+                    _selectedYear,
+                    string.IsNullOrWhiteSpace(_searchQuery) ? null : _searchQuery.Trim(),
+                    1,
+                    200,
+                    ct);
+            });
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private void OnHistoryRefreshRequested()
+    {
+        _ = InvokeAsync(async () =>
+        {
+            await LoadFiltersAsync();
+            if (_accounts.Count > 0)
+                await LoadMovementsAsync();
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose()
+    {
+        _refreshSubscription?.Dispose();
+    }
+}

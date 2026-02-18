@@ -27,6 +27,8 @@ tags:
   - name: Accounts
   - name: Payees
   - name: Transactions
+  - name: FiscalYears
+  - name: History
   - name: AccountGroups
   - name: Reports
   - name: Health
@@ -563,6 +565,8 @@ paths:
       responses:
         '204':
           description: Transaction deleted.
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '404':
           description: Transaction not found (response body may be empty).
         '401':
@@ -636,6 +640,182 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/ExpenseSearchResultDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/fiscal-years:
+    get:
+      tags: [FiscalYears]
+      summary: List fiscal year statuses
+      operationId: FiscalYears_List
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Fiscal-year statuses.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FiscalYearStatusDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/fiscal-years/{year}/close:
+    post:
+      tags: [FiscalYears]
+      summary: Close fiscal year
+      description: Closes the fiscal year and computes account snapshots for year end.
+      operationId: FiscalYears_Close
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: year
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: Fiscal year closed (idempotent if already closed).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FiscalYearStatusDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/fiscal-years/{year}/reopen:
+    post:
+      tags: [FiscalYears]
+      summary: Reopen fiscal year
+      description: Reopens the fiscal year and removes stale snapshots for that year.
+      operationId: FiscalYears_Reopen
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: year
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: Fiscal year reopened (idempotent if already open).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FiscalYearStatusDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/history/transactions:
+    get:
+      tags: [History]
+      summary: List historical transactions by year
+      operationId: History_ListTransactions
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: year
+          required: true
+          schema:
+            type: integer
+            format: int32
+        - in: query
+          name: take
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 200
+          description: Requested maximum items (server caps at 1000).
+      responses:
+        '200':
+          description: Historical transactions for selected year.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TransactionListItemDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/history/movements:
+    get:
+      tags: [History]
+      summary: Get historical account movements by year
+      operationId: History_GetMovements
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: accountId
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: year
+          required: true
+          schema:
+            type: integer
+            format: int32
+        - in: query
+          name: q
+          required: false
+          schema:
+            type: string
+          description: Optional text filter over description and payee.
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 1
+        - in: query
+          name: pageSize
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 50
+          description: Clamped by server to max 100.
+      responses:
+        '200':
+          description: Historical movements for account and year.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountMovementsDto'
+        '404':
+          description: Account not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -1345,6 +1525,30 @@ components:
           type: integer
           format: int32
       required: [accountId, accountName, fromInclusive, toExclusive, items, totalCount]
+
+    FiscalYearStatusDto:
+      type: object
+      properties:
+        year:
+          type: integer
+          format: int32
+        isClosed:
+          type: boolean
+        closedAtUtc:
+          type: string
+          format: date-time
+          nullable: true
+        closedByUserId:
+          type: string
+          nullable: true
+        reopenedAtUtc:
+          type: string
+          format: date-time
+          nullable: true
+        reopenedByUserId:
+          type: string
+          nullable: true
+      required: [year, isClosed, closedAtUtc, closedByUserId, reopenedAtUtc, reopenedByUserId]
 
     CreatePayeeRequest:
       type: object

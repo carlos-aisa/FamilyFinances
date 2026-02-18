@@ -9,6 +9,11 @@ public interface ITransactionRepository
     Task AddAsync(Transaction transaction, CancellationToken ct);
     Task<Transaction?> GetByIdAsync(TransactionId id, CancellationToken ct);
     Task<IReadOnlyList<Transaction>> ListAsync(int take, CancellationToken ct);
+    Task<IReadOnlyList<Transaction>> ListByPeriodAsync(
+        DateOnly fromInclusive,
+        DateOnly toExclusive,
+        int take,
+        CancellationToken ct);
     Task RemoveAsync(TransactionId id, CancellationToken ct);
     Task<bool> UpdateTwoSplitAsync(
         Guid id,
