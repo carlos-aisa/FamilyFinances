@@ -1,4 +1,5 @@
 using FamilyFinances.Application.Ledger;
+using FamilyFinances.Application.Ledger.FiscalYears.Abstractions;
 using FamilyFinances.Application.Ledger.Transactions.Abstractions;
 using FamilyFinances.Application.Ledger.Transactions.Handlers;
 using FamilyFinances.Domain.Common;
@@ -30,10 +31,15 @@ public sealed class DeleteTransactionHandlerTests
         var ct = CancellationToken.None;
         
         var repo = new Mock<ITransactionRepository>(MockBehavior.Strict);
+        var fiscalYearGuard = new Mock<IFiscalYearGuard>(MockBehavior.Strict);
         var uow = new Mock<ILedgerUnitOfWork>(MockBehavior.Strict);
 
         repo.Setup(r => r.GetByIdAsync(tx.Id, ct))
             .ReturnsAsync(tx);
+
+        fiscalYearGuard
+            .Setup(x => x.EnsureYearOpenAsync(tx.BookedOn.Year, ct))
+            .Returns(Task.CompletedTask);
 
         repo.Setup(r => r.RemoveAsync(tx.Id, ct))
             .Returns(Task.CompletedTask);
@@ -41,7 +47,7 @@ public sealed class DeleteTransactionHandlerTests
         uow.Setup(u => u.SaveChangesAsync(ct))
             .ReturnsAsync(1);
 
-        var handler = new DeleteTransactionHandler(uow.Object, repo.Object);
+        var handler = new DeleteTransactionHandler(uow.Object, repo.Object, fiscalYearGuard.Object);
 
         // Act
         var result = await handler.HandleAsync(tx.Id.Value, ct);
@@ -50,6 +56,7 @@ public sealed class DeleteTransactionHandlerTests
         result.Should().BeTrue();
 
         repo.Verify(r => r.GetByIdAsync(tx.Id, ct), Times.Once);
+        fiscalYearGuard.Verify(x => x.EnsureYearOpenAsync(tx.BookedOn.Year, ct), Times.Once);
         repo.Verify(r => r.RemoveAsync(tx.Id, ct), Times.Once);
         uow.Verify(u => u.SaveChangesAsync(ct), Times.Once);
     }
@@ -63,12 +70,13 @@ public sealed class DeleteTransactionHandlerTests
         var ct = CancellationToken.None;
 
         var repo = new Mock<ITransactionRepository>(MockBehavior.Strict);
+        var fiscalYearGuard = new Mock<IFiscalYearGuard>(MockBehavior.Strict);
         var uow = new Mock<ILedgerUnitOfWork>(MockBehavior.Strict);
 
         repo.Setup(r => r.GetByIdAsync(txId, ct))
             .ReturnsAsync((Transaction?)null);
 
-        var handler = new DeleteTransactionHandler(uow.Object, repo.Object);
+        var handler = new DeleteTransactionHandler(uow.Object, repo.Object, fiscalYearGuard.Object);
 
         // Act
         var result = await handler.HandleAsync(transactionId, ct);
@@ -101,6 +109,7 @@ public sealed class DeleteTransactionHandlerTests
         var ct = CancellationToken.None;
         
         var repo = new Mock<ITransactionRepository>(MockBehavior.Strict);
+        var fiscalYearGuard = new Mock<IFiscalYearGuard>(MockBehavior.Strict);
         var uow = new Mock<ILedgerUnitOfWork>(MockBehavior.Strict);
 
         TransactionId? capturedId = null;
@@ -109,13 +118,17 @@ public sealed class DeleteTransactionHandlerTests
             .ReturnsAsync(tx)
             .Callback<TransactionId, CancellationToken>((id, _) => capturedId = id);
 
+        fiscalYearGuard
+            .Setup(x => x.EnsureYearOpenAsync(tx.BookedOn.Year, ct))
+            .Returns(Task.CompletedTask);
+
         repo.Setup(r => r.RemoveAsync(It.IsAny<TransactionId>(), ct))
             .Returns(Task.CompletedTask);
 
         uow.Setup(u => u.SaveChangesAsync(ct))
             .ReturnsAsync(1);
 
-        var handler = new DeleteTransactionHandler(uow.Object, repo.Object);
+        var handler = new DeleteTransactionHandler(uow.Object, repo.Object, fiscalYearGuard.Object);
 
         // Act
         await handler.HandleAsync(tx.Id.Value, ct);
@@ -145,10 +158,15 @@ public sealed class DeleteTransactionHandlerTests
         var ct = cts.Token;
         
         var repo = new Mock<ITransactionRepository>(MockBehavior.Strict);
+        var fiscalYearGuard = new Mock<IFiscalYearGuard>(MockBehavior.Strict);
         var uow = new Mock<ILedgerUnitOfWork>(MockBehavior.Strict);
 
         repo.Setup(r => r.GetByIdAsync(tx.Id, ct))
             .ReturnsAsync(tx);
+
+        fiscalYearGuard
+            .Setup(x => x.EnsureYearOpenAsync(tx.BookedOn.Year, ct))
+            .Returns(Task.CompletedTask);
 
         repo.Setup(r => r.RemoveAsync(tx.Id, ct))
             .Returns(Task.CompletedTask);
@@ -156,14 +174,52 @@ public sealed class DeleteTransactionHandlerTests
         uow.Setup(u => u.SaveChangesAsync(ct))
             .ReturnsAsync(1);
 
-        var handler = new DeleteTransactionHandler(uow.Object, repo.Object);
+        var handler = new DeleteTransactionHandler(uow.Object, repo.Object, fiscalYearGuard.Object);
 
         // Act
         await handler.HandleAsync(tx.Id.Value, ct);
 
         // Assert
         repo.Verify(r => r.GetByIdAsync(tx.Id, ct), Times.Once);
+        fiscalYearGuard.Verify(x => x.EnsureYearOpenAsync(tx.BookedOn.Year, ct), Times.Once);
         repo.Verify(r => r.RemoveAsync(tx.Id, ct), Times.Once);
         uow.Verify(u => u.SaveChangesAsync(ct), Times.Once);
+    }
+
+    [Fact]
+    public async Task HandleAsync_Throws_WhenFiscalYearIsClosed()
+    {
+        var bank = AccountId.New();
+        var expense = AccountId.New();
+
+        var tx = Transaction.Create(
+            new DateOnly(2025, 1, 10),
+            "Blocked delete",
+            new[]
+            {
+                TransactionSplit.Create(bank, new Money(-1000), "From"),
+                TransactionSplit.Create(expense, new Money(1000), "To")
+            });
+
+        var repo = new Mock<ITransactionRepository>(MockBehavior.Strict);
+        var fiscalYearGuard = new Mock<IFiscalYearGuard>(MockBehavior.Strict);
+        var uow = new Mock<ILedgerUnitOfWork>(MockBehavior.Strict);
+
+        repo.Setup(r => r.GetByIdAsync(tx.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tx);
+
+        fiscalYearGuard
+            .Setup(x => x.EnsureYearOpenAsync(2025, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new DomainException("Year 2025 is closed. Reopen the year to modify movements."));
+
+        var handler = new DeleteTransactionHandler(uow.Object, repo.Object, fiscalYearGuard.Object);
+
+        var act = () => handler.HandleAsync(tx.Id.Value, CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<DomainException>();
+        ex.Which.Message.Should().Contain("Year 2025 is closed");
+
+        repo.Verify(r => r.RemoveAsync(It.IsAny<TransactionId>(), It.IsAny<CancellationToken>()), Times.Never);
+        uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 }

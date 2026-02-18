@@ -4,6 +4,9 @@ using FamilyFinances.Application.Ledger.AccountGroups.Abstractions;
 using FamilyFinances.Application.Ledger.AccountGroups.Handlers;
 using FamilyFinances.Application.Ledger.Accounts.Abstractions;
 using FamilyFinances.Application.Ledger.Accounts.Handlers;
+using FamilyFinances.Application.Ledger.FiscalYears.Abstractions;
+using FamilyFinances.Application.Ledger.FiscalYears.Handlers;
+using FamilyFinances.Application.Ledger.FiscalYears.Services;
 using FamilyFinances.Application.Ledger.Payees.Abstractions;
 using FamilyFinances.Application.Ledger.Payees.Handlers;
 using FamilyFinances.Application.Ledger.Transactions.Abstractions;
@@ -15,6 +18,7 @@ using FamilyFinances.Infrastructure.Persistence.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
@@ -44,9 +48,11 @@ public static class DependencyInjection
         services.AddScoped<IReportingReadRepository, ReportingReadRepository>();
         services.AddScoped<IAccountGroupRepository, AccountGroupRepository>();
         services.AddScoped<IAccountGroupMembershipRepository, AccountGroupMembershipRepository>();
+        services.AddScoped<IFiscalYearGovernanceRepository, FiscalYearGovernanceRepository>();
 
         // Services
         services.AddScoped<IAccountBalanceService, Persistence.Services.AccountBalanceService>();
+        services.AddScoped<IFiscalYearGuard, FiscalYearGuard>();
 
         // Accounts Handlers
         services.AddScoped<CloseAccountHandler>();
@@ -66,6 +72,11 @@ public static class DependencyInjection
         services.AddScoped<UpdateMultiSplitTransactionHandler>();
         services.AddScoped<HasAnyTransactionHandler>();
         services.AddScoped<SearchExpensesHandler>(); 
+        services.AddScoped<ListFiscalYearsHandler>();
+        services.AddScoped<CloseFiscalYearHandler>();
+        services.AddScoped<ReopenFiscalYearHandler>();
+        services.AddScoped<ListHistoricalTransactionsHandler>();
+        services.AddScoped<GetHistoricalAccountMovementsHandler>();
 
         // Payee Handlers
         services.AddScoped<CreatePayeeHandler>();
@@ -96,10 +107,24 @@ public static class DependencyInjection
         IConfiguration configuration)
     {
         services.AddDbContext<AppIdentityDbContext>(options =>
-            options.UseSqlite(configuration.GetConnectionString("Default")));
+        {
+            options.UseSqlite(configuration.GetConnectionString("Default"));
+            if (configuration.GetValue("Persistence:IgnoreNonTransactionalMigrationWarnings", false))
+            {
+                options.ConfigureWarnings(w =>
+                    w.Ignore(RelationalEventId.NonTransactionalMigrationOperationWarning));
+            }
+        });
         
         services.AddDbContext<LedgerDbContext>(options =>
-            options.UseSqlite(configuration.GetConnectionString("Default")));
+        {
+            options.UseSqlite(configuration.GetConnectionString("Default"));
+            if (configuration.GetValue("Persistence:IgnoreNonTransactionalMigrationWarnings", false))
+            {
+                options.ConfigureWarnings(w =>
+                    w.Ignore(RelationalEventId.NonTransactionalMigrationOperationWarning));
+            }
+        });
 
         return services;
     }

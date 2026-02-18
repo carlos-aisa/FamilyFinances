@@ -1,4 +1,5 @@
 using FamilyFinances.Application.Ledger;
+using FamilyFinances.Application.Ledger.FiscalYears.Abstractions;
 using FamilyFinances.Application.Ledger.Payees.Abstractions;
 using FamilyFinances.Application.Ledger.Transactions.Abstractions;
 using FamilyFinances.Application.Ledger.Transactions.Dtos;
@@ -13,22 +14,27 @@ public sealed class CreateTransactionHandler
     private readonly ITransactionRepository _transactions;
     private readonly IPayeeRepository _payees;
     private readonly ITransactionLinkRepository _links;
+    private readonly IFiscalYearGuard _fiscalYearGuard;
     private readonly ILedgerUnitOfWork _uow;
 
     public CreateTransactionHandler(
         ITransactionRepository transactions, 
         IPayeeRepository payees,
         ITransactionLinkRepository links,
+        IFiscalYearGuard fiscalYearGuard,
         ILedgerUnitOfWork uow)
     {
         _transactions = transactions;
         _payees = payees;
         _links = links;
+        _fiscalYearGuard = fiscalYearGuard;
         _uow = uow;
     }
 
     public async Task<TransactionDto> HandleAsync(CreateTransactionRequest cmd, CancellationToken ct)
     {
+        await _fiscalYearGuard.EnsureYearOpenAsync(cmd.BookedOn.Year, ct);
+
         PayeeId? payeeId = null;
 
         if (cmd.PayeeId.HasValue)

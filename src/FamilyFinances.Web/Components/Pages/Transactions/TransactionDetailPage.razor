@@ -37,7 +37,14 @@ else
         <div>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-1">
-                    <li class="breadcrumb-item"><a href="/transactions">Transactions</a></li>
+                    @if (IsReadOnlyHistory)
+                    {
+                        <li class="breadcrumb-item"><a href="/history">History</a></li>
+                    }
+                    else
+                    {
+                        <li class="breadcrumb-item"><a href="/transactions">Transactions</a></li>
+                    }
                     <li class="breadcrumb-item active" aria-current="page">Details</li>
                 </ol>
             </nav>
@@ -45,7 +52,13 @@ else
         </div>
 
         <div class="d-flex gap-2">
-            @if (!_confirmDelete)
+            @if (IsReadOnlyHistory)
+            {
+                <button class="btn btn-outline-secondary" type="button" @onclick="NavigateBackToHistory">
+                    <i class="bi bi-arrow-left me-1"></i>Back to History
+                </button>
+            }
+            else if (!_confirmDelete)
             {
                 <a class="btn btn-outline-secondary" href="/transactions">
                     <i class="bi bi-arrow-left me-1"></i>Back
@@ -181,6 +194,8 @@ else
 
 @code {
     [Parameter] public Guid Id { get; set; }
+    [SupplyParameterFromQuery(Name = "readonly")] public bool ReadOnly { get; set; }
+    [SupplyParameterFromQuery(Name = "returnTo")] public string? ReturnTo { get; set; }
 
     private TransactionDto? _tx;
     private string? _error;
@@ -239,6 +254,16 @@ else
 
     private static string FormatMoney(decimal amount)
         => amount.ToString("C", CultureInfo.CurrentCulture);
+
+    private bool IsReadOnlyHistory => ReadOnly;
+
+    private void NavigateBackToHistory()
+    {
+        var destination = string.Equals(ReturnTo, "history-movements", StringComparison.OrdinalIgnoreCase)
+            ? "/history/movements"
+            : "/history/transactions";
+        Nav.NavigateTo(destination);
+    }
 
     private async Task DeleteAsync()
     {

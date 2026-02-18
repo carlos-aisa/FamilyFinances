@@ -25,7 +25,7 @@ public sealed class RefundsApiTests
             splits = new[]
             {
                 new { accountId = groceries.Id, amountCents = -3300, memo = (string?)null }, // Expense decreased
-                new { accountId = bank.Id, amountCents = 3300, memo = "Refund received" }    // Asset increased
+                new { accountId = bank.Id, amountCents = 3300, memo = (string?)"Refund received" }    // Asset increased
             },
             payeeId = (Guid?)null,
             relatedTransactionId = (Guid?)null
@@ -87,7 +87,7 @@ public sealed class RefundsApiTests
             splits = new[]
             {
                 new { accountId = groceries.Id, amountCents = -5000, memo = (string?)null },
-                new { accountId = bank.Id, amountCents = 5000, memo = "Refund" }
+                new { accountId = bank.Id, amountCents = 5000, memo = (string?)"Refund" }
             },
             payeeId = (Guid?)null,
             relatedTransactionId = originalExpense!.Id
@@ -122,7 +122,7 @@ public sealed class RefundsApiTests
             splits = new[]
             {
                 new { accountId = groceries.Id, amountCents = -2000, memo = (string?)null },
-                new { accountId = bank.Id, amountCents = 2000, memo = "Refund" }
+                new { accountId = bank.Id, amountCents = 2000, memo = (string?)"Refund" }
             },
             relatedTransactionId = nonExistentId
         });

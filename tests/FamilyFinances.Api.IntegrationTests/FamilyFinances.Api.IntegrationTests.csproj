@@ -24,4 +24,8 @@
     <ProjectReference Include="..\..\src\FamilyFinances.Api\FamilyFinances.Api.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\Common\FluentAssertionsLicenseInitializer.cs" Link="Common\FluentAssertionsLicenseInitializer.cs" />
+  </ItemGroup>
+
 </Project>

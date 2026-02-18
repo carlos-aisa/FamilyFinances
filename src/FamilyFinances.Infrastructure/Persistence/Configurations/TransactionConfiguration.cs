@@ -30,6 +30,9 @@ public sealed class TransactionConfiguration : IEntityTypeConfiguration<Transact
             .IsRequired()
             .HasDefaultValueSql("datetime('now')");
 
+        builder.HasIndex(x => x.BookedOn);
+        builder.HasIndex(x => new { x.BookedOn, x.CreatedAt });
+
         // Splits are stored in a separate table with a shadow FK "TransactionId"
         builder.HasMany(x => x.Splits)
             .WithOne()

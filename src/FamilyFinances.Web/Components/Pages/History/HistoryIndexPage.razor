@@ -1,0 +1,11 @@
+@page "/history"
+@inject NavigationManager Navigation
+
+<div class="text-muted">Redirecting...</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        Navigation.NavigateTo("/history/transactions", replace: true);
+    }
+}

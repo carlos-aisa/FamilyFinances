@@ -55,6 +55,9 @@ public sealed class TransactionsApi
         if (response.StatusCode == HttpStatusCode.Unauthorized)
             throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
 
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+            throw new InvalidOperationException(await ReadErrorAsync(response, ct));
+
         response.EnsureSuccessStatusCode();
 
         var dto = await response.Content.ReadFromJsonAsync<TransactionDto>(cancellationToken: ct);
@@ -98,6 +101,9 @@ public sealed class TransactionsApi
         if (response.StatusCode == HttpStatusCode.NotFound)
             throw new InvalidOperationException("Transaction not found.");
 
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+            throw new InvalidOperationException(await ReadErrorAsync(response, ct));
+
         response.EnsureSuccessStatusCode();
     }
 
@@ -119,6 +125,9 @@ public sealed class TransactionsApi
         if (response.StatusCode == HttpStatusCode.NotFound)
             throw new InvalidOperationException("Transaction not found.");
 
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+            throw new InvalidOperationException(await ReadErrorAsync(response, ct));
+
         response.EnsureSuccessStatusCode();
     }
 
@@ -139,6 +148,9 @@ public sealed class TransactionsApi
 
         if (response.StatusCode == HttpStatusCode.NotFound)
             throw new InvalidOperationException("Transaction not found.");
+
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+            throw new InvalidOperationException(await ReadErrorAsync(response, ct));
 
         response.EnsureSuccessStatusCode();
     }
@@ -189,6 +201,25 @@ public sealed class TransactionsApi
 
         var results = await response.Content.ReadFromJsonAsync<List<ExpenseSearchResultDto>>(cancellationToken: ct);
         return results ?? new List<ExpenseSearchResultDto>();
+    }
+
+    private static async Task<string> ReadErrorAsync(HttpResponseMessage response, CancellationToken ct)
+    {
+        try
+        {
+            var payload = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>(cancellationToken: ct);
+            if (payload is not null && payload.TryGetValue("error", out var message) && !string.IsNullOrWhiteSpace(message))
+                return message;
+        }
+        catch
+        {
+            // fallback below
+        }
+
+        var raw = await response.Content.ReadAsStringAsync(ct);
+        return string.IsNullOrWhiteSpace(raw)
+            ? $"Request failed with status {(int)response.StatusCode} ({response.StatusCode})."
+            : raw;
     }
 
     private sealed record HasAnyResponse(bool HasAny);

@@ -5,6 +5,7 @@ using FamilyFinances.Web.Api;
 using FamilyFinances.Web.Auth;
 using FamilyFinances.Web.Components;
 using FamilyFinances.Web.Endpoints;
+using FamilyFinances.Web.State;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Options;
 using System.Net.Http.Headers;
@@ -28,6 +29,8 @@ builder.Services.AddScoped<PayeesApi>();
 builder.Services.AddScoped<TransactionsApi>();
 builder.Services.AddScoped<ReportsApi>();
 builder.Services.AddScoped<AccountGroupsApi>();
+builder.Services.AddScoped<HistoryApi>();
+builder.Services.AddSingleton<HistoryRefreshNotifier>();
 
 // Authentication
 builder.Services.AddScoped<JwtAuthStateProvider>();

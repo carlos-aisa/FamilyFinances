@@ -279,12 +279,13 @@
         await LoadGroupsAsync();
     }
 
-    private async Task HandlePresetSelected(DateRangePresets.DateRangePreset preset)
+    private Task HandlePresetSelected(DateRangePresets.DateRangePreset preset)
     {
         var (from, to) = preset.GetDateRange();
         _fromDate = from;
         _toDate = to;
         _activePreset = preset.Type.ToString().ToLowerInvariant().Replace("_", "-");
+        return Task.CompletedTask;
     }
 
     private void OnDateChanged()

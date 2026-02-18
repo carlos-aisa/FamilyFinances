@@ -1,5 +1,7 @@
 using FamilyFinances.Application.Reporting.Abstractions;
 using FamilyFinances.Application.Reporting.Dtos;
+using FamilyFinances.Application.Ledger.FiscalYears.Abstractions;
+using FamilyFinances.Domain.Common;
 using FamilyFinances.Domain.Ledger.AccountGroups;
 using FamilyFinances.Domain.Ledger.Accounts;
 using FamilyFinances.Domain.Ledger.Transactions;
@@ -10,8 +12,15 @@ namespace FamilyFinances.Infrastructure.Persistence.Repositories;
 public sealed class ReportingReadRepository : IReportingReadRepository
 {
     private readonly LedgerDbContext _db;
+    private readonly IFiscalYearGovernanceRepository _governance;
 
-    public ReportingReadRepository(LedgerDbContext db) => _db = db;
+    public ReportingReadRepository(
+        LedgerDbContext db,
+        IFiscalYearGovernanceRepository governance)
+    {
+        _db = db;
+        _governance = governance;
+    }
 
     public async Task<MonthlySummaryDto> GetMonthlySummaryAsync(
         DateOnly fromInclusive,
@@ -389,37 +398,13 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             .Take(take)
             .ToListAsync(ct);
 
-        // Calculate running balance for each movement
-        // First, get all splits for this account up to and including the last movement in our page
-        var lastMovementDate = movements.Any() ? movements.Last().BookedOn : fromInclusive;
-        
-        // Get balance at the start of the period (before fromInclusive)
-        var balanceBeforePeriod = await _db.TransactionSplits
-            .AsNoTracking()
-            .Where(s => s.AccountId == accountIdVo)
-            .Join(_db.Transactions.AsNoTracking(), 
-                  s => EF.Property<TransactionId>(s, "TransactionId"), 
-                  t => t.Id, 
-                  (s, t) => new { s.Amount, t.BookedOn })
-            .Where(x => x.BookedOn < fromInclusive)
-            .Select(x => x.Amount)
-            .ToListAsync(ct);
-
-        var startingBalance = balanceBeforePeriod.Sum(m => m.ToEuros());
-
-        // For each movement, find the counterparty account and calculate running balance
         var movementItems = new List<AccountMovementDto>();
+        var startingBalanceCents = await GetStartingBalanceCentsAsync(accountIdVo, fromInclusive, ct);
 
-        // We need to calculate balance chronologically, but movements are sorted descending
-        // So we need to get all movements between fromInclusive and the last movement in our page
-        // in ascending order, then take only the ones we want
-        
-        if (movements.Any())
+        if (movements.Count > 0)
         {
-            var oldestInPage = movements.Last().BookedOn;
             var newestInPage = movements.First().BookedOn;
-            
-            // Get ALL movements from fromInclusive to newestInPage (to calculate running balance correctly)
+
             var allMovementsForBalance = await (
                 from t in _db.Transactions.AsNoTracking()
                 join s in _db.TransactionSplits.AsNoTracking()
@@ -427,44 +412,54 @@ public sealed class ReportingReadRepository : IReportingReadRepository
                 where s.AccountId == accountIdVo
                 where t.BookedOn >= fromInclusive && t.BookedOn <= newestInPage
                 orderby t.BookedOn, t.CreatedAt, t.Id
-                select new { t.Id, t.BookedOn, t.CreatedAt, s.Amount }
+                select new { t.Id, AmountCents = s.Amount.Cents }
             ).ToListAsync(ct);
-            
-            // Calculate cumulative balance
-            var runningBalance = startingBalance;
-            var balanceByTransaction = new Dictionary<TransactionId, decimal>();
-            
+
+            var runningBalanceCents = startingBalanceCents;
+            var balanceByTransaction = new Dictionary<TransactionId, long>();
+
             foreach (var m in allMovementsForBalance)
             {
-                runningBalance += m.Amount.ToEuros();
-                balanceByTransaction[m.Id] = runningBalance;
+                runningBalanceCents += m.AmountCents;
+                balanceByTransaction[m.Id] = runningBalanceCents;
             }
-            
-            // Now build the DTOs for our paginated movements
+
+            var pageTransactionIds = movements
+                .Select(m => m.TransactionId)
+                .Distinct()
+                .ToList();
+
+            var counterpartyRows = await (
+                from s in _db.TransactionSplits.AsNoTracking()
+                join a in _db.Accounts.AsNoTracking() on s.AccountId equals a.Id
+                where pageTransactionIds.Contains(EF.Property<TransactionId>(s, "TransactionId"))
+                where s.AccountId != accountIdVo
+                select new
+                {
+                    TransactionId = EF.Property<TransactionId>(s, "TransactionId"),
+                    AccountName = a.Name
+                }
+            ).ToListAsync(ct);
+
+            var counterpartyByTransaction = counterpartyRows
+                .GroupBy(x => x.TransactionId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(x => x.AccountName).OrderBy(x => x).FirstOrDefault());
+
             foreach (var movement in movements)
             {
-                // Find the counterparty account name (the OTHER split in this transaction)
-                string? counterpartyAccountName = null;
-
-                var otherSplit = await _db.TransactionSplits
-                    .AsNoTracking()
-                    .Where(s => EF.Property<TransactionId>(s, "TransactionId") == movement.TransactionId && s.AccountId != accountIdVo)
-                    .Join(_db.Accounts.AsNoTracking(), s => s.AccountId, a => a.Id, (s, a) => a.Name)
-                    .FirstOrDefaultAsync(ct);
-
-                if (otherSplit != null)
-                    counterpartyAccountName = otherSplit;
-
-                var balance = balanceByTransaction.GetValueOrDefault(movement.TransactionId, 0m);
+                counterpartyByTransaction.TryGetValue(movement.TransactionId, out var counterpartyAccountName);
+                var runningBalanceForTx = balanceByTransaction.GetValueOrDefault(movement.TransactionId, startingBalanceCents);
 
                 movementItems.Add(new AccountMovementDto(
                     movement.TransactionId.Value,
                     movement.BookedOn,
                     movement.Description,
                     movement.PayeeName,
-                    movement.SignedAmount.ToEuros(), // Convert cents to euros
+                    movement.SignedAmount.ToEuros(),
                     counterpartyAccountName,
-                    balance
+                    new Money(runningBalanceForTx).ToEuros()
                 ));
             }
         }
@@ -477,6 +472,46 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             movementItems,
             totalCount
         );
+    }
+
+    private async Task<long> GetStartingBalanceCentsAsync(
+        AccountId accountId,
+        DateOnly fromInclusive,
+        CancellationToken ct)
+    {
+        var snapshot = await _governance.GetLatestSnapshotBeforeYearAsync(
+            accountId.Value,
+            fromInclusive.Year,
+            ct);
+
+        if (snapshot is null)
+            return await SumAccountSplitsInRangeAsync(accountId, null, fromInclusive, ct);
+
+        var deltaFrom = new DateOnly(snapshot.Value.Year + 1, 1, 1);
+        if (deltaFrom >= fromInclusive)
+            return snapshot.Value.ClosingBalanceCents;
+
+        var delta = await SumAccountSplitsInRangeAsync(accountId, deltaFrom, fromInclusive, ct);
+        return snapshot.Value.ClosingBalanceCents + delta;
+    }
+
+    private async Task<long> SumAccountSplitsInRangeAsync(
+        AccountId accountId,
+        DateOnly? fromInclusive,
+        DateOnly toExclusive,
+        CancellationToken ct)
+    {
+        var cents = await (
+            from s in _db.TransactionSplits.AsNoTracking()
+            join t in _db.Transactions.AsNoTracking()
+                on EF.Property<TransactionId>(s, "TransactionId") equals t.Id
+            where s.AccountId == accountId
+            where t.BookedOn < toExclusive
+            where fromInclusive == null || t.BookedOn >= fromInclusive.Value
+            select s.Amount.Cents
+        ).ToListAsync(ct);
+
+        return cents.Sum();
     }
 
     /// <summary>

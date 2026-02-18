@@ -1,0 +1,255 @@
+@page "/history/years"
+@inherits ApiPageBase
+@using FamilyFinances.Application.Ledger.FiscalYears.Dtos
+@using FamilyFinances.Web.Api
+@using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web.State
+@inject HistoryApi HistoryApi
+@inject HistoryRefreshNotifier HistoryRefreshNotifier
+
+<HistoryTabs />
+
+@if (!string.IsNullOrWhiteSpace(_success))
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="bi bi-check-circle me-2"></i>@_success
+        <button type="button" class="btn-close" @onclick="@(() => _success = null)"></button>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="bi bi-exclamation-triangle me-2"></i>@_error
+        <button type="button" class="btn-close" @onclick="@(() => _error = null)"></button>
+    </div>
+}
+
+<div class="card shadow-sm">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="bi bi-calendar-check me-2"></i>Fiscal Year Governance
+        </h5>
+        <button class="btn btn-outline-secondary btn-sm" @onclick="LoadAsync" disabled="@_isBusy">
+            <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+        </button>
+    </div>
+    <div class="card-body p-0">
+        @if (_isBusy)
+        {
+            <div class="d-flex justify-content-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        }
+        else if (_items.Count == 0)
+        {
+            <div class="p-4 text-muted">No fiscal years available.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3" style="width: 100px;">Year</th>
+                            <th style="width: 120px;">Status</th>
+                            <th style="width: 220px;">Closed At (UTC)</th>
+                            <th style="width: 220px;">Reopened At (UTC)</th>
+                            <th class="text-end pe-3" style="width: 180px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in _items)
+                        {
+                            <tr>
+                                <td class="ps-3 fw-semibold">@item.Year</td>
+                                <td>
+                                    @if (item.IsClosed)
+                                    {
+                                        <span class="badge bg-danger">Closed</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">Open</span>
+                                    }
+                                </td>
+                                <td>@(item.ClosedAtUtc?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-")</td>
+                                <td>@(item.ReopenedAtUtc?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-")</td>
+                                <td class="text-end pe-3">
+                                    @if (item.IsClosed)
+                                    {
+                                        <button class="btn btn-sm btn-outline-warning"
+                                                @onclick="() => OpenConfirm(YearAction.Reopen, item.Year)"
+                                                disabled="@_isBusy">
+                                            Reopen Year
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-sm btn-outline-danger"
+                                                @onclick="() => OpenConfirm(YearAction.Close, item.Year)"
+                                                disabled="@_isBusy">
+                                            Close Year
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@if (_showConfirmModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        @if (_pendingAction == YearAction.Close)
+                        {
+                            <span>Close Fiscal Year @_pendingYear</span>
+                        }
+                        else
+                        {
+                            <span>Reopen Fiscal Year @_pendingYear</span>
+                        }
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CloseConfirm" disabled="@_isBusy"></button>
+                </div>
+                <div class="modal-body">
+                    @if (_pendingAction == YearAction.Close)
+                    {
+                        <p class="mb-0">Closing the year will block create/edit/delete/reconcile operations for year @_pendingYear.</p>
+                    }
+                    else
+                    {
+                        <p class="mb-0">Reopening the year will allow modifications again for year @_pendingYear and remove stale snapshots.</p>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseConfirm" disabled="@_isBusy">Cancel</button>
+                    <button class="btn @(_pendingAction == YearAction.Close ? "btn-danger" : "btn-warning")"
+                            @onclick="ExecutePendingActionAsync"
+                            disabled="@_isBusy">
+                        @if (_pendingAction == YearAction.Close)
+                        {
+                            <span>Confirm Close</span>
+                        }
+                        else
+                        {
+                            <span>Confirm Reopen</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private enum YearAction
+    {
+        Close,
+        Reopen
+    }
+
+    private readonly List<FiscalYearStatusDto> _items = new();
+    private bool _isBusy;
+    private string? _error;
+    private string? _success;
+    private bool _showConfirmModal;
+    private YearAction _pendingAction;
+    private int _pendingYear;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (_isBusy)
+            return;
+
+        _isBusy = true;
+        _error = null;
+
+        try
+        {
+            await ExecuteApiAsync(async ct => await RefreshStatusesAsync(ct));
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private void OpenConfirm(YearAction action, int year)
+    {
+        _pendingAction = action;
+        _pendingYear = year;
+        _showConfirmModal = true;
+    }
+
+    private void CloseConfirm()
+    {
+        _showConfirmModal = false;
+    }
+
+    private async Task ExecutePendingActionAsync()
+    {
+        if (_isBusy)
+            return;
+
+        _isBusy = true;
+        _error = null;
+        _success = null;
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                if (_pendingAction == YearAction.Close)
+                {
+                    await HistoryApi.CloseYearAsync(_pendingYear, ct);
+                    _success = $"Year {_pendingYear} closed successfully.";
+                }
+                else
+                {
+                    await HistoryApi.ReopenYearAsync(_pendingYear, ct);
+                    _success = $"Year {_pendingYear} reopened successfully.";
+                }
+
+                await RefreshStatusesAsync(ct);
+                HistoryRefreshNotifier.NotifyChanged();
+            });
+
+            _showConfirmModal = false;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private async Task RefreshStatusesAsync(CancellationToken ct)
+    {
+        var items = await HistoryApi.ListFiscalYearsAsync(ct);
+        _items.Clear();
+        _items.AddRange(items.OrderByDescending(x => x.Year));
+    }
+}

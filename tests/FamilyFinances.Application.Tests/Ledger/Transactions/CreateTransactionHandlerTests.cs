@@ -1,4 +1,5 @@
 using FamilyFinances.Application.Ledger;
+using FamilyFinances.Application.Ledger.FiscalYears.Abstractions;
 using FamilyFinances.Application.Ledger.Payees.Abstractions;
 using FamilyFinances.Application.Ledger.Transactions.Abstractions;
 using FamilyFinances.Application.Ledger.Transactions.Requests;
@@ -17,7 +18,12 @@ public sealed class CreateTransactionHandlerTests
         var repo = new Mock<ITransactionRepository>(MockBehavior.Strict);
         var payeeRepo = new Mock<IPayeeRepository>(MockBehavior.Strict);
         var linksRepo = new Mock<ITransactionLinkRepository>(MockBehavior.Strict);
+        var fiscalYearGuard = new Mock<IFiscalYearGuard>(MockBehavior.Strict);
         var uow = new Mock<ILedgerUnitOfWork>(MockBehavior.Strict);
+
+        fiscalYearGuard
+            .Setup(x => x.EnsureYearOpenAsync(2026, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         repo.Setup(r => r.AddAsync(It.IsAny<Transaction>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -25,7 +31,12 @@ public sealed class CreateTransactionHandlerTests
         uow.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
-        var handler = new CreateTransactionHandler(repo.Object, payeeRepo.Object, linksRepo.Object, uow.Object);
+        var handler = new CreateTransactionHandler(
+            repo.Object,
+            payeeRepo.Object,
+            linksRepo.Object,
+            fiscalYearGuard.Object,
+            uow.Object);
 
         var bankId = Guid.NewGuid();
         var expenseId = Guid.NewGuid();
@@ -55,6 +66,7 @@ public sealed class CreateTransactionHandlerTests
             t.Splits.Sum(x => x.Amount.Cents) == 0), It.IsAny<CancellationToken>()), Times.Once);
 
         uow.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        fiscalYearGuard.Verify(x => x.EnsureYearOpenAsync(2026, It.IsAny<CancellationToken>()), Times.Once);
         repo.VerifyNoOtherCalls();
         uow.VerifyNoOtherCalls();
     }
@@ -65,9 +77,19 @@ public sealed class CreateTransactionHandlerTests
         var repo = new Mock<ITransactionRepository>(MockBehavior.Strict);
         var payeeRepo = new Mock<IPayeeRepository>(MockBehavior.Strict);
         var linksRepo = new Mock<ITransactionLinkRepository>(MockBehavior.Strict);
+        var fiscalYearGuard = new Mock<IFiscalYearGuard>(MockBehavior.Strict);
         var uow = new Mock<ILedgerUnitOfWork>(MockBehavior.Strict);
 
-        var handler = new CreateTransactionHandler(repo.Object, payeeRepo.Object, linksRepo.Object, uow.Object);
+        fiscalYearGuard
+            .Setup(x => x.EnsureYearOpenAsync(2026, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var handler = new CreateTransactionHandler(
+            repo.Object,
+            payeeRepo.Object,
+            linksRepo.Object,
+            fiscalYearGuard.Object,
+            uow.Object);
 
         var a = Guid.NewGuid();
         var b = Guid.NewGuid();
@@ -85,5 +107,44 @@ public sealed class CreateTransactionHandlerTests
         var act = async () => await handler.HandleAsync(cmd, CancellationToken.None);
 
         await act.Should().ThrowAsync<DomainException>();
+    }
+
+    [Fact]
+    public async Task HandleAsync_Throws_WhenFiscalYearIsClosed()
+    {
+        var repo = new Mock<ITransactionRepository>(MockBehavior.Strict);
+        var payeeRepo = new Mock<IPayeeRepository>(MockBehavior.Strict);
+        var linksRepo = new Mock<ITransactionLinkRepository>(MockBehavior.Strict);
+        var fiscalYearGuard = new Mock<IFiscalYearGuard>(MockBehavior.Strict);
+        var uow = new Mock<ILedgerUnitOfWork>(MockBehavior.Strict);
+
+        fiscalYearGuard
+            .Setup(x => x.EnsureYearOpenAsync(2025, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new DomainException("Year 2025 is closed. Reopen the year to modify movements."));
+
+        var handler = new CreateTransactionHandler(
+            repo.Object,
+            payeeRepo.Object,
+            linksRepo.Object,
+            fiscalYearGuard.Object,
+            uow.Object);
+
+        var cmd = new CreateTransactionRequest(
+            BookedOn: new DateOnly(2025, 2, 1),
+            Description: "Blocked",
+            Splits: new List<TransactionSplitInput>
+            {
+                new(Guid.NewGuid(), -500, null),
+                new(Guid.NewGuid(), 500, null)
+            },
+            PayeeId: null);
+
+        var act = () => handler.HandleAsync(cmd, CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<DomainException>();
+        ex.Which.Message.Should().Contain("Year 2025 is closed");
+
+        repo.Verify(x => x.AddAsync(It.IsAny<Transaction>(), It.IsAny<CancellationToken>()), Times.Never);
+        uow.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 }

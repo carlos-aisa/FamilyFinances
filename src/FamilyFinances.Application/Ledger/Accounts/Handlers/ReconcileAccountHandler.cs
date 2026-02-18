@@ -2,6 +2,7 @@ using FamilyFinances.Application.Ledger;
 using FamilyFinances.Application.Ledger.Accounts.Abstractions;
 using FamilyFinances.Application.Ledger.Accounts.Dtos;
 using FamilyFinances.Application.Ledger.Accounts.Requests;
+using FamilyFinances.Application.Ledger.FiscalYears.Abstractions;
 using FamilyFinances.Application.Ledger.Transactions.Abstractions;
 using FamilyFinances.Domain.Common;
 using FamilyFinances.Domain.Ledger.Accounts;
@@ -18,6 +19,7 @@ public sealed class ReconcileAccountHandler
     private readonly IAccountRepository _accounts;
     private readonly ITransactionRepository _transactions;
     private readonly IAccountBalanceService _balanceService;
+    private readonly IFiscalYearGuard _fiscalYearGuard;
     private readonly ILedgerUnitOfWork _uow;
 
     // Standard names for adjustment accounts
@@ -28,11 +30,13 @@ public sealed class ReconcileAccountHandler
         IAccountRepository accounts,
         ITransactionRepository transactions,
         IAccountBalanceService balanceService,
+        IFiscalYearGuard fiscalYearGuard,
         ILedgerUnitOfWork uow)
     {
         _accounts = accounts;
         _transactions = transactions;
         _balanceService = balanceService;
+        _fiscalYearGuard = fiscalYearGuard;
         _uow = uow;
     }
 
@@ -53,6 +57,8 @@ public sealed class ReconcileAccountHandler
 
         if (account.IsClosed)
             throw new DomainException($"Cannot reconcile closed account '{account.Name}'.");
+
+        await _fiscalYearGuard.EnsureYearOpenAsync(request.AsOfDate.Year, ct);
 
         // 2. Compute current balance as of the specified date (inclusive)
         var computedBalance = await ComputeBalanceAsOfAsync(accountIdVo, request.AsOfDate, ct);

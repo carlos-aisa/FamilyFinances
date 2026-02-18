@@ -35,6 +35,21 @@ public sealed class TransactionRepository : ITransactionRepository
             .Take(take)
             .ToListAsync(ct);
 
+    public async Task<IReadOnlyList<Transaction>> ListByPeriodAsync(
+        DateOnly fromInclusive,
+        DateOnly toExclusive,
+        int take,
+        CancellationToken ct)
+        => await _db.Transactions
+            .AsNoTracking()
+            .Include(t => t.Payee)
+            .Include(t => t.Splits).ThenInclude(s => s.Account)
+            .Where(t => t.BookedOn >= fromInclusive && t.BookedOn < toExclusive)
+            .OrderByDescending(t => t.BookedOn)
+            .ThenByDescending(t => t.Id)
+            .Take(take)
+            .ToListAsync(ct);
+
     public async Task RemoveAsync(TransactionId id, CancellationToken ct)
     {
         var transaction = await GetByIdAsync(id, ct);

@@ -147,7 +147,11 @@ namespace FamilyFinances.Infrastructure.Persistence.Migrations.Ledger
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BookedOn");
+
                     b.HasIndex("PayeeId");
+
+                    b.HasIndex("BookedOn", "CreatedAt");
 
                     b.ToTable("Transactions", (string)null);
                 });
@@ -209,6 +213,56 @@ namespace FamilyFinances.Infrastructure.Persistence.Migrations.Ledger
                     b.ToTable("TransactionSplits", (string)null);
                 });
 
+            modelBuilder.Entity("FamilyFinances.Infrastructure.Persistence.Models.AccountYearSnapshot", b =>
+                {
+                    b.Property<int>("Year")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("ClosingBalanceCents")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("ComputedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Year", "AccountId");
+
+                    b.HasIndex("AccountId", "Year");
+
+                    b.ToTable("AccountYearSnapshots", (string)null);
+                });
+
+            modelBuilder.Entity("FamilyFinances.Infrastructure.Persistence.Models.FiscalYearClosure", b =>
+                {
+                    b.Property<int>("Year")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("ClosedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ClosedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsClosed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("ReopenedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ReopenedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Year");
+
+                    b.HasIndex("IsClosed", "Year");
+
+                    b.ToTable("FiscalYearClosures", (string)null);
+                });
+
             modelBuilder.Entity("FamilyFinances.Domain.Ledger.AccountGroups.AccountGroupMember", b =>
                 {
                     b.HasOne("FamilyFinances.Domain.Ledger.Accounts.Account", null)
@@ -245,6 +299,17 @@ namespace FamilyFinances.Infrastructure.Persistence.Migrations.Ledger
                     b.HasOne("FamilyFinances.Domain.Ledger.Transactions.Transaction", null)
                         .WithMany("Splits")
                         .HasForeignKey("TransactionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+                });
+
+            modelBuilder.Entity("FamilyFinances.Infrastructure.Persistence.Models.AccountYearSnapshot", b =>
+                {
+                    b.HasOne("FamilyFinances.Domain.Ledger.Accounts.Account", "Account")
+                        .WithMany()
+                        .HasForeignKey("AccountId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
