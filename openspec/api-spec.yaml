@@ -1103,6 +1103,34 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /api/v1/reports/asset-total-balance:
+    get:
+      tags: [Reports]
+      summary: Get asset total balance as-of date
+      operationId: Reports_GetAssetTotalBalance
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: asOf
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Aggregated asset total balance for the as-of date.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetTotalBalanceDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
   /api/v1/reports/account-groups/{groupId}/totals:
     get:
       tags: [Reports]
@@ -1884,6 +1912,20 @@ components:
           items:
             $ref: '#/components/schemas/AccountTotalItemDto'
       required: [fromInclusive, toExclusive, items]
+
+    AssetTotalBalanceDto:
+      type: object
+      properties:
+        asOf:
+          type: string
+          format: date
+        totalCents:
+          type: integer
+          format: int64
+        assetAccountsCount:
+          type: integer
+          format: int32
+      required: [asOf, totalCents, assetAccountsCount]
 
     AccountGroupTotalItemDto:
       type: object

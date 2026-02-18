@@ -25,6 +25,10 @@ public interface IReportingReadRepository
         bool includeZeroAccounts,
         CancellationToken ct);
 
+    Task<AssetTotalBalanceDto> GetAssetTotalBalanceAsync(
+        DateOnly asOf,
+        CancellationToken ct);
+
     Task<AccountGroupTotalsDto> GetAccountGroupTotalsAsync(
         Guid groupId,
         DateOnly fromInclusive,

@@ -132,4 +132,28 @@ public sealed class ReportsApi
         var result = await response.Content.ReadFromJsonAsync<AccountGroupTotalsDto>(cancellationToken: ct);
         return result ?? throw new InvalidOperationException("Failed to deserialize account group totals response.");
     }
+
+    public async Task<AssetTotalBalanceDto> GetAssetTotalBalanceAsync(
+        DateOnly asOf,
+        CancellationToken ct = default)
+    {
+        var token = _tokenStore.GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("No access token available.");
+
+        var url = $"api/v1/reports/asset-total-balance?asOf={asOf:yyyy-MM-dd}";
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _http.SendAsync(request, ct);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
+
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<AssetTotalBalanceDto>(cancellationToken: ct);
+        return result ?? throw new InvalidOperationException("Failed to deserialize asset total balance response.");
+    }
 }

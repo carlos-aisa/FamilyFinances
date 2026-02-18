@@ -79,4 +79,21 @@ public sealed class ReportsController : ControllerBase
 
         return Ok(dto);
     }
+
+    [Authorize(Policy = Policies.CanRead)]
+    [HttpGet("asset-total-balance")]
+    public async Task<ActionResult<AssetTotalBalanceDto>> GetAssetTotalBalance(
+        [FromQuery] DateOnly? asOf,
+        [FromServices] GetAssetTotalBalanceHandler handler,
+        CancellationToken ct)
+    {
+        if (asOf is null)
+            return BadRequest(new { error = "Query parameter 'asOf' is required." });
+
+        var dto = await handler.HandleAsync(
+            new GetAssetTotalBalanceQuery(asOf.Value),
+            ct);
+
+        return Ok(dto);
+    }
 }

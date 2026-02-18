@@ -138,6 +138,8 @@ Then the API returns `200 OK`
 And the response is `AccountGroupDetailsDto { Id, Name, Description, Accounts }`
 
 ### Requirement: Reporting Endpoints SHALL Provide Aggregated Read Models
+The system SHALL provide aggregated report read models, including an as-of asset total balance contract.
+
 #### Scenario: Monthly summary returns summary DTO
 Given valid date query inputs  
 When the client calls `GET /api/v1/reports/monthly-summary`  
@@ -149,6 +151,12 @@ Given a group id that does not exist
 When the client calls `GET /api/v1/reports/account-groups/{groupId}/totals`  
 Then the API returns `404 NotFound`  
 And mapped not-found errors use `{ error }`
+
+#### Scenario: Asset total balance report returns as-of aggregated asset balance
+Given a valid as-of date and authorized user  
+When the client calls `GET /api/v1/reports/asset-total-balance?asOf=YYYY-MM-DD`  
+Then the API returns `200 OK`  
+And the response contains `AsOf`, `TotalCents`, and `AssetAccountsCount`
 
 ### Requirement: Health Endpoint SHALL Be Exposed
 #### Scenario: Health endpoint route exists
