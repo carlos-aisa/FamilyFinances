@@ -90,6 +90,7 @@ Archive a completed change in the experimental workflow.
    - Archive location
    - Whether specs were synced (if applicable)
    - Note about any warnings (incomplete artifacts/tasks)
+   - 2-3 bullets in English summarizing what the change implemented functionally (from tasks/spec deltas)
 
 **Output On Success**
 
@@ -102,6 +103,11 @@ Archive a completed change in the experimental workflow.
 **Specs:** ✓ Synced to main specs (or "No delta specs" or "Sync skipped")
 
 All artifacts complete. All tasks complete.
+
+Implemented summary (English):
+- <point 1>
+- <point 2>
+- <point 3 (optional)>
 ```
 
 **Guardrails**
@@ -110,5 +116,6 @@ All artifacts complete. All tasks complete.
 - Don't block archive on warnings - just inform and confirm
 - Preserve .openspec.yaml when moving to archive (it moves with the directory)
 - Show clear summary of what happened
+- The implemented-summary bullets MUST be written in English
 - If sync is requested, use openspec-sync-specs approach (agent-driven)
 - If delta specs exist, always run the sync assessment and show the combined summary before prompting

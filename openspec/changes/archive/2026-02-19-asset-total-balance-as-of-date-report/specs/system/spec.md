@@ -1,6 +1,8 @@
 ## MODIFIED Requirements
 
 ### Requirement: Reporting Endpoints Must Provide Aggregated Read Models
+The system SHALL provide aggregated report read models, including an as-of asset total balance contract.
+
 #### Scenario: Monthly summary returns summary DTO
 Given valid date query inputs  
 When the client calls `GET /api/v1/reports/monthly-summary`  

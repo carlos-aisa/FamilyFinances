@@ -224,6 +224,42 @@ public sealed class ReportingReadRepository : IReportingReadRepository
         );
     }
 
+    public async Task<AssetTotalBalanceDto> GetAssetTotalBalanceAsync(
+        DateOnly asOf,
+        CancellationToken ct)
+    {
+        var assetSplitsQuery =
+            from t in _db.Transactions.AsNoTracking()
+            join s in _db.TransactionSplits.AsNoTracking()
+                on t.Id equals EF.Property<TransactionId>(s, "TransactionId")
+            join a in _db.Accounts.AsNoTracking()
+                on s.AccountId equals a.Id
+            where a.Nature == AccountNature.Asset
+            where t.BookedOn <= asOf
+            select new
+            {
+                AccountId = EF.Property<Guid>(s, nameof(TransactionSplit.AccountId)),
+                AmountCents = EF.Property<long>(s, nameof(TransactionSplit.Amount))
+            };
+
+        var totalCents =
+            await assetSplitsQuery
+                .Select(x => (long?)x.AmountCents)
+                .SumAsync(ct) ?? 0;
+
+        var assetAccountsCount =
+            await assetSplitsQuery
+                .Select(x => x.AccountId)
+                .Distinct()
+                .CountAsync(ct);
+
+        return new AssetTotalBalanceDto(
+            AsOf: asOf,
+            TotalCents: totalCents,
+            AssetAccountsCount: assetAccountsCount
+        );
+    }
+
     public async Task<AccountGroupTotalsDto> GetAccountGroupTotalsAsync(
         Guid groupId,
         DateOnly fromInclusive,
