@@ -142,63 +142,6 @@
 
             var charts = BuildAnnualChartsViewModel();
 
-            @if (!string.IsNullOrWhiteSpace(charts.Error))
-            {
-                <ReportingChartErrorState Message="@charts.Error" />
-            }
-            else
-            {
-                @if (_activeScope == MonthlyEvolutionScope.Accounts)
-                {
-                    var selectableSeries = GetSelectableAccountSeries();
-
-                    <div class="card shadow-sm mb-3">
-                        <div class="card-body">
-                            <div class="row g-3 align-items-end">
-                                <div class="col-12 col-lg-6">
-                                    <label class="form-label fw-semibold mb-1">Account Line Selection</label>
-                                    <select class="form-select form-select-sm account-line-selector"
-                                            value="@_selectedAccountSeriesKeyForChart"
-                                            @onchange="OnAccountSeriesSelectionChanged">
-                                        <option value="">All accounts</option>
-                                        @foreach (var series in selectableSeries)
-                                        {
-                                            <option value="@series.SeriesKey">@series.DisplayName</option>
-                                        }
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <AnnualLineChart
-                        Title="Accounts Monthly Evolution"
-                        Subtitle="Monthly end-balance evolution by account. Use the selector to focus one account."
-                        Year="@_selectedYear"
-                        Series="@charts.AccountEvolution"
-                        TestId="annual-accounts-evolution-chart" />
-
-                    <div class="row g-3 mb-4">
-                        <div class="col-12 col-xl-6">
-                            <AnnualCompositionChart
-                                Title="Expense Composition"
-                                Subtitle="Share of annual absolute balances for expense-nature accounts."
-                                Year="@_selectedYear"
-                                Slices="@charts.ExpenseComposition"
-                                TestId="annual-expense-composition-chart" />
-                        </div>
-                        <div class="col-12 col-xl-6">
-                            <AnnualCompositionChart
-                                Title="Income Composition"
-                                Subtitle="Share of annual absolute balances for income-nature accounts."
-                                Year="@_selectedYear"
-                                Slices="@charts.IncomeComposition"
-                                TestId="annual-income-composition-chart" />
-                        </div>
-                    </div>
-                }
-            }
-
             @if (_activeScope == MonthlyEvolutionScope.AssetTotal)
             {
                 var series = _report.Series.First();
@@ -288,135 +231,241 @@
             }
             else
             {
-                var availableMonths = GetAvailableMonths();
-
                 @if (_activeScope == MonthlyEvolutionScope.Accounts)
                 {
-                    <div class="card shadow-sm mb-4">
-                        <div class="card-header bg-transparent">
-                            <div class="d-flex flex-column flex-md-row gap-3 justify-content-between align-items-md-end">
-                                <div>
-                                    <h5 class="mb-1">
-                                        <i class="bi bi-table me-2"></i>@GetScopeTitle()
-                                    </h5>
-                                    <p class="text-muted mb-0">@GetScopeDescription()</p>
+                    var dataUntilMonth = GetDataUntilMonthForSelectedYear();
+                    var summaryMonth = GetReferenceMonthForSelectedYear();
+                    var groupedSeries = GetAccountSeriesGroups();
+                    var selectableSeries = GetSelectableAccountSeries();
+                    var compositionMonthOptions = GetAvailableMonthsForFocusedSelection();
+                    var compositionMonth = GetFocusedCompositionMonth();
+                    var compositionMonthLabel = compositionMonth is not null
+                        ? DateHelper.GetMonthName(compositionMonth.Value)
+                        : "N/A";
+                    var natureIndex = 0;
+
+                    <div class="row g-3 mb-4 accounts-overview-grid">
+                        <div class="col-12 col-xxl-8">
+                            <div class="card shadow-sm h-100">
+                                <div class="card-header bg-transparent">
+                                    <div>
+                                        <h5 class="mb-1">
+                                            <i class="bi bi-table me-2"></i>Accounts Overview
+                                        </h5>
+                                        <p class="text-muted mb-0">Current month summary grouped by nature. Expand only the accounts you need.</p>
+                                    </div>
                                 </div>
-                                @if (availableMonths.Count > 0 && _focusedMonth is not null)
+                                <div class="card-body p-0">
+                                    <div class="accordion accordion-flush" id="accountsNatureAccordion">
+                                        @foreach (var natureGroup in groupedSeries)
+                                        {
+                                            var groupId = $"accounts-nature-{natureIndex}";
+                                            var headingId = $"{groupId}-heading";
+                                            var collapseId = $"{groupId}-collapse";
+                                            var isFirstGroup = natureIndex == 0;
+                                            natureIndex++;
+
+                                            <div class="accordion-item account-nature-group">
+                                                <h2 class="accordion-header" id="@headingId">
+                                                    <button class="accordion-button @(isFirstGroup ? string.Empty : "collapsed")"
+                                                            type="button"
+                                                            data-bs-toggle="collapse"
+                                                            data-bs-target="#@collapseId"
+                                                            aria-expanded="@isFirstGroup"
+                                                            aria-controls="@collapseId">
+                                                        <span class="account-nature-title">
+                                                            <i class="bi @GetNatureIcon(natureGroup.Nature) me-2"></i>@GetNatureLabel(natureGroup.Nature)
+                                                        </span>
+                                                        <span class="badge text-bg-secondary ms-2">@natureGroup.Series.Count series</span>
+                                                    </button>
+                                                </h2>
+                                                <div id="@collapseId"
+                                                     class="accordion-collapse collapse @(isFirstGroup ? "show" : string.Empty)"
+                                                     aria-labelledby="@headingId"
+                                                     data-bs-parent="#accountsNatureAccordion">
+                                                    <div class="accordion-body p-0">
+                                                        <div class="table-responsive">
+                                                            <table class="table table-sm table-hover align-middle mb-0">
+                                                                <thead class="table-light">
+                                                                    <tr>
+                                                                        <th class="border-0 ps-3">Series Name</th>
+                                                                        <th class="border-0 text-end">End Balance</th>
+                                                                        <th class="border-0 text-end">Delta Prev Month</th>
+                                                                        <th class="border-0 text-end">Delta Year Start</th>
+                                                                        <th class="border-0 text-end pe-3">Details</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    @foreach (var series in natureGroup.Series)
+                                                                    {
+                                                                        var point = summaryMonth is not null
+                                                                            ? GetPointAtOrBeforeMonth(series, summaryMonth.Value)
+                                                                            : null;
+                                                                        var isExpanded = _expandedSeriesKey == series.SeriesKey;
+
+                                                                        <tr class="series-summary-row">
+                                                                            <td class="ps-3 fw-semibold">@series.DisplayName</td>
+                                                                            <td class="text-end @GetValueColorClass(point?.EndBalanceCents ?? 0, point is not null)">
+                                                                                @(point is not null ? MoneyFormatter.FormatCentsWithSign(point.EndBalanceCents) : "-")
+                                                                            </td>
+                                                                            <td class="text-end @GetValueColorClass(point?.DeltaVsPreviousMonthCents ?? 0, point is not null)">
+                                                                                @(point is not null ? MoneyFormatter.FormatCentsWithSign(point.DeltaVsPreviousMonthCents) : "-")
+                                                                            </td>
+                                                                            <td class="text-end @GetValueColorClass(point?.DeltaVsYearStartCents ?? 0, point is not null)">
+                                                                                @(point is not null ? MoneyFormatter.FormatCentsWithSign(point.DeltaVsYearStartCents) : "-")
+                                                                            </td>
+                                                                            <td class="text-end pe-3">
+                                                                                <button type="button"
+                                                                                        class="btn btn-sm btn-outline-secondary"
+                                                                                        @onclick="() => ToggleSeriesDetails(series.SeriesKey)">
+                                                                                    @(isExpanded ? "Hide months" : "View months")
+                                                                                </button>
+                                                                            </td>
+                                                                        </tr>
+
+                                                                        if (isExpanded)
+                                                                        {
+                                                                            <tr class="series-detail-row">
+                                                                                <td colspan="5" class="bg-body-tertiary px-3 py-3">
+                                                                                    <div class="table-responsive">
+                                                                                        <table class="table table-sm mb-0">
+                                                                                            <thead>
+                                                                                                <tr>
+                                                                                                    <th>Month</th>
+                                                                                                    <th class="text-end">End Balance</th>
+                                                                                                    <th class="text-end">Delta Prev Month</th>
+                                                                                                    <th class="text-end">Delta Year Start</th>
+                                                                                                </tr>
+                                                                                            </thead>
+                                                                                            <tbody>
+                                                                                                @foreach (var monthPoint in GetSeriesPointsForDetails(series, dataUntilMonth))
+                                                                                                {
+                                                                                                    <tr>
+                                                                                                        <td>@DateHelper.GetMonthName(monthPoint.Month)</td>
+                                                                                                        <td class="text-end @MoneyFormatter.GetColorClass(monthPoint.EndBalanceCents)">
+                                                                                                            @MoneyFormatter.FormatCentsWithSign(monthPoint.EndBalanceCents)
+                                                                                                        </td>
+                                                                                                        <td class="text-end @MoneyFormatter.GetColorClass(monthPoint.DeltaVsPreviousMonthCents)">
+                                                                                                            @MoneyFormatter.FormatCentsWithSign(monthPoint.DeltaVsPreviousMonthCents)
+                                                                                                        </td>
+                                                                                                        <td class="text-end @MoneyFormatter.GetColorClass(monthPoint.DeltaVsYearStartCents)">
+                                                                                                            @MoneyFormatter.FormatCentsWithSign(monthPoint.DeltaVsYearStartCents)
+                                                                                                        </td>
+                                                                                                    </tr>
+                                                                                                }
+                                                                                            </tbody>
+                                                                                        </table>
+                                                                                    </div>
+                                                                                </td>
+                                                                            </tr>
+                                                                        }
+                                                                    }
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-xxl-4 accounts-chart-panel">
+                            <div class="d-flex justify-content-end mb-2">
+                                <div class="btn-group btn-group-sm" role="group" aria-label="Accounts chart mode">
+                                    <button type="button"
+                                            class="btn @GetAccountsChartModeButtonClass(AccountsChartMode.Evolution)"
+                                            @onclick="() => SetAccountsChartMode(AccountsChartMode.Evolution)">
+                                        Evolution
+                                    </button>
+                                    <button type="button"
+                                            class="btn @GetAccountsChartModeButtonClass(AccountsChartMode.Composition)"
+                                            @onclick="() => SetAccountsChartMode(AccountsChartMode.Composition)">
+                                        Composition
+                                    </button>
+                                </div>
+                            </div>
+
+                            @if (_accountsChartMode == AccountsChartMode.Evolution)
+                            {
+                                <div class="mb-2">
+                                    <label class="form-label fw-semibold mb-1">Account</label>
+                                    <select class="form-select form-select-sm account-line-selector"
+                                            value="@_selectedAccountSeriesKeyForChart"
+                                            @onchange="OnAccountSeriesSelectionChanged">
+                                        <option value="">Top accounts</option>
+                                        @foreach (var series in selectableSeries)
+                                        {
+                                            <option value="@series.SeriesKey">@series.DisplayName</option>
+                                        }
+                                    </select>
+                                </div>
+
+                                @if (!string.IsNullOrWhiteSpace(charts.Error))
                                 {
-                                    <div class="d-flex align-items-end gap-2">
+                                    <ReportingChartErrorState Message="@charts.Error" />
+                                }
+                                else
+                                {
+                                    <AnnualLineChart
+                                        Title="Accounts Monthly Evolution"
+                                        Subtitle="Monthly end-balance evolution by account."
+                                        Year="@_selectedYear"
+                                        Series="@charts.AccountEvolution"
+                                        DataUntilMonth="@dataUntilMonth"
+                                        TestId="annual-accounts-evolution-chart" />
+                                }
+                            }
+                            else
+                            {
+                                <div class="d-flex justify-content-between align-items-end gap-2 mb-2">
+                                    <div class="btn-group btn-group-sm" role="group" aria-label="Accounts composition nature">
+                                        <button type="button"
+                                                class="btn @GetAccountsCompositionButtonClass(AccountNature.Expense)"
+                                                @onclick="() => SetAccountsCompositionNature(AccountNature.Expense)">
+                                            Expense
+                                        </button>
+                                        <button type="button"
+                                                class="btn @GetAccountsCompositionButtonClass(AccountNature.Income)"
+                                                @onclick="() => SetAccountsCompositionNature(AccountNature.Income)">
+                                            Income
+                                        </button>
+                                    </div>
+
+                                    @if (compositionMonthOptions.Count > 0 && _focusedMonth is not null)
+                                    {
                                         <div>
                                             <label class="form-label fw-semibold mb-1">Focused Month</label>
                                             <select class="form-select form-select-sm month-focus-select"
                                                     value="@_focusedMonth"
                                                     @onchange="OnFocusedMonthChanged">
-                                                @foreach (var month in availableMonths)
+                                                @foreach (var month in compositionMonthOptions)
                                                 {
                                                     <option value="@month">@DateHelper.GetMonthName(month)</option>
                                                 }
                                             </select>
                                         </div>
-                                    </div>
+                                    }
+                                </div>
+
+                                @if (!string.IsNullOrWhiteSpace(charts.Error))
+                                {
+                                    <ReportingChartErrorState Message="@charts.Error" />
                                 }
-                            </div>
+                                else
+                                {
+                                    <AnnualCompositionChart
+                                        Title="@GetAccountsCompositionTitle()"
+                                        Subtitle="@($"Percentage split for {GetAccountsCompositionNatureLabel().ToLowerInvariant()} accounts. Focused month: {compositionMonthLabel}.")"
+                                        Year="@_selectedYear"
+                                        Slices="@GetAccountsCompositionSlices(charts)"
+                                        TestId="annual-accounts-composition-chart" />
+                                }
+                            }
                         </div>
                     </div>
-
-                    var groupedSeries = GetAccountSeriesGroups();
-
-                    @foreach (var natureGroup in groupedSeries)
-                    {
-                        <div class="card shadow-sm mb-4 account-nature-group">
-                            <div class="card-header bg-transparent">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <h6 class="mb-0 account-nature-title">
-                                        <i class="bi @GetNatureIcon(natureGroup.Nature) me-2"></i>@GetNatureLabel(natureGroup.Nature)
-                                    </h6>
-                                    <span class="badge text-bg-secondary">@natureGroup.Series.Count series</span>
-                                </div>
-                            </div>
-                            <div class="card-body p-0">
-                                <div class="table-responsive">
-                                    <table class="table table-hover align-middle mb-0">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th class="border-0 ps-3">Series Name</th>
-                                                <th class="border-0">Month</th>
-                                                <th class="border-0 text-end">End Balance</th>
-                                                <th class="border-0 text-end">Delta Prev Month</th>
-                                                <th class="border-0 text-end">Delta Year Start</th>
-                                                <th class="border-0 text-end pe-3">Details</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach (var series in natureGroup.Series)
-                                            {
-                                                var point = GetFocusedPoint(series);
-                                                var isExpanded = _expandedSeriesKey == series.SeriesKey;
-
-                                                <tr class="series-summary-row">
-                                                    <td class="ps-3 fw-semibold">@series.DisplayName</td>
-                                                    <td>@DateHelper.GetMonthName(point.Month)</td>
-                                                    <td class="text-end @MoneyFormatter.GetColorClass(point.EndBalanceCents)">
-                                                        @MoneyFormatter.FormatCentsWithSign(point.EndBalanceCents)
-                                                    </td>
-                                                    <td class="text-end @MoneyFormatter.GetColorClass(point.DeltaVsPreviousMonthCents)">
-                                                        @MoneyFormatter.FormatCentsWithSign(point.DeltaVsPreviousMonthCents)
-                                                    </td>
-                                                    <td class="text-end @MoneyFormatter.GetColorClass(point.DeltaVsYearStartCents)">
-                                                        @MoneyFormatter.FormatCentsWithSign(point.DeltaVsYearStartCents)
-                                                    </td>
-                                                    <td class="text-end pe-3">
-                                                        <button type="button"
-                                                                class="btn btn-sm btn-outline-secondary"
-                                                                @onclick="() => ToggleSeriesDetails(series.SeriesKey)">
-                                                            @(isExpanded ? "Hide months" : "View months")
-                                                        </button>
-                                                    </td>
-                                                </tr>
-
-                                                if (isExpanded)
-                                                {
-                                                    <tr class="series-detail-row">
-                                                        <td colspan="6" class="bg-body-tertiary px-3 py-3">
-                                                            <div class="table-responsive">
-                                                                <table class="table table-sm mb-0">
-                                                                    <thead>
-                                                                        <tr>
-                                                                            <th>Month</th>
-                                                                            <th class="text-end">End Balance</th>
-                                                                            <th class="text-end">Delta Prev Month</th>
-                                                                            <th class="text-end">Delta Year Start</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        @foreach (var monthPoint in series.Points.OrderBy(p => p.Month))
-                                                                        {
-                                                                            <tr>
-                                                                                <td>@DateHelper.GetMonthName(monthPoint.Month)</td>
-                                                                                <td class="text-end @MoneyFormatter.GetColorClass(monthPoint.EndBalanceCents)">
-                                                                                    @MoneyFormatter.FormatCentsWithSign(monthPoint.EndBalanceCents)
-                                                                                </td>
-                                                                                <td class="text-end @MoneyFormatter.GetColorClass(monthPoint.DeltaVsPreviousMonthCents)">
-                                                                                    @MoneyFormatter.FormatCentsWithSign(monthPoint.DeltaVsPreviousMonthCents)
-                                                                                </td>
-                                                                                <td class="text-end @MoneyFormatter.GetColorClass(monthPoint.DeltaVsYearStartCents)">
-                                                                                    @MoneyFormatter.FormatCentsWithSign(monthPoint.DeltaVsYearStartCents)
-                                                                                </td>
-                                                                            </tr>
-                                                                        }
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                }
-                                            }
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    }
                 }
                 else if (_activeScope == MonthlyEvolutionScope.AccountGroups)
                 {
@@ -611,6 +660,8 @@
     private int? _focusedMonth;
     private string? _expandedSeriesKey;
     private string? _selectedAccountSeriesKeyForChart;
+    private AccountsChartMode _accountsChartMode = AccountsChartMode.Evolution;
+    private AccountNature _accountsCompositionNature = AccountNature.Expense;
     private AccountGroupsChartMode _accountGroupsChartMode = AccountGroupsChartMode.Evolution;
     private static readonly AccountNature[] _natureOrder =
     {
@@ -688,6 +739,45 @@
     private static string GetValueColorClass(long cents, bool hasData)
     {
         return hasData ? MoneyFormatter.GetColorClass(cents) : "text-muted";
+    }
+
+    private void SetAccountsChartMode(AccountsChartMode mode)
+    {
+        _accountsChartMode = mode;
+    }
+
+    private string GetAccountsChartModeButtonClass(AccountsChartMode mode)
+    {
+        return _accountsChartMode == mode ? "btn-primary" : "btn-outline-primary";
+    }
+
+    private void SetAccountsCompositionNature(AccountNature nature)
+    {
+        _accountsCompositionNature = nature;
+    }
+
+    private string GetAccountsCompositionButtonClass(AccountNature nature)
+    {
+        return _accountsCompositionNature == nature ? "btn-primary" : "btn-outline-primary";
+    }
+
+    private string GetAccountsCompositionTitle()
+    {
+        return _accountsCompositionNature == AccountNature.Expense
+            ? "Expense Composition"
+            : "Income Composition";
+    }
+
+    private string GetAccountsCompositionNatureLabel()
+    {
+        return _accountsCompositionNature == AccountNature.Expense ? "Expense" : "Income";
+    }
+
+    private IReadOnlyList<AnnualCompositionSlice> GetAccountsCompositionSlices(AnnualChartsViewModel charts)
+    {
+        return _accountsCompositionNature == AccountNature.Expense
+            ? charts.ExpenseComposition
+            : charts.IncomeComposition;
     }
 
     private async Task LoadReportAsync()
@@ -787,12 +877,22 @@
                 ? AnnualChartDatasetAdapter.BuildSeriesEvolution(_report, maxSeries: 12)
                 : Array.Empty<AnnualChartSeries>();
 
-            var expenseComposition = _activeScope == MonthlyEvolutionScope.Accounts
-                ? AnnualChartDatasetAdapter.BuildCompositionByNature(_report, _accountNatureById, AccountNature.Expense)
+            var expenseComposition = _activeScope == MonthlyEvolutionScope.Accounts &&
+                                     focusedCompositionMonth is not null
+                ? AnnualChartDatasetAdapter.BuildCompositionByNatureAtMonth(
+                    _report,
+                    _accountNatureById,
+                    AccountNature.Expense,
+                    focusedCompositionMonth.Value)
                 : Array.Empty<AnnualCompositionSlice>();
 
-            var incomeComposition = _activeScope == MonthlyEvolutionScope.Accounts
-                ? AnnualChartDatasetAdapter.BuildCompositionByNature(_report, _accountNatureById, AccountNature.Income)
+            var incomeComposition = _activeScope == MonthlyEvolutionScope.Accounts &&
+                                    focusedCompositionMonth is not null
+                ? AnnualChartDatasetAdapter.BuildCompositionByNatureAtMonth(
+                    _report,
+                    _accountNatureById,
+                    AccountNature.Income,
+                    focusedCompositionMonth.Value)
                 : Array.Empty<AnnualCompositionSlice>();
 
             var accountGroupExpenseComposition = _activeScope == MonthlyEvolutionScope.AccountGroups &&
@@ -1173,6 +1273,12 @@
     }
 
     private enum AccountGroupsChartMode
+    {
+        Evolution,
+        Composition
+    }
+
+    private enum AccountsChartMode
     {
         Evolution,
         Composition

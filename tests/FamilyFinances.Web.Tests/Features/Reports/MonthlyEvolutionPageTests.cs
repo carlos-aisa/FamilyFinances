@@ -234,7 +234,7 @@ public sealed class MonthlyEvolutionPageTests : TestContext
 
         cut.WaitForAssertion(() =>
         {
-            cut.Find("select.month-focus-select");
+            cut.Markup.Should().Contain("Accounts Overview");
             cut.Find("button.btn.btn-sm.btn-outline-secondary").TextContent.Should().Contain("View months");
         });
 
@@ -490,16 +490,27 @@ public sealed class MonthlyEvolutionPageTests : TestContext
             .First(button => button.TextContent.Contains("Accounts"));
         accountsTab.Click();
 
+        var compositionModeButton = cut.FindAll("button.btn")
+            .First(button => button.TextContent.Contains("Composition"));
+        compositionModeButton.Click();
+
         cut.WaitForAssertion(() =>
         {
-            var expenseChart = cut.Find("[data-testid='annual-expense-composition-chart']");
+            var expenseChart = cut.Find("[data-testid='annual-accounts-composition-chart']");
             decimal.Parse(
                 expenseChart.GetAttribute("data-total-percentage") ?? "0",
                 NumberStyles.Number,
                 CultureInfo.InvariantCulture)
                 .Should().BeApproximately(100m, 0.01m);
+        });
 
-            var incomeChart = cut.Find("[data-testid='annual-income-composition-chart']");
+        var incomeButton = cut.FindAll("button.btn")
+            .First(button => button.TextContent.Contains("Income"));
+        incomeButton.Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            var incomeChart = cut.Find("[data-testid='annual-accounts-composition-chart']");
             decimal.Parse(
                 incomeChart.GetAttribute("data-total-percentage") ?? "0",
                 NumberStyles.Number,
