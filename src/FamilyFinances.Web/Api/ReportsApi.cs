@@ -156,4 +156,37 @@ public sealed class ReportsApi
         var result = await response.Content.ReadFromJsonAsync<AssetTotalBalanceDto>(cancellationToken: ct);
         return result ?? throw new InvalidOperationException("Failed to deserialize asset total balance response.");
     }
+
+    public async Task<MonthlyEvolutionReportDto> GetMonthlyEvolutionAsync(
+        int year,
+        MonthlyEvolutionScope scope,
+        CancellationToken ct = default)
+    {
+        var token = _tokenStore.GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("No access token available.");
+
+        var scopeQueryValue = scope switch
+        {
+            MonthlyEvolutionScope.Accounts => "accounts",
+            MonthlyEvolutionScope.AssetTotal => "asset-total",
+            MonthlyEvolutionScope.AccountGroups => "account-groups",
+            _ => throw new ArgumentOutOfRangeException(nameof(scope), scope, "Unsupported monthly evolution scope.")
+        };
+
+        var url = $"api/v1/reports/monthly-evolution?year={year}&scope={scopeQueryValue}";
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _http.SendAsync(request, ct);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
+
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<MonthlyEvolutionReportDto>(cancellationToken: ct);
+        return result ?? throw new InvalidOperationException("Failed to deserialize monthly evolution response.");
+    }
 }

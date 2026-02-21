@@ -1131,6 +1131,39 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
+  /api/v1/reports/monthly-evolution:
+    get:
+      tags: [Reports]
+      summary: Get monthly year-to-date evolution
+      operationId: Reports_GetMonthlyEvolution
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: year
+          required: true
+          schema:
+            type: integer
+            format: int32
+        - in: query
+          name: scope
+          required: true
+          schema:
+            $ref: '#/components/schemas/MonthlyEvolutionScopeQuery'
+      responses:
+        '200':
+          description: Monthly evolution for the selected year and scope.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MonthlyEvolutionReportDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
   /api/v1/reports/account-groups/{groupId}/totals:
     get:
       tags: [Reports]
@@ -1421,6 +1454,17 @@ components:
       format: int32
       enum: [0, 1, 2, 3, 4]
       description: 'Numeric enum: 0=Expense, 1=Income, 2=Transfer, 3=Refund, 4=Other.'
+
+    MonthlyEvolutionScope:
+      type: integer
+      format: int32
+      enum: [1, 2, 3]
+      description: 'Numeric enum: 1=Accounts, 2=AssetTotal, 3=AccountGroups.'
+
+    MonthlyEvolutionScopeQuery:
+      type: string
+      enum: [accounts, asset-total, account-groups]
+      description: Scope selector for monthly evolution endpoint.
 
     CreateAccountRequest:
       type: object
@@ -1926,6 +1970,60 @@ components:
           type: integer
           format: int32
       required: [asOf, totalCents, assetAccountsCount]
+
+    MonthlyEvolutionPointDto:
+      type: object
+      properties:
+        month:
+          type: integer
+          format: int32
+        monthEndDate:
+          type: string
+          format: date
+        endBalanceCents:
+          type: integer
+          format: int64
+        deltaVsPreviousMonthCents:
+          type: integer
+          format: int64
+        deltaVsYearStartCents:
+          type: integer
+          format: int64
+      required: [month, monthEndDate, endBalanceCents, deltaVsPreviousMonthCents, deltaVsYearStartCents]
+
+    MonthlyEvolutionSeriesDto:
+      type: object
+      properties:
+        seriesKey:
+          type: string
+        displayName:
+          type: string
+        entityId:
+          type: string
+          format: uuid
+          nullable: true
+        entityType:
+          type: string
+          nullable: true
+        points:
+          type: array
+          items:
+            $ref: '#/components/schemas/MonthlyEvolutionPointDto'
+      required: [seriesKey, displayName, entityId, entityType, points]
+
+    MonthlyEvolutionReportDto:
+      type: object
+      properties:
+        year:
+          type: integer
+          format: int32
+        scope:
+          $ref: '#/components/schemas/MonthlyEvolutionScope'
+        series:
+          type: array
+          items:
+            $ref: '#/components/schemas/MonthlyEvolutionSeriesDto'
+      required: [year, scope, series]
 
     AccountGroupTotalItemDto:
       type: object

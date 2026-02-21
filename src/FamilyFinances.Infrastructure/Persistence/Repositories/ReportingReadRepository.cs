@@ -260,6 +260,293 @@ public sealed class ReportingReadRepository : IReportingReadRepository
         );
     }
 
+    public async Task<MonthlyEvolutionReportDto> GetMonthlyEvolutionAsync(
+        int year,
+        MonthlyEvolutionScope scope,
+        CancellationToken ct)
+    {
+        var currentUtc = DateTime.UtcNow;
+        var monthLimit = year == currentUtc.Year ? currentUtc.Month : 12;
+        var yearStart = new DateOnly(year, 1, 1);
+        var yearEndExclusive = monthLimit == 12
+            ? new DateOnly(year + 1, 1, 1)
+            : new DateOnly(year, monthLimit, 1).AddMonths(1);
+
+        var accounts = await _db.Accounts
+            .AsNoTracking()
+            .OrderBy(a => a.Name)
+            .ThenBy(a => a.Id)
+            .Select(a => new AccountEvolutionSeed(a.Id, a.Name, a.Nature))
+            .ToListAsync(ct);
+
+        var accountIds = accounts
+            .Select(a => a.Id)
+            .ToList();
+
+        var snapshotBalancesByAccount = await _db.AccountYearSnapshots
+            .AsNoTracking()
+            .Where(x => x.Year == year - 1)
+            .Select(x => new
+            {
+                x.AccountId,
+                x.ClosingBalanceCents
+            })
+            .ToListAsync(ct);
+
+        var snapshotByAccount = snapshotBalancesByAccount
+            .ToDictionary(x => x.AccountId, x => x.ClosingBalanceCents);
+
+        var missingSnapshotAccountIds = accountIds
+            .Where(id => !snapshotByAccount.ContainsKey(id))
+            .ToList();
+
+        Dictionary<AccountId, long> fallbackBaselineByAccount;
+        if (missingSnapshotAccountIds.Count == 0)
+        {
+            fallbackBaselineByAccount = new Dictionary<AccountId, long>();
+        }
+        else
+        {
+            var fallbackRows = await (
+                from t in _db.Transactions.AsNoTracking()
+                join s in _db.TransactionSplits.AsNoTracking()
+                    on t.Id equals EF.Property<TransactionId>(s, "TransactionId")
+                where missingSnapshotAccountIds.Contains(s.AccountId)
+                where t.BookedOn < yearStart
+                select new
+                {
+                    s.AccountId,
+                    s.Amount
+                }
+            ).ToListAsync(ct);
+
+            fallbackBaselineByAccount = fallbackRows
+                .GroupBy(x => x.AccountId)
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.Amount.Cents));
+        }
+
+        var baselineByAccount = new Dictionary<AccountId, long>(accountIds.Count);
+        foreach (var accountId in accountIds)
+        {
+            if (snapshotByAccount.TryGetValue(accountId, out var snapshotBalance))
+            {
+                baselineByAccount[accountId] = snapshotBalance;
+                continue;
+            }
+
+            baselineByAccount[accountId] = fallbackBaselineByAccount.GetValueOrDefault(accountId, 0L);
+        }
+
+        var movementRows = await (
+            from t in _db.Transactions.AsNoTracking()
+            join s in _db.TransactionSplits.AsNoTracking()
+                on t.Id equals EF.Property<TransactionId>(s, "TransactionId")
+            where t.BookedOn >= yearStart && t.BookedOn < yearEndExclusive
+            select new
+            {
+                s.AccountId,
+                Month = t.BookedOn.Month,
+                s.Amount
+            }
+        ).ToListAsync(ct);
+
+        var movementByAccountAndMonth = movementRows
+            .GroupBy(x => (x.AccountId, x.Month))
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.Amount.Cents));
+
+        var accountPointsById = new Dictionary<AccountId, IReadOnlyList<MonthlyEvolutionPointDto>>(accounts.Count);
+        var accountSeries = new List<MonthlyEvolutionSeriesDto>(accounts.Count);
+
+        foreach (var account in accounts)
+        {
+            var baseline = baselineByAccount.GetValueOrDefault(account.Id, 0L);
+            var previousEnd = baseline;
+            var points = new List<MonthlyEvolutionPointDto>(monthLimit);
+
+            for (var month = 1; month <= monthLimit; month++)
+            {
+                var movement = movementByAccountAndMonth.GetValueOrDefault((account.Id, month), 0L);
+                var endBalance = previousEnd + movement;
+
+                points.Add(new MonthlyEvolutionPointDto(
+                    Month: month,
+                    MonthEndDate: new DateOnly(year, month, DateTime.DaysInMonth(year, month)),
+                    EndBalanceCents: endBalance,
+                    DeltaVsPreviousMonthCents: endBalance - previousEnd,
+                    DeltaVsYearStartCents: endBalance - baseline
+                ));
+
+                previousEnd = endBalance;
+            }
+
+            accountPointsById[account.Id] = points;
+            accountSeries.Add(new MonthlyEvolutionSeriesDto(
+                SeriesKey: $"account:{account.Id.Value:D}",
+                DisplayName: account.Name,
+                EntityId: account.Id.Value,
+                EntityType: "account",
+                Points: points
+            ));
+        }
+
+        IReadOnlyList<MonthlyEvolutionSeriesDto> series = scope switch
+        {
+            MonthlyEvolutionScope.Accounts => accountSeries,
+            MonthlyEvolutionScope.AssetTotal => BuildAssetTotalSeries(
+                accounts,
+                baselineByAccount,
+                accountPointsById,
+                year,
+                monthLimit),
+            MonthlyEvolutionScope.AccountGroups => await BuildAccountGroupSeriesAsync(
+                baselineByAccount,
+                accountPointsById,
+                year,
+                monthLimit,
+                ct),
+            _ => throw new ArgumentOutOfRangeException(nameof(scope), scope, "Unsupported monthly evolution scope.")
+        };
+
+        return new MonthlyEvolutionReportDto(
+            Year: year,
+            Scope: scope,
+            Series: series
+        );
+    }
+
+    private static IReadOnlyList<MonthlyEvolutionSeriesDto> BuildAssetTotalSeries(
+        IReadOnlyList<AccountEvolutionSeed> accounts,
+        IReadOnlyDictionary<AccountId, long> baselineByAccount,
+        IReadOnlyDictionary<AccountId, IReadOnlyList<MonthlyEvolutionPointDto>> accountPointsById,
+        int year,
+        int monthLimit)
+    {
+        var assetAccountIds = accounts
+            .Where(a => a.Nature == AccountNature.Asset)
+            .Select(a => a.Id)
+            .ToList();
+
+        var baseline = assetAccountIds.Sum(id => baselineByAccount.GetValueOrDefault(id, 0L));
+
+        var points = BuildAggregatedPoints(
+            year,
+            monthLimit,
+            baseline,
+            assetAccountIds
+                .Where(accountPointsById.ContainsKey)
+                .Select(id => accountPointsById[id])
+                .ToList());
+
+        return new[]
+        {
+            new MonthlyEvolutionSeriesDto(
+                SeriesKey: "asset-total",
+                DisplayName: "Asset Total",
+                EntityId: null,
+                EntityType: "scope",
+                Points: points)
+        };
+    }
+
+    private async Task<IReadOnlyList<MonthlyEvolutionSeriesDto>> BuildAccountGroupSeriesAsync(
+        IReadOnlyDictionary<AccountId, long> baselineByAccount,
+        IReadOnlyDictionary<AccountId, IReadOnlyList<MonthlyEvolutionPointDto>> accountPointsById,
+        int year,
+        int monthLimit,
+        CancellationToken ct)
+    {
+        var groups = await _db.AccountGroups
+            .AsNoTracking()
+            .Select(g => new
+            {
+                g.Id,
+                g.Name
+            })
+            .OrderBy(g => g.Name)
+            .ThenBy(g => g.Id)
+            .ToListAsync(ct);
+
+        var memberships = await _db.AccountGroupMembers
+            .AsNoTracking()
+            .Select(m => new
+            {
+                m.GroupId,
+                m.AccountId
+            })
+            .ToListAsync(ct);
+
+        var accountIdsByGroup = memberships
+            .GroupBy(x => x.GroupId)
+            .ToDictionary(
+                g => g.Key,
+                g => g
+                    .Select(x => x.AccountId)
+                    .Distinct()
+                    .ToList());
+
+        var series = new List<MonthlyEvolutionSeriesDto>(groups.Count);
+        foreach (var group in groups)
+        {
+            if (!accountIdsByGroup.TryGetValue(group.Id, out var memberAccountIds))
+                memberAccountIds = new List<AccountId>();
+
+            var baseline = memberAccountIds.Sum(id => baselineByAccount.GetValueOrDefault(id, 0L));
+
+            var points = BuildAggregatedPoints(
+                year,
+                monthLimit,
+                baseline,
+                memberAccountIds
+                    .Where(accountPointsById.ContainsKey)
+                    .Select(id => accountPointsById[id])
+                    .ToList());
+
+            series.Add(new MonthlyEvolutionSeriesDto(
+                SeriesKey: $"account-group:{group.Id.Value:D}",
+                DisplayName: group.Name,
+                EntityId: group.Id.Value,
+                EntityType: "account-group",
+                Points: points
+            ));
+        }
+
+        return series;
+    }
+
+    private static IReadOnlyList<MonthlyEvolutionPointDto> BuildAggregatedPoints(
+        int year,
+        int monthLimit,
+        long yearStartBaseline,
+        IReadOnlyList<IReadOnlyList<MonthlyEvolutionPointDto>> sourceSeries)
+    {
+        var points = new List<MonthlyEvolutionPointDto>(monthLimit);
+        var previousEnd = yearStartBaseline;
+
+        for (var month = 1; month <= monthLimit; month++)
+        {
+            long endBalance = 0;
+            foreach (var source in sourceSeries)
+            {
+                if (source.Count >= month)
+                    endBalance += source[month - 1].EndBalanceCents;
+            }
+
+            points.Add(new MonthlyEvolutionPointDto(
+                Month: month,
+                MonthEndDate: new DateOnly(year, month, DateTime.DaysInMonth(year, month)),
+                EndBalanceCents: endBalance,
+                DeltaVsPreviousMonthCents: endBalance - previousEnd,
+                DeltaVsYearStartCents: endBalance - yearStartBaseline
+            ));
+
+            previousEnd = endBalance;
+        }
+
+        return points;
+    }
+
+    private sealed record AccountEvolutionSeed(AccountId Id, string Name, AccountNature Nature);
+
     public async Task<AccountGroupTotalsDto> GetAccountGroupTotalsAsync(
         Guid groupId,
         DateOnly fromInclusive,

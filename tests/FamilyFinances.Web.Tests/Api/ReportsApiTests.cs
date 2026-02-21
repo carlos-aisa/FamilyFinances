@@ -116,4 +116,102 @@ public sealed class ReportsApiTests
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("Failed to deserialize asset total balance response.");
     }
+
+    [Fact]
+    public async Task GetMonthlyEvolutionAsync_ReturnsPayload_And_SendsExpectedRequest()
+    {
+        var payload = new MonthlyEvolutionReportDto(
+            2026,
+            MonthlyEvolutionScope.AssetTotal,
+            new[]
+            {
+                new MonthlyEvolutionSeriesDto(
+                    "asset-total",
+                    "Asset Total",
+                    null,
+                    "scope",
+                    new[]
+                    {
+                        new MonthlyEvolutionPointDto(1, new DateOnly(2026, 1, 31), 12_000, 2_000, 2_000)
+                    })
+            });
+
+        HttpRequestMessage? capturedRequest = null;
+
+        _httpMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>((req, _) => capturedRequest = req)
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(payload)
+            });
+
+        var result = await _sut.GetMonthlyEvolutionAsync(2026, MonthlyEvolutionScope.AssetTotal, CancellationToken.None);
+
+        result.Year.Should().Be(2026);
+        result.Scope.Should().Be(MonthlyEvolutionScope.AssetTotal);
+        result.Series.Should().ContainSingle();
+
+        capturedRequest.Should().NotBeNull();
+        capturedRequest!.Method.Should().Be(HttpMethod.Get);
+        capturedRequest.RequestUri!.ToString()
+            .Should().Contain("api/v1/reports/monthly-evolution?year=2026&scope=asset-total");
+        capturedRequest.Headers.Authorization.Should().NotBeNull();
+        capturedRequest.Headers.Authorization!.Scheme.Should().Be("Bearer");
+        capturedRequest.Headers.Authorization.Parameter.Should().Be("valid-token");
+    }
+
+    [Fact]
+    public async Task GetMonthlyEvolutionAsync_ThrowsUnauthorizedAccessException_WhenNoTokenAvailable()
+    {
+        _tokenStoreMock
+            .Setup(t => t.GetAccessToken())
+            .Returns(string.Empty);
+
+        var act = () => _sut.GetMonthlyEvolutionAsync(2026, MonthlyEvolutionScope.Accounts, CancellationToken.None);
+
+        await act.Should().ThrowAsync<UnauthorizedAccessException>()
+            .WithMessage("No access token available.");
+    }
+
+    [Fact]
+    public async Task GetMonthlyEvolutionAsync_ThrowsUnauthorizedAccessException_WhenApiReturnsUnauthorized()
+    {
+        _httpMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.Unauthorized));
+
+        var act = () => _sut.GetMonthlyEvolutionAsync(2026, MonthlyEvolutionScope.AccountGroups, CancellationToken.None);
+
+        await act.Should().ThrowAsync<UnauthorizedAccessException>()
+            .WithMessage("API call unauthorized. Missing or invalid token.");
+    }
+
+    [Fact]
+    public async Task GetMonthlyEvolutionAsync_ThrowsInvalidOperationException_WhenPayloadIsNull()
+    {
+        _httpMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("null")
+            });
+
+        var act = () => _sut.GetMonthlyEvolutionAsync(2026, MonthlyEvolutionScope.AssetTotal, CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Failed to deserialize monthly evolution response.");
+    }
 }
