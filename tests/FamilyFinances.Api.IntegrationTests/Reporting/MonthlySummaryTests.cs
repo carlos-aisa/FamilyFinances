@@ -74,6 +74,56 @@ public sealed class MonthlySummaryTests
         summary.TransactionsCount.Should().Be(2);
     }
 
+    [Fact]
+    public async Task MonthlySummary_With_Payee_Filter_Returns_Filtered_Totals()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var bank = await TestHelpers.CreateAccountAsync(client, "Main Bank", "Asset", "Checking");
+        var groceries = await TestHelpers.CreateAccountAsync(client, "Groceries", "Expense", "Other");
+
+        var payeeRes = await client.PostAsJsonAsync("/api/v1/payees", new { name = "Mercadona" });
+        payeeRes.StatusCode.Should().Be(HttpStatusCode.OK);
+        var payee = await payeeRes.Content.ReadFromJsonAsync<PayeeDto>();
+        payee.Should().NotBeNull();
+
+        // Transaction with target payee
+        (await client.PostAsJsonAsync("/api/v1/transactions", new
+        {
+            bookedOn = "2026-01-10",
+            description = "Groceries with payee",
+            payeeId = payee!.Id,
+            splits = new[]
+            {
+                new { accountId = bank.Id, amountCents = -20_000, memo = "Payment" },
+                new { accountId = groceries.Id, amountCents = 20_000, memo = "Expense" }
+            }
+        })).EnsureSuccessStatusCode();
+
+        // Transaction without payee (must be excluded)
+        (await client.PostAsJsonAsync("/api/v1/transactions", new
+        {
+            bookedOn = "2026-01-11",
+            description = "Groceries without payee",
+            splits = new[]
+            {
+                new { accountId = bank.Id, amountCents = -5_000, memo = "Payment" },
+                new { accountId = groceries.Id, amountCents = 5_000, memo = "Expense" }
+            }
+        })).EnsureSuccessStatusCode();
+
+        var res = await client.GetAsync(
+            $"/api/v1/reports/monthly-summary?from=2026-01-01&to=2026-02-01&payeeId={payee!.Id}");
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var summary = await res.Content.ReadFromJsonAsync<MonthlySummaryDto>();
+        summary.Should().NotBeNull();
+        summary!.ExpenseTotal.Should().Be(-20_000);
+        summary.TransactionsCount.Should().Be(1);
+    }
+
     public sealed record MonthlySummaryDto(
         DateOnly From,
         DateOnly To,
@@ -81,4 +131,6 @@ public sealed class MonthlySummaryTests
         long ExpenseTotal,
         long Net,
         int TransactionsCount);
+
+    private sealed record PayeeDto(Guid Id, string Name);
 }

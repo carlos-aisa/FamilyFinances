@@ -4,6 +4,7 @@ using FamilyFinances.Application.Ledger.FiscalYears.Abstractions;
 using FamilyFinances.Domain.Common;
 using FamilyFinances.Domain.Ledger.AccountGroups;
 using FamilyFinances.Domain.Ledger.Accounts;
+using FamilyFinances.Domain.Ledger.Payees;
 using FamilyFinances.Domain.Ledger.Transactions;
 using Microsoft.EntityFrameworkCore;
 
@@ -29,7 +30,7 @@ public sealed class ReportingReadRepository : IReportingReadRepository
         Guid? payeeId,
         CancellationToken ct)
     {
-        var q =
+        var baseQuery =
             from t in _db.Transactions.AsNoTracking()
             join s in _db.TransactionSplits.AsNoTracking() on t.Id equals EF.Property<TransactionId>(s, "TransactionId")
             join a in _db.Accounts.AsNoTracking() on s.AccountId equals a.Id
@@ -44,7 +45,18 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             };
 
         if (payeeId is not null)
-            q = q.Where(x => x.PayeeId.HasValue && x.PayeeId.Value.Value == payeeId.Value);
+        {
+            var payeeIdVo = new PayeeId(payeeId.Value);
+            baseQuery = baseQuery.Where(x => x.PayeeId == payeeIdVo);
+        }
+
+        var q = baseQuery.Select(x => new
+        {
+            x.TransactionId,
+            x.AccountId,
+            x.Nature,
+            x.Amount
+        });
 
         if (accountId is not null)
         {
@@ -114,7 +126,7 @@ public sealed class ReportingReadRepository : IReportingReadRepository
         Guid? payeeId,
         CancellationToken ct)
     {
-        var q =
+        var baseQuery =
             from t in _db.Transactions.AsNoTracking()
             join s in _db.TransactionSplits.AsNoTracking() on t.Id equals EF.Property<TransactionId>(s, "TransactionId")
             join a in _db.Accounts.AsNoTracking() on s.AccountId equals a.Id
@@ -130,7 +142,18 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             };
 
         if (payeeId is not null)
-            q = q.Where(x => x.PayeeId.HasValue && x.PayeeId.Value.Value == payeeId.Value);
+        {
+            var payeeIdVo = new PayeeId(payeeId.Value);
+            baseQuery = baseQuery.Where(x => x.PayeeId == payeeIdVo);
+        }
+
+        var q = baseQuery.Select(x => new
+        {
+            x.TransactionId,
+            x.AccountId,
+            x.AccountName,
+            x.Amount
+        });
 
         // Materialize the query to perform aggregations in memory
         var data = await q.ToListAsync(ct);

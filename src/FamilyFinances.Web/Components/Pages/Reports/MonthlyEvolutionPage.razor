@@ -22,7 +22,7 @@
                 <h3 class="mb-1">
                     <i class="bi bi-graph-up-arrow me-2"></i>Monthly Evolution
                 </h3>
-                <p class="text-muted mb-0">Monthly year-to-date stock balances with deltas vs previous month and year start</p>
+                <p class="text-muted mb-0">Monthly year-to-date account balances with deltas vs previous month and year start</p>
             </div>
             <a class="btn btn-outline-secondary" href="/reports">
                 <i class="bi bi-arrow-left me-1"></i>Back to Reports
@@ -47,25 +47,6 @@
             </div>
         </div>
 
-        <ul class="nav nav-tabs mb-4">
-            <li class="nav-item">
-                <button type="button"
-                        class="nav-link @GetTabClass(MonthlyEvolutionScope.Accounts)"
-                        @onclick="() => ChangeScopeAsync(MonthlyEvolutionScope.Accounts)"
-                        disabled="@_isLoading">
-                    Accounts
-                </button>
-            </li>
-            <li class="nav-item">
-                <button type="button"
-                        class="nav-link @GetTabClass(MonthlyEvolutionScope.AssetTotal)"
-                        @onclick="() => ChangeScopeAsync(MonthlyEvolutionScope.AssetTotal)"
-                        disabled="@_isLoading">
-                    Asset Total
-                </button>
-            </li>
-        </ul>
-
         @if (!string.IsNullOrWhiteSpace(_error))
         {
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -84,7 +65,7 @@
         {
             <ReportingChartEmptyState
                 Title="Annual charts"
-                Description="No evolution data for selected year/scope." />
+                Description="No evolution data for selected year." />
         }
         else if (_report is not null)
         {
@@ -123,119 +104,24 @@
                 </div>
             </div>
 
-            @if (ShouldShowComparabilityDisclaimer(usesAssetOnly))
-            {
-                <div class="alert alert-info mb-4" role="alert">
-                    <i class="bi bi-info-circle me-2"></i>
-                    @GetComparabilityDisclaimerText(usesAssetOnly)
-                </div>
-            }
+            <div class="alert alert-info mb-4" role="alert">
+                <i class="bi bi-info-circle me-2"></i>
+                @GetComparabilityDisclaimerText(usesAssetOnly)
+            </div>
 
             var charts = BuildAnnualChartsViewModel();
+            var dataUntilMonth = GetDataUntilMonthForSelectedYear();
+            var summaryMonth = GetReferenceMonthForSelectedYear();
+            var groupedSeries = GetAccountSeriesGroups();
+            var selectableSeries = GetSelectableAccountSeries();
+            var compositionMonthOptions = GetAvailableMonthsForFocusedSelection();
+            var compositionMonth = GetFocusedCompositionMonth();
+            var compositionMonthLabel = compositionMonth is not null
+                ? DateHelper.GetMonthName(compositionMonth.Value)
+                : "N/A";
+            var natureIndex = 0;
 
-            @if (_activeScope == MonthlyEvolutionScope.AssetTotal)
-            {
-                var series = _report.Series.First();
-                var dataUntilMonth = GetDataUntilMonthForSelectedYear();
-
-                <div class="row g-3 mb-4 asset-total-overview-grid">
-                    <div class="col-12 col-xxl-8">
-                        <div class="card shadow-sm h-100">
-                            <div class="card-header bg-transparent">
-                                <div class="d-flex justify-content-between align-items-center gap-3">
-                                    <h5 class="mb-0">
-                                        <i class="bi bi-list-ul me-2"></i>Asset Total (Monthly Overview)
-                                    </h5>
-                                    @if (dataUntilMonth is not null)
-                                    {
-                                        <span class="badge text-bg-secondary">
-                                            Current month: @DateHelper.GetMonthName(dataUntilMonth.Value)
-                                        </span>
-                                    }
-                                </div>
-                            </div>
-                            <div class="card-body p-0">
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-hover align-middle mb-0">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th class="border-0 ps-3">Month</th>
-                                                <th class="border-0 text-end">End Balance</th>
-                                                <th class="border-0 text-end">Delta Prev Month</th>
-                                                <th class="border-0 text-end pe-3">Delta Year Start</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach (var point in series.Points.OrderBy(p => p.Month))
-                                            {
-                                                var hasData = dataUntilMonth is null || point.Month <= dataUntilMonth.Value;
-                                                var isCurrentMonth = dataUntilMonth is not null && point.Month == dataUntilMonth.Value;
-
-                                                <tr class="series-summary-row @(isCurrentMonth ? "table-active" : string.Empty)">
-                                                    <td class="ps-3">
-                                                        @DateHelper.GetMonthName(point.Month)
-                                                        @if (isCurrentMonth)
-                                                        {
-                                                            <span class="badge rounded-pill text-bg-primary ms-2">Current</span>
-                                                        }
-                                                    </td>
-                                                    <td class="text-end @MoneyFormatter.GetColorClass(point.EndBalanceCents)">
-                                                        @(hasData ? MoneyFormatter.FormatCentsWithSign(point.EndBalanceCents) : "-")
-                                                    </td>
-                                                    <td class="text-end @MoneyFormatter.GetColorClass(point.DeltaVsPreviousMonthCents)">
-                                                        @(hasData ? MoneyFormatter.FormatCentsWithSign(point.DeltaVsPreviousMonthCents) : "-")
-                                                    </td>
-                                                    <td class="text-end pe-3 @MoneyFormatter.GetColorClass(point.DeltaVsYearStartCents)">
-                                                        @(hasData ? MoneyFormatter.FormatCentsWithSign(point.DeltaVsYearStartCents) : "-")
-                                                    </td>
-                                                </tr>
-                                            }
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-12 col-xxl-4 asset-total-chart-panel">
-                        @if (!string.IsNullOrWhiteSpace(charts.Error))
-                        {
-                            <ReportingChartErrorState Message="@charts.Error" />
-                        }
-                        else if (charts.AssetEndBalanceEvolution.Count == 0)
-                        {
-                            <ReportingChartEmptyState
-                                Title="Asset Total Evolution"
-                                Description="No chart points are available for the selected filters." />
-                        }
-                        else
-                        {
-                            <AnnualLineChart
-                                Title="Asset Total Evolution"
-                                Subtitle="Final balance by month (current month uses latest available data)."
-                                Year="@_selectedYear"
-                                Series="@charts.AssetEndBalanceEvolution"
-                                DataUntilMonth="@dataUntilMonth"
-                                TestId="annual-core-evolution-chart" />
-                        }
-                    </div>
-                </div>
-            }
-            else
-            {
-                @if (_activeScope == MonthlyEvolutionScope.Accounts)
-                {
-                    var dataUntilMonth = GetDataUntilMonthForSelectedYear();
-                    var summaryMonth = GetReferenceMonthForSelectedYear();
-                    var groupedSeries = GetAccountSeriesGroups();
-                    var selectableSeries = GetSelectableAccountSeries();
-                    var compositionMonthOptions = GetAvailableMonthsForFocusedSelection();
-                    var compositionMonth = GetFocusedCompositionMonth();
-                    var compositionMonthLabel = compositionMonth is not null
-                        ? DateHelper.GetMonthName(compositionMonth.Value)
-                        : "N/A";
-                    var natureIndex = 0;
-
-                    <div class="row g-3 mb-4 accounts-overview-grid">
+            <div class="row g-3 mb-4 accounts-overview-grid">
                         <div class="col-12 col-xxl-8">
                             <div class="card shadow-sm h-100">
                                 <div class="card-header bg-transparent">
@@ -457,8 +343,6 @@
                             }
                         </div>
                     </div>
-                }
-            }
 
         }
         else
@@ -466,7 +350,7 @@
             <div class="card shadow-sm">
                 <div class="card-body text-center py-5">
                     <i class="bi bi-graph-up display-4 text-muted mb-3"></i>
-                    <h5 class="text-muted">Select year and scope to load monthly evolution.</h5>
+                    <h5 class="text-muted">Select year to load monthly evolution.</h5>
                 </div>
             </div>
         }
@@ -485,7 +369,6 @@
     private bool _isLoading;
 
     private int _selectedYear = DateHelper.GetCurrentYear();
-    private MonthlyEvolutionScope _activeScope = MonthlyEvolutionScope.AssetTotal;
     private IReadOnlyList<int> _yearOptions = Array.Empty<int>();
     private IReadOnlyDictionary<Guid, AccountNature> _accountNatureById = new Dictionary<Guid, AccountNature>();
     private int? _focusedMonth;
@@ -526,17 +409,6 @@
             return;
 
         _selectedYear = year;
-        await LoadReportAsync();
-    }
-
-    private async Task ChangeScopeAsync(MonthlyEvolutionScope scope)
-    {
-        if (_activeScope == scope)
-            return;
-
-        _activeScope = scope;
-        _expandedSeriesKey = null;
-        _selectedAccountSeriesKeyForChart = null;
         await LoadReportAsync();
     }
 
@@ -609,15 +481,8 @@
 
         try
         {
-            _report = await ReportsApi.GetMonthlyEvolutionAsync(_selectedYear, _activeScope);
-            if (_activeScope == MonthlyEvolutionScope.Accounts)
-            {
-                await LoadAccountNatureLookupBestEffortAsync();
-            }
-            else
-            {
-                _accountNatureById = new Dictionary<Guid, AccountNature>();
-            }
+            _report = await ReportsApi.GetMonthlyEvolutionAsync(_selectedYear, MonthlyEvolutionScope.Accounts);
+            await LoadAccountNatureLookupBestEffortAsync();
 
             SyncFocusedMonth();
             SyncSelectedAccountSeries();
@@ -637,11 +502,6 @@
         }
     }
 
-    private string GetTabClass(MonthlyEvolutionScope tabScope)
-    {
-        return _activeScope == tabScope ? "active" : string.Empty;
-    }
-
     private AnnualChartsViewModel BuildAnnualChartsViewModel()
     {
         if (_report is null || _report.Series.Count == 0)
@@ -651,24 +511,16 @@
         {
             var focusedCompositionMonth = GetFocusedCompositionMonth();
 
-            var assetEndBalanceEvolution = _activeScope == MonthlyEvolutionScope.AssetTotal
-                ? AnnualChartDatasetAdapter.BuildEndBalanceSeries(_report, key: "end-balance", label: "End Balance")
-                : Array.Empty<AnnualChartSeries>();
-
-            var selectedAccountKeys = _activeScope == MonthlyEvolutionScope.Accounts &&
-                                      !string.IsNullOrWhiteSpace(_selectedAccountSeriesKeyForChart)
+            var selectedAccountKeys = !string.IsNullOrWhiteSpace(_selectedAccountSeriesKeyForChart)
                 ? new HashSet<string>(StringComparer.Ordinal) { _selectedAccountSeriesKeyForChart }
                 : null;
 
-            var accountEvolution = _activeScope == MonthlyEvolutionScope.Accounts
-                ? AnnualChartDatasetAdapter.BuildSeriesEvolution(
-                    _report,
-                    maxSeries: selectedAccountKeys is null ? 12 : 1,
-                    includedSeriesKeys: selectedAccountKeys)
-                : Array.Empty<AnnualChartSeries>();
+            var accountEvolution = AnnualChartDatasetAdapter.BuildSeriesEvolution(
+                _report,
+                maxSeries: selectedAccountKeys is null ? 12 : 1,
+                includedSeriesKeys: selectedAccountKeys);
 
-            var expenseComposition = _activeScope == MonthlyEvolutionScope.Accounts &&
-                                     focusedCompositionMonth is not null
+            var expenseComposition = focusedCompositionMonth is not null
                 ? AnnualChartDatasetAdapter.BuildCompositionByNatureAtMonth(
                     _report,
                     _accountNatureById,
@@ -676,8 +528,7 @@
                     focusedCompositionMonth.Value)
                 : Array.Empty<AnnualCompositionSlice>();
 
-            var incomeComposition = _activeScope == MonthlyEvolutionScope.Accounts &&
-                                    focusedCompositionMonth is not null
+            var incomeComposition = focusedCompositionMonth is not null
                 ? AnnualChartDatasetAdapter.BuildCompositionByNatureAtMonth(
                     _report,
                     _accountNatureById,
@@ -686,7 +537,6 @@
                 : Array.Empty<AnnualCompositionSlice>();
 
             return new AnnualChartsViewModel(
-                AssetEndBalanceEvolution: assetEndBalanceEvolution,
                 AccountEvolution: accountEvolution,
                 ExpenseComposition: expenseComposition,
                 IncomeComposition: incomeComposition,
@@ -695,7 +545,6 @@
         catch (Exception ex)
         {
             return new AnnualChartsViewModel(
-                AssetEndBalanceEvolution: Array.Empty<AnnualChartSeries>(),
                 AccountEvolution: Array.Empty<AnnualChartSeries>(),
                 ExpenseComposition: Array.Empty<AnnualCompositionSlice>(),
                 IncomeComposition: Array.Empty<AnnualCompositionSlice>(),
@@ -703,14 +552,9 @@
         }
     }
 
-    private bool ShouldShowComparabilityDisclaimer(bool usesAssetOnly)
-    {
-        return true;
-    }
-
     private string GetComparabilityDisclaimerText(bool usesAssetOnly)
     {
-        if (usesAssetOnly || _activeScope == MonthlyEvolutionScope.AssetTotal)
+        if (usesAssetOnly)
         {
             return $"{_assetBalanceMetric.CanonicalName} and related deltas are stock metrics. " +
                 $"{_periodNetResultMetric.CanonicalName} in Period Summary is a flow metric; they are not directly comparable.";
@@ -722,21 +566,21 @@
 
     private string GetLatestEndBalanceLabel(bool usesAssetOnly)
     {
-        return usesAssetOnly || _activeScope == MonthlyEvolutionScope.AssetTotal
+        return usesAssetOnly
             ? $"Latest {_assetBalanceMetric.CanonicalName}"
             : "Latest End Balance";
     }
 
     private string GetLatestDeltaPrevLabel(bool usesAssetOnly)
     {
-        return usesAssetOnly || _activeScope == MonthlyEvolutionScope.AssetTotal
+        return usesAssetOnly
             ? $"Latest {_assetBalanceMetric.CanonicalName} {_deltaPrevMetric.CanonicalName}"
             : $"Latest {_deltaPrevMetric.CanonicalName}";
     }
 
     private string GetLatestDeltaYearStartLabel(bool usesAssetOnly)
     {
-        return usesAssetOnly || _activeScope == MonthlyEvolutionScope.AssetTotal
+        return usesAssetOnly
             ? $"Latest {_assetBalanceMetric.CanonicalName} {_deltaYearStartMetric.CanonicalName}"
             : $"Latest {_deltaYearStartMetric.CanonicalName}";
     }
@@ -868,7 +712,7 @@
 
     private void SyncSelectedAccountSeries()
     {
-        if (_activeScope != MonthlyEvolutionScope.Accounts || _report is null)
+        if (_report is null)
         {
             _selectedAccountSeriesKeyForChart = null;
             return;
@@ -951,17 +795,14 @@
         var seriesForSummary = _report.Series.AsEnumerable();
         var usesAssetOnly = false;
 
-        if (_activeScope == MonthlyEvolutionScope.Accounts)
-        {
-            var assetSeries = _report.Series
-                .Where(s => ResolveSeriesNature(s) == AccountNature.Asset)
-                .ToList();
+        var assetSeries = _report.Series
+            .Where(s => ResolveSeriesNature(s) == AccountNature.Asset)
+            .ToList();
 
-            if (assetSeries.Count > 0)
-            {
-                seriesForSummary = assetSeries;
-                usesAssetOnly = true;
-            }
+        if (assetSeries.Count > 0)
+        {
+            seriesForSummary = assetSeries;
+            usesAssetOnly = true;
         }
 
         var referenceMonth = GetReferenceMonthForSelectedYear();
@@ -985,14 +826,12 @@
     }
 
     private sealed record AnnualChartsViewModel(
-        IReadOnlyList<AnnualChartSeries> AssetEndBalanceEvolution,
         IReadOnlyList<AnnualChartSeries> AccountEvolution,
         IReadOnlyList<AnnualCompositionSlice> ExpenseComposition,
         IReadOnlyList<AnnualCompositionSlice> IncomeComposition,
         string? Error)
     {
         public static AnnualChartsViewModel Empty => new(
-            AssetEndBalanceEvolution: Array.Empty<AnnualChartSeries>(),
             AccountEvolution: Array.Empty<AnnualChartSeries>(),
             ExpenseComposition: Array.Empty<AnnualCompositionSlice>(),
             IncomeComposition: Array.Empty<AnnualCompositionSlice>(),

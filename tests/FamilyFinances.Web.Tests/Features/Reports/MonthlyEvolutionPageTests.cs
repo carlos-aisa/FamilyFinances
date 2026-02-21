@@ -20,7 +20,7 @@ namespace FamilyFinances.Web.Tests.Features.Reports;
 public sealed class MonthlyEvolutionPageTests : TestContext
 {
     [Fact]
-    public void Initial_Load_Uses_AssetTotal_And_Renders_Table()
+    public void Initial_Load_Uses_Accounts_And_Renders_Overview()
     {
         var currentYear = DateHelper.GetCurrentYear();
         var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
@@ -34,11 +34,11 @@ public sealed class MonthlyEvolutionPageTests : TestContext
                     req.Method == HttpMethod.Get &&
                     req.RequestUri!.ToString().Contains("api/v1/reports/monthly-evolution") &&
                     req.RequestUri!.ToString().Contains($"year={currentYear}") &&
-                    req.RequestUri!.ToString().Contains("scope=asset-total")),
+                    req.RequestUri!.ToString().Contains("scope=accounts")),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
             {
-                Content = JsonContent.Create(CreateAssetTotalPayload(currentYear))
+                Content = JsonContent.Create(CreateAccountsPayload(currentYear))
             });
 
         RegisterAuthorizedServices(httpClient);
@@ -48,55 +48,10 @@ public sealed class MonthlyEvolutionPageTests : TestContext
         cut.WaitForAssertion(() =>
         {
             cut.Markup.Should().Contain("Monthly Evolution");
-            cut.Markup.Should().Contain("Asset Total");
-            cut.Markup.Should().Contain("Latest Asset Balance");
+            cut.Markup.Should().Contain("Accounts Overview");
+            cut.Markup.Should().NotContain("Asset Total");
             cut.Markup.Should().Contain("Period Net Result");
             cut.Markup.Should().Contain("stock metrics");
-            cut.Find("[data-testid='annual-core-evolution-chart']");
-        });
-    }
-
-    [Fact]
-    public void Switching_Scope_Triggers_Reload_And_Renders_Accounts_Data()
-    {
-        var currentYear = DateHelper.GetCurrentYear();
-        var requestedUris = new List<string>();
-
-        var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
-        var httpClient = CreateHttpClient(handlerMock);
-
-        handlerMock
-            .Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync((HttpRequestMessage req, CancellationToken _) =>
-            {
-                requestedUris.Add(req.RequestUri!.ToString());
-
-                var payload = req.RequestUri!.ToString().Contains("scope=accounts")
-                    ? CreateAccountsPayload(currentYear)
-                    : CreateAssetTotalPayload(currentYear);
-
-                return new HttpResponseMessage(HttpStatusCode.OK)
-                {
-                    Content = JsonContent.Create(payload)
-                };
-            });
-
-        RegisterAuthorizedServices(httpClient);
-
-        var cut = RenderComponent<MonthlyEvolutionPage>();
-        cut.WaitForAssertion(() => requestedUris.Should().Contain(uri => uri.Contains("scope=asset-total")));
-
-        var accountsTab = cut.FindAll("button.nav-link")
-            .First(button => button.TextContent.Contains("Accounts"));
-        accountsTab.Click();
-
-        cut.WaitForAssertion(() =>
-        {
-            requestedUris.Should().Contain(uri => uri.Contains("scope=accounts"));
             cut.Markup.Should().Contain("Main Bank");
             cut.Find("[data-testid='annual-accounts-evolution-chart']");
         });
@@ -124,7 +79,7 @@ public sealed class MonthlyEvolutionPageTests : TestContext
 
                 return new HttpResponseMessage(HttpStatusCode.OK)
                 {
-                    Content = JsonContent.Create(CreateAssetTotalPayload(currentYear))
+                    Content = JsonContent.Create(CreateAccountsPayload(currentYear))
                 };
             });
 
@@ -138,7 +93,7 @@ public sealed class MonthlyEvolutionPageTests : TestContext
         cut.WaitForAssertion(() =>
         {
             requestedUris.Should().Contain(uri => uri.Contains($"year={targetYear}"));
-            cut.Find("[data-testid='annual-core-evolution-chart']").GetAttribute("data-year")
+            cut.Find("[data-testid='annual-accounts-evolution-chart']").GetAttribute("data-year")
                 .Should().Be(targetYear.ToString());
         });
     }
@@ -165,12 +120,12 @@ public sealed class MonthlyEvolutionPageTests : TestContext
 
         responseTcs.SetResult(new HttpResponseMessage(HttpStatusCode.OK)
         {
-            Content = JsonContent.Create(CreateAssetTotalPayload(DateHelper.GetCurrentYear()))
+            Content = JsonContent.Create(CreateAccountsPayload(DateHelper.GetCurrentYear()))
         });
 
         cut.WaitForAssertion(() =>
         {
-            cut.Markup.Should().Contain("Latest Asset Balance");
+            cut.Markup.Should().Contain("Latest End Balance");
         });
     }
 
@@ -214,23 +169,15 @@ public sealed class MonthlyEvolutionPageTests : TestContext
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync((HttpRequestMessage req, CancellationToken _) =>
             {
-                var payload = req.RequestUri!.ToString().Contains("scope=accounts")
-                    ? CreateAccountsPayload(currentYear)
-                    : CreateAssetTotalPayload(currentYear);
-
                 return new HttpResponseMessage(HttpStatusCode.OK)
                 {
-                    Content = JsonContent.Create(payload)
+                    Content = JsonContent.Create(CreateAccountsPayload(currentYear))
                 };
             });
 
         RegisterAuthorizedServices(httpClient);
 
         var cut = RenderComponent<MonthlyEvolutionPage>();
-
-        var accountsTab = cut.FindAll("button.nav-link")
-            .First(button => button.TextContent.Contains("Accounts"));
-        accountsTab.Click();
 
         cut.WaitForAssertion(() =>
         {
@@ -272,13 +219,9 @@ public sealed class MonthlyEvolutionPageTests : TestContext
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync((HttpRequestMessage req, CancellationToken _) =>
             {
-                var payload = req.RequestUri!.ToString().Contains("scope=accounts")
-                    ? CreateAccountsPayloadWithMixedNatures(currentYear)
-                    : CreateAssetTotalPayload(currentYear);
-
                 return new HttpResponseMessage(HttpStatusCode.OK)
                 {
-                    Content = JsonContent.Create(payload)
+                    Content = JsonContent.Create(CreateAccountsPayloadWithMixedNatures(currentYear))
                 };
             });
 
@@ -305,10 +248,6 @@ public sealed class MonthlyEvolutionPageTests : TestContext
             });
 
         var cut = RenderComponent<MonthlyEvolutionPage>();
-
-        var accountsTab = cut.FindAll("button.nav-link")
-            .First(button => button.TextContent.Contains("Accounts"));
-        accountsTab.Click();
 
         cut.WaitForAssertion(() =>
         {
@@ -338,13 +277,9 @@ public sealed class MonthlyEvolutionPageTests : TestContext
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync((HttpRequestMessage req, CancellationToken _) =>
             {
-                var payload = req.RequestUri!.ToString().Contains("scope=accounts")
-                    ? CreateBalancedAccountsPayload(currentYear)
-                    : CreateAssetTotalPayload(currentYear);
-
                 return new HttpResponseMessage(HttpStatusCode.OK)
                 {
-                    Content = JsonContent.Create(payload)
+                    Content = JsonContent.Create(CreateBalancedAccountsPayload(currentYear))
                 };
             });
 
@@ -372,51 +307,11 @@ public sealed class MonthlyEvolutionPageTests : TestContext
 
         var cut = RenderComponent<MonthlyEvolutionPage>();
 
-        var accountsTab = cut.FindAll("button.nav-link")
-            .First(button => button.TextContent.Contains("Accounts"));
-        accountsTab.Click();
-
         cut.WaitForAssertion(() =>
         {
             cut.Markup.Should().Contain("Latest Asset Balance");
             var summaryCards = cut.FindAll("div.row.g-3.mb-4 div.card-body");
             summaryCards[0].TextContent.Should().Contain("+26,00\u20AC");
-        });
-    }
-
-    [Fact]
-    public void Core_Chart_DataPoints_Match_AssetTotal_Table_Source()
-    {
-        var currentYear = DateHelper.GetCurrentYear();
-        var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
-        var httpClient = CreateHttpClient(handlerMock);
-
-        handlerMock
-            .Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = JsonContent.Create(CreateAssetTotalPayload(currentYear))
-            });
-
-        RegisterAuthorizedServices(httpClient);
-
-        var cut = RenderComponent<MonthlyEvolutionPage>();
-
-        cut.WaitForAssertion(() =>
-        {
-            var endSeries = cut.Find("[data-testid='annual-core-evolution-chart'] [data-series-key='end-balance']");
-            endSeries.GetAttribute("data-points").Should().Be("1:12000;2:12500");
-
-            var rows = cut.FindAll(".asset-total-overview-grid tr.series-summary-row");
-            rows.Count.Should().Be(2);
-            rows[0].TextContent.Should().Contain("January");
-            rows[0].TextContent.Should().Contain("+120,00\u20AC");
-            rows[1].TextContent.Should().Contain("February");
-            rows[1].TextContent.Should().Contain("+125,00\u20AC");
         });
     }
 
@@ -436,13 +331,9 @@ public sealed class MonthlyEvolutionPageTests : TestContext
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync((HttpRequestMessage req, CancellationToken _) =>
             {
-                var payload = req.RequestUri!.ToString().Contains("scope=accounts")
-                    ? CreateAccountsPayloadForComposition(currentYear)
-                    : CreateAssetTotalPayload(currentYear);
-
                 return new HttpResponseMessage(HttpStatusCode.OK)
                 {
-                    Content = JsonContent.Create(payload)
+                    Content = JsonContent.Create(CreateAccountsPayloadForComposition(currentYear))
                 };
             });
 
@@ -486,10 +377,6 @@ public sealed class MonthlyEvolutionPageTests : TestContext
 
         var cut = RenderComponent<MonthlyEvolutionPage>();
 
-        var accountsTab = cut.FindAll("button.nav-link")
-            .First(button => button.TextContent.Contains("Accounts"));
-        accountsTab.Click();
-
         var compositionModeButton = cut.FindAll("button.btn")
             .First(button => button.TextContent.Contains("Composition"));
         compositionModeButton.Click();
@@ -516,38 +403,6 @@ public sealed class MonthlyEvolutionPageTests : TestContext
                 NumberStyles.Number,
                 CultureInfo.InvariantCulture)
                 .Should().BeApproximately(100m, 0.01m);
-        });
-    }
-
-    [Fact]
-    public void AssetTotal_Summary_Uses_Current_Month_For_Delta_When_Future_Months_Are_Present()
-    {
-        var currentYear = DateHelper.GetCurrentYear();
-        var currentMonth = DateHelper.GetCurrentMonth();
-        var expectedDelta = currentMonth == 1 ? -500L : -750L;
-        var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
-        var httpClient = CreateHttpClient(handlerMock);
-
-        handlerMock
-            .Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = JsonContent.Create(CreateAssetTotalPayloadWithFutureMonths(currentYear, currentMonth))
-            });
-
-        RegisterAuthorizedServices(httpClient);
-
-        var cut = RenderComponent<MonthlyEvolutionPage>();
-
-        cut.WaitForAssertion(() =>
-        {
-            var summaryCards = cut.FindAll("div.row.g-3.mb-4 div.card-body");
-            summaryCards[1].TextContent.Should().Contain(MoneyFormatter.FormatCentsWithSign(expectedDelta));
-            summaryCards[1].TextContent.Should().NotContain("0,00\u20AC");
         });
     }
 
@@ -583,26 +438,6 @@ public sealed class MonthlyEvolutionPageTests : TestContext
         {
             BaseAddress = new Uri("http://localhost:5000")
         };
-    }
-
-    private static MonthlyEvolutionReportDto CreateAssetTotalPayload(int year)
-    {
-        return new MonthlyEvolutionReportDto(
-            year,
-            MonthlyEvolutionScope.AssetTotal,
-            new[]
-            {
-                new MonthlyEvolutionSeriesDto(
-                    "asset-total",
-                    "Asset Total",
-                    null,
-                    "scope",
-                    new[]
-                    {
-                        new MonthlyEvolutionPointDto(1, new DateOnly(year, 1, 31), 12_000, 2_000, 2_000),
-                        new MonthlyEvolutionPointDto(2, new DateOnly(year, 2, DateTime.DaysInMonth(year, 2)), 12_500, 500, 2_500)
-                    })
-            });
     }
 
     private static MonthlyEvolutionReportDto CreateAccountsPayload(int year)
@@ -740,40 +575,6 @@ public sealed class MonthlyEvolutionPageTests : TestContext
                         new MonthlyEvolutionPointDto(1, new DateOnly(year, 1, 31), -2_000, -2_000, -2_000),
                         new MonthlyEvolutionPointDto(2, new DateOnly(year, 2, DateTime.DaysInMonth(year, 2)), -4_000, -2_000, -4_000)
                     })
-            });
-    }
-
-    private static MonthlyEvolutionReportDto CreateAssetTotalPayloadWithFutureMonths(int year, int currentMonth)
-    {
-        var points = new List<MonthlyEvolutionPointDto>
-        {
-            new(1, new DateOnly(year, 1, 31), 25_300_00, -500, 25_300_00)
-        };
-
-        for (var month = 2; month <= 12; month++)
-        {
-            var isCurrentMonth = month == currentMonth;
-            var isFutureMonth = month > currentMonth;
-
-            points.Add(new MonthlyEvolutionPointDto(
-                month,
-                new DateOnly(year, month, DateTime.DaysInMonth(year, month)),
-                24_570_05,
-                isCurrentMonth ? -750 : (isFutureMonth ? 0 : -100),
-                24_570_05));
-        }
-
-        return new MonthlyEvolutionReportDto(
-            year,
-            MonthlyEvolutionScope.AssetTotal,
-            new[]
-            {
-                new MonthlyEvolutionSeriesDto(
-                    "asset-total",
-                    "Asset Total",
-                    null,
-                    "scope",
-                    points)
             });
     }
 
