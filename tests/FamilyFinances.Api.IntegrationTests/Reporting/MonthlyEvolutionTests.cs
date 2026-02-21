@@ -12,6 +12,63 @@ namespace FamilyFinances.Api.IntegrationTests.Reporting;
 public sealed class MonthlyEvolutionTests
 {
     [Fact]
+    public async Task StateEvolution_New_Route_Returns_Ok_For_Valid_Query()
+    {
+        var year = DateTime.UtcNow.Year - 1;
+
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var response = await client.GetAsync($"/api/v1/reports/state-evolution?year={year}&scope=asset-total");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task StateEvolution_Returns_BadRequest_For_Missing_Or_Invalid_Query_Parameters()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        (await client.GetAsync("/api/v1/reports/state-evolution"))
+            .StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        (await client.GetAsync($"/api/v1/reports/state-evolution?year={DateTime.UtcNow.Year}"))
+            .StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        (await client.GetAsync("/api/v1/reports/state-evolution?scope=asset-total"))
+            .StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        (await client.GetAsync($"/api/v1/reports/state-evolution?year={DateTime.UtcNow.Year}&scope=invalid"))
+            .StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        (await client.GetAsync($"/api/v1/reports/state-evolution?year={DateTime.UtcNow.Year + 1}&scope=asset-total"))
+            .StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task StateEvolution_Primary_And_Legacy_Alias_Return_Equivalent_Payload()
+    {
+        var year = DateTime.UtcNow.Year - 1;
+
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var primaryResponse = await client.GetAsync($"/api/v1/reports/state-evolution?year={year}&scope=asset-total");
+        var aliasResponse = await client.GetAsync($"/api/v1/reports/monthly-evolution?year={year}&scope=asset-total");
+
+        primaryResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        aliasResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var primary = await primaryResponse.Content.ReadFromJsonAsync<MonthlyEvolutionReportDto>();
+        var alias = await aliasResponse.Content.ReadFromJsonAsync<MonthlyEvolutionReportDto>();
+
+        primary.Should().NotBeNull();
+        alias.Should().NotBeNull();
+        alias.Should().BeEquivalentTo(primary);
+    }
+
+    [Fact]
     public async Task MonthlyEvolution_AccountsScope_Returns_AccountSeries_With_Correct_Deltas()
     {
         var year = DateTime.UtcNow.Year - 1;

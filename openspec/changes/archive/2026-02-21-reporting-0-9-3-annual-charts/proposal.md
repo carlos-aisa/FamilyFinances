@@ -1,15 +1,15 @@
 ## Why
 
-The current reports are table-first and require cognitive effort to identify trends over the year. Users explicitly requested yearly visualizations for balance evolution, account-group evolution, and income/expense composition percentages.
+The current reports are table-first and require cognitive effort to identify trends over the year. Users explicitly requested yearly visualizations for balance evolution and composition percentages.
 
 ## What Changes
 
 - Add annual chart visualizations to reporting pages using existing yearly report data.
 - Implement charts for:
-  - Evolution of balances vs expenses vs period net.
+  - Asset total end-balance evolution.
   - Evolution by account groups.
-  - Percentage composition of expense groups.
-  - Percentage composition of income groups.
+  - Expense-oriented account-group composition.
+  - Accounts composition by nature (`Expense` / `Income`).
 - Keep table data as source of truth and place charts above corresponding tables.
 - Ensure chart labels use canonical semantics from `0.9.1`.
 
@@ -28,14 +28,14 @@ The current reports are table-first and require cognitive effort to identify tre
 ## Capabilities
 
 ### New Capabilities
-- `annual-reporting-charts`: Year-level chart rendering for balance, account-group evolution, and income/expense group composition.
+- `annual-reporting-charts`: Year-level chart rendering for asset/account/account-group evolution and supported composition views.
 
 ### Modified Capabilities
-- `monthly-balance-evolution-reporting`: Extend monthly evolution UI behavior with annual chart panels tied to selected scope/year.
+- `monthly-balance-evolution-reporting`: Extend state evolution UI behavior with annual chart panels tied to selected scope/year.
 - `system`: Extend reporting system behavior with annual chart availability and table-to-chart consistency requirements.
 
 ## Impact
 
-- Blazor reporting pages (`MonthlyEvolution`, related report views), chart components, and UI styling.
+- Blazor reporting pages (`EconomicState`, `AccountTotals`, `AccountGroupTotals`), chart components, and UI styling.
 - Web-side data transformation/adapters from DTO points to chart datasets.
 - Frontend tests for chart presence, dataset binding, and fallback behavior.

@@ -2,9 +2,7 @@
 
 ## Purpose
 Define the reporting capability that returns month-by-month year-to-date evolution series for accounts, asset total, and account groups.
-
 ## Requirements
-
 ### Requirement: System SHALL Provide Monthly YTD Evolution Series For Accounts
 The system MUST provide monthly year-to-date evolution points for accounts from January of the selected year.
 
@@ -43,14 +41,9 @@ The system MUST compute deltas consistently across all scopes and months.
 ### Requirement: Evolution Output SHALL Include Continuous Month Buckets
 The system MUST return continuous monthly buckets in deterministic order for the selected year window.
 
-#### Scenario: Current year returns months up to current month
-- **WHEN** the selected year `Y` equals the current calendar year
-- **THEN** the response MUST include months from `1` through the current month
-- **AND** months beyond current month MUST NOT be returned
-
-#### Scenario: Historical year returns all twelve months
-- **WHEN** the selected year `Y` is before the current calendar year
-- **THEN** the response MUST include months `1` through `12`
+#### Scenario: Any selected year returns twelve ordered buckets
+- **WHEN** monthly evolution data is requested for year `Y`
+- **THEN** the response MUST include months `1` through `12` in ascending order
 
 #### Scenario: Months with no activity are still returned
 - **WHEN** no movements exist for a series in month `M`
@@ -58,39 +51,49 @@ The system MUST return continuous monthly buckets in deterministic order for the
 - **AND** `EndBalanceCents` MUST carry forward from month `M-1`
 
 ### Requirement: API SHALL Expose Monthly Evolution Contract
-The API MUST expose a dedicated monthly evolution endpoint with explicit `year` and `scope` query parameters.
+The API MUST expose a state evolution endpoint with explicit `year` and `scope` query parameters, and keep a backward-compatible monthly-evolution alias.
 
-#### Scenario: Valid request returns monthly evolution payload
-- **WHEN** an authorized user calls `GET /api/v1/reports/monthly-evolution?year=YYYY&scope=<scope>`
+#### Scenario: Valid request returns evolution payload through primary endpoint
+- **WHEN** an authorized user calls `GET /api/v1/reports/state-evolution?year=YYYY&scope=<scope>`
 - **THEN** the API MUST return `200 OK`
 - **AND** the response MUST contain graph-ready series and ordered monthly points
+
+#### Scenario: Valid request returns evolution payload through legacy alias
+- **WHEN** an authorized user calls `GET /api/v1/reports/monthly-evolution?year=YYYY&scope=<scope>`
+- **THEN** the API MUST return `200 OK`
+- **AND** the response payload shape MUST be equivalent to the primary state-evolution endpoint
 
 #### Scenario: Missing or invalid query parameters are rejected
 - **WHEN** a client calls the endpoint with missing or invalid `year` or `scope`
 - **THEN** the API MUST return `400 BadRequest`
 
-### Requirement: Web Reports UI SHALL Provide Monthly Evolution View
-The Web UI MUST provide a dedicated monthly evolution report experience reachable from Reports index, with explicit metric scope semantics for summary cards.
+### Requirement: Web Reports UI SHALL Provide Integrated State Evolution Views
+The Web UI MUST provide annual state evolution views integrated in reporting pages and include chart visualizations consistent with selected scope and year.
 
-#### Scenario: Monthly evolution report is reachable from reports index
+#### Scenario: Reports index does not expose a standalone monthly evolution card
 - **WHEN** an authenticated user opens `/reports`
-- **THEN** the UI MUST show a `Monthly Evolution` report entry
-- **AND** selecting it MUST navigate to `/reports/monthly-evolution`
+- **THEN** the UI MUST expose `Economic State`, `Account Totals`, and `Account Group Totals` entries
+- **AND** the UI MUST NOT require a dedicated `/reports/monthly-evolution` entry for annual evolution access
 
-#### Scenario: User can switch year and scope in one page
-- **WHEN** the user is on `/reports/monthly-evolution`
-- **THEN** the page MUST provide a year selector and scope tabs (`Accounts`, `Asset Total`, `Account Groups`)
-- **AND** changing year or scope MUST reload the report data for the selected filters
+#### Scenario: Account totals state evolution provides accounts scope controls
+- **WHEN** the user opens `/reports/account-totals` and switches to `State Evolution`
+- **THEN** the view MUST provide a year selector for accounts evolution datasets
+- **AND** changing year MUST reload chart/table data deterministically
 
-#### Scenario: Accounts scope summary cards are asset-explicit
-- **WHEN** the user views `/reports/monthly-evolution` with scope `Accounts`
-- **THEN** top summary cards MUST represent `Asset`-scope end balance and deltas when asset series are available
-- **AND** card labels MUST explicitly indicate `Asset` semantics
-- **AND** the view MUST avoid silently presenting all-account netted totals as if they were current cash/asset balance
+#### Scenario: Economic state asset evolution provides asset-total scope controls
+- **WHEN** the user opens `/reports/economic-state` and switches to `Asset Evolution`
+- **THEN** the view MUST provide a year selector for asset-total evolution datasets
+- **AND** changing year MUST reload chart/table data deterministically
 
-#### Scenario: Non-equivalent metric semantics are disclosed
-- **WHEN** the monthly evolution page shows values that are not directly comparable to period net result metrics
-- **THEN** the page MUST display an explicit informational disclaimer describing the semantic difference
+#### Scenario: Account group totals state evolution provides account-group scope controls
+- **WHEN** the user opens `/reports/account-group-totals` and switches to `State Evolution`
+- **THEN** the view MUST provide a year selector for account-group evolution datasets
+- **AND** changing year MUST reload chart/table data deterministically
+
+#### Scenario: Chart fallback is shown when series is empty
+- **WHEN** no evolution series exists for the selected scope/year
+- **THEN** the chart area MUST display an explicit empty-state message
+- **AND** the view MUST remain usable for year/tab/filter changes
 
 ### Requirement: Evolution Contract SHALL Be Graph-Ready
 The response contract MUST remain machine-friendly and stable for future chart rendering.
@@ -103,3 +106,4 @@ The response contract MUST remain machine-friendly and stable for future chart r
 #### Scenario: Series identifiers are stable
 - **WHEN** a series is returned for the same entity and scope across requests
 - **THEN** its `SeriesKey` and entity reference fields MUST remain stable for deterministic client-side chart binding
+

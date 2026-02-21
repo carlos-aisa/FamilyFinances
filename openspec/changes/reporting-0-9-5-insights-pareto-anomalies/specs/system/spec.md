@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Reporting Endpoints SHALL Provide Aggregated Read Models
-The system SHALL provide aggregated report read models and derived insight models, including Pareto ranking, concentration indicators, and explainable anomaly signals.
+The system SHALL provide aggregated report read models and derived insight models, including Pareto ranking, concentration indicators, and explainable anomaly signals for group and payee dimensions.
 
 #### Scenario: Monthly summary returns summary DTO
 Given valid date query inputs  
@@ -37,4 +37,4 @@ Given a valid insight request and authorized user
 When the client calls insight reporting endpoints  
 Then the API returns deterministic ranking/concentration/anomaly results  
 And anomaly results include baseline/threshold explanation fields
-
+And insight requests MUST support a dimension selector that includes `group` and `payee`

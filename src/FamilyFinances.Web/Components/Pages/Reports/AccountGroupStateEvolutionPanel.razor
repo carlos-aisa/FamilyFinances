@@ -304,7 +304,7 @@ else
 
         try
         {
-            _report = await ReportsApi.GetMonthlyEvolutionAsync(_selectedYear, MonthlyEvolutionScope.AccountGroups);
+            _report = await ReportsApi.GetStateEvolutionAsync(_selectedYear, MonthlyEvolutionScope.AccountGroups);
             await LoadAccountGroupNatureLookupBestEffortAsync();
             SyncFocusedMonth();
             _expandedSeriesKey = null;

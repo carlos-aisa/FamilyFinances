@@ -186,6 +186,14 @@ public sealed class ReportsApi
         MonthlyEvolutionScope scope,
         CancellationToken ct = default)
     {
+        return await GetStateEvolutionAsync(year, scope, ct);
+    }
+
+    public async Task<MonthlyEvolutionReportDto> GetStateEvolutionAsync(
+        int year,
+        MonthlyEvolutionScope scope,
+        CancellationToken ct = default)
+    {
         var token = _tokenStore.GetAccessToken();
         if (string.IsNullOrWhiteSpace(token))
             throw new UnauthorizedAccessException("No access token available.");
@@ -198,7 +206,7 @@ public sealed class ReportsApi
             _ => throw new ArgumentOutOfRangeException(nameof(scope), scope, "Unsupported monthly evolution scope.")
         };
 
-        var url = $"api/v1/reports/monthly-evolution?year={year}&scope={scopeQueryValue}";
+        var url = $"api/v1/reports/state-evolution?year={year}&scope={scopeQueryValue}";
 
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);

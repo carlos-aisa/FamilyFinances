@@ -226,7 +226,7 @@ else
 
         try
         {
-            _report = await ReportsApi.GetMonthlyEvolutionAsync(_selectedYear, MonthlyEvolutionScope.AssetTotal);
+            _report = await ReportsApi.GetStateEvolutionAsync(_selectedYear, MonthlyEvolutionScope.AssetTotal);
         }
         catch (UnauthorizedAccessException)
         {

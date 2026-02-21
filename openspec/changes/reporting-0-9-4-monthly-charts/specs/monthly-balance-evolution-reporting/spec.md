@@ -1,25 +1,24 @@
 ## MODIFIED Requirements
 
-### Requirement: Web Reports UI SHALL Provide Monthly Evolution View
-The Web UI MUST provide a dedicated monthly evolution report experience reachable from Reports index, and support monthly focused charts for the selected month context.
+### Requirement: Web Reports UI SHALL Provide Integrated Month-Focused State Evolution Views
+The Web UI MUST provide month-focused chart behavior inside integrated state-evolution tabs and MUST NOT require a dedicated Monthly Evolution route.
 
-#### Scenario: Monthly evolution report is reachable from reports index
+#### Scenario: Reports index keeps integrated entry points
 - **WHEN** an authenticated user opens `/reports`
-- **THEN** the UI MUST show a `Monthly Evolution` report entry
-- **AND** selecting it MUST navigate to `/reports/monthly-evolution`
+- **THEN** the UI MUST expose integrated report entries (`Economic State`, `Account Totals`, `Account Group Totals`)
+- **AND** month-focused chart flows MUST be reachable through those report tabs without a standalone `/reports/monthly-evolution` entry
 
-#### Scenario: User can switch year and scope in one page
-- **WHEN** the user is on `/reports/monthly-evolution`
-- **THEN** the page MUST provide a year selector and scope tabs (`Accounts`, `Asset Total`, `Account Groups`)
-- **AND** changing year or scope MUST reload the report data for the selected filters
+#### Scenario: User can select focused month in asset evolution tab
+- **WHEN** the user opens `/reports/economic-state` and selects `Asset Evolution`
+- **THEN** the view MUST provide focused-month controls for month-level charts
+- **AND** changing month MUST reload month-level chart datasets for the selected year/month
 
-#### Scenario: User can select focused month for monthly chart context
-- **WHEN** the user selects a focused month in monthly evolution controls
-- **THEN** the report MUST update month-focused chart datasets to the selected month
-- **AND** the focused month selection MUST persist while switching expandable table details
+#### Scenario: User can select focused month in account group state evolution tab
+- **WHEN** the user opens `/reports/account-group-totals` and selects `State Evolution`
+- **THEN** the view MUST provide focused-month controls for month-level charts
+- **AND** changing month MUST reload month-level chart datasets for the selected year/month
 
 #### Scenario: Month-focused chart and table context are consistent
-- **WHEN** month-focused charts and summary table rows are shown together
+- **WHEN** month-focused charts and summary rows are shown together in an integrated tab
 - **THEN** both MUST reference the same selected month context
 - **AND** labels MUST clearly indicate the selected month
-

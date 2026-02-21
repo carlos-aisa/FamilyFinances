@@ -8,11 +8,11 @@
 
 - [x] 2.1 Implement annual evolution chart for core balance/expense/net metrics.
 - [x] 2.2 Implement annual account-group evolution chart bound to group monthly series.
-- [x] 2.3 Implement annual composition charts for expense groups and income groups with percentage normalization.
+- [x] 2.3 Implement annual composition charts for supported scopes (expense-oriented account groups and account nature composition) with percentage normalization.
 
 ## 3. Page integration
 
-- [x] 3.1 Replace `MonthlyEvolution` chart placeholder with functional annual chart panels.
+- [x] 3.1 Replace report chart placeholders with functional annual chart panels in integrated state-evolution tabs.
 - [x] 3.2 Position chart sections above corresponding tables and keep existing table behavior unchanged.
 - [x] 3.3 Ensure chart datasets refresh deterministically on year/scope filter changes.
 
@@ -20,7 +20,7 @@
 
 - [x] 4.1 Add/extend Web tests asserting chart presence and scope/year rebind behavior.
 - [x] 4.2 Add tests validating chart dataset values equal table source values for sampled months.
-- [x] 4.3 Add tests validating composition charts sum to 100% (within rounding tolerance).
+- [x] 4.3 Add tests validating composition calculations sum to 100% (within rounding tolerance) for implemented composition views.
 
 ## 5. Validation and documentation
 

@@ -1,5 +1,3 @@
-@page "/reports/monthly-evolution"
-@rendermode InteractiveServer
 @using FamilyFinances.Application.Ledger.Accounts.Dtos
 @using FamilyFinances.Application.Reporting.Dtos
 @using FamilyFinances.Application.Reporting.Semantics
@@ -9,27 +7,12 @@
 @using FamilyFinances.Web.Components.Pages.Reports.Charts
 @using FamilyFinances.Web.Features.Reports
 @using FamilyFinances.Web.Features.Reports.Charts
-@using Microsoft.AspNetCore.Components.Authorization
 @inherits ApiPageBase
 
 @inject ReportsApi ReportsApi
 @inject IAccountsApi AccountsApi
 
-<AuthorizeView>
-    <Authorized>
-        <div class="d-flex align-items-center justify-content-between mb-4">
-            <div>
-                <h3 class="mb-1">
-                    <i class="bi bi-graph-up-arrow me-2"></i>Monthly Evolution
-                </h3>
-                <p class="text-muted mb-0">Monthly year-to-date account balances with deltas vs previous month and year start</p>
-            </div>
-            <a class="btn btn-outline-secondary" href="/reports">
-                <i class="bi bi-arrow-left me-1"></i>Back to Reports
-            </a>
-        </div>
-
-        <div class="card shadow-sm mb-4">
+<div class="card shadow-sm mb-4">
             <div class="card-body">
                 <div class="row g-3 align-items-end">
                     <div class="col-12 col-md-4">
@@ -45,33 +28,33 @@
                     </div>
                 </div>
             </div>
-        </div>
+</div>
 
-        @if (!string.IsNullOrWhiteSpace(_error))
-        {
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="bi bi-exclamation-triangle me-2"></i>@_error
-                <button type="button" class="btn-close" @onclick="@(() => _error = null)"></button>
-            </div>
-        }
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>@_error
+        <button type="button" class="btn-close" @onclick="@(() => _error = null)"></button>
+    </div>
+}
 
-        @if (_isLoading)
-        {
-            <ReportingChartLoadingState
-                Title="Loading annual charts"
-                Description="Loading report data..." />
-        }
-        else if (_report is not null && _report.Series.Count == 0)
-        {
-            <ReportingChartEmptyState
-                Title="Annual charts"
-                Description="No evolution data for selected year." />
-        }
-        else if (_report is not null)
-        {
-            var (latestEndBalance, latestDeltaPrev, latestDeltaYearStart, usesAssetOnly) = GetLatestSummary();
+@if (_isLoading)
+{
+    <ReportingChartLoadingState
+        Title="Loading annual charts"
+        Description="Loading report data..." />
+}
+else if (_report is not null && _report.Series.Count == 0)
+{
+    <ReportingChartEmptyState
+        Title="Annual charts"
+        Description="No evolution data for selected year." />
+}
+else if (_report is not null)
+{
+    var (latestEndBalance, latestDeltaPrev, latestDeltaYearStart, usesAssetOnly) = GetLatestSummary();
 
-            <div class="row g-3 mb-4">
+    <div class="row g-3 mb-4">
                 <div class="col-12 col-md-4">
                     <div class="card shadow-sm h-100 border-start border-primary border-4">
                         <div class="card-body">
@@ -102,26 +85,26 @@
                         </div>
                     </div>
                 </div>
-            </div>
+    </div>
 
-            <div class="alert alert-info mb-4" role="alert">
-                <i class="bi bi-info-circle me-2"></i>
-                @GetComparabilityDisclaimerText(usesAssetOnly)
-            </div>
+    <div class="alert alert-info mb-4" role="alert">
+        <i class="bi bi-info-circle me-2"></i>
+        @GetComparabilityDisclaimerText(usesAssetOnly)
+    </div>
 
-            var charts = BuildAnnualChartsViewModel();
-            var dataUntilMonth = GetDataUntilMonthForSelectedYear();
-            var summaryMonth = GetReferenceMonthForSelectedYear();
-            var groupedSeries = GetAccountSeriesGroups();
-            var selectableSeries = GetSelectableAccountSeries();
-            var compositionMonthOptions = GetAvailableMonthsForFocusedSelection();
-            var compositionMonth = GetFocusedCompositionMonth();
-            var compositionMonthLabel = compositionMonth is not null
-                ? DateHelper.GetMonthName(compositionMonth.Value)
-                : "N/A";
-            var natureIndex = 0;
+    var charts = BuildAnnualChartsViewModel();
+    var dataUntilMonth = GetDataUntilMonthForSelectedYear();
+    var summaryMonth = GetReferenceMonthForSelectedYear();
+    var groupedSeries = GetAccountSeriesGroups();
+    var selectableSeries = GetSelectableAccountSeries();
+    var compositionMonthOptions = GetAvailableMonthsForFocusedSelection();
+    var compositionMonth = GetFocusedCompositionMonth();
+    var compositionMonthLabel = compositionMonth is not null
+        ? DateHelper.GetMonthName(compositionMonth.Value)
+        : "N/A";
+    var natureIndex = 0;
 
-            <div class="row g-3 mb-4 accounts-overview-grid">
+    <div class="row g-3 mb-4 accounts-overview-grid">
                         <div class="col-12 col-xxl-8">
                             <div class="card shadow-sm h-100">
                                 <div class="card-header bg-transparent">
@@ -342,26 +325,18 @@
                                 }
                             }
                         </div>
-                    </div>
+    </div>
 
-        }
-        else
-        {
-            <div class="card shadow-sm">
-                <div class="card-body text-center py-5">
-                    <i class="bi bi-graph-up display-4 text-muted mb-3"></i>
-                    <h5 class="text-muted">Select year to load monthly evolution.</h5>
-                </div>
-            </div>
-        }
-    </Authorized>
-    <NotAuthorized>
-        <div class="alert alert-warning">
-            <i class="bi bi-exclamation-triangle me-2"></i>
-            Please log in to view reports.
+}
+else
+{
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-graph-up display-4 text-muted mb-3"></i>
+            <h5 class="text-muted">Select year to load account state evolution.</h5>
         </div>
-    </NotAuthorized>
-</AuthorizeView>
+    </div>
+}
 
 @code {
     private MonthlyEvolutionReportDto? _report;
@@ -481,7 +456,7 @@
 
         try
         {
-            _report = await ReportsApi.GetMonthlyEvolutionAsync(_selectedYear, MonthlyEvolutionScope.Accounts);
+            _report = await ReportsApi.GetStateEvolutionAsync(_selectedYear, MonthlyEvolutionScope.Accounts);
             await LoadAccountNatureLookupBestEffortAsync();
 
             SyncFocusedMonth();

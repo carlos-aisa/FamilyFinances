@@ -98,11 +98,32 @@ public sealed class ReportsController : ControllerBase
     }
 
     [Authorize(Policy = Policies.CanRead)]
-    [HttpGet("monthly-evolution")]
-    public async Task<ActionResult<MonthlyEvolutionReportDto>> GetMonthlyEvolution(
+    [HttpGet("state-evolution")]
+    public Task<ActionResult<MonthlyEvolutionReportDto>> GetStateEvolution(
         [FromQuery] int? year,
         [FromQuery] string? scope,
         [FromServices] GetMonthlyEvolutionHandler handler,
+        CancellationToken ct)
+    {
+        return GetStateEvolutionCore(year, scope, handler, ct);
+    }
+
+    // Legacy alias kept for compatibility.
+    [Authorize(Policy = Policies.CanRead)]
+    [HttpGet("monthly-evolution")]
+    public Task<ActionResult<MonthlyEvolutionReportDto>> GetMonthlyEvolution(
+        [FromQuery] int? year,
+        [FromQuery] string? scope,
+        [FromServices] GetMonthlyEvolutionHandler handler,
+        CancellationToken ct)
+    {
+        return GetStateEvolutionCore(year, scope, handler, ct);
+    }
+
+    private async Task<ActionResult<MonthlyEvolutionReportDto>> GetStateEvolutionCore(
+        int? year,
+        string? scope,
+        GetMonthlyEvolutionHandler handler,
         CancellationToken ct)
     {
         if (year is null)

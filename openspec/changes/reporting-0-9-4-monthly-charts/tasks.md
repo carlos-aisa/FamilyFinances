@@ -13,12 +13,12 @@
 ## 3. Web integration
 
 - [ ] 3.1 Extend web `ReportsApi` client with month-level chart methods.
-- [ ] 3.2 Integrate month selector behavior and monthly chart sections in `MonthlyEvolution` page.
-- [ ] 3.3 Ensure monthly chart refresh behavior remains consistent with selected year/scope/month controls.
+- [ ] 3.2 Integrate focused-month selector and monthly chart sections in `src/FamilyFinances.Web/Components/Pages/Reports/AssetTotalEvolutionPanel.razor` and `src/FamilyFinances.Web/Components/Pages/Reports/AccountGroupStateEvolutionPanel.razor`.
+- [ ] 3.3 Ensure monthly chart refresh behavior remains consistent with selected year/month controls and current state-evolution tab context.
 
 ## 4. Tests and consistency checks
 
-- [ ] 4.1 Add/extend Web feature tests covering focused month selection and monthly chart data refresh.
+- [ ] 4.1 Add/extend Web feature tests covering focused month selection and monthly chart data refresh in integrated tabs.
 - [ ] 4.2 Add/extend Application tests for day-bucket ordering and carry-forward semantics.
 - [ ] 4.3 Add tests ensuring compared series use aligned day buckets.
 

@@ -1,12 +1,13 @@
 ## Why
 
-After tables and charts are in place, users still need actionable interpretation support: what explains most spending/income, where concentration risk exists, and which months or groups are anomalous. This is required to make reporting truly decision-oriented before closing `0.9.x`.
+After tables and charts are in place, users still need actionable interpretation support: what explains most spending/income, where concentration risk exists, and which months, groups, or payees are anomalous. This is required to make reporting truly decision-oriented before closing `0.9.x`.
 
 ## What Changes
 
 - Add reporting insights for Pareto and concentration analysis.
-- Add outlier/anomaly detection indicators for expense behavior at group level.
+- Add outlier/anomaly detection indicators for expense behavior at group and payee level.
 - Provide user-facing insight panels linked to existing report periods/filters.
+- Add explicit payee-oriented insight views ("report by payee") within reporting insights.
 - Keep insight results explainable (transparent formulas and thresholds).
 
 ### Non-Goals
@@ -24,7 +25,7 @@ After tables and charts are in place, users still need actionable interpretation
 ## Capabilities
 
 ### New Capabilities
-- `reporting-insights`: Pareto, concentration, and anomaly insight generation for reporting.
+- `reporting-insights`: Pareto, concentration, and anomaly insight generation for reporting across groups and payees.
 
 ### Modified Capabilities
 - `system`: Extend reporting baseline with insight generation and explainability requirements.
@@ -32,6 +33,6 @@ After tables and charts are in place, users still need actionable interpretation
 ## Impact
 
 - Application reporting layer (insight calculations and thresholds).
-- API reporting endpoints/DTOs for insights payloads.
-- Web report pages displaying insight cards/sections.
+- API reporting endpoints/DTOs for insights payloads including payee dimension.
+- Web report pages displaying insight cards/sections including payee-focused insights.
 - Tests for deterministic insight outputs and threshold behavior.

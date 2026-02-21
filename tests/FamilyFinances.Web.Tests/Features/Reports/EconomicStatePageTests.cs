@@ -129,7 +129,7 @@ public sealed class EconomicStatePageTests : TestContext
                     };
                 }
 
-                if (uri.Contains("api/v1/reports/monthly-evolution") &&
+                if (uri.Contains("api/v1/reports/state-evolution") &&
                     uri.Contains($"year={currentYear}") &&
                     uri.Contains("scope=asset-total"))
                 {

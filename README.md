@@ -233,6 +233,21 @@ Schema source:
   - Reports
   - Health
 
+### Reporting Map (Current UI)
+- `Economic State` (`/reports/economic-state`)
+  - `Snapshot` tab: current stock + period flow KPIs
+  - `Asset Evolution` tab: annual asset-total evolution (table + chart)
+- `Account Totals` (`/reports/account-totals`)
+  - `Period Totals` tab
+  - `State Evolution` tab: annual account evolution and composition
+- `Account Group Totals` (`/reports/account-group-totals`)
+  - `Period Totals` tab
+  - `State Evolution` tab: annual group evolution and expense-oriented composition
+
+### Reporting API Evolution Endpoint
+- Primary endpoint: `GET /api/v1/reports/state-evolution?year=YYYY&scope=<accounts|asset-total|account-groups>`
+- Backward-compatible alias: `GET /api/v1/reports/monthly-evolution?year=YYYY&scope=<accounts|asset-total|account-groups>`
+
 ## Contributing
 Suggested workflow:
 - Create a feature branch from `main`.

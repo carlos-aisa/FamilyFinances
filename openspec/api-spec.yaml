@@ -1131,11 +1131,11 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
-  /api/v1/reports/monthly-evolution:
+  /api/v1/reports/state-evolution:
     get:
       tags: [Reports]
-      summary: Get monthly year-to-date evolution
-      operationId: Reports_GetMonthlyEvolution
+      summary: Get state evolution (year-to-date by scope)
+      operationId: Reports_GetStateEvolution
       security:
         - bearerAuth: []
       parameters:
@@ -1152,7 +1152,42 @@ paths:
             $ref: '#/components/schemas/MonthlyEvolutionScopeQuery'
       responses:
         '200':
-          description: Monthly evolution for the selected year and scope.
+          description: State evolution for the selected year and scope.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MonthlyEvolutionReportDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/reports/monthly-evolution:
+    get:
+      tags: [Reports]
+      summary: Legacy alias for state evolution
+      description: Backward-compatible alias of `/api/v1/reports/state-evolution`.
+      operationId: Reports_GetMonthlyEvolutionLegacy
+      deprecated: true
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: year
+          required: true
+          schema:
+            type: integer
+            format: int32
+        - in: query
+          name: scope
+          required: true
+          schema:
+            $ref: '#/components/schemas/MonthlyEvolutionScopeQuery'
+      responses:
+        '200':
+          description: State evolution for the selected year and scope.
           content:
             application/json:
               schema:
@@ -1464,7 +1499,7 @@ components:
     MonthlyEvolutionScopeQuery:
       type: string
       enum: [accounts, asset-total, account-groups]
-      description: Scope selector for monthly evolution endpoint.
+      description: Scope selector for state-evolution endpoints.
 
     CreateAccountRequest:
       type: object
