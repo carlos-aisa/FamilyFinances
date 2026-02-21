@@ -1,0 +1,29 @@
+## 1. Month-level data contracts
+
+- [ ] 1.1 Add month-level chart DTOs for daily balance and balance-vs-group datasets.
+- [ ] 1.2 Add application queries/handlers for month-level datasets with deterministic day ordering.
+- [ ] 1.3 Extend repository interfaces and implementations for daily bucket aggregation and carry-forward behavior.
+
+## 2. API endpoints
+
+- [ ] 2.1 Add endpoint `GET /api/v1/reports/monthly-charts/balance` with query validation.
+- [ ] 2.2 Add endpoint `GET /api/v1/reports/monthly-charts/balance-vs-groups` with query validation.
+- [ ] 2.3 Add API tests for success, invalid input, and no-data month responses.
+
+## 3. Web integration
+
+- [ ] 3.1 Extend web `ReportsApi` client with month-level chart methods.
+- [ ] 3.2 Integrate month selector behavior and monthly chart sections in `MonthlyEvolution` page.
+- [ ] 3.3 Ensure monthly chart refresh behavior remains consistent with selected year/scope/month controls.
+
+## 4. Tests and consistency checks
+
+- [ ] 4.1 Add/extend Web feature tests covering focused month selection and monthly chart data refresh.
+- [ ] 4.2 Add/extend Application tests for day-bucket ordering and carry-forward semantics.
+- [ ] 4.3 Add tests ensuring compared series use aligned day buckets.
+
+## 5. Validation and release prep
+
+- [ ] 5.1 Run Application, API integration, and Web test suites in Release configuration.
+- [ ] 5.2 Validate chart/table month-context consistency across key report states.
+- [ ] 5.3 Document monthly chart semantics and endpoint contracts for `0.9.4`.
