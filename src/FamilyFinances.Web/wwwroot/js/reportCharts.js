@@ -98,12 +98,7 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
                 },
                 plugins: {
                     legend: {
-                        position: "bottom",
-                        labels: {
-                            color: "#dee2e6",
-                            usePointStyle: true,
-                            boxWidth: 10
-                        }
+                        display: false
                     },
                     tooltip: {
                         callbacks: {

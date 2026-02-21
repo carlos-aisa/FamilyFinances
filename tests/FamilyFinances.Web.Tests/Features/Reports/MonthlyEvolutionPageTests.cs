@@ -1,7 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Globalization;
-using AngleSharp.Dom;
 using Bunit;
 using Bunit.TestDoubles;
 using FamilyFinances.Application.Ledger.Accounts.Dtos;
@@ -493,13 +492,51 @@ public sealed class MonthlyEvolutionPageTests : TestContext
 
         cut.WaitForAssertion(() =>
         {
-            var expenseRows = cut.FindAll("[data-testid='annual-expense-composition-chart'] .composition-slice-row");
-            expenseRows.Should().NotBeEmpty();
-            SumPercentages(expenseRows).Should().BeApproximately(100m, 0.01m);
+            var expenseChart = cut.Find("[data-testid='annual-expense-composition-chart']");
+            decimal.Parse(
+                expenseChart.GetAttribute("data-total-percentage") ?? "0",
+                NumberStyles.Number,
+                CultureInfo.InvariantCulture)
+                .Should().BeApproximately(100m, 0.01m);
 
-            var incomeRows = cut.FindAll("[data-testid='annual-income-composition-chart'] .composition-slice-row");
-            incomeRows.Should().NotBeEmpty();
-            SumPercentages(incomeRows).Should().BeApproximately(100m, 0.01m);
+            var incomeChart = cut.Find("[data-testid='annual-income-composition-chart']");
+            decimal.Parse(
+                incomeChart.GetAttribute("data-total-percentage") ?? "0",
+                NumberStyles.Number,
+                CultureInfo.InvariantCulture)
+                .Should().BeApproximately(100m, 0.01m);
+        });
+    }
+
+    [Fact]
+    public void AssetTotal_Summary_Uses_Current_Month_For_Delta_When_Future_Months_Are_Present()
+    {
+        var currentYear = DateHelper.GetCurrentYear();
+        var currentMonth = DateHelper.GetCurrentMonth();
+        var expectedDelta = currentMonth == 1 ? -500L : -750L;
+        var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        var httpClient = CreateHttpClient(handlerMock);
+
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(CreateAssetTotalPayloadWithFutureMonths(currentYear, currentMonth))
+            });
+
+        RegisterAuthorizedServices(httpClient);
+
+        var cut = RenderComponent<MonthlyEvolutionPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var summaryCards = cut.FindAll("div.row.g-3.mb-4 div.card-body");
+            summaryCards[1].TextContent.Should().Contain(MoneyFormatter.FormatCentsWithSign(expectedDelta));
+            summaryCards[1].TextContent.Should().NotContain("0,00\u20AC");
         });
     }
 
@@ -695,12 +732,38 @@ public sealed class MonthlyEvolutionPageTests : TestContext
             });
     }
 
-    private static decimal SumPercentages(IReadOnlyList<IElement> rows)
+    private static MonthlyEvolutionReportDto CreateAssetTotalPayloadWithFutureMonths(int year, int currentMonth)
     {
-        return rows.Sum(row => decimal.Parse(
-            row.GetAttribute("data-percentage") ?? "0",
-            NumberStyles.Number,
-            CultureInfo.InvariantCulture));
+        var points = new List<MonthlyEvolutionPointDto>
+        {
+            new(1, new DateOnly(year, 1, 31), 25_300_00, -500, 25_300_00)
+        };
+
+        for (var month = 2; month <= 12; month++)
+        {
+            var isCurrentMonth = month == currentMonth;
+            var isFutureMonth = month > currentMonth;
+
+            points.Add(new MonthlyEvolutionPointDto(
+                month,
+                new DateOnly(year, month, DateTime.DaysInMonth(year, month)),
+                24_570_05,
+                isCurrentMonth ? -750 : (isFutureMonth ? 0 : -100),
+                24_570_05));
+        }
+
+        return new MonthlyEvolutionReportDto(
+            year,
+            MonthlyEvolutionScope.AssetTotal,
+            new[]
+            {
+                new MonthlyEvolutionSeriesDto(
+                    "asset-total",
+                    "Asset Total",
+                    null,
+                    "scope",
+                    points)
+            });
     }
 
     private sealed class TestTokenStore : IApiTokenStore

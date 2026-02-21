@@ -225,10 +225,44 @@
     font-size: 0.9rem;
 }
 
+.account-groups-overview-grid .table {
+    font-size: 0.9rem;
+}
+
+.account-groups-chart-panel .annual-line-chart,
+.account-groups-chart-panel .annual-composition-chart {
+    margin-bottom: 0 !important;
+}
+
+.account-groups-chart-panel .annual-line-chart .annual-line-canvas-wrap {
+    height: 220px;
+    min-height: 200px;
+}
+
+.account-groups-chart-panel .annual-composition-chart .annual-composition-canvas-wrap {
+    height: 220px;
+    min-height: 200px;
+}
+
+.account-groups-chart-panel .annual-composition-chart .composition-legend {
+    max-height: 170px;
+    overflow: auto;
+}
+
 @media (max-width: 1399.98px) {
     .asset-total-chart-panel .annual-line-chart .annual-line-canvas-wrap {
         height: 260px;
         min-height: 220px;
+    }
+
+    .account-groups-chart-panel .annual-line-chart .annual-line-canvas-wrap,
+    .account-groups-chart-panel .annual-composition-chart .annual-composition-canvas-wrap {
+        height: 260px;
+        min-height: 220px;
+    }
+
+    .account-groups-chart-panel .annual-composition-chart .composition-legend {
+        max-height: none;
     }
 }
 

@@ -32,20 +32,6 @@ else
             <div class="annual-composition-canvas-wrap">
                 <canvas id="@_canvasId" class="annual-composition-canvas" aria-label="@Title"></canvas>
             </div>
-
-            <div class="composition-legend mt-3">
-                @foreach (var slice in OrderedSlices)
-                {
-                    <div class="composition-slice-row"
-                         data-slice-key="@slice.Key"
-                         data-percentage="@slice.Percentage.ToString("0.####", CultureInfo.InvariantCulture)">
-                        <span class="composition-dot" style="background-color:@slice.ColorHex"></span>
-                        <span class="composition-label">@slice.Label</span>
-                        <span class="composition-value text-muted">@MoneyFormatter.FormatCents(slice.RawValueCents)</span>
-                        <span class="composition-percentage">@($"{slice.Percentage:0.##}%")</span>
-                    </div>
-                }
-            </div>
         </div>
     </div>
 }

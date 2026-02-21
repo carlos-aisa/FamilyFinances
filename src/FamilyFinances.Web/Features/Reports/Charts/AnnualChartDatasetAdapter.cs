@@ -130,6 +130,44 @@ public static class AnnualChartDatasetAdapter
             .ToList();
     }
 
+    public static IReadOnlyList<AnnualCompositionSlice> BuildCompositionFromSeriesAtMonth(
+        MonthlyEvolutionReportDto report,
+        Func<MonthlyEvolutionSeriesDto, bool> predicate,
+        int month)
+    {
+        if (report.Series.Count == 0)
+            return Array.Empty<AnnualCompositionSlice>();
+
+        var weighted = report.Series
+            .Where(predicate)
+            .Select(s => new
+            {
+                s.SeriesKey,
+                s.DisplayName,
+                ValueCents = Math.Abs(GetValueCentsAtOrBeforeMonth(s, month))
+            })
+            .Where(x => x.ValueCents > 0)
+            .OrderByDescending(x => x.ValueCents)
+            .ThenBy(x => x.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (weighted.Count == 0)
+            return Array.Empty<AnnualCompositionSlice>();
+
+        var total = weighted.Sum(x => x.ValueCents);
+        if (total == 0)
+            return Array.Empty<AnnualCompositionSlice>();
+
+        return weighted
+            .Select((x, idx) => new AnnualCompositionSlice(
+                Key: x.SeriesKey,
+                Label: x.DisplayName,
+                RawValueCents: x.ValueCents,
+                Percentage: (x.ValueCents * 100m) / total,
+                ColorHex: AnnualChartPalette.Resolve(idx)))
+            .ToList();
+    }
+
     private static IReadOnlyList<int> GetOrderedMonths(MonthlyEvolutionReportDto report)
     {
         return report.Series
@@ -153,10 +191,16 @@ public static class AnnualChartDatasetAdapter
 
     private static long GetLatestValueCents(MonthlyEvolutionSeriesDto series)
     {
-        var latest = series.Points
+        return GetValueCentsAtOrBeforeMonth(series, month: int.MaxValue);
+    }
+
+    private static long GetValueCentsAtOrBeforeMonth(MonthlyEvolutionSeriesDto series, int month)
+    {
+        var point = series.Points
+            .Where(p => p.Month <= month)
             .OrderByDescending(p => p.Month)
             .FirstOrDefault();
 
-        return latest?.EndBalanceCents ?? 0;
+        return point?.EndBalanceCents ?? 0;
     }
 }
