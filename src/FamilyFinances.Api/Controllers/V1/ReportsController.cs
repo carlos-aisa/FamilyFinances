@@ -121,6 +121,23 @@ public sealed class ReportsController : ControllerBase
         return Ok(dto);
     }
 
+    [Authorize(Policy = Policies.CanRead)]
+    [HttpGet("economic-state")]
+    public async Task<ActionResult<EconomicStateDto>> GetEconomicState(
+        [FromQuery] DateOnly? asOf,
+        [FromServices] GetEconomicStateHandler handler,
+        CancellationToken ct)
+    {
+        if (asOf is null)
+            return BadRequest(new { error = "Query parameter 'asOf' is required." });
+
+        var dto = await handler.HandleAsync(
+            new GetEconomicStateQuery(asOf.Value),
+            ct);
+
+        return Ok(dto);
+    }
+
     private static bool TryParseMonthlyEvolutionScope(string scope, out MonthlyEvolutionScope parsed)
     {
         switch (scope.Trim().ToLowerInvariant())

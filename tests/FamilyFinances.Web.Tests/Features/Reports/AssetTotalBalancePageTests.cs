@@ -61,7 +61,7 @@ public sealed class AssetTotalBalancePageTests : TestContext
         {
             cut.Markup.Should().Contain("Asset Accounts Included");
             cut.Markup.Should().Contain("As of 2026-01-31");
-            cut.Markup.Should().Contain("1,234.56");
+            cut.Markup.Should().Contain("1.234,56\u20AC");
         });
     }
 

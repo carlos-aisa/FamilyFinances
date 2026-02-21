@@ -1,12 +1,12 @@
 @page "/accounts"
 @rendermode InteractiveServer
 @using System.ComponentModel.DataAnnotations
-@using System.Globalization
 @using FamilyFinances.Application.Ledger.Accounts.Dtos
 @using FamilyFinances.Application.Ledger.Accounts.Requests
 @using FamilyFinances.Application.Reporting.Dtos
 @using FamilyFinances.Domain.Ledger.Accounts
 @using FamilyFinances.Web.Api
+@using FamilyFinances.Web.Features.Reports
 @using Microsoft.AspNetCore.Components.Authorization
 @inherits FamilyFinances.Web.Components.Base.ApiPageBase
 
@@ -218,7 +218,7 @@
                                             <td class="text-end">
                                                 @if (balanceText is null)
                                                 {
-                                                    <span class="text-muted">—</span>
+                                                    <span class="text-muted">&mdash;</span>
                                                 }
                                                 else
                                                 {
@@ -696,7 +696,7 @@
     private string? GetAccountBalanceText(Guid accountId)
     {
         if (_balances.TryGetValue(accountId, out var bal))
-            return bal.ToString("C2", CultureInfo.CurrentCulture);
+            return MoneyFormatter.FormatEuros(bal);
 
         return null;
     }

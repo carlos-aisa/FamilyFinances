@@ -1,6 +1,7 @@
 @using System.ComponentModel.DataAnnotations
 @using FamilyFinances.Application.Ledger.Accounts.Dtos
 @using FamilyFinances.Application.Ledger.Payees.Dtos
+@using FamilyFinances.Web.Features.Reports
 
 <EditForm Model="_formModel" OnValidSubmit="@(() => Task.CompletedTask)">
     <DataAnnotationsValidator />
@@ -29,7 +30,7 @@
                 <i class="bi bi-person me-1"></i>Payee (optional)
             </label>
             <InputSelect class="form-select" @bind-Value="_formModel.PayeeId">
-                <option value="">— none —</option>
+                <option value="">&mdash; none &mdash;</option>
                 @foreach (var p in Payees)
                 {
                     <option value="@p.Id">@p.Name</option>
@@ -61,7 +62,7 @@
                     <div class="col-md-5">
                         <label class="form-label small">Account *</label>
                         <select class="form-select" @bind="split.AccountId" @bind:after="ValidateForm">
-                            <option value="">— select account —</option>
+                            <option value="">&mdash; select account &mdash;</option>
                             @foreach (var account in Accounts)
                             {
                                 <option value="@account.Id">@account.Name (@account.Nature)</option>
@@ -70,7 +71,7 @@
                     </div>
 
                     <div class="col-md-4">
-                        <label class="form-label small">Amount (€) *</label>
+                        <label class="form-label small">Amount (&euro;) *</label>
                         <input type="text" 
                                class="form-control" 
                                @bind="split.AmountText" 
@@ -134,7 +135,7 @@
                     }
                 </span>
                 <span class="fs-5 fw-bold @(_balance == 0 ? "text-success" : "text-warning")">
-                    @_balance.ToString("F2") €
+                    @MoneyFormatter.FormatEuros(_balance)
                 </span>
             </div>
         </div>

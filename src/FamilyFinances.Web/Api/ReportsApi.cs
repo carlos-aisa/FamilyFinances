@@ -157,6 +157,30 @@ public sealed class ReportsApi
         return result ?? throw new InvalidOperationException("Failed to deserialize asset total balance response.");
     }
 
+    public async Task<EconomicStateDto> GetEconomicStateAsync(
+        DateOnly asOf,
+        CancellationToken ct = default)
+    {
+        var token = _tokenStore.GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("No access token available.");
+
+        var url = $"api/v1/reports/economic-state?asOf={asOf:yyyy-MM-dd}";
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _http.SendAsync(request, ct);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
+
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<EconomicStateDto>(cancellationToken: ct);
+        return result ?? throw new InvalidOperationException("Failed to deserialize economic state response.");
+    }
+
     public async Task<MonthlyEvolutionReportDto> GetMonthlyEvolutionAsync(
         int year,
         MonthlyEvolutionScope scope,

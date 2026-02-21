@@ -7,6 +7,7 @@
 @using FamilyFinances.Application.Ledger.Transactions.Dtos
 @using FamilyFinances.Domain.Ledger.Accounts
 @using FamilyFinances.Web.Components.Dashboard
+@using FamilyFinances.Web.Features.Reports
 @using FamilyFinances.Web.Features.Transactions
 @using FamilyFinances.Web.Components.Shared
 @inject FamilyFinances.Web.Api.TransactionsApi TransactionsApi
@@ -158,7 +159,7 @@
                                                         <i class="bi bi-tag me-1"></i>@expense.ExpenseAccountName
                                                     </small>
                                                 </div>
-                                                <span class="badge bg-primary">€@expense.Amount.ToString("F2")</span>
+                                                <span class="badge bg-primary">@MoneyFormatter.FormatEuros(expense.Amount)</span>
                                             </div>
                                         </button>
                                     }

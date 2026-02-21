@@ -14,9 +14,7 @@ Known unresolved contracts:
 - Exact `401/403` payload body shape for unauthorized/forbidden responses.
 - Exact `/health` response body/status contract.
 - Exact global unhandled-exception payload contract outside explicit domain/conflict/not-found mappings.
-
 ## Requirements
-
 ### Requirement: API Login SHALL Issue Access Tokens
 #### Scenario: Valid credentials return access token
 Given a user exists with valid credentials  
@@ -138,7 +136,7 @@ Then the API returns `200 OK`
 And the response is `AccountGroupDetailsDto { Id, Name, Description, Accounts }`
 
 ### Requirement: Reporting Endpoints SHALL Provide Aggregated Read Models
-The system SHALL provide aggregated report read models, including monthly summary, account-group totals, as-of asset total balance, and monthly evolution contracts, with explicit semantic distinction between stock and flow metrics.
+The system SHALL provide aggregated report read models, including monthly summary, account-group totals, as-of asset total balance, monthly evolution contracts, and a dedicated economic-state snapshot endpoint.
 
 #### Scenario: Monthly summary returns summary DTO
 Given valid date query inputs  
@@ -169,12 +167,12 @@ Given a request with missing or invalid `year` or `scope`
 When the client calls `GET /api/v1/reports/monthly-evolution`  
 Then the API returns `400 BadRequest`
 
-#### Scenario: Stock and flow semantics are explicitly distinguished in reporting contract usage
-Given a reporting view combines values from monthly summary and monthly evolution  
-When the system renders or documents those values together  
-Then period flow metrics (`IncomeTotal`, `ExpenseTotal`, `Net`) MUST be treated as period-result semantics  
-And balance/delta metrics (`EndBalanceCents`, evolution deltas, as-of asset totals) MUST be treated as stock semantics  
-And non-equivalent metrics MUST NOT be labeled as equivalent indicators
+#### Scenario: Economic state endpoint returns unified stock and flow KPIs
+Given a valid as-of date and an authorized user  
+When the client calls `GET /api/v1/reports/economic-state?asOf=YYYY-MM-DD`  
+Then the API returns `200 OK`  
+And the response includes explicit stock KPIs (`AssetsTotalCents`, `LiabilitiesTotalCents`, `NetWorthCents`)  
+And the response includes explicit flow KPIs (`IncomeTotalCents`, `ExpenseTotalCents`, `PeriodNetResultCents`)
 
 ### Requirement: Health Endpoint SHALL Be Exposed
 #### Scenario: Health endpoint route exists

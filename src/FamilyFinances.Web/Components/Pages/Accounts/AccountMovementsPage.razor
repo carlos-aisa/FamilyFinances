@@ -442,11 +442,7 @@ private readonly ReconcileModel _reconcileModel = new();
 
     private string GetRunningBalanceClass(decimal runningBalance)
     {
-        if (runningBalance > 0)
-            return "text-success";
-        if (runningBalance < 0)
-            return "text-danger";
-        return "text-muted";
+        return MoneyFormatter.GetColorClass(runningBalance);
     }
 
     private void OpenReconcileModal()
@@ -489,7 +485,11 @@ private readonly ReconcileModel _reconcileModel = new();
 
                 if (result.AdjustmentCreated)
                 {
-                    _success = $"Reconciliation complete! {result.Message} (Computed: {result.ComputedBalance:C2}, Actual: {result.ActualBalance:C2}, Difference: {result.Difference:C2})";
+                    _success =
+                        $"Reconciliation complete! {result.Message} " +
+                        $"(Computed: {MoneyFormatter.FormatEuros(result.ComputedBalance)}, " +
+                        $"Actual: {MoneyFormatter.FormatEuros(result.ActualBalance)}, " +
+                        $"Difference: {MoneyFormatter.FormatEuros(result.Difference)})";
                 }
                 else
                 {
@@ -521,8 +521,7 @@ private readonly ReconcileModel _reconcileModel = new();
 
     private string FormatAmount(decimal amount)
     {
-        // Display with correct sign: positive for inflows, negative for outflows
-        return amount.ToString("C2", CultureInfo.CurrentCulture);
+        return MoneyFormatter.FormatEuros(amount);
     }
 
     private sealed class ReconcileModel
