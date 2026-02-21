@@ -14,7 +14,7 @@
 @inject NavigationManager Navigation
 
 <AuthorizeView>
-    <Authorized Context="authContext">
+    <Authorized>
         <!-- Header -->
         <div class="d-flex align-items-center justify-content-between mb-4">
             <div>
@@ -34,6 +34,27 @@
             </button>
         </div>
 
+        <ul class="nav nav-tabs mb-4">
+            <li class="nav-item">
+                <button type="button"
+                        class="nav-link @GetTabClass(AccountGroupReportTab.PeriodTotals)"
+                        @onclick="() => SetActiveTabAsync(AccountGroupReportTab.PeriodTotals)"
+                        disabled="@(_isBusy)">
+                    Period Totals
+                </button>
+            </li>
+            <li class="nav-item">
+                <button type="button"
+                        class="nav-link @GetTabClass(AccountGroupReportTab.StateEvolution)"
+                        @onclick="() => SetActiveTabAsync(AccountGroupReportTab.StateEvolution)"
+                        disabled="@(_isBusy)">
+                    State Evolution
+                </button>
+            </li>
+        </ul>
+
+        @if (_activeTab == AccountGroupReportTab.PeriodTotals)
+        {
         <!-- Filters Card -->
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-light">
@@ -244,6 +265,11 @@
                 </div>
             </div>
         }
+        }
+        else
+        {
+            <AccountGroupStateEvolutionPanel />
+        }
 
     </Authorized>
 
@@ -273,6 +299,7 @@
 
     private string? _error;
     private bool _isBusy;
+    private AccountGroupReportTab _activeTab = AccountGroupReportTab.PeriodTotals;
 
     protected override async Task OnInitializedAsync()
     {
@@ -286,6 +313,17 @@
         _toDate = to;
         _activePreset = preset.Type.ToString().ToLowerInvariant().Replace("_", "-");
         return Task.CompletedTask;
+    }
+
+    private Task SetActiveTabAsync(AccountGroupReportTab tab)
+    {
+        _activeTab = tab;
+        return Task.CompletedTask;
+    }
+
+    private string GetTabClass(AccountGroupReportTab tab)
+    {
+        return _activeTab == tab ? "active" : string.Empty;
     }
 
     private void OnDateChanged()
@@ -340,6 +378,12 @@
     private void GoBack()
     {
         Navigation.NavigateTo("/reports");
+    }
+
+    private enum AccountGroupReportTab
+    {
+        PeriodTotals,
+        StateEvolution
     }
 
 }
