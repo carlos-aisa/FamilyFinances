@@ -212,6 +212,26 @@
     height: 100%;
 }
 
+.asset-total-chart-panel .annual-line-chart {
+    margin-bottom: 0 !important;
+}
+
+.asset-total-chart-panel .annual-line-chart .annual-line-canvas-wrap {
+    height: 220px;
+    min-height: 200px;
+}
+
+.asset-total-overview-grid .table {
+    font-size: 0.9rem;
+}
+
+@media (max-width: 1399.98px) {
+    .asset-total-chart-panel .annual-line-chart .annual-line-canvas-wrap {
+        height: 260px;
+        min-height: 220px;
+    }
+}
+
 .annual-line-chart .chart-grid-line {
     stroke: var(--bs-border-color);
     stroke-width: 1;

@@ -148,16 +148,7 @@
             }
             else
             {
-                @if (_activeScope == MonthlyEvolutionScope.AssetTotal)
-                {
-                    <AnnualLineChart
-                        Title="Asset Total Evolution"
-                        Subtitle="Final balance by month (current month uses latest available data)."
-                        Year="@_selectedYear"
-                        Series="@charts.AssetEndBalanceEvolution"
-                        TestId="annual-core-evolution-chart" />
-                }
-                else if (_activeScope == MonthlyEvolutionScope.Accounts)
+                @if (_activeScope == MonthlyEvolutionScope.Accounts)
                 {
                     var selectableSeries = GetSelectableAccountSeries();
 
@@ -220,43 +211,87 @@
             @if (_activeScope == MonthlyEvolutionScope.AssetTotal)
             {
                 var series = _report.Series.First();
+                var dataUntilMonth = GetDataUntilMonthForSelectedYear();
 
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-transparent">
-                        <h5 class="mb-0">
-                            <i class="bi bi-cash-coin me-2"></i>@series.DisplayName
-                        </h5>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th class="border-0 ps-3">Month</th>
-                                        <th class="border-0 text-end">End Balance</th>
-                                        <th class="border-0 text-end">Delta Prev Month</th>
-                                        <th class="border-0 text-end pe-3">Delta Year Start</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var point in series.Points.OrderBy(p => p.Month))
+                <div class="row g-3 mb-4 asset-total-overview-grid">
+                    <div class="col-12 col-xxl-8">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header bg-transparent">
+                                <div class="d-flex justify-content-between align-items-center gap-3">
+                                    <h5 class="mb-0">
+                                        <i class="bi bi-list-ul me-2"></i>Asset Total (Monthly Overview)
+                                    </h5>
+                                    @if (dataUntilMonth is not null)
                                     {
-                                        <tr class="series-summary-row">
-                                            <td class="ps-3">@DateHelper.GetMonthName(point.Month)</td>
-                                            <td class="text-end @MoneyFormatter.GetColorClass(point.EndBalanceCents)">
-                                                @MoneyFormatter.FormatCentsWithSign(point.EndBalanceCents)
-                                            </td>
-                                            <td class="text-end @MoneyFormatter.GetColorClass(point.DeltaVsPreviousMonthCents)">
-                                                @MoneyFormatter.FormatCentsWithSign(point.DeltaVsPreviousMonthCents)
-                                            </td>
-                                            <td class="text-end pe-3 @MoneyFormatter.GetColorClass(point.DeltaVsYearStartCents)">
-                                                @MoneyFormatter.FormatCentsWithSign(point.DeltaVsYearStartCents)
-                                            </td>
-                                        </tr>
+                                        <span class="badge text-bg-secondary">
+                                            Current month: @DateHelper.GetMonthName(dataUntilMonth.Value)
+                                        </span>
                                     }
-                                </tbody>
-                            </table>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover align-middle mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th class="border-0 ps-3">Month</th>
+                                                <th class="border-0 text-end">End Balance</th>
+                                                <th class="border-0 text-end">Delta Prev Month</th>
+                                                <th class="border-0 text-end pe-3">Delta Year Start</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var point in series.Points.OrderBy(p => p.Month))
+                                            {
+                                                var hasData = dataUntilMonth is null || point.Month <= dataUntilMonth.Value;
+                                                var isCurrentMonth = dataUntilMonth is not null && point.Month == dataUntilMonth.Value;
+
+                                                <tr class="series-summary-row @(isCurrentMonth ? "table-active" : string.Empty)">
+                                                    <td class="ps-3">
+                                                        @DateHelper.GetMonthName(point.Month)
+                                                        @if (isCurrentMonth)
+                                                        {
+                                                            <span class="badge rounded-pill text-bg-primary ms-2">Current</span>
+                                                        }
+                                                    </td>
+                                                    <td class="text-end @MoneyFormatter.GetColorClass(point.EndBalanceCents)">
+                                                        @(hasData ? MoneyFormatter.FormatCentsWithSign(point.EndBalanceCents) : "-")
+                                                    </td>
+                                                    <td class="text-end @MoneyFormatter.GetColorClass(point.DeltaVsPreviousMonthCents)">
+                                                        @(hasData ? MoneyFormatter.FormatCentsWithSign(point.DeltaVsPreviousMonthCents) : "-")
+                                                    </td>
+                                                    <td class="text-end pe-3 @MoneyFormatter.GetColorClass(point.DeltaVsYearStartCents)">
+                                                        @(hasData ? MoneyFormatter.FormatCentsWithSign(point.DeltaVsYearStartCents) : "-")
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
+                    </div>
+                    <div class="col-12 col-xxl-4 asset-total-chart-panel">
+                        @if (!string.IsNullOrWhiteSpace(charts.Error))
+                        {
+                            <ReportingChartErrorState Message="@charts.Error" />
+                        }
+                        else if (charts.AssetEndBalanceEvolution.Count == 0)
+                        {
+                            <ReportingChartEmptyState
+                                Title="Asset Total Evolution"
+                                Description="No chart points are available for the selected filters." />
+                        }
+                        else
+                        {
+                            <AnnualLineChart
+                                Title="Asset Total Evolution"
+                                Subtitle="Final balance by month (current month uses latest available data)."
+                                Year="@_selectedYear"
+                                Series="@charts.AssetEndBalanceEvolution"
+                                DataUntilMonth="@dataUntilMonth"
+                                TestId="annual-core-evolution-chart" />
+                        }
                     </div>
                 </div>
             }
@@ -774,6 +809,13 @@
             .Distinct()
             .OrderBy(m => m)
             .ToList();
+    }
+
+    private int? GetDataUntilMonthForSelectedYear()
+    {
+        return _selectedYear == DateHelper.GetCurrentYear()
+            ? DateHelper.GetCurrentMonth()
+            : null;
     }
 
     private void SyncFocusedMonth()

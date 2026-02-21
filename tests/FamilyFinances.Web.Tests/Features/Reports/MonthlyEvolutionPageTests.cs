@@ -412,7 +412,7 @@ public sealed class MonthlyEvolutionPageTests : TestContext
             var endSeries = cut.Find("[data-testid='annual-core-evolution-chart'] [data-series-key='end-balance']");
             endSeries.GetAttribute("data-points").Should().Be("1:12000;2:12500");
 
-            var rows = cut.FindAll("tr.series-summary-row");
+            var rows = cut.FindAll(".asset-total-overview-grid tr.series-summary-row");
             rows.Count.Should().Be(2);
             rows[0].TextContent.Should().Contain("January");
             rows[0].TextContent.Should().Contain("+120,00\u20AC");

@@ -47,6 +47,7 @@ else
     [Parameter, EditorRequired] public int Year { get; set; }
     [Parameter, EditorRequired] public IReadOnlyList<AnnualChartSeries> Series { get; set; } = Array.Empty<AnnualChartSeries>();
     [Parameter] public string TestId { get; set; } = "annual-line-chart";
+    [Parameter] public int? DataUntilMonth { get; set; }
 
     private readonly string _canvasId = $"annual-line-{Guid.NewGuid():N}";
     private bool HasData => Series.Any(s => s.Points.Count > 0);
@@ -90,7 +91,7 @@ else
             .ToList();
 
         var labels = orderedMonths
-            .Select(DateHelper.GetMonthName)
+            .Select(GetShortMonthLabel)
             .ToList();
 
         var useDualAxis = ShouldUseDualAxis();
@@ -100,9 +101,15 @@ else
             {
                 var pointsByMonth = series.Points.ToDictionary(x => x.Month, x => x.Value);
                 var values = orderedMonths
-                    .Select(month => pointsByMonth.TryGetValue(month, out var value)
-                        ? Convert.ToDouble(value / 100m, CultureInfo.InvariantCulture)
-                        : (double?)null)
+                    .Select(month =>
+                    {
+                        if (DataUntilMonth is not null && month > DataUntilMonth.Value)
+                            return (double?)null;
+
+                        return pointsByMonth.TryGetValue(month, out var value)
+                            ? Convert.ToDouble(value / 100m, CultureInfo.InvariantCulture)
+                            : (double?)null;
+                    })
                     .ToList();
 
                 return new
@@ -135,4 +142,10 @@ else
     private bool ShouldUseDualAxis()
         => Series.Any(s => s.Key == "end-balance") &&
            Series.Any(s => s.Key == "delta-prev-month");
+
+    private static string GetShortMonthLabel(int month)
+    {
+        var full = DateHelper.GetMonthName(month);
+        return full.Length <= 3 ? full : full[..3];
+    }
 }
