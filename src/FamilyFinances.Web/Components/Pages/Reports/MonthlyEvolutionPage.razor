@@ -6,12 +6,15 @@
 @using FamilyFinances.Domain.Ledger.Accounts
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web.Components.Pages.Reports.Charts
 @using FamilyFinances.Web.Features.Reports
+@using FamilyFinances.Web.Features.Reports.Charts
 @using Microsoft.AspNetCore.Components.Authorization
 @inherits ApiPageBase
 
 @inject ReportsApi ReportsApi
 @inject IAccountsApi AccountsApi
+@inject AccountGroupsApi AccountGroupsApi
 
 <AuthorizeView>
     <Authorized>
@@ -82,23 +85,15 @@
 
         @if (_isLoading)
         {
-            <div class="card shadow-sm">
-                <div class="card-body text-center py-5">
-                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <p class="text-muted mb-0">Loading report data...</p>
-                </div>
-            </div>
+            <ReportingChartLoadingState
+                Title="Loading annual charts"
+                Description="Loading report data..." />
         }
         else if (_report is not null && _report.Series.Count == 0)
         {
-            <div class="card shadow-sm">
-                <div class="card-body text-center py-5">
-                    <i class="bi bi-inbox display-4 text-muted mb-3"></i>
-                    <h5 class="text-muted">No evolution data for selected year/scope.</h5>
-                </div>
-            </div>
+            <ReportingChartEmptyState
+                Title="Annual charts"
+                Description="No evolution data for selected year/scope." />
         }
         else if (_report is not null)
         {
@@ -143,6 +138,83 @@
                     <i class="bi bi-info-circle me-2"></i>
                     @GetComparabilityDisclaimerText(usesAssetOnly)
                 </div>
+            }
+
+            var charts = BuildAnnualChartsViewModel();
+
+            @if (!string.IsNullOrWhiteSpace(charts.Error))
+            {
+                <ReportingChartErrorState Message="@charts.Error" />
+            }
+            else
+            {
+                @if (_activeScope == MonthlyEvolutionScope.AssetTotal)
+                {
+                    <AnnualLineChart
+                        Title="Asset Total Evolution"
+                        Subtitle="Final balance by month (current month uses latest available data)."
+                        Year="@_selectedYear"
+                        Series="@charts.AssetEndBalanceEvolution"
+                        TestId="annual-core-evolution-chart" />
+                }
+                else if (_activeScope == MonthlyEvolutionScope.Accounts)
+                {
+                    var selectableSeries = GetSelectableAccountSeries();
+
+                    <div class="card shadow-sm mb-3">
+                        <div class="card-body">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-12 col-lg-6">
+                                    <label class="form-label fw-semibold mb-1">Account Line Selection</label>
+                                    <select class="form-select form-select-sm account-line-selector"
+                                            value="@_selectedAccountSeriesKeyForChart"
+                                            @onchange="OnAccountSeriesSelectionChanged">
+                                        <option value="">All accounts</option>
+                                        @foreach (var series in selectableSeries)
+                                        {
+                                            <option value="@series.SeriesKey">@series.DisplayName</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <AnnualLineChart
+                        Title="Accounts Monthly Evolution"
+                        Subtitle="Monthly end-balance evolution by account. Use the selector to focus one account."
+                        Year="@_selectedYear"
+                        Series="@charts.AccountEvolution"
+                        TestId="annual-accounts-evolution-chart" />
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-xl-6">
+                            <AnnualCompositionChart
+                                Title="Expense Composition"
+                                Subtitle="Share of annual absolute balances for expense-nature accounts."
+                                Year="@_selectedYear"
+                                Slices="@charts.ExpenseComposition"
+                                TestId="annual-expense-composition-chart" />
+                        </div>
+                        <div class="col-12 col-xl-6">
+                            <AnnualCompositionChart
+                                Title="Income Composition"
+                                Subtitle="Share of annual absolute balances for income-nature accounts."
+                                Year="@_selectedYear"
+                                Slices="@charts.IncomeComposition"
+                                TestId="annual-income-composition-chart" />
+                        </div>
+                    </div>
+                }
+                else if (_activeScope == MonthlyEvolutionScope.AccountGroups)
+                {
+                    <AnnualLineChart
+                        Title="Account Groups Monthly Evolution"
+                        Subtitle="Monthly end-balance evolution by account group (liability accounts excluded)."
+                        Year="@_selectedYear"
+                        Series="@charts.AccountGroupEvolution"
+                        TestId="annual-account-group-evolution-chart" />
+                }
             }
 
             @if (_activeScope == MonthlyEvolutionScope.AssetTotal)
@@ -405,15 +477,19 @@
                             </div>
                         </div>
                     </div>
+
+                    @if (_activeScope == MonthlyEvolutionScope.AccountGroups)
+                    {
+                        <AnnualCompositionChart
+                            Title="Expense Groups Composition"
+                            Subtitle="Percentage split of expense-oriented groups (quesitos)."
+                            Year="@_selectedYear"
+                            Slices="@charts.AccountGroupExpenseComposition"
+                            TestId="annual-account-group-expense-composition-chart" />
+                    }
                 }
             }
 
-            <div class="card shadow-sm">
-                <div class="card-body text-center py-5">
-                    <i class="bi bi-bar-chart display-4 text-muted mb-3"></i>
-                    <h5 class="text-muted">Chart area reserved for future versions</h5>
-                </div>
-            </div>
         }
         else
         {
@@ -442,8 +518,11 @@
     private MonthlyEvolutionScope _activeScope = MonthlyEvolutionScope.AssetTotal;
     private IReadOnlyList<int> _yearOptions = Array.Empty<int>();
     private IReadOnlyDictionary<Guid, AccountNature> _accountNatureById = new Dictionary<Guid, AccountNature>();
+    private IReadOnlyDictionary<Guid, IReadOnlySet<AccountNature>> _accountGroupNaturesById =
+        new Dictionary<Guid, IReadOnlySet<AccountNature>>();
     private int? _focusedMonth;
     private string? _expandedSeriesKey;
+    private string? _selectedAccountSeriesKeyForChart;
     private static readonly AccountNature[] _natureOrder =
     {
         AccountNature.Asset,
@@ -487,6 +566,7 @@
 
         _activeScope = scope;
         _expandedSeriesKey = null;
+        _selectedAccountSeriesKeyForChart = null;
         await LoadReportAsync();
     }
 
@@ -496,6 +576,13 @@
             _focusedMonth = month;
 
         _expandedSeriesKey = null;
+        return Task.CompletedTask;
+    }
+
+    private Task OnAccountSeriesSelectionChanged(ChangeEventArgs e)
+    {
+        var selected = e.Value?.ToString();
+        _selectedAccountSeriesKeyForChart = string.IsNullOrWhiteSpace(selected) ? null : selected;
         return Task.CompletedTask;
     }
 
@@ -512,13 +599,21 @@
             if (_activeScope == MonthlyEvolutionScope.Accounts)
             {
                 await LoadAccountNatureLookupBestEffortAsync();
+                _accountGroupNaturesById = new Dictionary<Guid, IReadOnlySet<AccountNature>>();
+            }
+            else if (_activeScope == MonthlyEvolutionScope.AccountGroups)
+            {
+                _accountNatureById = new Dictionary<Guid, AccountNature>();
+                await LoadAccountGroupNatureLookupBestEffortAsync();
             }
             else
             {
                 _accountNatureById = new Dictionary<Guid, AccountNature>();
+                _accountGroupNaturesById = new Dictionary<Guid, IReadOnlySet<AccountNature>>();
             }
 
             SyncFocusedMonth();
+            SyncSelectedAccountSeries();
             _expandedSeriesKey = null;
         }
         catch (UnauthorizedAccessException)
@@ -557,6 +652,78 @@
             MonthlyEvolutionScope.Accounts => "One row per account grouped by nature. Expand only the series you need.",
             _ => "One row per series. Expand only the series you need."
         };
+    }
+
+    private AnnualChartsViewModel BuildAnnualChartsViewModel()
+    {
+        if (_report is null || _report.Series.Count == 0)
+            return AnnualChartsViewModel.Empty;
+
+        try
+        {
+            var assetEndBalanceEvolution = _activeScope == MonthlyEvolutionScope.AssetTotal
+                ? AnnualChartDatasetAdapter.BuildEndBalanceSeries(_report, key: "end-balance", label: "End Balance")
+                : Array.Empty<AnnualChartSeries>();
+
+            var selectedAccountKeys = _activeScope == MonthlyEvolutionScope.Accounts &&
+                                      !string.IsNullOrWhiteSpace(_selectedAccountSeriesKeyForChart)
+                ? new HashSet<string>(StringComparer.Ordinal) { _selectedAccountSeriesKeyForChart }
+                : null;
+
+            var accountEvolution = _activeScope == MonthlyEvolutionScope.Accounts
+                ? AnnualChartDatasetAdapter.BuildSeriesEvolution(
+                    _report,
+                    maxSeries: selectedAccountKeys is null ? 12 : 1,
+                    includedSeriesKeys: selectedAccountKeys)
+                : Array.Empty<AnnualChartSeries>();
+
+            var accountGroupEvolution = _activeScope == MonthlyEvolutionScope.AccountGroups
+                ? AnnualChartDatasetAdapter.BuildSeriesEvolution(_report, maxSeries: 12)
+                : Array.Empty<AnnualChartSeries>();
+
+            var expenseComposition = _activeScope == MonthlyEvolutionScope.Accounts
+                ? AnnualChartDatasetAdapter.BuildCompositionByNature(_report, _accountNatureById, AccountNature.Expense)
+                : Array.Empty<AnnualCompositionSlice>();
+
+            var incomeComposition = _activeScope == MonthlyEvolutionScope.Accounts
+                ? AnnualChartDatasetAdapter.BuildCompositionByNature(_report, _accountNatureById, AccountNature.Income)
+                : Array.Empty<AnnualCompositionSlice>();
+
+            var accountGroupExpenseComposition = _activeScope == MonthlyEvolutionScope.AccountGroups
+                ? AnnualChartDatasetAdapter.BuildCompositionFromSeries(_report, IsExpenseOrientedGroup)
+                : Array.Empty<AnnualCompositionSlice>();
+
+            return new AnnualChartsViewModel(
+                AssetEndBalanceEvolution: assetEndBalanceEvolution,
+                AccountEvolution: accountEvolution,
+                AccountGroupEvolution: accountGroupEvolution,
+                ExpenseComposition: expenseComposition,
+                IncomeComposition: incomeComposition,
+                AccountGroupExpenseComposition: accountGroupExpenseComposition,
+                Error: null);
+        }
+        catch (Exception ex)
+        {
+            return new AnnualChartsViewModel(
+                AssetEndBalanceEvolution: Array.Empty<AnnualChartSeries>(),
+                AccountEvolution: Array.Empty<AnnualChartSeries>(),
+                AccountGroupEvolution: Array.Empty<AnnualChartSeries>(),
+                ExpenseComposition: Array.Empty<AnnualCompositionSlice>(),
+                IncomeComposition: Array.Empty<AnnualCompositionSlice>(),
+                AccountGroupExpenseComposition: Array.Empty<AnnualCompositionSlice>(),
+                Error: $"Failed to build annual chart datasets: {ex.Message}");
+        }
+    }
+
+    private bool IsExpenseOrientedGroup(MonthlyEvolutionSeriesDto series)
+    {
+        if (series.EntityId is null)
+            return false;
+
+        if (!_accountGroupNaturesById.TryGetValue(series.EntityId.Value, out var natures))
+            return true;
+
+        return natures.Contains(AccountNature.Expense);
     }
 
     private bool ShouldShowComparabilityDisclaimer(bool usesAssetOnly)
@@ -618,8 +785,14 @@
             return;
         }
 
+        var preferredMonth = _selectedYear == DateHelper.GetCurrentYear()
+            ? DateHelper.GetCurrentMonth()
+            : availableMonths.Max();
+
         if (_focusedMonth is null || !availableMonths.Contains(_focusedMonth.Value))
-            _focusedMonth = availableMonths.Max();
+            _focusedMonth = availableMonths.Contains(preferredMonth)
+                ? preferredMonth
+                : availableMonths.Max();
     }
 
     private void ToggleSeriesDetails(string seriesKey)
@@ -645,6 +818,59 @@
         {
             _accountNatureById = new Dictionary<Guid, AccountNature>();
         }
+    }
+
+    private async Task LoadAccountGroupNatureLookupBestEffortAsync()
+    {
+        try
+        {
+            var groups = await AccountGroupsApi.ListAsync(default);
+            var detailTasks = groups.Select(async group => new
+            {
+                group.Id,
+                Details = await AccountGroupsApi.GetByIdAsync(group.Id, default)
+            });
+
+            var details = await Task.WhenAll(detailTasks);
+            _accountGroupNaturesById = details.ToDictionary(
+                x => x.Id,
+                x => (IReadOnlySet<AccountNature>)x.Details.Accounts
+                    .Select(a => a.Nature)
+                    .Where(n => n != AccountNature.Liability)
+                    .Distinct()
+                    .ToHashSet());
+        }
+        catch
+        {
+            _accountGroupNaturesById = new Dictionary<Guid, IReadOnlySet<AccountNature>>();
+        }
+    }
+
+    private IReadOnlyList<MonthlyEvolutionSeriesDto> GetSelectableAccountSeries()
+    {
+        if (_report is null)
+            return Array.Empty<MonthlyEvolutionSeriesDto>();
+
+        return _report.Series
+            .OrderBy(s => s.DisplayName)
+            .ThenBy(s => s.SeriesKey)
+            .ToList();
+    }
+
+    private void SyncSelectedAccountSeries()
+    {
+        if (_activeScope != MonthlyEvolutionScope.Accounts || _report is null)
+        {
+            _selectedAccountSeriesKeyForChart = null;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_selectedAccountSeriesKeyForChart))
+            return;
+
+        var exists = _report.Series.Any(s => s.SeriesKey == _selectedAccountSeriesKeyForChart);
+        if (!exists)
+            _selectedAccountSeriesKeyForChart = null;
     }
 
     private IReadOnlyList<AccountNatureSeriesGroup> GetAccountSeriesGroups()
@@ -744,6 +970,25 @@
             DeltaYearStart: latestPoints.Sum(p => p.DeltaVsYearStartCents),
             UsesAssetOnly: usesAssetOnly
         );
+    }
+
+    private sealed record AnnualChartsViewModel(
+        IReadOnlyList<AnnualChartSeries> AssetEndBalanceEvolution,
+        IReadOnlyList<AnnualChartSeries> AccountEvolution,
+        IReadOnlyList<AnnualChartSeries> AccountGroupEvolution,
+        IReadOnlyList<AnnualCompositionSlice> ExpenseComposition,
+        IReadOnlyList<AnnualCompositionSlice> IncomeComposition,
+        IReadOnlyList<AnnualCompositionSlice> AccountGroupExpenseComposition,
+        string? Error)
+    {
+        public static AnnualChartsViewModel Empty => new(
+            AssetEndBalanceEvolution: Array.Empty<AnnualChartSeries>(),
+            AccountEvolution: Array.Empty<AnnualChartSeries>(),
+            AccountGroupEvolution: Array.Empty<AnnualChartSeries>(),
+            ExpenseComposition: Array.Empty<AnnualCompositionSlice>(),
+            IncomeComposition: Array.Empty<AnnualCompositionSlice>(),
+            AccountGroupExpenseComposition: Array.Empty<AnnualCompositionSlice>(),
+            Error: null);
     }
 
     private sealed record AccountNatureSeriesGroup(

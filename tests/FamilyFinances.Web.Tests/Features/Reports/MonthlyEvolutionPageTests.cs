@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Globalization;
+using AngleSharp.Dom;
 using Bunit;
 using Bunit.TestDoubles;
 using FamilyFinances.Application.Ledger.Accounts.Dtos;
@@ -51,6 +53,7 @@ public sealed class MonthlyEvolutionPageTests : TestContext
             cut.Markup.Should().Contain("Latest Asset Balance");
             cut.Markup.Should().Contain("Period Net Result");
             cut.Markup.Should().Contain("stock metrics");
+            cut.Find("[data-testid='annual-core-evolution-chart']");
         });
     }
 
@@ -96,6 +99,7 @@ public sealed class MonthlyEvolutionPageTests : TestContext
         {
             requestedUris.Should().Contain(uri => uri.Contains("scope=accounts"));
             cut.Markup.Should().Contain("Main Bank");
+            cut.Find("[data-testid='annual-accounts-evolution-chart']");
         });
     }
 
@@ -135,6 +139,8 @@ public sealed class MonthlyEvolutionPageTests : TestContext
         cut.WaitForAssertion(() =>
         {
             requestedUris.Should().Contain(uri => uri.Contains($"year={targetYear}"));
+            cut.Find("[data-testid='annual-core-evolution-chart']").GetAttribute("data-year")
+                .Should().Be(targetYear.ToString());
         });
     }
 
@@ -379,6 +385,124 @@ public sealed class MonthlyEvolutionPageTests : TestContext
         });
     }
 
+    [Fact]
+    public void Core_Chart_DataPoints_Match_AssetTotal_Table_Source()
+    {
+        var currentYear = DateHelper.GetCurrentYear();
+        var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        var httpClient = CreateHttpClient(handlerMock);
+
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(CreateAssetTotalPayload(currentYear))
+            });
+
+        RegisterAuthorizedServices(httpClient);
+
+        var cut = RenderComponent<MonthlyEvolutionPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var endSeries = cut.Find("[data-testid='annual-core-evolution-chart'] [data-series-key='end-balance']");
+            endSeries.GetAttribute("data-points").Should().Be("1:12000;2:12500");
+
+            var rows = cut.FindAll("tr.series-summary-row");
+            rows.Count.Should().Be(2);
+            rows[0].TextContent.Should().Contain("January");
+            rows[0].TextContent.Should().Contain("+120,00\u20AC");
+            rows[1].TextContent.Should().Contain("February");
+            rows[1].TextContent.Should().Contain("+125,00\u20AC");
+        });
+    }
+
+    [Fact]
+    public void Accounts_Composition_Charts_Sum_To_100_Percent()
+    {
+        var currentYear = DateHelper.GetCurrentYear();
+
+        var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        var httpClient = CreateHttpClient(handlerMock);
+
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync((HttpRequestMessage req, CancellationToken _) =>
+            {
+                var payload = req.RequestUri!.ToString().Contains("scope=accounts")
+                    ? CreateAccountsPayloadForComposition(currentYear)
+                    : CreateAssetTotalPayload(currentYear);
+
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = JsonContent.Create(payload)
+                };
+            });
+
+        RegisterAuthorizedServices(
+            httpClient,
+            new[]
+            {
+                new AccountDto(
+                    Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1"),
+                    "Food",
+                    AccountNature.Expense,
+                    AccountKind.Other,
+                    new DateOnly(currentYear, 1, 1),
+                    false,
+                    null),
+                new AccountDto(
+                    Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2"),
+                    "Rent",
+                    AccountNature.Expense,
+                    AccountKind.Other,
+                    new DateOnly(currentYear, 1, 1),
+                    false,
+                    null),
+                new AccountDto(
+                    Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1"),
+                    "Salary",
+                    AccountNature.Income,
+                    AccountKind.IncomeSource,
+                    new DateOnly(currentYear, 1, 1),
+                    false,
+                    null),
+                new AccountDto(
+                    Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2"),
+                    "Bonus",
+                    AccountNature.Income,
+                    AccountKind.IncomeSource,
+                    new DateOnly(currentYear, 1, 1),
+                    false,
+                    null)
+            });
+
+        var cut = RenderComponent<MonthlyEvolutionPage>();
+
+        var accountsTab = cut.FindAll("button.nav-link")
+            .First(button => button.TextContent.Contains("Accounts"));
+        accountsTab.Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            var expenseRows = cut.FindAll("[data-testid='annual-expense-composition-chart'] .composition-slice-row");
+            expenseRows.Should().NotBeEmpty();
+            SumPercentages(expenseRows).Should().BeApproximately(100m, 0.01m);
+
+            var incomeRows = cut.FindAll("[data-testid='annual-income-composition-chart'] .composition-slice-row");
+            incomeRows.Should().NotBeEmpty();
+            SumPercentages(incomeRows).Should().BeApproximately(100m, 0.01m);
+        });
+    }
+
     private void RegisterAuthorizedServices(
         HttpClient httpClient,
         IReadOnlyList<AccountDto>? accounts = null)
@@ -402,6 +526,7 @@ public sealed class MonthlyEvolutionPageTests : TestContext
         Services.AddSingleton<IApiTokenStore>(tokenStore);
         Services.AddSingleton(new JwtAuthStateProvider(tokenStore));
         Services.AddScoped<ReportsApi>();
+        Services.AddScoped<AccountGroupsApi>();
     }
 
     private static HttpClient CreateHttpClient(Mock<HttpMessageHandler> handlerMock)
@@ -518,6 +643,64 @@ public sealed class MonthlyEvolutionPageTests : TestContext
                         new MonthlyEvolutionPointDto(1, new DateOnly(year, 1, 31), -2_600, -2_600, -2_600)
                     })
             });
+    }
+
+    private static MonthlyEvolutionReportDto CreateAccountsPayloadForComposition(int year)
+    {
+        return new MonthlyEvolutionReportDto(
+            year,
+            MonthlyEvolutionScope.Accounts,
+            new[]
+            {
+                new MonthlyEvolutionSeriesDto(
+                    "account:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1",
+                    "Food",
+                    Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1"),
+                    "account",
+                    new[]
+                    {
+                        new MonthlyEvolutionPointDto(1, new DateOnly(year, 1, 31), 4_000, 4_000, 4_000),
+                        new MonthlyEvolutionPointDto(2, new DateOnly(year, 2, DateTime.DaysInMonth(year, 2)), 6_000, 2_000, 6_000)
+                    }),
+                new MonthlyEvolutionSeriesDto(
+                    "account:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2",
+                    "Rent",
+                    Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2"),
+                    "account",
+                    new[]
+                    {
+                        new MonthlyEvolutionPointDto(1, new DateOnly(year, 1, 31), 9_000, 9_000, 9_000),
+                        new MonthlyEvolutionPointDto(2, new DateOnly(year, 2, DateTime.DaysInMonth(year, 2)), 10_000, 1_000, 10_000)
+                    }),
+                new MonthlyEvolutionSeriesDto(
+                    "account:bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1",
+                    "Salary",
+                    Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1"),
+                    "account",
+                    new[]
+                    {
+                        new MonthlyEvolutionPointDto(1, new DateOnly(year, 1, 31), -12_000, -12_000, -12_000),
+                        new MonthlyEvolutionPointDto(2, new DateOnly(year, 2, DateTime.DaysInMonth(year, 2)), -24_000, -12_000, -24_000)
+                    }),
+                new MonthlyEvolutionSeriesDto(
+                    "account:bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2",
+                    "Bonus",
+                    Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2"),
+                    "account",
+                    new[]
+                    {
+                        new MonthlyEvolutionPointDto(1, new DateOnly(year, 1, 31), -2_000, -2_000, -2_000),
+                        new MonthlyEvolutionPointDto(2, new DateOnly(year, 2, DateTime.DaysInMonth(year, 2)), -4_000, -2_000, -4_000)
+                    })
+            });
+    }
+
+    private static decimal SumPercentages(IReadOnlyList<IElement> rows)
+    {
+        return rows.Sum(row => decimal.Parse(
+            row.GetAttribute("data-percentage") ?? "0",
+            NumberStyles.Number,
+            CultureInfo.InvariantCulture));
     }
 
     private sealed class TestTokenStore : IApiTokenStore

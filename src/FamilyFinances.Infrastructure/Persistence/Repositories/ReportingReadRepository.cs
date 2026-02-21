@@ -283,12 +283,9 @@ public sealed class ReportingReadRepository : IReportingReadRepository
         MonthlyEvolutionScope scope,
         CancellationToken ct)
     {
-        var currentUtc = DateTime.UtcNow;
-        var monthLimit = year == currentUtc.Year ? currentUtc.Month : 12;
+        const int monthLimit = 12;
         var yearStart = new DateOnly(year, 1, 1);
-        var yearEndExclusive = monthLimit == 12
-            ? new DateOnly(year + 1, 1, 1)
-            : new DateOnly(year, monthLimit, 1).AddMonths(1);
+        var yearEndExclusive = new DateOnly(year + 1, 1, 1);
 
         var accounts = await _db.Accounts
             .AsNoTracking()
@@ -484,14 +481,16 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             .ThenBy(g => g.Id)
             .ToListAsync(ct);
 
-        var memberships = await _db.AccountGroupMembers
-            .AsNoTracking()
-            .Select(m => new
+        var memberships = await (
+            from m in _db.AccountGroupMembers.AsNoTracking()
+            join a in _db.Accounts.AsNoTracking() on m.AccountId equals a.Id
+            where a.Nature != AccountNature.Liability
+            select new
             {
                 m.GroupId,
                 m.AccountId
-            })
-            .ToListAsync(ct);
+            }
+        ).ToListAsync(ct);
 
         var accountIdsByGroup = memberships
             .GroupBy(x => x.GroupId)

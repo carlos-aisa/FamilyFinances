@@ -1,0 +1,20 @@
+<div class="card shadow-sm mb-4" data-testid="reporting-chart-loading">
+    <div class="card-body text-center py-5">
+        <div class="spinner-border text-primary mb-3" role="status" style="width: 2.5rem; height: 2.5rem;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(Title))
+        {
+            <h6 class="text-muted">@Title</h6>
+        }
+        @if (!string.IsNullOrWhiteSpace(Description))
+        {
+            <p class="text-muted mb-0">@Description</p>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Description { get; set; }
+}

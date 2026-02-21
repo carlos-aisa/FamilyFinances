@@ -1,0 +1,103 @@
+@using System.Globalization
+@using FamilyFinances.Web.Features.Reports
+@using FamilyFinances.Web.Features.Reports.Charts
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+@if (Slices.Count == 0)
+{
+    <ReportingChartEmptyState
+        Title="@Title"
+        Description="No composition data is available for the selected filters." />
+}
+else
+{
+    <div class="card shadow-sm annual-composition-chart"
+         data-testid="@TestId"
+         data-year="@Year"
+         data-total-percentage="@TotalPercentage.ToString("0.####", CultureInfo.InvariantCulture)">
+        <div class="card-body">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 mb-3">
+                <div>
+                    <h6 class="mb-1">@Title</h6>
+                    @if (!string.IsNullOrWhiteSpace(Subtitle))
+                    {
+                        <small class="text-muted">@Subtitle</small>
+                    }
+                </div>
+                <span class="badge bg-secondary-subtle text-secondary">@Year</span>
+            </div>
+
+            <div class="annual-composition-canvas-wrap">
+                <canvas id="@_canvasId" class="annual-composition-canvas" aria-label="@Title"></canvas>
+            </div>
+
+            <div class="composition-legend mt-3">
+                @foreach (var slice in OrderedSlices)
+                {
+                    <div class="composition-slice-row"
+                         data-slice-key="@slice.Key"
+                         data-percentage="@slice.Percentage.ToString("0.####", CultureInfo.InvariantCulture)">
+                        <span class="composition-dot" style="background-color:@slice.ColorHex"></span>
+                        <span class="composition-label">@slice.Label</span>
+                        <span class="composition-value text-muted">@MoneyFormatter.FormatCents(slice.RawValueCents)</span>
+                        <span class="composition-percentage">@($"{slice.Percentage:0.##}%")</span>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter, EditorRequired] public int Year { get; set; }
+    [Parameter, EditorRequired] public IReadOnlyList<AnnualCompositionSlice> Slices { get; set; } = Array.Empty<AnnualCompositionSlice>();
+    [Parameter] public string TestId { get; set; } = "annual-composition-chart";
+
+    private readonly string _canvasId = $"annual-composition-{Guid.NewGuid():N}";
+
+    private IReadOnlyList<AnnualCompositionSlice> OrderedSlices => Slices
+        .OrderByDescending(x => x.Percentage)
+        .ThenBy(x => x.Label, StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    private decimal TotalPercentage => OrderedSlices.Sum(x => x.Percentage);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (OrderedSlices.Count == 0)
+            return;
+
+        try
+        {
+            await JS.InvokeVoidAsync(
+                "familyFinancesCharts.renderAnnualCompositionChart",
+                _canvasId,
+                new
+                {
+                    labels = OrderedSlices.Select(x => x.Label).ToList(),
+                    values = OrderedSlices.Select(x => Convert.ToDouble(x.Percentage, CultureInfo.InvariantCulture)).ToList(),
+                    colors = OrderedSlices.Select(x => x.ColorHex).ToList()
+                });
+        }
+        catch
+        {
+            // Ignore JS errors on non-interactive renderers.
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("familyFinancesCharts.disposeAnnualCompositionChart", _canvasId);
+        }
+        catch
+        {
+            // Ignore dispose failures for disconnected/non-interactive renderers.
+        }
+    }
+}

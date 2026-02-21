@@ -191,7 +191,6 @@ public sealed class MonthlyEvolutionTests
     public async Task MonthlyEvolution_Uses_Historical_And_Current_Month_Windows_And_CarryForward()
     {
         var currentYear = DateTime.UtcNow.Year;
-        var currentMonth = DateTime.UtcNow.Month;
         var historicalYear = currentYear - 1;
 
         using var factory = TestClient.CreateFactoryWithFreshDb(out _);
@@ -226,7 +225,7 @@ public sealed class MonthlyEvolutionTests
 
         var current = await currentResponse.Content.ReadFromJsonAsync<MonthlyEvolutionReportDto>();
         current.Should().NotBeNull();
-        current!.Series.Single().Points.Should().HaveCount(currentMonth);
+        current!.Series.Single().Points.Should().HaveCount(12);
     }
 
     [Fact]
