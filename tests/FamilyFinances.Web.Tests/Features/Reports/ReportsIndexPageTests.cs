@@ -59,6 +59,25 @@ public sealed class ReportsIndexPageTests : TestContext
         nav.Uri.Should().EndWith("/reports/monthly-evolution");
     }
 
+    [Fact]
+    public void Authorized_User_Sees_Flow_Vs_Stock_Semantic_Disclaimer()
+    {
+        var authContext = this.AddTestAuthorization();
+        authContext.SetAuthorized("test-user");
+
+        var tokenStore = new TestTokenStore("test-token");
+        Services.AddSingleton<IHttpClientFactory>(new TestHttpClientFactory());
+        Services.AddSingleton<IApiTokenStore>(tokenStore);
+        Services.AddSingleton(new JwtAuthStateProvider(tokenStore));
+
+        var cut = RenderComponent<ReportsIndexPage>();
+
+        cut.Markup.Should().Contain("Flow metrics");
+        cut.Markup.Should().Contain("stock metrics");
+        cut.Markup.Should().Contain("Period Net Result");
+        cut.Markup.Should().Contain("Asset Balance");
+    }
+
     private sealed class TestHttpClientFactory : IHttpClientFactory
     {
         private readonly HttpClient _client = new()

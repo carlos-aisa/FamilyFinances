@@ -7,9 +7,16 @@ on:
       - 'v*.*.*'
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      keep_count:
+        description: Number of most recent releases whose ZIP assets should be kept
+        required: true
+        default: '3'
 
 jobs:
   build-and-test:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
 
     steps:
@@ -33,7 +40,7 @@ jobs:
   windows-distribution:
     runs-on: windows-latest
     needs: build-and-test
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name != 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/v'))
     permissions:
       contents: write
 
@@ -164,3 +171,102 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup old release ZIP assets (keep latest 3)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const keepCount = 3;
+            const zipAssetPattern = /^FamilyFinances-v.*-win-x64\.zip$/i;
+
+            const releases = await github.paginate(github.rest.repos.listReleases, {
+              owner,
+              repo,
+              per_page: 100
+            });
+
+            const orderedReleases = releases
+              .filter(r => !r.draft)
+              .sort((a, b) => {
+                const aDate = new Date(a.published_at || a.created_at).getTime();
+                const bDate = new Date(b.published_at || b.created_at).getTime();
+                return bDate - aDate;
+              });
+
+            const releasesToClean = orderedReleases.slice(keepCount);
+            let deletedAssets = 0;
+
+            for (const release of releasesToClean) {
+              for (const asset of release.assets || []) {
+                if (!zipAssetPattern.test(asset.name)) {
+                  continue;
+                }
+
+                await github.rest.repos.deleteReleaseAsset({
+                  owner,
+                  repo,
+                  asset_id: asset.id
+                });
+                deletedAssets += 1;
+                console.log(`Deleted '${asset.name}' from release '${release.tag_name}'.`);
+              }
+            }
+
+            console.log(`Cleanup complete. ZIP assets deleted: ${deletedAssets}.`);
+
+  cleanup-release-zips-manual:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Cleanup old release ZIP assets (manual run)
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const rawKeepCount = Number.parseInt("${{ github.event.inputs.keep_count || '3' }}", 10);
+            const keepCount = Number.isFinite(rawKeepCount) && rawKeepCount >= 0 ? rawKeepCount : 3;
+            const zipAssetPattern = /^FamilyFinances-v.*-win-x64\.zip$/i;
+
+            const releases = await github.paginate(github.rest.repos.listReleases, {
+              owner,
+              repo,
+              per_page: 100
+            });
+
+            const orderedReleases = releases
+              .filter(r => !r.draft)
+              .sort((a, b) => {
+                const aDate = new Date(a.published_at || a.created_at).getTime();
+                const bDate = new Date(b.published_at || b.created_at).getTime();
+                return bDate - aDate;
+              });
+
+            const releasesToClean = orderedReleases.slice(keepCount);
+            let deletedAssets = 0;
+
+            for (const release of releasesToClean) {
+              for (const asset of release.assets || []) {
+                if (!zipAssetPattern.test(asset.name)) {
+                  continue;
+                }
+
+                await github.rest.repos.deleteReleaseAsset({
+                  owner,
+                  repo,
+                  asset_id: asset.id
+                });
+                deletedAssets += 1;
+                console.log(`Deleted '${asset.name}' from release '${release.tag_name}'.`);
+              }
+            }
+
+            console.log(`Manual cleanup complete. keep_count=${keepCount}. ZIP assets deleted: ${deletedAssets}.`);

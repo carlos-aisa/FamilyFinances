@@ -138,7 +138,7 @@ Then the API returns `200 OK`
 And the response is `AccountGroupDetailsDto { Id, Name, Description, Accounts }`
 
 ### Requirement: Reporting Endpoints SHALL Provide Aggregated Read Models
-The system SHALL provide aggregated report read models, including monthly summary, account-group totals, as-of asset total balance, and monthly evolution contracts.
+The system SHALL provide aggregated report read models, including monthly summary, account-group totals, as-of asset total balance, and monthly evolution contracts, with explicit semantic distinction between stock and flow metrics.
 
 #### Scenario: Monthly summary returns summary DTO
 Given valid date query inputs  
@@ -168,6 +168,13 @@ And the response contains ordered monthly points with `EndBalanceCents`, `DeltaV
 Given a request with missing or invalid `year` or `scope`  
 When the client calls `GET /api/v1/reports/monthly-evolution`  
 Then the API returns `400 BadRequest`
+
+#### Scenario: Stock and flow semantics are explicitly distinguished in reporting contract usage
+Given a reporting view combines values from monthly summary and monthly evolution  
+When the system renders or documents those values together  
+Then period flow metrics (`IncomeTotal`, `ExpenseTotal`, `Net`) MUST be treated as period-result semantics  
+And balance/delta metrics (`EndBalanceCents`, evolution deltas, as-of asset totals) MUST be treated as stock semantics  
+And non-equivalent metrics MUST NOT be labeled as equivalent indicators
 
 ### Requirement: Health Endpoint SHALL Be Exposed
 #### Scenario: Health endpoint route exists
