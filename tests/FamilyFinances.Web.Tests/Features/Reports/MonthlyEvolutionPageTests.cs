@@ -48,7 +48,9 @@ public sealed class MonthlyEvolutionPageTests : TestContext
         {
             cut.Markup.Should().Contain("Monthly Evolution");
             cut.Markup.Should().Contain("Asset Total");
-            cut.Markup.Should().Contain("Latest End Balance");
+            cut.Markup.Should().Contain("Latest Asset Balance");
+            cut.Markup.Should().Contain("Period Net Result");
+            cut.Markup.Should().Contain("stock metrics");
         });
     }
 
@@ -163,7 +165,7 @@ public sealed class MonthlyEvolutionPageTests : TestContext
 
         cut.WaitForAssertion(() =>
         {
-            cut.Markup.Should().Contain("Latest End Balance");
+            cut.Markup.Should().Contain("Latest Asset Balance");
         });
     }
 
@@ -371,7 +373,7 @@ public sealed class MonthlyEvolutionPageTests : TestContext
 
         cut.WaitForAssertion(() =>
         {
-            cut.Markup.Should().Contain("Latest Asset End Balance");
+            cut.Markup.Should().Contain("Latest Asset Balance");
             var summaryCards = cut.FindAll("div.row.g-3.mb-4 div.card-body");
             summaryCards[0].TextContent.Should().Contain("+€26.00");
         });

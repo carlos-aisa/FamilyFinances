@@ -305,6 +305,59 @@ public sealed class MonthlyEvolutionTests
         firstMonth.DeltaVsYearStartCents.Should().Be(0);
     }
 
+    [Fact]
+    public async Task Reporting_Stock_And_Flow_Metrics_Are_Not_Equivalent()
+    {
+        var year = DateTime.UtcNow.Year - 1;
+
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var bank = await TestHelpers.CreateAccountAsync(client, "Main Bank", "Asset", "Checking");
+        var salary = await TestHelpers.CreateAccountAsync(client, "Salary", "Income", "Other");
+        var groceries = await TestHelpers.CreateAccountAsync(client, "Groceries", "Expense", "Other");
+        var ownerEquity = await TestHelpers.CreateAccountAsync(client, "Owner Equity", "Equity", "Other");
+
+        await PostTransactionAsync(
+            client,
+            new DateOnly(year, 1, 2),
+            "Owner contribution",
+            new Split(bank.Id, 10_000, "Asset increase"),
+            new Split(ownerEquity.Id, -10_000, "Equity credit"));
+
+        await PostTransactionAsync(
+            client,
+            new DateOnly(year, 1, 5),
+            "Salary",
+            new Split(bank.Id, 20_000, "Asset increase"),
+            new Split(salary.Id, -20_000, "Income credit"));
+
+        await PostTransactionAsync(
+            client,
+            new DateOnly(year, 1, 10),
+            "Groceries",
+            new Split(bank.Id, -5_000, "Asset decrease"),
+            new Split(groceries.Id, 5_000, "Expense debit"));
+
+        var monthlySummaryResponse = await client.GetAsync(
+            $"/api/v1/reports/monthly-summary?from={year}-01-01&to={year}-02-01");
+        monthlySummaryResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var monthlySummary = await monthlySummaryResponse.Content.ReadFromJsonAsync<MonthlySummaryDto>();
+        monthlySummary.Should().NotBeNull();
+
+        var monthlyEvolutionResponse = await client.GetAsync(
+            $"/api/v1/reports/monthly-evolution?year={year}&scope=asset-total");
+        monthlyEvolutionResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var evolution = await monthlyEvolutionResponse.Content.ReadFromJsonAsync<MonthlyEvolutionReportDto>();
+        evolution.Should().NotBeNull();
+
+        var januaryPoint = evolution!.Series.Single().Points.Single(p => p.Month == 1);
+
+        monthlySummary!.Net.Should().Be(15_000);
+        januaryPoint.DeltaVsPreviousMonthCents.Should().Be(25_000);
+        januaryPoint.DeltaVsPreviousMonthCents.Should().NotBe(monthlySummary.Net);
+    }
+
     private static async Task PostTransactionAsync(
         HttpClient client,
         DateOnly bookedOn,
@@ -345,6 +398,14 @@ public sealed class MonthlyEvolutionTests
     private sealed record Split(Guid AccountId, long AmountCents, string Memo);
 
     private sealed record AccountGroupDto(Guid Id, string Name, string? Description);
+
+    private sealed record MonthlySummaryDto(
+        DateOnly From,
+        DateOnly To,
+        long IncomeTotal,
+        long ExpenseTotal,
+        long Net,
+        int TransactionsCount);
 
     private sealed record MonthlyEvolutionReportDto(
         int Year,

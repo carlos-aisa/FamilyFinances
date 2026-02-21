@@ -70,7 +70,7 @@ The API MUST expose a dedicated monthly evolution endpoint with explicit `year` 
 - **THEN** the API MUST return `400 BadRequest`
 
 ### Requirement: Web Reports UI SHALL Provide Monthly Evolution View
-The Web UI MUST provide a dedicated monthly evolution report experience reachable from Reports index.
+The Web UI MUST provide a dedicated monthly evolution report experience reachable from Reports index, with explicit metric scope semantics for summary cards.
 
 #### Scenario: Monthly evolution report is reachable from reports index
 - **WHEN** an authenticated user opens `/reports`
@@ -81,6 +81,16 @@ The Web UI MUST provide a dedicated monthly evolution report experience reachabl
 - **WHEN** the user is on `/reports/monthly-evolution`
 - **THEN** the page MUST provide a year selector and scope tabs (`Accounts`, `Asset Total`, `Account Groups`)
 - **AND** changing year or scope MUST reload the report data for the selected filters
+
+#### Scenario: Accounts scope summary cards are asset-explicit
+- **WHEN** the user views `/reports/monthly-evolution` with scope `Accounts`
+- **THEN** top summary cards MUST represent `Asset`-scope end balance and deltas when asset series are available
+- **AND** card labels MUST explicitly indicate `Asset` semantics
+- **AND** the view MUST avoid silently presenting all-account netted totals as if they were current cash/asset balance
+
+#### Scenario: Non-equivalent metric semantics are disclosed
+- **WHEN** the monthly evolution page shows values that are not directly comparable to period net result metrics
+- **THEN** the page MUST display an explicit informational disclaimer describing the semantic difference
 
 ### Requirement: Evolution Contract SHALL Be Graph-Ready
 The response contract MUST remain machine-friendly and stable for future chart rendering.

@@ -3,6 +3,7 @@
 @using FamilyFinances.Application.Ledger.Accounts.Dtos
 @using FamilyFinances.Application.Ledger.Payees.Dtos
 @using FamilyFinances.Application.Reporting.Dtos
+@using FamilyFinances.Application.Reporting.Semantics
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
 @using FamilyFinances.Web.Components.Shared
@@ -21,7 +22,7 @@
                 <h3 class="mb-1">
                     <i class="bi bi-calendar-month me-2"></i>Period Summary
                 </h3>
-                <p class="text-muted mb-0">Income, expenses, and net income (Income - Expenses) for the selected period</p>
+                <p class="text-muted mb-0">Income, expense, and period net result (flow metrics) for the selected period</p>
             </div>
             <a class="btn btn-outline-secondary" href="/reports">
                 <i class="bi bi-arrow-left me-1"></i>Back to Reports
@@ -123,7 +124,7 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Income</h6>
+                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@_incomeMetric.CanonicalName</h6>
                                     <h4 class="mb-0 text-success">@MoneyFormatter.FormatCentsWithSign(_report.IncomeTotal)</h4>
                                 </div>
                                 <i class="bi bi-arrow-down-circle text-success fs-2 opacity-50"></i>
@@ -137,7 +138,7 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Expenses</h6>
+                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@_expenseMetric.CanonicalName</h6>
                                     <h4 class="mb-0 text-danger">@MoneyFormatter.FormatCentsWithSign(_report.ExpenseTotal)</h4>
                                 </div>
                                 <i class="bi bi-arrow-up-circle text-danger fs-2 opacity-50"></i>
@@ -151,7 +152,7 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Net Income</h6>
+                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@_periodNetResultMetric.CanonicalName</h6>
                                     <h4 class="mb-0 @MoneyFormatter.GetColorClass(_report.Net)">
                                         @MoneyFormatter.FormatCentsWithSign(_report.Net)
                                     </h4>
@@ -167,7 +168,7 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Transactions</h6>
+                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@_transactionsCountMetric.CanonicalName</h6>
                                     <h4 class="mb-0 text-info">@_report.TransactionsCount</h4>
                                 </div>
                                 <i class="bi bi-receipt text-info fs-2 opacity-50"></i>
@@ -179,8 +180,8 @@
 
             <div class="alert alert-info mt-3 mb-0" role="alert">
                 <i class="bi bi-info-circle me-2"></i>
-                <strong>Net Income</strong> uses only Income and Expense accounts.
-                It may differ from Asset month-to-month deltas when Liability or Equity movements exist.
+                <strong>@_periodNetResultMetric.CanonicalName</strong> is a <strong>flow metric</strong> based on income and expense accounts.
+                It is not directly comparable to monthly evolution balance deltas, which are <strong>stock metrics</strong>.
             </div>
 
             <!-- Chart Placeholder -->
@@ -219,6 +220,14 @@
     private MonthlySummaryDto? _report;
     private string? _error;
     private bool _isLoading;
+    private static readonly ReportingMetricDefinition _incomeMetric =
+        ReportingMetricSemantics.ResolveMetric("monthly-summary-income");
+    private static readonly ReportingMetricDefinition _expenseMetric =
+        ReportingMetricSemantics.ResolveMetric("monthly-summary-expense");
+    private static readonly ReportingMetricDefinition _periodNetResultMetric =
+        ReportingMetricSemantics.ResolveMetric("monthly-summary-period-net-result");
+    private static readonly ReportingMetricDefinition _transactionsCountMetric =
+        ReportingMetricSemantics.ResolveMetric("monthly-summary-transactions");
 
     private DateOnly? _fromDate;
     private DateOnly? _toDate;
