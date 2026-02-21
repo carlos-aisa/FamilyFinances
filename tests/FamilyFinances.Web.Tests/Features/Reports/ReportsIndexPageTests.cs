@@ -10,7 +10,7 @@ namespace FamilyFinances.Web.Tests.Features.Reports;
 public sealed class ReportsIndexPageTests : TestContext
 {
     [Fact]
-    public void Authorized_User_Can_Open_Asset_Total_Balance_From_Reports_Index()
+    public void Authorized_User_Can_Open_Account_Group_Totals_From_Reports_Index()
     {
         var authContext = this.AddTestAuthorization();
         authContext.SetAuthorized("test-user");
@@ -23,19 +23,19 @@ public sealed class ReportsIndexPageTests : TestContext
         var nav = Services.GetRequiredService<FakeNavigationManager>();
         var cut = RenderComponent<ReportsIndexPage>();
 
-        var assetCard = cut
+        var accountGroupCard = cut
             .FindAll(".report-card")
-            .First(card => card.TextContent.Contains("Asset Total Balance"));
+            .First(card => card.TextContent.Contains("Account Group Totals"));
 
-        assetCard.TextContent.Should().Contain("Asset Total Balance");
+        accountGroupCard.TextContent.Should().Contain("Account Group Totals");
 
-        assetCard.Click();
+        accountGroupCard.Click();
 
-        nav.Uri.Should().EndWith("/reports/asset-total-balance");
+        nav.Uri.Should().EndWith("/reports/account-group-totals");
     }
 
     [Fact]
-    public void Authorized_User_Can_Open_Monthly_Evolution_From_Reports_Index()
+    public void Reports_Index_Does_Not_Show_Monthly_Evolution_Card()
     {
         var authContext = this.AddTestAuthorization();
         authContext.SetAuthorized("test-user");
@@ -45,18 +45,9 @@ public sealed class ReportsIndexPageTests : TestContext
         Services.AddSingleton<IApiTokenStore>(tokenStore);
         Services.AddSingleton(new JwtAuthStateProvider(tokenStore));
 
-        var nav = Services.GetRequiredService<FakeNavigationManager>();
         var cut = RenderComponent<ReportsIndexPage>();
 
-        var monthlyEvolutionCard = cut
-            .FindAll(".report-card")
-            .First(card => card.TextContent.Contains("Monthly Evolution"));
-
-        monthlyEvolutionCard.TextContent.Should().Contain("Monthly Evolution");
-
-        monthlyEvolutionCard.Click();
-
-        nav.Uri.Should().EndWith("/reports/monthly-evolution");
+        cut.Markup.Should().NotContain("Monthly Evolution");
     }
 
     [Fact]

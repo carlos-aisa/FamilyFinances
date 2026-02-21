@@ -253,7 +253,7 @@ public sealed class ReportsApiTests
         capturedRequest.Should().NotBeNull();
         capturedRequest!.Method.Should().Be(HttpMethod.Get);
         capturedRequest.RequestUri!.ToString()
-            .Should().Contain("api/v1/reports/monthly-evolution?year=2026&scope=asset-total");
+            .Should().Contain("api/v1/reports/state-evolution?year=2026&scope=asset-total");
         capturedRequest.Headers.Authorization.Should().NotBeNull();
         capturedRequest.Headers.Authorization!.Scheme.Should().Be("Bearer");
         capturedRequest.Headers.Authorization.Parameter.Should().Be("valid-token");

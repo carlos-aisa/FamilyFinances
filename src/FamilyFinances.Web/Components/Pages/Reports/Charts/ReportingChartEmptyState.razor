@@ -1,0 +1,18 @@
+<div class="card shadow-sm mb-4" data-testid="reporting-chart-empty">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-bar-chart-line display-5 text-muted mb-3"></i>
+        @if (!string.IsNullOrWhiteSpace(Title))
+        {
+            <h6 class="text-muted">@Title</h6>
+        }
+        @if (!string.IsNullOrWhiteSpace(Description))
+        {
+            <p class="text-muted mb-0">@Description</p>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Description { get; set; }
+}

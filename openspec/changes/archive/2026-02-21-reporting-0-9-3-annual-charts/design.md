@@ -1,13 +1,13 @@
 ## Context
 
-Reporting already returns graph-ready monthly points for annual scopes, but the UI still uses a chart placeholder. Users need annual trend visibility directly in report pages without losing table detail.
+Reporting already returns graph-ready monthly points for annual scopes, but the UI required richer annual visualizations integrated in daily report workflows.
 
 `0.9.3` targets annual visualizations only and should use existing report data contracts wherever possible.
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Render annual charts above report tables in relevant pages.
+- Render annual charts in the reporting tabs where users already work (`Economic State`, `Account Totals`, `Account Group Totals`).
 - Provide clear visualizations for balance evolution, group evolution, and income/expense composition.
 - Maintain deterministic chart-to-table consistency.
 
@@ -19,7 +19,7 @@ Reporting already returns graph-ready monthly points for annual scopes, but the 
 ## Decisions
 
 ### Decision 1: Build reusable chart wrapper components in Web layer
-- **Choice:** Introduce reusable Blazor chart wrappers (line, stacked area, 100% stacked bar, pie/donut fallback) under reporting components.
+- **Choice:** Introduce reusable Blazor chart wrappers (line and composition) under reporting components.
 - **Rationale:** limits duplication and prepares for `0.9.4`.
 - **Alternative considered:** hardcode chart markup in each page.
   - **Rejected because:** poor maintainability and inconsistent behavior.
@@ -31,7 +31,7 @@ Reporting already returns graph-ready monthly points for annual scopes, but the 
   - **Rejected because:** unnecessary contract expansion for `0.9.3`.
 
 ### Decision 3: Scope chart rendering by report tab and data availability
-- **Choice:** show/hide chart sections depending on selected scope and available series.
+- **Choice:** show/hide chart sections depending on selected report tab, scope, and available series.
 - **Rationale:** prevents empty or misleading visuals.
 - **Alternative considered:** always render fixed chart shells.
   - **Rejected because:** noisy UX with sparse data.
@@ -48,7 +48,7 @@ Reporting already returns graph-ready monthly points for annual scopes, but the 
 ## Migration Plan
 
 1. Add reusable chart components and dataset adapter helpers.
-2. Replace chart placeholders in annual report views with real chart panels.
+2. Replace report placeholders with real chart panels in integrated state-evolution tabs.
 3. Bind annual data series for requested chart types.
 4. Add fallback empty/loading/error states.
 5. Add/extend web tests validating chart presence and value consistency.
@@ -60,5 +60,5 @@ Reporting already returns graph-ready monthly points for annual scopes, but the 
 
 ## Open Questions
 
-- Which chart library should be primary for Blazor (`ChartJs.Blazor` vs JS interop wrapper) under current bundle constraints?
-- Should composition charts default to donut or 100% stacked bars for readability?
+- Primary chart runtime is `Chart.js` via JS interop wrappers.
+- Composition defaults to pie (`quesitos`) for current UX readability.

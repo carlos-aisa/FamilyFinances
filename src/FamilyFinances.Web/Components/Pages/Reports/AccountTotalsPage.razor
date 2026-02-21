@@ -18,219 +18,236 @@
                 <h3 class="mb-1">
                     <i class="bi bi-wallet2 me-2"></i>Account Totals
                 </h3>
-                <p class="text-muted mb-0">Net changes for all accounts across a period</p>
+                <p class="text-muted mb-0">Period net changes and monthly state evolution by account</p>
             </div>
             <a class="btn btn-outline-secondary" href="/reports">
                 <i class="bi bi-arrow-left me-1"></i>Back to Reports
             </a>
         </div>
 
-        <!-- Filters Card -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-body">
-                <div class="row g-3">
-                    <!-- Quick Date Presets -->
-                    <div class="col-12">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-calendar-range me-1"></i>Quick Select
-                        </label>
-                        <div>
-                            <DateRangePresets OnPresetSelected="HandlePresetSelected" ActivePreset="@_activePreset" />
-                        </div>
-                    </div>
+        <ul class="nav nav-tabs mb-4">
+            <li class="nav-item">
+                <button type="button"
+                        class="nav-link @GetTabClass(AccountTotalsReportTab.PeriodTotals)"
+                        @onclick="() => SetActiveTab(AccountTotalsReportTab.PeriodTotals)"
+                        disabled="@_isLoading">
+                    Period Totals
+                </button>
+            </li>
+            <li class="nav-item">
+                <button type="button"
+                        class="nav-link @GetTabClass(AccountTotalsReportTab.StateEvolution)"
+                        @onclick="() => SetActiveTab(AccountTotalsReportTab.StateEvolution)"
+                        disabled="@_isLoading">
+                    State Evolution
+                </button>
+            </li>
+        </ul>
 
-                    <!-- Date Range -->
-                    <div class="col-12 col-md-4">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-calendar3 me-1"></i>From Date
-                        </label>
-                        <input type="date" class="form-control" @bind="_fromDate" @bind:event="oninput" @bind:after="OnDateChanged" />
-                    </div>
-
-                    <div class="col-12 col-md-4">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-calendar3 me-1"></i>To Date (exclusive)
-                        </label>
-                        <input type="date" class="form-control" @bind="_toDate" @bind:event="oninput" @bind:after="OnDateChanged" />
-                    </div>
-
-                    <!-- Include Zero Accounts -->
-                    <div class="col-12 col-md-4">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-filter me-1"></i>Display Options
-                        </label>
-                        <div class="form-check form-switch mt-2">
-                            <input class="form-check-input" type="checkbox" id="includeZero" @bind="_includeZeroAccounts" />
-                            <label class="form-check-label" for="includeZero">
-                                Include accounts with no activity
+        @if (_activeTab == AccountTotalsReportTab.PeriodTotals)
+        {
+            <!-- Filters Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <!-- Quick Date Presets -->
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-calendar-range me-1"></i>Quick Select
                             </label>
+                            <div>
+                                <DateRangePresets OnPresetSelected="HandlePresetSelected" ActivePreset="@_activePreset" />
+                            </div>
+                        </div>
+
+                        <!-- Date Range -->
+                        <div class="col-12 col-md-4">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-calendar3 me-1"></i>From Date
+                            </label>
+                            <input type="date" class="form-control" @bind="_fromDate" @bind:event="oninput" @bind:after="OnDateChanged" />
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-calendar3 me-1"></i>To Date (exclusive)
+                            </label>
+                            <input type="date" class="form-control" @bind="_toDate" @bind:event="oninput" @bind:after="OnDateChanged" />
+                        </div>
+
+                        <!-- Include Zero Accounts -->
+                        <div class="col-12 col-md-4">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-filter me-1"></i>Display Options
+                            </label>
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" id="includeZero" @bind="_includeZeroAccounts" />
+                                <label class="form-check-label" for="includeZero">
+                                    Include accounts with no activity
+                                </label>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="mt-3">
-                    <button class="btn btn-primary" @onclick="LoadReportAsync" disabled="@_isLoading">
-                        @if (_isLoading)
-                        {
-                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        }
-                        else
-                        {
-                            <i class="bi bi-search me-1"></i>
-                        }
-                        Load Report
-                    </button>
-                    <button class="btn btn-outline-secondary ms-2" @onclick="ResetFilters">
-                        <i class="bi bi-x-circle me-1"></i>Reset to Current Month
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Error Display -->
-        @if (!string.IsNullOrWhiteSpace(_error))
-        {
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="bi bi-exclamation-triangle me-2"></i>@_error
-                <button type="button" class="btn-close" @onclick="@(() => _error = null)"></button>
-            </div>
-        }
-
-        <!-- Loading State -->
-        @if (_isLoading)
-        {
-            <div class="card shadow-sm">
-                <div class="card-body text-center py-5">
-                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                        <span class="visually-hidden">Loading...</span>
+                    <div class="mt-3">
+                        <button class="btn btn-primary" @onclick="LoadReportAsync" disabled="@_isLoading">
+                            @if (_isLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-search me-1"></i>
+                            }
+                            Load Report
+                        </button>
+                        <button class="btn btn-outline-secondary ms-2" @onclick="ResetFilters">
+                            <i class="bi bi-x-circle me-1"></i>Reset to Current Month
+                        </button>
                     </div>
-                    <p class="text-muted">Loading report data...</p>
                 </div>
             </div>
-        }
-        else if (_report is not null)
-        {
-            <!-- Report Results -->
-            @if (_report.Items.Count == 0)
+
+            <!-- Error Display -->
+            @if (!string.IsNullOrWhiteSpace(_error))
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2"></i>@_error
+                    <button type="button" class="btn-close" @onclick="@(() => _error = null)"></button>
+                </div>
+            }
+
+            <!-- Loading State -->
+            @if (_isLoading)
             {
                 <div class="card shadow-sm">
                     <div class="card-body text-center py-5">
-                        <i class="bi bi-inbox display-4 text-muted mb-3"></i>
-                        <h5 class="text-muted">No data for this period</h5>
-                        <p class="text-muted">Try adjusting your filters, date range, or enable "Include accounts with no activity".</p>
+                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="text-muted">Loading report data...</p>
                     </div>
                 </div>
             }
-            else
+            else if (_report is not null)
             {
-                @foreach (var natureGroup in _report.Items.GroupBy(i => i.AccountNature).OrderBy(g => g.Key))
+                <!-- Report Results -->
+                @if (_report.Items.Count == 0)
                 {
-                    var items = natureGroup.ToList();
-                    var total = items.Sum(i => i.NetChange);
+                    <div class="card shadow-sm">
+                        <div class="card-body text-center py-5">
+                            <i class="bi bi-inbox display-4 text-muted mb-3"></i>
+                            <h5 class="text-muted">No data for this period</h5>
+                            <p class="text-muted">Try adjusting your filters, date range, or enable "Include accounts with no activity".</p>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var natureGroup in _report.Items.GroupBy(i => i.AccountNature).OrderBy(g => g.Key))
+                    {
+                        var items = natureGroup.ToList();
+                        var total = items.Sum(i => i.NetChange);
 
-                    <div class="card shadow-sm mb-4">
-                        <div class="card-header bg-transparent">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0">
-                                    <i class="bi @GetNatureIcon(natureGroup.Key) me-2"></i>
-                                    @natureGroup.Key Accounts
-                                </h5>
-                                <span class="badge @GetNatureBadgeClass(natureGroup.Key) fs-6">
-                                    @MoneyFormatter.FormatCentsWithSign(total)
-                                </span>
+                        <div class="card shadow-sm mb-4">
+                            <div class="card-header bg-transparent">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">
+                                        <i class="bi @GetNatureIcon(natureGroup.Key) me-2"></i>
+                                        @natureGroup.Key Accounts
+                                    </h5>
+                                    <span class="badge @GetNatureBadgeClass(natureGroup.Key) fs-6">
+                                        @MoneyFormatter.FormatCentsWithSign(total)
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th class="border-0 ps-3" style="width: 40%;">
+                                                    <i class="bi bi-tag me-1"></i>Account Name
+                                                </th>
+                                                <th class="border-0" style="width: 20%;">
+                                                    <i class="bi bi-folder me-1"></i>Kind
+                                                </th>
+                                                <th class="border-0 text-end" style="width: 25%;">
+                                                    <i class="bi bi-currency-euro me-1"></i>Net Change
+                                                </th>
+                                                <th class="border-0 text-end pe-3" style="width: 15%;">
+                                                    <i class="bi bi-receipt me-1"></i>Txs
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var item in items.OrderBy(i => i.AccountName))
+                                            {
+                                                <tr>
+                                                    <td class="ps-3">
+                                                        <span class="fw-semibold">@item.AccountName</span>
+                                                    </td>
+                                                    <td>
+                                                        <!-- Use same badge classes as Accounts list to match contrast behavior -->
+                                                        <span class="badge bg-secondary-subtle text-secondary">
+                                                            @item.AccountKind
+                                                        </span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <span class="@MoneyFormatter.GetColorClass(item.NetChange) fw-semibold">
+                                                            @MoneyFormatter.FormatCentsWithSign(item.NetChange)
+                                                        </span>
+                                                    </td>
+                                                    <td class="text-end pe-3">
+                                                        <span class="text-muted">@item.TransactionsCount</span>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle mb-0">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th class="border-0 ps-3" style="width: 40%;">
-                                                <i class="bi bi-tag me-1"></i>Account Name
-                                            </th>
-                                            <th class="border-0" style="width: 20%;">
-                                                <i class="bi bi-folder me-1"></i>Kind
-                                            </th>
-                                            <th class="border-0 text-end" style="width: 25%;">
-                                                <i class="bi bi-currency-euro me-1"></i>Net Change
-                                            </th>
-                                            <th class="border-0 text-end pe-3" style="width: 15%;">
-                                                <i class="bi bi-receipt me-1"></i>Txs
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var item in items.OrderBy(i => i.AccountName))
-                                        {
-                                            <tr>
-                                                <td class="ps-3">
-                                                    <span class="fw-semibold">@item.AccountName</span>
-                                                </td>
-                                                <td>
-                                                    <!-- Use same badge classes as Accounts list to match contrast behavior -->
-                                                    <span class="badge bg-secondary-subtle text-secondary">
-                                                        @item.AccountKind
-                                                    </span>
-                                                </td>
-                                                <td class="text-end">
-                                                    <span class="@MoneyFormatter.GetColorClass(item.NetChange) fw-semibold">
-                                                        @MoneyFormatter.FormatCentsWithSign(item.NetChange)
-                                                    </span>
-                                                </td>
-                                                <td class="text-end pe-3">
-                                                    <span class="text-muted">@item.TransactionsCount</span>
-                                                </td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
+                    }
+
+                    <!-- Summary Card -->
+                    <div class="card shadow-sm border-primary">
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-12 col-md-4">
+                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Period</h6>
+                                    <p class="mb-0 fw-semibold">
+                                        @_report.FromInclusive.ToString("MMM dd, yyyy") - @_report.ToExclusive.ToString("MMM dd, yyyy")
+                                    </p>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Total Accounts</h6>
+                                    <p class="mb-0 fw-semibold">@_report.Items.Count</p>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Total Transactions</h6>
+                                    <p class="mb-0 fw-semibold">@_report.Items.Sum(i => i.TransactionsCount)</p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 }
-
-                <!-- Summary Card -->
-                <div class="card shadow-sm border-primary">
-                    <div class="card-body">
-                        <div class="row text-center">
-                            <div class="col-12 col-md-4">
-                                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Period</h6>
-                                <p class="mb-0 fw-semibold">
-                                    @_report.FromInclusive.ToString("MMM dd, yyyy") - @_report.ToExclusive.ToString("MMM dd, yyyy")
-                                </p>
-                            </div>
-                            <div class="col-12 col-md-4">
-                                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Total Accounts</h6>
-                                <p class="mb-0 fw-semibold">@_report.Items.Count</p>
-                            </div>
-                            <div class="col-12 col-md-4">
-                                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Total Transactions</h6>
-                                <p class="mb-0 fw-semibold">@_report.Items.Sum(i => i.TransactionsCount)</p>
-                            </div>
-                        </div>
+            }
+            else if (!_isLoading && _report is null)
+            {
+                <!-- No Report Loaded Yet -->
+                <div class="card shadow-sm">
+                    <div class="card-body text-center py-5">
+                        <i class="bi bi-wallet2 display-1 text-muted mb-3"></i>
+                        <h5 class="text-muted">Ready to generate report</h5>
+                        <p class="text-muted">Select filters above and click "Load Report" to see account totals.</p>
                     </div>
                 </div>
             }
-
-            <!-- Chart Placeholder -->
-            <div class="card shadow-sm mt-4">
-                <div class="card-body text-center py-5">
-                    <i class="bi bi-bar-chart display-4 text-muted mb-3"></i>
-                    <h5 class="text-muted">Chart Visualization</h5>
-                    <p class="text-muted mb-0">Visual representation by nature coming soon</p>
-                </div>
-            </div>
         }
-        else if (!_isLoading && _report is null)
+        else
         {
-            <!-- No Report Loaded Yet -->
-            <div class="card shadow-sm">
-                <div class="card-body text-center py-5">
-                    <i class="bi bi-wallet2 display-1 text-muted mb-3"></i>
-                    <h5 class="text-muted">Ready to generate report</h5>
-                    <p class="text-muted">Select filters above and click "Load Report" to see account totals.</p>
-                </div>
-            </div>
+            <AccountStateEvolutionPanel />
         }
 
     </Authorized>
@@ -251,6 +268,7 @@
     private DateOnly _toDate = DateHelper.GetCurrentMonthEnd();
     private bool _includeZeroAccounts = false;
     private string? _activePreset = "this-month";
+    private AccountTotalsReportTab _activeTab = AccountTotalsReportTab.PeriodTotals;
 
     private async Task HandlePresetSelected(DateRangePresets.DateRangePreset preset)
     {
@@ -334,5 +352,21 @@
             AccountNature.Expense => "bg-warning bg-opacity-10 text-warning",
             _ => "bg-secondary bg-opacity-10 text-secondary"
         };
+    }
+
+    private void SetActiveTab(AccountTotalsReportTab tab)
+    {
+        _activeTab = tab;
+    }
+
+    private string GetTabClass(AccountTotalsReportTab tab)
+    {
+        return _activeTab == tab ? "active" : string.Empty;
+    }
+
+    private enum AccountTotalsReportTab
+    {
+        PeriodTotals,
+        StateEvolution
     }
 }

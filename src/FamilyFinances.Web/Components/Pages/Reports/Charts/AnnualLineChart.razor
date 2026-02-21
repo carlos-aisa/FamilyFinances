@@ -1,0 +1,151 @@
+@using System.Globalization
+@using FamilyFinances.Web.Features.Reports
+@using FamilyFinances.Web.Features.Reports.Charts
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+@if (Series.Count == 0 || !HasData)
+{
+    <ReportingChartEmptyState
+        Title="@Title"
+        Description="No chart points are available for the selected filters." />
+}
+else
+{
+    <div class="card shadow-sm mb-4 annual-line-chart" data-testid="@TestId" data-year="@Year">
+        <div class="card-body">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 mb-3">
+                <div>
+                    <h6 class="mb-1">@Title</h6>
+                    @if (!string.IsNullOrWhiteSpace(Subtitle))
+                    {
+                        <small class="text-muted">@Subtitle</small>
+                    }
+                </div>
+                <span class="badge bg-secondary-subtle text-secondary">@Year</span>
+            </div>
+
+            <div class="annual-line-canvas-wrap">
+                <canvas id="@_canvasId" class="annual-line-canvas" aria-label="@Title"></canvas>
+            </div>
+
+            <div class="visually-hidden">
+                @foreach (var series in Series)
+                {
+                    <span data-series-key="@series.Key"
+                          data-points="@BuildDataPointString(series)"></span>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter, EditorRequired] public int Year { get; set; }
+    [Parameter, EditorRequired] public IReadOnlyList<AnnualChartSeries> Series { get; set; } = Array.Empty<AnnualChartSeries>();
+    [Parameter] public string TestId { get; set; } = "annual-line-chart";
+    [Parameter] public int? DataUntilMonth { get; set; }
+
+    private readonly string _canvasId = $"annual-line-{Guid.NewGuid():N}";
+    private bool HasData => Series.Any(s => s.Points.Count > 0);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Series.Count == 0 || !HasData)
+            return;
+
+        try
+        {
+            await JS.InvokeVoidAsync(
+                "familyFinancesCharts.renderAnnualLineChart",
+                _canvasId,
+                BuildChartPayload());
+        }
+        catch
+        {
+            // Non-browser renderers (e.g. tests/prerender) may not support JS interop.
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("familyFinancesCharts.disposeAnnualLineChart", _canvasId);
+        }
+        catch
+        {
+            // Ignore dispose failures for disconnected/non-interactive renderers.
+        }
+    }
+
+    private object BuildChartPayload()
+    {
+        var orderedMonths = Series
+            .SelectMany(s => s.Points.Select(p => p.Month))
+            .Distinct()
+            .OrderBy(m => m)
+            .ToList();
+
+        var labels = orderedMonths
+            .Select(GetShortMonthLabel)
+            .ToList();
+
+        var useDualAxis = ShouldUseDualAxis();
+
+        var datasets = Series
+            .Select(series =>
+            {
+                var pointsByMonth = series.Points.ToDictionary(x => x.Month, x => x.Value);
+                var values = orderedMonths
+                    .Select(month =>
+                    {
+                        if (DataUntilMonth is not null && month > DataUntilMonth.Value)
+                            return (double?)null;
+
+                        return pointsByMonth.TryGetValue(month, out var value)
+                            ? Convert.ToDouble(value / 100m, CultureInfo.InvariantCulture)
+                            : (double?)null;
+                    })
+                    .ToList();
+
+                return new
+                {
+                    key = series.Key,
+                    label = series.Label,
+                    colorHex = series.ColorHex,
+                    values,
+                    yAxisId = useDualAxis && series.Key == "end-balance" ? "yBalance" : "yDelta"
+                };
+            })
+            .ToList();
+
+        return new
+        {
+            labels,
+            datasets,
+            useDualAxis
+        };
+    }
+
+    private static string BuildDataPointString(AnnualChartSeries series)
+    {
+        return string.Join(";",
+            series.Points
+                .OrderBy(p => p.Month)
+                .Select(p => $"{p.Month}:{p.Value.ToString(CultureInfo.InvariantCulture)}"));
+    }
+
+    private bool ShouldUseDualAxis()
+        => Series.Any(s => s.Key == "end-balance") &&
+           Series.Any(s => s.Key == "delta-prev-month");
+
+    private static string GetShortMonthLabel(int month)
+    {
+        var full = DateHelper.GetMonthName(month);
+        return full.Length <= 3 ? full : full[..3];
+    }
+}

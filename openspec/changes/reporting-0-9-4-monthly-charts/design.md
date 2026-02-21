@@ -1,17 +1,17 @@
 ## Context
 
-After annual chart availability (`0.9.3`), users still need fine-grained month-level visibility: how balance evolves during the month and how account groups contribute to that movement. Existing report contracts are monthly-bucketed and need extension for month-level chart datasets.
+After annual chart availability (`0.9.3`), users still need fine-grained month-level visibility: how balance evolves during the month and how account groups contribute to that movement. Existing report contracts are monthly-bucketed and need extension for month-level chart datasets, but the UX baseline is now integrated state-evolution tabs (not a standalone Monthly Evolution page).
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Provide monthly (intra-month) chart datasets and UI.
-- Enable visual comparison between total balance evolution and account-group evolution for selected month.
+- Provide monthly (intra-month) chart datasets and UI in existing reporting tabs.
+- Enable visual comparison between total asset balance evolution and account-group evolution for selected month.
 - Keep behavior deterministic and aligned with table metrics where comparable.
 
 **Non-Goals:**
 - Predictive models, anomaly flags, and alerts.
-- New dashboard analytics cards beyond navigation/preview.
+- New report routes or dashboard cards for monthly charts.
 - Replacing annual charts with monthly-only views.
 
 ## Decisions
@@ -29,10 +29,12 @@ After annual chart availability (`0.9.3`), users still need fine-grained month-l
   - **Rejected because:** loses detail for short volatility and user-requested granularity.
 
 ### Decision 3: Keep month selection embedded in reporting page controls
-- **Choice:** month selector is integrated into existing report filter area.
+- **Choice:** focused month selector is integrated inside existing state-evolution tab panels:
+  - `AssetTotalEvolutionPanel`
+  - `AccountGroupStateEvolutionPanel`
 - **Rationale:** consistent interaction model and lower navigation overhead.
 - **Alternative considered:** separate monthly chart page.
-  - **Rejected because:** unnecessary route fragmentation.
+  - **Rejected because:** route no longer exists in `0.9.3` flow and would fragment reporting UX.
 
 ## Risks / Trade-offs
 
@@ -41,19 +43,19 @@ After annual chart availability (`0.9.3`), users still need fine-grained month-l
 - **[Risk] Sparse activity days can create misleading flat lines.**
   - **Mitigation:** show carry-forward semantics and legend note.
 - **[Trade-off] Added endpoint and DTOs increase API surface.**
-  - **Mitigation:** keep contract narrow and chart-specific.
+  - **Mitigation:** keep contracts narrow, explicit, and aligned with `state-evolution` naming semantics.
 
 ## Migration Plan
 
 1. Add month-level reporting DTO/query/handler and repository methods.
 2. Expose API endpoint for monthly chart datasets.
-3. Integrate month selector and monthly charts in web reporting page.
+3. Integrate month selector and monthly charts in web state-evolution tab panels.
 4. Add tests for daily point correctness and chart refresh behavior.
 5. Validate performance and fallback states with no-data months.
 
 ### Rollback
 
-- Hide monthly chart sections and selector integration.
+- Hide monthly chart sections and focused-month selector integration in state-evolution tabs.
 - Remove month-level endpoint wiring if necessary.
 - Keep annual chart and table behavior intact.
 

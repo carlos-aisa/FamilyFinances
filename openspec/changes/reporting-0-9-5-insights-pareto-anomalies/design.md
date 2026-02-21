@@ -7,9 +7,9 @@ Insights must be deterministic, explainable, and aligned with existing report fi
 ## Goals / Non-Goals
 
 **Goals:**
-- Provide Pareto-style ranking insights (top contributors to expense/income).
-- Provide concentration indicators (share of top-N groups).
-- Provide anomaly flags for unusual monthly group behavior with transparent threshold logic.
+- Provide Pareto-style ranking insights (top contributors to expense/income) for groups and payees.
+- Provide concentration indicators (share of top-N contributors) for groups and payees.
+- Provide anomaly flags for unusual monthly group/payee behavior with transparent threshold logic.
 - Integrate insights in report pages without disrupting current workflows.
 
 **Non-Goals:**
@@ -31,6 +31,12 @@ Insights must be deterministic, explainable, and aligned with existing report fi
 - **Alternative considered:** separate insight-only filters.
   - **Rejected because:** duplicate controls and user confusion.
 
+### Decision 4: Use explicit insight dimension (`group` / `payee`)
+- **Choice:** insight contracts include an explicit dimension selector (`group` or `payee`) and dimension-specific ranking rows.
+- **Rationale:** supports "report by payee" without duplicating endpoints or UI structures.
+- **Alternative considered:** separate endpoint set per dimension.
+  - **Rejected because:** larger API surface with duplicated semantics.
+
 ### Decision 3: Insight panels are additive and collapsible
 - **Choice:** display insights in compact cards/sections with optional expand details.
 - **Rationale:** balances discoverability and visual density.
@@ -43,15 +49,17 @@ Insights must be deterministic, explainable, and aligned with existing report fi
   - **Mitigation:** minimum-history guardrails and "insufficient history" state.
 - **[Risk] Users may misread Pareto percentages without denominator context.**
   - **Mitigation:** always display total base amount and top-N coverage definition.
+- **[Risk] Payee data can be sparse/unknown and reduce ranking quality.**
+  - **Mitigation:** include explicit "Unknown/Unassigned payee" handling and minimum-data messaging.
 - **[Trade-off] Additional calculation cost for insights.**
   - **Mitigation:** bounded windows and server-side aggregation reuse.
 
 ## Migration Plan
 
-1. Add insight DTOs and calculation services in Application reporting layer.
+1. Add insight DTOs and calculation services in Application reporting layer (group + payee dimensions).
 2. Add insight endpoints or endpoint extensions in reporting controller.
-3. Integrate insight panels in relevant report pages.
-4. Add deterministic tests for ranking, concentration, and anomaly logic.
+3. Integrate insight panels in relevant report pages, including payee-focused insight sections.
+4. Add deterministic tests for ranking, concentration, and anomaly logic for both dimensions.
 5. Validate performance and no-history edge cases.
 
 ### Rollback
