@@ -6,7 +6,7 @@ Users need one explicit place to answer "how am I today?" without navigating acr
 
 - Introduce a dedicated `Economic State` report centered on an as-of date (default: today).
 - Expose explicit KPIs for `Assets`, `Liabilities`, `Net Worth`, plus current-period `Income`, `Expense`, and `Period Net Result`.
-- Add a direct access entry from `Dashboard` to the new `Economic State` report.
+- Add a direct access entry from the application navigation menu to the new `Economic State` report.
 - Ensure labels and formulas follow the canonical semantic contracts introduced in `0.9.1`.
 
 ### Non-Goals

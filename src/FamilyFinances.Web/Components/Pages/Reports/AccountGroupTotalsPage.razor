@@ -150,7 +150,7 @@
                                 <div class="card-body">
                                     <h6 class="text-muted mb-2">Total Amount</h6>
                                     <h4 class="mb-0 @(_report.TotalCents < 0 ? "text-danger" : "text-success")">
-                                        @FormatCurrency(_report.TotalCents)
+                                        @MoneyFormatter.FormatCents(_report.TotalCents)
                                     </h4>
                                 </div>
                             </div>
@@ -204,7 +204,7 @@
                                             </td>
                                             <td class="text-end">
                                                 <span class="@(item.TotalCents < 0 ? "text-danger" : "text-success")">
-                                                    @FormatCurrency(item.TotalCents)
+                                                    @MoneyFormatter.FormatCents(item.TotalCents)
                                                 </span>
                                             </td>
                                             <td class="text-center">
@@ -342,8 +342,4 @@
         Navigation.NavigateTo("/reports");
     }
 
-    private string FormatCurrency(long cents)
-    {
-        return (cents / 100m).ToString("C2");
-    }
 }

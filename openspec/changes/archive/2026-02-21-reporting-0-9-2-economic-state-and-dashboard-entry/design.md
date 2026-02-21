@@ -1,19 +1,19 @@
 ## Context
 
-Users currently need to combine data from multiple reports to understand their current financial position. This causes navigation friction and increases interpretation risk. `0.9.2` introduces a single "Economic State" view and a dashboard shortcut so users can access it in one click.
+Users currently need to combine data from multiple reports to understand their current financial position. This causes navigation friction and increases interpretation risk. `0.9.2` introduces a single "Economic State" view and a navigation-menu shortcut so users can access it in one click.
 
 The change is cross-cutting because it touches:
 - reporting application/read model composition
 - API reporting surface
 - reports index and report page navigation
-- dashboard UI entry point
+- shared navigation menu entry point
 
 ## Goals / Non-Goals
 
 **Goals:**
 - Deliver a single report page that answers current-state questions at a selected as-of date (default: today).
 - Show explicit KPIs for `Assets`, `Liabilities`, `Net Worth`, `Income (period)`, `Expense (period)`, `Period Net Result`.
-- Add direct navigation from dashboard to this report.
+- Add direct navigation from menu to this report.
 - Keep semantic naming aligned with `0.9.1`.
 
 **Non-Goals:**
@@ -35,11 +35,11 @@ The change is cross-cutting because it touches:
 - **Alternative considered:** Force users to pick dates before loading.
   - **Rejected because:** adds friction to primary use case.
 
-### Decision 3: Dashboard shortcut is a lightweight navigation card, not embedded full report
-- **Choice:** Add a compact dashboard card with key KPI preview and CTA link to full report.
-- **Rationale:** Preserves dashboard performance and avoids duplicating report components.
-- **Alternative considered:** Embed full economic-state widget with all filters in dashboard.
-  - **Rejected because:** high complexity and crowded dashboard UX.
+### Decision 3: Sidebar shortcut is the primary quick entry, with compact asset preview
+- **Choice:** Add an `Economic State` entry in navigation menu with `Asset Balance` as-of preview and CTA link to full report.
+- **Rationale:** Keeps dashboard focused on account quick-entry workflows while exposing always-visible state info.
+- **Alternative considered:** keep shortcut card in dashboard body.
+  - **Rejected because:** reduced usable space for frequent account actions.
 
 ### Decision 4: Preserve existing report endpoints and pages
 - **Choice:** Economic State is additive and does not replace current reports.
@@ -53,7 +53,7 @@ The change is cross-cutting because it touches:
   - **Mitigation:** show selected as-of date and flow period explicitly in header/filter area.
 - **[Risk] New endpoint may duplicate logic from existing reporting handlers.**
   - **Mitigation:** extract shared calculation helpers in application reporting layer.
-- **[Risk] Dashboard preview could become stale if not clearly labeled.**
+- **[Risk] Sidebar preview could become stale if not clearly labeled.**
   - **Mitigation:** show "as of" timestamp/date and link to full report details.
 - **[Trade-off] Additive endpoint increases API surface area.**
   - **Mitigation:** keep endpoint narrow and aligned with canonical metric semantics.
@@ -63,7 +63,7 @@ The change is cross-cutting because it touches:
 1. Add economic-state query, handler, and DTO in application layer.
 2. Expose `GET /api/v1/reports/economic-state` in Reports controller.
 3. Add web API client method and new Blazor report page.
-4. Add dashboard shortcut card and reports index entry alignment.
+4. Add navigation-menu shortcut entry and reports index entry alignment.
 5. Add tests across Application, API integration, and Web features.
 6. Release as additive feature with no data migration.
 
@@ -71,7 +71,7 @@ The change is cross-cutting because it touches:
 
 - Disable report card/route from UI navigation.
 - Remove endpoint wiring while leaving existing report endpoints untouched.
-- Revert dashboard entry and keep previous report navigation paths.
+- Revert navigation shortcut entry and keep previous report navigation paths.
 
 ## Open Questions
 

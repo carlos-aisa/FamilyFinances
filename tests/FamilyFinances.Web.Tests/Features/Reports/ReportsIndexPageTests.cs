@@ -60,6 +60,29 @@ public sealed class ReportsIndexPageTests : TestContext
     }
 
     [Fact]
+    public void Authorized_User_Can_Open_Economic_State_From_Reports_Index()
+    {
+        var authContext = this.AddTestAuthorization();
+        authContext.SetAuthorized("test-user");
+
+        var tokenStore = new TestTokenStore("test-token");
+        Services.AddSingleton<IHttpClientFactory>(new TestHttpClientFactory());
+        Services.AddSingleton<IApiTokenStore>(tokenStore);
+        Services.AddSingleton(new JwtAuthStateProvider(tokenStore));
+
+        var nav = Services.GetRequiredService<FakeNavigationManager>();
+        var cut = RenderComponent<ReportsIndexPage>();
+
+        var economicStateCard = cut
+            .FindAll(".report-card")
+            .First(card => card.TextContent.Contains("Economic State"));
+
+        economicStateCard.Click();
+
+        nav.Uri.Should().EndWith("/reports/economic-state");
+    }
+
+    [Fact]
     public void Authorized_User_Sees_Flow_Vs_Stock_Semantic_Disclaimer()
     {
         var authContext = this.AddTestAuthorization();

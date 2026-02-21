@@ -29,6 +29,12 @@ public interface IReportingReadRepository
         DateOnly asOf,
         CancellationToken ct);
 
+    Task<EconomicStateDto> GetEconomicStateAsync(
+        DateOnly asOf,
+        DateOnly periodFromInclusive,
+        DateOnly periodToExclusive,
+        CancellationToken ct);
+
     Task<MonthlyEvolutionReportDto> GetMonthlyEvolutionAsync(
         int year,
         MonthlyEvolutionScope scope,

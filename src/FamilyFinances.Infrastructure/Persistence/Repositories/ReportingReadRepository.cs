@@ -228,35 +228,53 @@ public sealed class ReportingReadRepository : IReportingReadRepository
         DateOnly asOf,
         CancellationToken ct)
     {
-        var assetSplitsQuery =
-            from t in _db.Transactions.AsNoTracking()
-            join s in _db.TransactionSplits.AsNoTracking()
-                on t.Id equals EF.Property<TransactionId>(s, "TransactionId")
-            join a in _db.Accounts.AsNoTracking()
-                on s.AccountId equals a.Id
-            where a.Nature == AccountNature.Asset
-            where t.BookedOn <= asOf
-            select new
-            {
-                AccountId = EF.Property<Guid>(s, nameof(TransactionSplit.AccountId)),
-                AmountCents = EF.Property<long>(s, nameof(TransactionSplit.Amount))
-            };
-
-        var totalCents =
-            await assetSplitsQuery
-                .Select(x => (long?)x.AmountCents)
-                .SumAsync(ct) ?? 0;
-
-        var assetAccountsCount =
-            await assetSplitsQuery
-                .Select(x => x.AccountId)
-                .Distinct()
-                .CountAsync(ct);
+        var (totalCents, assetAccountsCount) = await GetBalanceByNatureAsOfAsync(
+            AccountNature.Asset,
+            asOf,
+            ct);
 
         return new AssetTotalBalanceDto(
             AsOf: asOf,
             TotalCents: totalCents,
             AssetAccountsCount: assetAccountsCount
+        );
+    }
+
+    public async Task<EconomicStateDto> GetEconomicStateAsync(
+        DateOnly asOf,
+        DateOnly periodFromInclusive,
+        DateOnly periodToExclusive,
+        CancellationToken ct)
+    {
+        var (assetsTotalCents, _) = await GetBalanceByNatureAsOfAsync(
+            AccountNature.Asset,
+            asOf,
+            ct);
+
+        var (liabilitiesSignedBalanceCents, _) = await GetBalanceByNatureAsOfAsync(
+            AccountNature.Liability,
+            asOf,
+            ct);
+
+        // Liability balances are stored with credit-normal sign; expose a user-facing owed amount.
+        var liabilitiesTotalCents = -liabilitiesSignedBalanceCents;
+        var netWorthCents = assetsTotalCents - liabilitiesTotalCents;
+
+        var periodSummary = await GetMonthlySummaryAsync(
+            periodFromInclusive,
+            periodToExclusive,
+            accountId: null,
+            payeeId: null,
+            ct);
+
+        return new EconomicStateDto(
+            AsOf: asOf,
+            AssetsTotalCents: assetsTotalCents,
+            LiabilitiesTotalCents: liabilitiesTotalCents,
+            NetWorthCents: netWorthCents,
+            IncomeTotalCents: periodSummary.IncomeTotal,
+            ExpenseTotalCents: periodSummary.ExpenseTotal,
+            PeriodNetResultCents: periodSummary.Net
         );
     }
 
@@ -546,6 +564,37 @@ public sealed class ReportingReadRepository : IReportingReadRepository
     }
 
     private sealed record AccountEvolutionSeed(AccountId Id, string Name, AccountNature Nature);
+
+    private async Task<(long TotalCents, int AccountCount)> GetBalanceByNatureAsOfAsync(
+        AccountNature nature,
+        DateOnly asOf,
+        CancellationToken ct)
+    {
+        var splitsQuery =
+            from t in _db.Transactions.AsNoTracking()
+            join s in _db.TransactionSplits.AsNoTracking()
+                on t.Id equals EF.Property<TransactionId>(s, "TransactionId")
+            join a in _db.Accounts.AsNoTracking()
+                on s.AccountId equals a.Id
+            where a.Nature == nature
+            where t.BookedOn <= asOf
+            select new
+            {
+                AccountId = EF.Property<Guid>(s, nameof(TransactionSplit.AccountId)),
+                AmountCents = EF.Property<long>(s, nameof(TransactionSplit.Amount))
+            };
+
+        var totalCents = await splitsQuery
+            .Select(x => (long?)x.AmountCents)
+            .SumAsync(ct) ?? 0L;
+
+        var accountCount = await splitsQuery
+            .Select(x => x.AccountId)
+            .Distinct()
+            .CountAsync(ct);
+
+        return (totalCents, accountCount);
+    }
 
     public async Task<AccountGroupTotalsDto> GetAccountGroupTotalsAsync(
         Guid groupId,

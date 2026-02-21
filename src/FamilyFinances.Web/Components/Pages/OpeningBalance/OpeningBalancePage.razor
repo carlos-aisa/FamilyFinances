@@ -7,6 +7,7 @@
 @using FamilyFinances.Domain.Ledger.Accounts
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web.Features.Reports
 @using Microsoft.AspNetCore.Components.Authorization
 @inherits ApiPageBase
 @inject IAccountsApi AccountsApi
@@ -89,7 +90,7 @@
                                                         <i class="bi bi-wallet2 me-1"></i>@line.AccountName
                                                     </label>
                                                     <div class="input-group">
-                                                        <span class="input-group-text">€</span>
+                                                        <span class="input-group-text">&euro;</span>
                                                         <input type="text" 
                                                                class="form-control" 
                                                                @bind="line.AmountText" 
@@ -300,7 +301,7 @@
         _model.Lines.Where(l => l.AccountNature == AccountNature.Liability).Sum(l => l.Amount);
 
     private static string FormatCurrency(decimal amount)
-        => amount.ToString("C2", System.Globalization.CultureInfo.GetCultureInfo("es-ES"));
+        => MoneyFormatter.FormatEuros(amount);
 
     private static string GetNatureBorderClass(AccountNature nature) => nature switch
     {

@@ -118,6 +118,100 @@ public sealed class ReportsApiTests
     }
 
     [Fact]
+    public async Task GetEconomicStateAsync_ReturnsPayload_And_SendsExpectedRequest()
+    {
+        var expectedAsOf = new DateOnly(2026, 1, 31);
+        var payload = new EconomicStateDto(
+            AsOf: expectedAsOf,
+            AssetsTotalCents: 320_000,
+            LiabilitiesTotalCents: 150_000,
+            NetWorthCents: 170_000,
+            IncomeTotalCents: 100_000,
+            ExpenseTotalCents: -30_000,
+            PeriodNetResultCents: 70_000);
+        HttpRequestMessage? capturedRequest = null;
+
+        _httpMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>((req, _) => capturedRequest = req)
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(payload)
+            });
+
+        var result = await _sut.GetEconomicStateAsync(expectedAsOf, CancellationToken.None);
+
+        result.AsOf.Should().Be(expectedAsOf);
+        result.AssetsTotalCents.Should().Be(320_000);
+        result.LiabilitiesTotalCents.Should().Be(150_000);
+        result.NetWorthCents.Should().Be(170_000);
+        result.IncomeTotalCents.Should().Be(100_000);
+        result.ExpenseTotalCents.Should().Be(-30_000);
+        result.PeriodNetResultCents.Should().Be(70_000);
+
+        capturedRequest.Should().NotBeNull();
+        capturedRequest!.Method.Should().Be(HttpMethod.Get);
+        capturedRequest.RequestUri!.ToString().Should().Contain("api/v1/reports/economic-state?asOf=2026-01-31");
+        capturedRequest.Headers.Authorization.Should().NotBeNull();
+        capturedRequest.Headers.Authorization!.Scheme.Should().Be("Bearer");
+        capturedRequest.Headers.Authorization.Parameter.Should().Be("valid-token");
+    }
+
+    [Fact]
+    public async Task GetEconomicStateAsync_ThrowsUnauthorizedAccessException_WhenNoTokenAvailable()
+    {
+        _tokenStoreMock
+            .Setup(t => t.GetAccessToken())
+            .Returns(string.Empty);
+
+        var act = () => _sut.GetEconomicStateAsync(new DateOnly(2026, 1, 31), CancellationToken.None);
+
+        await act.Should().ThrowAsync<UnauthorizedAccessException>()
+            .WithMessage("No access token available.");
+    }
+
+    [Fact]
+    public async Task GetEconomicStateAsync_ThrowsUnauthorizedAccessException_WhenApiReturnsUnauthorized()
+    {
+        _httpMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.Unauthorized));
+
+        var act = () => _sut.GetEconomicStateAsync(new DateOnly(2026, 1, 31), CancellationToken.None);
+
+        await act.Should().ThrowAsync<UnauthorizedAccessException>()
+            .WithMessage("API call unauthorized. Missing or invalid token.");
+    }
+
+    [Fact]
+    public async Task GetEconomicStateAsync_ThrowsInvalidOperationException_WhenPayloadIsNull()
+    {
+        _httpMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("null")
+            });
+
+        var act = () => _sut.GetEconomicStateAsync(new DateOnly(2026, 1, 31), CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Failed to deserialize economic state response.");
+    }
+
+    [Fact]
     public async Task GetMonthlyEvolutionAsync_ReturnsPayload_And_SendsExpectedRequest()
     {
         var payload = new MonthlyEvolutionReportDto(

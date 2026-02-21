@@ -375,7 +375,7 @@ public sealed class MonthlyEvolutionPageTests : TestContext
         {
             cut.Markup.Should().Contain("Latest Asset Balance");
             var summaryCards = cut.FindAll("div.row.g-3.mb-4 div.card-body");
-            summaryCards[0].TextContent.Should().Contain("+€26.00");
+            summaryCards[0].TextContent.Should().Contain("+26,00\u20AC");
         });
     }
 
@@ -538,3 +538,4 @@ public sealed class MonthlyEvolutionPageTests : TestContext
         public Task<string?> WaitForTokenAsync(TimeSpan timeout, CancellationToken ct) => Task.FromResult(_token);
     }
 }
+

@@ -89,6 +89,7 @@ public static class DependencyInjection
         services.AddScoped<GetCategoryTotalsHandler>();
         services.AddScoped<GetAccountTotalsHandler>();
         services.AddScoped<GetAssetTotalBalanceHandler>();
+        services.AddScoped<GetEconomicStateHandler>();
         services.AddScoped<GetMonthlyEvolutionHandler>();
 
         // Account Group Handlers
