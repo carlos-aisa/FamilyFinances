@@ -29,6 +29,11 @@ public interface IReportingReadRepository
         DateOnly asOf,
         CancellationToken ct);
 
+    Task<MonthlyEvolutionReportDto> GetMonthlyEvolutionAsync(
+        int year,
+        MonthlyEvolutionScope scope,
+        CancellationToken ct);
+
     Task<AccountGroupTotalsDto> GetAccountGroupTotalsAsync(
         Guid groupId,
         DateOnly fromInclusive,

@@ -138,7 +138,7 @@ Then the API returns `200 OK`
 And the response is `AccountGroupDetailsDto { Id, Name, Description, Accounts }`
 
 ### Requirement: Reporting Endpoints SHALL Provide Aggregated Read Models
-The system SHALL provide aggregated report read models, including an as-of asset total balance contract.
+The system SHALL provide aggregated report read models, including monthly summary, account-group totals, as-of asset total balance, and monthly evolution contracts.
 
 #### Scenario: Monthly summary returns summary DTO
 Given valid date query inputs  
@@ -157,6 +157,17 @@ Given a valid as-of date and authorized user
 When the client calls `GET /api/v1/reports/asset-total-balance?asOf=YYYY-MM-DD`  
 Then the API returns `200 OK`  
 And the response contains `AsOf`, `TotalCents`, and `AssetAccountsCount`
+
+#### Scenario: Monthly evolution report returns scoped monthly series
+Given a valid `year` and `scope` and an authorized user  
+When the client calls `GET /api/v1/reports/monthly-evolution?year=YYYY&scope=<scope>`  
+Then the API returns `200 OK`  
+And the response contains ordered monthly points with `EndBalanceCents`, `DeltaVsPreviousMonthCents`, and `DeltaVsYearStartCents`
+
+#### Scenario: Monthly evolution report rejects invalid query parameters
+Given a request with missing or invalid `year` or `scope`  
+When the client calls `GET /api/v1/reports/monthly-evolution`  
+Then the API returns `400 BadRequest`
 
 ### Requirement: Health Endpoint SHALL Be Exposed
 #### Scenario: Health endpoint route exists

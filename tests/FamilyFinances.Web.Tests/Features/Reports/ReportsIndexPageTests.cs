@@ -34,6 +34,31 @@ public sealed class ReportsIndexPageTests : TestContext
         nav.Uri.Should().EndWith("/reports/asset-total-balance");
     }
 
+    [Fact]
+    public void Authorized_User_Can_Open_Monthly_Evolution_From_Reports_Index()
+    {
+        var authContext = this.AddTestAuthorization();
+        authContext.SetAuthorized("test-user");
+
+        var tokenStore = new TestTokenStore("test-token");
+        Services.AddSingleton<IHttpClientFactory>(new TestHttpClientFactory());
+        Services.AddSingleton<IApiTokenStore>(tokenStore);
+        Services.AddSingleton(new JwtAuthStateProvider(tokenStore));
+
+        var nav = Services.GetRequiredService<FakeNavigationManager>();
+        var cut = RenderComponent<ReportsIndexPage>();
+
+        var monthlyEvolutionCard = cut
+            .FindAll(".report-card")
+            .First(card => card.TextContent.Contains("Monthly Evolution"));
+
+        monthlyEvolutionCard.TextContent.Should().Contain("Monthly Evolution");
+
+        monthlyEvolutionCard.Click();
+
+        nav.Uri.Should().EndWith("/reports/monthly-evolution");
+    }
+
     private sealed class TestHttpClientFactory : IHttpClientFactory
     {
         private readonly HttpClient _client = new()

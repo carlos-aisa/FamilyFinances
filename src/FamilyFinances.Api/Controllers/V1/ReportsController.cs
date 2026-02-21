@@ -96,4 +96,47 @@ public sealed class ReportsController : ControllerBase
 
         return Ok(dto);
     }
+
+    [Authorize(Policy = Policies.CanRead)]
+    [HttpGet("monthly-evolution")]
+    public async Task<ActionResult<MonthlyEvolutionReportDto>> GetMonthlyEvolution(
+        [FromQuery] int? year,
+        [FromQuery] string? scope,
+        [FromServices] GetMonthlyEvolutionHandler handler,
+        CancellationToken ct)
+    {
+        if (year is null)
+            return BadRequest(new { error = "Query parameter 'year' is required." });
+
+        if (string.IsNullOrWhiteSpace(scope))
+            return BadRequest(new { error = "Query parameter 'scope' is required." });
+
+        if (!TryParseMonthlyEvolutionScope(scope, out var parsedScope))
+            return BadRequest(new { error = "Query parameter 'scope' must be one of: accounts, asset-total, account-groups." });
+
+        var dto = await handler.HandleAsync(
+            new GetMonthlyEvolutionQuery(year.Value, parsedScope),
+            ct);
+
+        return Ok(dto);
+    }
+
+    private static bool TryParseMonthlyEvolutionScope(string scope, out MonthlyEvolutionScope parsed)
+    {
+        switch (scope.Trim().ToLowerInvariant())
+        {
+            case "accounts":
+                parsed = MonthlyEvolutionScope.Accounts;
+                return true;
+            case "asset-total":
+                parsed = MonthlyEvolutionScope.AssetTotal;
+                return true;
+            case "account-groups":
+                parsed = MonthlyEvolutionScope.AccountGroups;
+                return true;
+            default:
+                parsed = default;
+                return false;
+        }
+    }
 }
