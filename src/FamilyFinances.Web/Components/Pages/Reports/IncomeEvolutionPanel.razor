@@ -5,10 +5,13 @@
 @using FamilyFinances.Web.Components.Base
 @using FamilyFinances.Web.Components.Pages.Reports.Charts
 @using FamilyFinances.Web.Features.Reports
+@using FamilyFinances.Web.Features.Reports.Export
 @using FamilyFinances.Web.Features.Reports.Charts
+@using Microsoft.JSInterop
 @inherits ApiPageBase
 
 @inject ReportsApi ReportsApi
+@inject IJSRuntime JS
 
 <div class="card shadow-sm mb-4">
     <div class="card-body">
@@ -17,7 +20,7 @@
                 <label class="form-label fw-semibold">
                     <i class="bi bi-calendar3 me-1"></i>Year
                 </label>
-                <select class="form-select" value="@_selectedYear" @onchange="OnYearChangedAsync" disabled="@_isLoading">
+                <select class="form-select" aria-label="Year" value="@_selectedYear" @onchange="OnYearChangedAsync" disabled="@_isLoading">
                     @foreach (var year in _yearOptions)
                     {
                         <option value="@year">@year</option>
@@ -29,6 +32,7 @@
                     <i class="bi bi-calendar-month me-1"></i>Focused Month
                 </label>
                 <select class="form-select asset-focused-month-select"
+                        aria-label="Focused Month"
                         data-testid="economic-state-income-focused-month"
                         value="@_focusedMonth"
                         @onchange="OnFocusedMonthChangedAsync"
@@ -110,20 +114,29 @@ else if (_report is not null)
         Income balance and deltas are stock metrics.
     </div>
 
-    <div class="row g-3 mb-4 asset-total-overview-grid">
-        <div class="col-12 col-xxl-8">
+    <div class="row g-3 mb-4 asset-total-overview-grid economic-state-two-col-grid">
+        <div class="col-12 col-xl-7 economic-state-overview-col">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-transparent">
                     <div class="d-flex justify-content-between align-items-center gap-3">
                         <h5 class="mb-0">
                             <i class="bi bi-list-ul me-2"></i>Income Total (Monthly Overview)
                         </h5>
-                        @if (dataUntilMonth is not null)
-                        {
-                            <span class="badge text-bg-secondary">
-                                Current month: @DateHelper.GetMonthName(dataUntilMonth.Value)
-                            </span>
-                        }
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-secondary report-export-button"
+                                    @onclick="ExportMonthlyOverviewCsvAsync"
+                                    data-testid="economic-state-income-overview-export-csv"
+                                    aria-label="Export income monthly overview as CSV">
+                                <i class="bi bi-download me-1"></i>Export
+                            </button>
+                            @if (dataUntilMonth is not null)
+                            {
+                                <span class="badge text-bg-secondary">
+                                    Current month: @DateHelper.GetMonthName(dataUntilMonth.Value)
+                                </span>
+                            }
+                        </div>
                     </div>
                 </div>
                 <div class="card-body p-0">
@@ -168,56 +181,63 @@ else if (_report is not null)
                 </div>
             </div>
         </div>
-        <div class="col-12 col-xxl-4 asset-total-chart-panel">
-            @if (!string.IsNullOrWhiteSpace(charts.Error))
-            {
-                <ReportingChartErrorState Message="@charts.Error" />
-            }
-            else if (charts.IncomeEndBalanceEvolution.Count == 0)
-            {
-                <ReportingChartEmptyState
-                    Title="Asset Total Evolution"
-                    Description="No chart points are available for the selected filters." />
-            }
-            else
-            {
-                <AnnualLineChart
-                    Title="Income Total Evolution"
-                    Subtitle="Final balance by month (current month uses latest available data)."
-                    Year="@_selectedYear"
-                    Series="@charts.IncomeEndBalanceEvolution"
-                    DataUntilMonth="@dataUntilMonth"
-                    TestId="economic-state-income-evolution-chart" />
-            }
+        <div class="col-12 col-xl-5 economic-state-stacked-col">
+            <div class="economic-state-stacked-charts">
+                <div class="asset-total-chart-panel economic-state-chart-item">
+                    @if (_isMonthlyChartLoading)
+                    {
+                        <ReportingChartLoadingState
+                            Title="Loading month-focused income chart"
+                            Description="Loading daily points..." />
+                    }
+                    else if (!string.IsNullOrWhiteSpace(_monthlyChartError))
+                    {
+                        <ReportingChartErrorState Message="@_monthlyChartError" />
+                    }
+                    else if (_monthlyBalanceChart is null || _monthlyBalanceChart.Points.Count == 0 || monthlyChartSeries.Count == 0)
+                    {
+                        <ReportingChartEmptyState
+                            Title="Month-focused Income Evolution"
+                            Description="No daily points are available for the selected month." />
+                    }
+                    else
+                    {
+                        <MonthlyLineChart
+                            Title="Month-focused Income Evolution"
+                            Subtitle="@($"Daily end balance for {focusedMonthLabel} {_selectedYear} (no-activity days carry forward).")"
+                            Year="@_selectedYear"
+                            Month="@_focusedMonth"
+                            YTickMaxTicks="5"
+                            Series="@monthlyChartSeries"
+                            TestId="economic-state-income-monthly-chart" />
+                    }
+                </div>
+                <div class="asset-total-chart-panel economic-state-chart-item">
+                    @if (!string.IsNullOrWhiteSpace(charts.Error))
+                    {
+                        <ReportingChartErrorState Message="@charts.Error" />
+                    }
+                    else if (charts.IncomeEndBalanceEvolution.Count == 0)
+                    {
+                        <ReportingChartEmptyState
+                            Title="Asset Total Evolution"
+                            Description="No chart points are available for the selected filters." />
+                    }
+                    else
+                    {
+                        <AnnualLineChart
+                            Title="Income Total Evolution"
+                            Subtitle="Final balance by month (current month uses latest available data)."
+                            Year="@_selectedYear"
+                            Series="@charts.IncomeEndBalanceEvolution"
+                            DataUntilMonth="@dataUntilMonth"
+                            YTickMaxTicks="5"
+                            TestId="economic-state-income-evolution-chart" />
+                    }
+                </div>
+            </div>
         </div>
     </div>
-
-    @if (_isMonthlyChartLoading)
-    {
-        <ReportingChartLoadingState
-            Title="Loading month-focused income chart"
-            Description="Loading daily points..." />
-    }
-    else if (!string.IsNullOrWhiteSpace(_monthlyChartError))
-    {
-        <ReportingChartErrorState Message="@_monthlyChartError" />
-    }
-    else if (_monthlyBalanceChart is null || _monthlyBalanceChart.Points.Count == 0 || monthlyChartSeries.Count == 0)
-    {
-        <ReportingChartEmptyState
-            Title="Month-focused Income Evolution"
-            Description="No daily points are available for the selected month." />
-    }
-    else
-    {
-        <MonthlyLineChart
-            Title="Month-focused Income Evolution"
-            Subtitle="@($"Daily end balance for {focusedMonthLabel} {_selectedYear} (no-activity days carry forward).")"
-            Year="@_selectedYear"
-            Month="@_focusedMonth"
-            Series="@monthlyChartSeries"
-            TestId="economic-state-income-monthly-chart" />
-    }
 }
 else
 {
@@ -448,6 +468,48 @@ else
             _monthlyBalanceChart,
             key: "income-total-monthly",
             label: "End Balance");
+    }
+
+    private async Task ExportMonthlyOverviewCsvAsync()
+    {
+        if (_report is null || _report.Series.Count == 0)
+            return;
+
+        var dataUntilMonth = GetDataUntilMonthForSelectedYear();
+        var rows = _report.Series.First().Points
+            .OrderBy(point => point.Month)
+            .Select(point =>
+            {
+                var hasData = dataUntilMonth is null || point.Month <= dataUntilMonth.Value;
+                return (IReadOnlyList<string?>)
+                [
+                    DateHelper.GetMonthName(point.Month),
+                    hasData ? MoneyFormatter.FormatCentsWithSign(point.EndBalanceCents) : "-",
+                    hasData ? MoneyFormatter.FormatCentsWithSign(point.DeltaVsPreviousMonthCents) : "-",
+                    hasData ? MoneyFormatter.FormatCentsWithSign(point.DeltaVsYearStartCents) : "-"
+                ];
+            })
+            .ToList();
+
+        var csv = ReportCsvBuilder.Build(
+            reportName: "Income Total Evolution",
+            context: new Dictionary<string, string?>
+            {
+                ["Year"] = _selectedYear.ToString(),
+                ["Focused Month"] = DateHelper.GetMonthName(_focusedMonth)
+            },
+            headers: ["Month", "End Balance", "Delta Prev Month", "Delta Year Start"],
+            rows: rows);
+
+        try
+        {
+            var fileName = $"{ReportExportInterop.BuildFileName("income-total-evolution", _selectedYear)}.csv";
+            await JS.DownloadCsvAsync(fileName, csv);
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to export CSV: {ex.Message}";
+        }
     }
 
     private sealed record ChartsViewModel(

@@ -63,7 +63,7 @@
                             <label class="form-label fw-semibold">
                                 <i class="bi bi-calendar3 me-1"></i>As-of Date
                             </label>
-                            <input type="date" class="form-control" @bind="_asOfDate" />
+                            <input type="date" class="form-control" aria-label="As-of Date" @bind="_asOfDate" />
                         </div>
                         <div class="col-12 col-md-auto">
                             <button class="btn btn-primary" @onclick="LoadReportAsync" disabled="@_isLoading">
@@ -199,7 +199,7 @@
 
                 @if (_isSnapshotChartLoading)
                 {
-                    <div class="mt-4">
+                    <div class="mt-4 economic-state-snapshot-chart">
                         <ReportingChartLoadingState
                             Title="Loading month-focused income vs expense chart"
                             Description="Loading daily points..." />
@@ -207,13 +207,13 @@
                 }
                 else if (!string.IsNullOrWhiteSpace(_snapshotChartError))
                 {
-                    <div class="mt-4">
+                    <div class="mt-4 economic-state-snapshot-chart">
                         <ReportingChartErrorState Message="@_snapshotChartError" />
                     </div>
                 }
                 else if (snapshotSeries.Count == 0)
                 {
-                    <div class="mt-4">
+                    <div class="mt-4 economic-state-snapshot-chart">
                         <ReportingChartEmptyState
                             Title="Month-focused Income vs Expense"
                             Description="No daily points are available for the selected month." />
@@ -221,12 +221,13 @@
                 }
                 else
                 {
-                    <div class="mt-4">
+                    <div class="mt-4 economic-state-snapshot-chart">
                         <MonthlyLineChart
                             Title="Month-focused Income vs Expense"
                             Subtitle="@($"Daily accumulated comparison for {snapshotMonthLabel} {_report.AsOf.Year} up to day {_report.AsOf.Day} (absolute values).")"
                             Year="@_report.AsOf.Year"
                             Month="@_report.AsOf.Month"
+                            YTickMaxTicks="5"
                             Series="@snapshotSeries"
                             TestId="economic-state-snapshot-income-expense-chart" />
                     </div>

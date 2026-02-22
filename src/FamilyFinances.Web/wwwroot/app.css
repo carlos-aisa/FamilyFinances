@@ -225,6 +225,51 @@
     font-size: 0.9rem;
 }
 
+/* Economic State: right column with stacked compact charts */
+.economic-state-stacked-charts {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.economic-state-stacked-charts .annual-line-chart,
+.economic-state-stacked-charts [data-testid="reporting-chart-empty"],
+.economic-state-stacked-charts [data-testid="reporting-chart-error"],
+.economic-state-stacked-charts [data-testid="reporting-chart-loading"] {
+    margin-bottom: 0 !important;
+}
+
+.economic-state-stacked-charts .annual-line-chart .card-body {
+    padding: 0.65rem 0.75rem;
+}
+
+.economic-state-stacked-charts .annual-line-chart .annual-line-canvas-wrap {
+    height: 105px !important;
+    min-height: 95px !important;
+}
+
+.asset-total-overview-grid .card-header .badge.text-bg-secondary {
+    font-size: 0.72rem;
+    padding: 0.28rem 0.46rem;
+}
+
+.economic-state-stacked-charts .badge.bg-secondary-subtle {
+    font-size: 0.9rem;
+    padding: 0.35rem 0.58rem;
+}
+
+.economic-state-snapshot-chart .annual-line-chart,
+.economic-state-snapshot-chart [data-testid="reporting-chart-empty"],
+.economic-state-snapshot-chart [data-testid="reporting-chart-error"],
+.economic-state-snapshot-chart [data-testid="reporting-chart-loading"] {
+    margin-bottom: 0 !important;
+}
+
+.economic-state-snapshot-chart .annual-line-chart .annual-line-canvas-wrap {
+    height: 215px !important;
+    min-height: 185px !important;
+}
+
 .account-groups-overview-grid .table {
     font-size: 0.9rem;
 }
@@ -282,6 +327,11 @@
         min-height: 220px;
     }
 
+    .economic-state-stacked-charts .annual-line-chart .annual-line-canvas-wrap {
+        height: 135px !important;
+        min-height: 120px !important;
+    }
+
     .account-groups-chart-panel .annual-line-chart .annual-line-canvas-wrap,
     .account-groups-chart-panel .annual-composition-chart .annual-composition-canvas-wrap {
         height: 260px;
@@ -296,6 +346,11 @@
 
     .account-groups-chart-panel .annual-composition-chart .composition-legend {
         max-height: none;
+    }
+
+    .economic-state-snapshot-chart .annual-line-chart .annual-line-canvas-wrap {
+        height: 230px !important;
+        min-height: 200px !important;
     }
 }
 

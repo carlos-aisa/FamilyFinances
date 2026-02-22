@@ -117,6 +117,24 @@ public sealed class AccountGroupTotalsApiTests
         res.StatusCode.Should().BeOneOf(HttpStatusCode.Unauthorized, HttpStatusCode.Forbidden);
     }
 
+    [Fact]
+    public async Task Totals_For_Missing_Group_Returns_NotFound_With_Error_Payload()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var missingGroupId = Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff");
+        var res = await client.GetAsync(
+            $"/api/v1/reports/account-groups/{missingGroupId}/totals?from=2026-01-01&to=2026-02-01");
+
+        res.StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        var error = await res.Content.ReadFromJsonAsync<ApiErrorDto>();
+        error.Should().NotBeNull();
+        error!.Error.Should().NotBeNullOrWhiteSpace();
+        error.Error.Should().ContainEquivalentOf("not found");
+    }
+
     private static async Task<AccountGroupDto> CreateGroupAsync(HttpClient client, string name, string? description)
     {
         var res = await client.PostAsJsonAsync("/api/v1/account-groups", new { name, description });
@@ -151,4 +169,6 @@ public sealed class AccountGroupTotalsApiTests
         string AccountName,
         long TotalCents,
         int TransactionsCount);
+
+    public sealed record ApiErrorDto(string Error);
 }

@@ -233,6 +233,79 @@ public sealed class AccountGroupTotalsPageTests : TestContext
         });
     }
 
+    [Fact]
+    public void Period_Totals_ExportCsv_Contains_Visible_Table_Values()
+    {
+        var groupId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        var reportDto = new AccountGroupTotalsDto(
+            groupId,
+            "Household",
+            new DateOnly(2026, 2, 1),
+            new DateOnly(2026, 3, 1),
+            AccountNature.Expense,
+            123_456,
+            3,
+            1,
+            [
+                new AccountGroupTotalItemDto(
+                    Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
+                    "Groceries",
+                    123_456,
+                    3)
+            ]);
+
+        var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        var httpClient = CreateHttpClient(handlerMock);
+
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync((HttpRequestMessage req, CancellationToken _) =>
+            {
+                var uri = req.RequestUri!.ToString();
+
+                if (uri.Contains("api/v1/account-groups", StringComparison.OrdinalIgnoreCase))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(CreateGroupListPayload())
+                    };
+                }
+
+                if (uri.Contains("api/v1/reports/account-groups/", StringComparison.OrdinalIgnoreCase) &&
+                    uri.Contains("/totals", StringComparison.OrdinalIgnoreCase))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(reportDto)
+                    };
+                }
+
+                return new HttpResponseMessage(HttpStatusCode.BadRequest);
+            });
+
+        RegisterAuthorizedServices(httpClient);
+        var exportCall = JSInterop.SetupVoid("familyFinancesCharts.downloadCsv", _ => true);
+
+        var cut = RenderComponent<AccountGroupTotalsPage>();
+        cut.Find("select.form-select").Change(groupId.ToString());
+        cut.FindAll("button").First(button => button.TextContent.Contains("Generate Report")).Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("[data-testid='account-group-totals-export-csv']");
+            cut.Markup.Should().Contain("Groceries");
+            cut.Markup.Should().Contain(MoneyFormatter.FormatCents(123_456));
+        });
+
+        cut.Find("[data-testid='account-group-totals-export-csv']").Click();
+
+        exportCall.Invocations.Should().ContainSingle();
+    }
+
     private void RegisterAuthorizedServices(HttpClient httpClient)
     {
         var factoryMock = new Mock<IHttpClientFactory>(MockBehavior.Strict);

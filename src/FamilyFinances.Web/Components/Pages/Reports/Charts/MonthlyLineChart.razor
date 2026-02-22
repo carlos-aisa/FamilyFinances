@@ -1,4 +1,6 @@
 @using System.Globalization
+@using System.Text.Json
+@using FamilyFinances.Web.Features.Reports.Export
 @using FamilyFinances.Web.Features.Reports.Charts
 @using Microsoft.JSInterop
 @implements IAsyncDisposable
@@ -22,11 +24,28 @@ else
                         <small class="text-muted">@Subtitle</small>
                     }
                 </div>
-                <span class="badge bg-secondary-subtle text-secondary">@($"{Year}-{Month:00}")</span>
+                <div class="d-flex align-items-center gap-2">
+                    @if (EnableImageExport)
+                    {
+                        <button type="button"
+                                class="btn btn-sm btn-outline-secondary report-export-button"
+                                @onclick="ExportChartAsync"
+                                data-testid="@($"{TestId}-export-image")"
+                                aria-label="@($"Export {Title} chart as PNG")">
+                            <i class="bi bi-download me-1"></i>Export
+                        </button>
+                    }
+                    <span class="badge bg-secondary-subtle text-secondary">@($"{Year}-{Month:00}")</span>
+                </div>
             </div>
 
+            @if (!string.IsNullOrWhiteSpace(_exportError))
+            {
+                <div class="text-danger small mb-2">@_exportError</div>
+            }
+
             <div class="annual-line-canvas-wrap">
-                <canvas id="@_canvasId" class="annual-line-canvas" aria-label="@Title"></canvas>
+                <canvas id="@_canvasId" class="annual-line-canvas" role="img" tabindex="0" aria-label="@Title"></canvas>
             </div>
 
             <div class="visually-hidden">
@@ -47,8 +66,12 @@ else
     [Parameter, EditorRequired] public int Month { get; set; }
     [Parameter, EditorRequired] public IReadOnlyList<MonthlyChartSeries> Series { get; set; } = Array.Empty<MonthlyChartSeries>();
     [Parameter] public string TestId { get; set; } = "monthly-line-chart";
+    [Parameter] public int? YTickMaxTicks { get; set; }
+    [Parameter] public bool EnableImageExport { get; set; } = true;
 
     private readonly string _canvasId = $"monthly-line-{Guid.NewGuid():N}";
+    private string? _lastRenderedSignature;
+    private string? _exportError;
     private bool HasData => Series.Any(s => s.Points.Count > 0);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -56,12 +79,18 @@ else
         if (Series.Count == 0 || !HasData)
             return;
 
+        var payload = BuildChartPayload();
+        var signature = JsonSerializer.Serialize(payload);
+        if (string.Equals(_lastRenderedSignature, signature, StringComparison.Ordinal))
+            return;
+
         try
         {
             await JS.InvokeVoidAsync(
                 "familyFinancesCharts.renderAnnualLineChart",
                 _canvasId,
-                BuildChartPayload());
+                payload);
+            _lastRenderedSignature = signature;
         }
         catch
         {
@@ -74,6 +103,7 @@ else
         try
         {
             await JS.InvokeVoidAsync("familyFinancesCharts.disposeAnnualLineChart", _canvasId);
+            _lastRenderedSignature = null;
         }
         catch
         {
@@ -120,7 +150,8 @@ else
             datasets,
             useDualAxis = false,
             xTickAutoSkip = true,
-            xTickMaxTicks = 12
+            xTickMaxTicks = 12,
+            yTickMaxTicks = YTickMaxTicks
         };
     }
 
@@ -130,5 +161,20 @@ else
             series.Points
                 .OrderBy(p => p.Day)
                 .Select(p => $"{p.Day}:{p.Value.ToString(CultureInfo.InvariantCulture)}"));
+    }
+
+    private async Task ExportChartAsync()
+    {
+        _exportError = null;
+
+        try
+        {
+            var fileName = $"{ReportExportInterop.BuildFileName("report-chart", Title, Year, Month.ToString("00", CultureInfo.InvariantCulture))}.png";
+            await JS.DownloadChartImageAsync(_canvasId, fileName);
+        }
+        catch (Exception ex)
+        {
+            _exportError = $"Chart export failed: {ex.Message}";
+        }
     }
 }

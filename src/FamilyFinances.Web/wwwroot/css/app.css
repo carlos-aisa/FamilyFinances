@@ -216,6 +216,12 @@
     margin-bottom: 0 !important;
 }
 
+.asset-total-chart-panel [data-testid="reporting-chart-empty"],
+.asset-total-chart-panel [data-testid="reporting-chart-error"],
+.asset-total-chart-panel [data-testid="reporting-chart-loading"] {
+    margin-bottom: 0 !important;
+}
+
 .asset-total-chart-panel .annual-line-chart .annual-line-canvas-wrap {
     height: 220px;
     min-height: 200px;
@@ -225,12 +231,61 @@
     font-size: 0.9rem;
 }
 
+.economic-state-stacked-charts {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.economic-state-stacked-charts .annual-line-chart,
+.economic-state-stacked-charts [data-testid="reporting-chart-empty"],
+.economic-state-stacked-charts [data-testid="reporting-chart-error"],
+.economic-state-stacked-charts [data-testid="reporting-chart-loading"] {
+    margin-bottom: 0 !important;
+}
+
+.economic-state-stacked-charts .annual-line-chart .card-body {
+    padding: 0.7rem 0.8rem;
+}
+
+.economic-state-stacked-charts .annual-line-chart .annual-line-canvas-wrap {
+    height: 130px !important;
+    min-height: 120px !important;
+}
+
+.economic-state-stacked-col .economic-state-stacked-charts {
+    width: 100%;
+}
+
+.economic-state-stacked-charts [data-testid="reporting-chart-empty"] .card-body,
+.economic-state-stacked-charts [data-testid="reporting-chart-error"] .card-body,
+.economic-state-stacked-charts [data-testid="reporting-chart-loading"] .card-body {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+
 .account-groups-overview-grid .table {
     font-size: 0.9rem;
 }
 
 .accounts-overview-grid .table {
     font-size: 0.9rem;
+}
+
+.report-export-button {
+    white-space: nowrap;
+}
+
+.period-summary-detail-grid .annual-line-chart,
+.period-summary-detail-grid [data-testid="reporting-chart-empty"],
+.period-summary-detail-grid [data-testid="reporting-chart-error"],
+.period-summary-detail-grid [data-testid="reporting-chart-loading"] {
+    margin-bottom: 0 !important;
+}
+
+.period-summary-detail-grid .annual-line-chart .annual-line-canvas-wrap {
+    height: 300px;
+    min-height: 240px;
 }
 
 .account-nature-group .accordion-button {
@@ -294,8 +349,54 @@
         min-height: 220px;
     }
 
+    .period-summary-detail-grid .annual-line-chart .annual-line-canvas-wrap {
+        height: 280px;
+        min-height: 220px;
+    }
+
     .account-groups-chart-panel .annual-composition-chart .composition-legend {
         max-height: none;
+    }
+}
+
+@media (max-width: 1199.98px) {
+    .economic-state-stacked-charts .annual-line-chart .annual-line-canvas-wrap {
+        height: 170px !important;
+        min-height: 150px !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .report-export-button {
+        width: 100%;
+    }
+
+    .asset-total-overview-grid .card-header .d-flex,
+    .account-groups-overview-grid .card-header .d-flex,
+    .accounts-overview-grid .card-header .d-flex,
+    .annual-line-chart .card-body > .d-flex,
+    .annual-composition-chart .card-body > .d-flex {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+}
+
+/* Economic State stacked charts: enforce compact height + visible separation */
+.economic-state-stacked-charts > .asset-total-chart-panel + .asset-total-chart-panel {
+    margin-top: 1rem;
+}
+
+@media (min-width: 1200px) {
+    .economic-state-stacked-charts .annual-line-chart .annual-line-canvas-wrap {
+        height: 120px !important;
+        min-height: 110px !important;
+    }
+}
+
+@media (max-width: 1199.98px) {
+    .economic-state-stacked-charts .annual-line-chart .annual-line-canvas-wrap {
+        height: 145px !important;
+        min-height: 130px !important;
     }
 }
 

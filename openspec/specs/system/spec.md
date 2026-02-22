@@ -136,7 +136,7 @@ Then the API returns `200 OK`
 And the response is `AccountGroupDetailsDto { Id, Name, Description, Accounts }`
 
 ### Requirement: Reporting Endpoints SHALL Provide Aggregated Read Models
-The system SHALL provide aggregated report read models and derived insight models, including Pareto ranking, concentration indicators, and explainable anomaly signals for group and payee dimensions.
+The system SHALL provide aggregated report read models with release-ready reliability characteristics, including export compatibility, responsive web usability, and regression-safe behavior in reporting flows.
 
 #### Scenario: Monthly summary returns summary DTO
 Given valid date query inputs  
@@ -167,12 +167,11 @@ Given a request with missing or invalid `year` or `scope`
 When the client calls `GET /api/v1/reports/monthly-evolution`  
 Then the API returns `400 BadRequest`
 
-#### Scenario: Insight endpoints return deterministic and explainable payloads
-Given a valid insight request and authorized user  
-When the client calls insight reporting endpoints  
-Then the API returns deterministic ranking/concentration/anomaly results  
-And anomaly results include baseline/threshold explanation fields
-And insight requests MUST support a dimension selector that includes `group` and `payee`
+#### Scenario: Reporting flows remain export-compatible and regression-safe
+Given final `0.9` reporting features are enabled  
+When users execute supported report flows and export actions  
+Then output values MUST remain consistent with report read models  
+And release gates MUST block shipment on critical regression failures
 
 ### Requirement: Health Endpoint SHALL Be Exposed
 #### Scenario: Health endpoint route exists

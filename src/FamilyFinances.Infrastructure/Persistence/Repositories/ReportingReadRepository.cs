@@ -70,7 +70,7 @@ public sealed class ReportingReadRepository : IReportingReadRepository
                 .Select(a => (AccountNature?)a.Nature)
                 .FirstOrDefaultAsync(ct);
 
-            // Materialize first to avoid translation issues with AccountId value object.
+            // Materialize first to avoid translation issues with AccountId value object.&
             var allData = await q.ToListAsync(ct);
             var filtered = allData.Where(x => x.AccountId.Value == accountId.Value).ToList();
 

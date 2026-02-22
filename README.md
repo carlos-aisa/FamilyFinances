@@ -236,7 +236,8 @@ Schema source:
 ### Reporting Map (Current UI)
 - `Economic State` (`/reports/economic-state`)
   - `Snapshot` tab: current stock + period flow KPIs
-  - `Asset Evolution` tab: annual asset-total evolution (table + chart) + focused-month daily asset chart
+  - `Asset Evolution` tab: annual asset-total evolution (table + chart) + focused-month daily asset chart + CSV/PNG export actions
+  - `Income Evolution` tab: annual income-total evolution (table + chart) + focused-month daily income chart + CSV/PNG export actions
 - `Period Summary` (`/reports/monthly-summary`)
   - period flow KPIs (`Income`, `Expense`, `Period Net Result`, `Transactions Count`)
   - account-focused month chart (when an account is selected)
@@ -245,11 +246,20 @@ Schema source:
     - top-N concentration percentages with explicit denominator
     - monthly anomaly badges (`Anomaly` / `Normal` / `Insufficient history`) with explanation
 - `Account Totals` (`/reports/account-totals`)
-  - `Period Totals` tab
-  - `State Evolution` tab: annual account evolution and composition
+  - `Period Totals` tab + CSV export
+  - `State Evolution` tab: annual account evolution and composition + overview CSV export + chart PNG export
 - `Account Group Totals` (`/reports/account-group-totals`)
-  - `Period Totals` tab
-  - `State Evolution` tab: annual group evolution, expense-oriented composition, and focused-month daily group-evolution chart
+  - `Period Totals` tab + CSV export
+  - `State Evolution` tab: annual group evolution, expense-oriented composition, focused-month daily group-evolution chart + overview CSV export + chart PNG export
+
+### Reporting Exports & Accessibility (`0.9.6`)
+- CSV exports are available on table-based report views and include active filter context.
+- Chart cards provide `Export PNG` actions for current visible chart state.
+- Reporting controls/charts include accessibility baseline improvements (explicit labels, focusable chart surfaces).
+- See detailed notes:
+  - `docs/reporting-export-accessibility.md`
+  - `docs/v0.9-reporting-regression-checklist.md`
+  - `docs/v0.9.6-closeout-notes.md`
 
 ### Reporting API Evolution Endpoint
 - Primary endpoint: `GET /api/v1/reports/state-evolution?year=YYYY&scope=<accounts|asset-total|account-groups>`

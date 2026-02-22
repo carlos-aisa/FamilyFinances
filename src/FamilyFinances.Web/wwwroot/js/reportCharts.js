@@ -23,6 +23,51 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
         };
     }
 
+    function triggerBrowserDownload(blob, fileName) {
+        if (!blob || !fileName) {
+            return;
+        }
+
+        const anchor = document.createElement("a");
+        const objectUrl = URL.createObjectURL(blob);
+        anchor.href = objectUrl;
+        anchor.download = fileName;
+        anchor.style.display = "none";
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        URL.revokeObjectURL(objectUrl);
+    }
+
+    function downloadCsv(fileName, csvContent) {
+        if (!fileName || typeof csvContent !== "string") {
+            return;
+        }
+
+        const bom = "\uFEFF";
+        const blob = new Blob([bom, csvContent], { type: "text/csv;charset=utf-8;" });
+        triggerBrowserDownload(blob, fileName);
+    }
+
+    function downloadChartImage(canvasId, fileName) {
+        if (!canvasId || !fileName) {
+            return;
+        }
+
+        const canvas = document.getElementById(canvasId);
+        if (!canvas || typeof canvas.toBlob !== "function") {
+            return;
+        }
+
+        canvas.toBlob((blob) => {
+            if (!blob) {
+                return;
+            }
+
+            triggerBrowserDownload(blob, fileName);
+        }, "image/png");
+    }
+
     function renderAnnualLineChart(canvasId, payload) {
         if (!canvasId || !payload || !window.Chart) {
             return;
@@ -43,6 +88,7 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
         const useDualAxis = !!payload.useDualAxis;
         const xTickAutoSkip = payload.xTickAutoSkip === true;
         const xTickMaxTicks = Number.isFinite(payload.xTickMaxTicks) ? payload.xTickMaxTicks : undefined;
+        const yTickMaxTicks = Number.isFinite(payload.yTickMaxTicks) ? payload.yTickMaxTicks : undefined;
 
         const scales = {
             x: {
@@ -64,6 +110,7 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
                 position: "right",
                 ticks: {
                     color: "#adb5bd",
+                    maxTicksLimit: yTickMaxTicks,
                     callback: (value) => euroFormatter.format(value)
                 },
                 grid: {
@@ -77,6 +124,7 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
                 position: "left",
                 ticks: {
                     color: "#adb5bd",
+                    maxTicksLimit: yTickMaxTicks,
                     callback: (value) => euroFormatter.format(value)
                 },
                 grid: {
@@ -94,6 +142,7 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
                 position: "left",
                 ticks: {
                     color: "#adb5bd",
+                    maxTicksLimit: yTickMaxTicks,
                     callback: (value) => euroFormatter.format(value)
                 },
                 grid: {
@@ -111,6 +160,7 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: false,
                 interaction: {
                     mode: "index",
                     intersect: false
@@ -174,6 +224,7 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: false,
                 plugins: {
                     legend: {
                         display: false
@@ -204,6 +255,8 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
         renderAnnualLineChart,
         disposeAnnualLineChart,
         renderAnnualCompositionChart,
-        disposeAnnualCompositionChart
+        disposeAnnualCompositionChart,
+        downloadCsv,
+        downloadChartImage
     };
 })();

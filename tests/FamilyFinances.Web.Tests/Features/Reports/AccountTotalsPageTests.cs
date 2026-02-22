@@ -190,6 +190,57 @@ public sealed class AccountTotalsPageTests : TestContext
         });
     }
 
+    [Fact]
+    public void Period_Totals_ExportCsv_Contains_Visible_Table_Values()
+    {
+        var dto = new AccountTotalsDto(
+            new DateOnly(2026, 2, 1),
+            new DateOnly(2026, 3, 1),
+            [
+                new AccountTotalItemDto(
+                    Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+                    "Main Bank",
+                    AccountNature.Asset,
+                    AccountKind.Checking,
+                    123_456,
+                    3)
+            ]);
+
+        var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(dto)
+            });
+
+        RegisterAuthorizedServices(
+            new HttpClient(handlerMock.Object) { BaseAddress = new Uri("http://localhost:5000") },
+            Array.Empty<AccountDto>());
+
+        var exportCall = JSInterop.SetupVoid("familyFinancesCharts.downloadCsv", _ => true);
+
+        var cut = RenderComponent<AccountTotalsPage>();
+
+        cut.FindAll("button")
+            .First(button => button.TextContent.Contains("Load Report"))
+            .Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("[data-testid='account-totals-export-csv']");
+            cut.Markup.Should().Contain(MoneyFormatter.FormatCentsWithSign(123_456));
+        });
+
+        cut.Find("[data-testid='account-totals-export-csv']").Click();
+
+        exportCall.Invocations.Should().ContainSingle();
+    }
+
     private void RegisterAuthorizedServices(HttpClient httpClient, IReadOnlyList<AccountDto> accounts)
     {
         var factoryMock = new Mock<IHttpClientFactory>(MockBehavior.Strict);
