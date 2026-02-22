@@ -136,7 +136,7 @@ Then the API returns `200 OK`
 And the response is `AccountGroupDetailsDto { Id, Name, Description, Accounts }`
 
 ### Requirement: Reporting Endpoints SHALL Provide Aggregated Read Models
-The system SHALL provide aggregated report read models, including monthly summary, account-group totals, as-of asset total balance, and state-evolution contracts consumable for both table rendering and annual chart rendering.
+The system SHALL provide aggregated report read models, including `state-evolution` yearly contracts and month-level chart datasets required for intra-month balance evolution and balance-vs-group comparisons.
 
 #### Scenario: Monthly summary returns summary DTO
 Given valid date query inputs  
@@ -167,17 +167,18 @@ Given a request with missing or invalid `year` or `scope`
 When the client calls `GET /api/v1/reports/state-evolution`  
 Then the API returns `400 BadRequest`
 
-#### Scenario: Legacy monthly-evolution alias remains backward compatible
+#### Scenario: Legacy monthly-evolution alias remains available
 Given a valid `year` and `scope` and an authorized user  
 When the client calls `GET /api/v1/reports/monthly-evolution?year=YYYY&scope=<scope>`  
 Then the API returns `200 OK`  
-And the response payload shape matches the state-evolution contract
+And the payload shape matches the primary state-evolution contract
 
-#### Scenario: Annual charts consume the same numeric source as report tables
-Given annual reporting charts are rendered from report data  
-When the UI computes chart datasets from API responses  
-Then chart points MUST map to the same monthly numeric values used in report tables  
-And chart rendering MUST NOT require alternative or conflicting numeric sources
+#### Scenario: Month-level chart endpoints return intra-month series
+Given valid month-level chart query parameters and authorized user  
+When the client calls `GET /api/v1/reports/monthly-charts/balance` or `GET /api/v1/reports/monthly-charts/group-evolution`  
+Then the API returns ordered day-bucket series for selected month  
+And day buckets MUST be aligned across compared series in the same response
+And the backward-compatible alias `GET /api/v1/reports/monthly-charts/balance-vs-groups` remains available
 
 ### Requirement: Health Endpoint SHALL Be Exposed
 #### Scenario: Health endpoint route exists
