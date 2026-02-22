@@ -39,35 +39,39 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
             chartByCanvasId.delete(canvasId);
         }
 
-        const datasets = (payload.datasets || []).map(toDataset);
+        let datasets = (payload.datasets || []).map(toDataset);
         const useDualAxis = !!payload.useDualAxis;
+        const xTickAutoSkip = payload.xTickAutoSkip === true;
+        const xTickMaxTicks = Number.isFinite(payload.xTickMaxTicks) ? payload.xTickMaxTicks : undefined;
 
         const scales = {
             x: {
                 ticks: {
                     color: "#adb5bd",
                     maxRotation: 0,
-                    autoSkip: false
+                    autoSkip: xTickAutoSkip,
+                    maxTicksLimit: xTickMaxTicks
                 },
                 grid: {
-                    color: "rgba(173, 181, 189, 0.15)"
-                }
-            },
-            yDelta: {
-                type: "linear",
-                position: useDualAxis ? "right" : "left",
-                ticks: {
-                    color: "#adb5bd",
-                    callback: (value) => euroFormatter.format(value)
-                },
-                grid: {
-                    drawOnChartArea: !useDualAxis,
                     color: "rgba(173, 181, 189, 0.15)"
                 }
             }
         };
 
         if (useDualAxis) {
+            scales.yDelta = {
+                type: "linear",
+                position: "right",
+                ticks: {
+                    color: "#adb5bd",
+                    callback: (value) => euroFormatter.format(value)
+                },
+                grid: {
+                    drawOnChartArea: false,
+                    color: "rgba(173, 181, 189, 0.15)"
+                }
+            };
+
             scales.yBalance = {
                 type: "linear",
                 position: "left",
@@ -80,7 +84,22 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
                 }
             };
         } else {
-            scales.yDelta.id = "y";
+            datasets = datasets.map((dataset) => ({
+                ...dataset,
+                yAxisID: "y"
+            }));
+
+            scales.y = {
+                type: "linear",
+                position: "left",
+                ticks: {
+                    color: "#adb5bd",
+                    callback: (value) => euroFormatter.format(value)
+                },
+                grid: {
+                    color: "rgba(173, 181, 189, 0.15)"
+                }
+            };
         }
 
         const chart = new window.Chart(canvas, {

@@ -40,6 +40,7 @@ And the payload shape matches the primary state-evolution contract
 
 #### Scenario: Month-level chart endpoints return intra-month series
 Given valid month-level chart query parameters and authorized user  
-When the client calls `GET /api/v1/reports/monthly-charts/balance` or `GET /api/v1/reports/monthly-charts/balance-vs-groups`  
+When the client calls `GET /api/v1/reports/monthly-charts/balance` or `GET /api/v1/reports/monthly-charts/group-evolution`  
 Then the API returns ordered day-bucket series for selected month  
 And day buckets MUST be aligned across compared series in the same response
+And the backward-compatible alias `GET /api/v1/reports/monthly-charts/balance-vs-groups` remains available

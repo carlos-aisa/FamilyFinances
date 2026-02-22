@@ -236,17 +236,43 @@ Schema source:
 ### Reporting Map (Current UI)
 - `Economic State` (`/reports/economic-state`)
   - `Snapshot` tab: current stock + period flow KPIs
-  - `Asset Evolution` tab: annual asset-total evolution (table + chart)
+  - `Asset Evolution` tab: annual asset-total evolution (table + chart) + focused-month daily asset chart
+- `Period Summary` (`/reports/monthly-summary`)
+  - period flow KPIs (`Income`, `Expense`, `Period Net Result`, `Transactions Count`)
+  - account-focused month chart (when an account is selected)
+  - insight panel with `Groups/Payees` toggle:
+    - expense and income Pareto rankings
+    - top-N concentration percentages with explicit denominator
+    - monthly anomaly badges (`Anomaly` / `Normal` / `Insufficient history`) with explanation
 - `Account Totals` (`/reports/account-totals`)
   - `Period Totals` tab
   - `State Evolution` tab: annual account evolution and composition
 - `Account Group Totals` (`/reports/account-group-totals`)
   - `Period Totals` tab
-  - `State Evolution` tab: annual group evolution and expense-oriented composition
+  - `State Evolution` tab: annual group evolution, expense-oriented composition, and focused-month daily group-evolution chart
 
 ### Reporting API Evolution Endpoint
 - Primary endpoint: `GET /api/v1/reports/state-evolution?year=YYYY&scope=<accounts|asset-total|account-groups>`
 - Backward-compatible alias: `GET /api/v1/reports/monthly-evolution?year=YYYY&scope=<accounts|asset-total|account-groups>`
+
+### Reporting API Monthly Chart Endpoints (`0.9.4`)
+- `GET /api/v1/reports/monthly-charts/balance?year=YYYY&month=MM`
+  - Returns day-bucket `Asset Total` end-balance points for the selected month.
+  - Optional: `accountId=<GUID>` returns day-bucket end-balance points for the selected account (used by `Period Summary` account-focused chart).
+  - No-activity days use deterministic carry-forward values.
+- `GET /api/v1/reports/monthly-charts/group-evolution?year=YYYY&month=MM`
+  - Returns one `Asset Total` series plus one series per account group (liability accounts excluded from group aggregation).
+  - All returned series are aligned on the same day buckets (`1..daysInMonth`).
+  - Legacy alias still available: `GET /api/v1/reports/monthly-charts/balance-vs-groups?year=YYYY&month=MM`.
+
+### Reporting API Insight Endpoints (`0.9.5`)
+- `GET /api/v1/reports/insights/pareto?from=YYYY-MM-DD&to=YYYY-MM-DD&dimension=<group|payee>&topN=<1..20>`
+  - Returns deterministic Pareto and concentration payload for both `Expense` and `Income` in one response.
+  - Optional filters: `accountId=<GUID>`, `payeeId=<GUID>` (except `payeeId` is rejected when `dimension=payee`).
+- `GET /api/v1/reports/insights/anomalies?year=YYYY&month=MM&nature=<Expense|Income>&dimension=<group|payee>&lookbackMonths=<3..36>&requiredHistoryMonths=<2..12>`
+  - Returns deterministic anomaly evaluation for the requested month and dimension.
+  - Contributor rows include baseline mean, threshold, z-score (when available), and explanation text.
+  - Contributors with sparse history are returned as `Insufficient history` and are never flagged as anomaly.
 
 ## Contributing
 Suggested workflow:

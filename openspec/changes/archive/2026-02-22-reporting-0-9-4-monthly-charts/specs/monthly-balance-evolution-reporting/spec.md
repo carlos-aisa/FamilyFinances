@@ -1,6 +1,6 @@
 ## MODIFIED Requirements
 
-### Requirement: Web Reports UI SHALL Provide Integrated Month-Focused State Evolution Views
+### Requirement: Web Reports UI SHALL Provide Integrated State Evolution Views
 The Web UI MUST provide month-focused chart behavior inside integrated state-evolution tabs and MUST NOT require a dedicated Monthly Evolution route.
 
 #### Scenario: Reports index keeps integrated entry points

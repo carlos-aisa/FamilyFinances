@@ -78,6 +78,78 @@ public sealed class ReportsApi
         return result ?? throw new InvalidOperationException("Failed to deserialize category totals response.");
     }
 
+    public async Task<ReportingParetoInsightsDto> GetParetoInsightsAsync(
+        DateOnly fromInclusive,
+        DateOnly toExclusive,
+        ReportingInsightDimension dimension,
+        int topN = 5,
+        Guid? accountId = null,
+        Guid? payeeId = null,
+        CancellationToken ct = default)
+    {
+        var token = _tokenStore.GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("No access token available.");
+
+        var url = $"api/v1/reports/insights/pareto?from={fromInclusive:yyyy-MM-dd}&to={toExclusive:yyyy-MM-dd}&dimension={ToDimensionQueryValue(dimension)}&topN={topN}";
+
+        if (accountId.HasValue)
+            url += $"&accountId={accountId.Value}";
+
+        if (payeeId.HasValue)
+            url += $"&payeeId={payeeId.Value}";
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _http.SendAsync(request, ct);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
+
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<ReportingParetoInsightsDto>(cancellationToken: ct);
+        return result ?? throw new InvalidOperationException("Failed to deserialize reporting pareto insights response.");
+    }
+
+    public async Task<ReportingAnomalyInsightsDto> GetAnomalyInsightsAsync(
+        int year,
+        int month,
+        AccountNature nature,
+        ReportingInsightDimension dimension,
+        int lookbackMonths = 12,
+        int requiredHistoryMonths = 3,
+        Guid? accountId = null,
+        Guid? payeeId = null,
+        CancellationToken ct = default)
+    {
+        var token = _tokenStore.GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("No access token available.");
+
+        var url = $"api/v1/reports/insights/anomalies?year={year}&month={month}&nature={nature}&dimension={ToDimensionQueryValue(dimension)}&lookbackMonths={lookbackMonths}&requiredHistoryMonths={requiredHistoryMonths}";
+
+        if (accountId.HasValue)
+            url += $"&accountId={accountId.Value}";
+
+        if (payeeId.HasValue)
+            url += $"&payeeId={payeeId.Value}";
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _http.SendAsync(request, ct);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
+
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<ReportingAnomalyInsightsDto>(cancellationToken: ct);
+        return result ?? throw new InvalidOperationException("Failed to deserialize reporting anomaly insights response.");
+    }
+
     public async Task<AccountTotalsDto> GetAccountTotalsAsync(
         DateOnly fromInclusive,
         DateOnly toExclusive,
@@ -203,6 +275,7 @@ public sealed class ReportsApi
             MonthlyEvolutionScope.Accounts => "accounts",
             MonthlyEvolutionScope.AssetTotal => "asset-total",
             MonthlyEvolutionScope.AccountGroups => "account-groups",
+            MonthlyEvolutionScope.IncomeTotal => "income-total",
             _ => throw new ArgumentOutOfRangeException(nameof(scope), scope, "Unsupported monthly evolution scope.")
         };
 
@@ -220,5 +293,83 @@ public sealed class ReportsApi
 
         var result = await response.Content.ReadFromJsonAsync<MonthlyEvolutionReportDto>(cancellationToken: ct);
         return result ?? throw new InvalidOperationException("Failed to deserialize monthly evolution response.");
+    }
+
+    public async Task<MonthlyBalanceChartDto> GetMonthlyChartBalanceAsync(
+        int year,
+        int month,
+        Guid? accountId = null,
+        Guid? payeeId = null,
+        AccountNature? nature = null,
+        CancellationToken ct = default)
+    {
+        var token = _tokenStore.GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("No access token available.");
+
+        var url = $"api/v1/reports/monthly-charts/balance?year={year}&month={month}";
+        if (accountId.HasValue)
+            url += $"&accountId={accountId.Value}";
+        if (payeeId.HasValue)
+            url += $"&payeeId={payeeId.Value}";
+        if (nature.HasValue)
+            url += $"&nature={nature.Value}";
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _http.SendAsync(request, ct);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
+
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<MonthlyBalanceChartDto>(cancellationToken: ct);
+        return result ?? throw new InvalidOperationException("Failed to deserialize monthly balance chart response.");
+    }
+
+    public async Task<MonthlyBalanceVsGroupsChartDto> GetMonthlyChartGroupEvolutionAsync(
+        int year,
+        int month,
+        CancellationToken ct = default)
+    {
+        var token = _tokenStore.GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("No access token available.");
+
+        var url = $"api/v1/reports/monthly-charts/group-evolution?year={year}&month={month}";
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _http.SendAsync(request, ct);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
+
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<MonthlyBalanceVsGroupsChartDto>(cancellationToken: ct);
+        return result ?? throw new InvalidOperationException("Failed to deserialize monthly balance vs groups chart response.");
+    }
+
+    // Legacy client alias kept for compatibility.
+    public Task<MonthlyBalanceVsGroupsChartDto> GetMonthlyChartBalanceVsGroupsAsync(
+        int year,
+        int month,
+        CancellationToken ct = default)
+    {
+        return GetMonthlyChartGroupEvolutionAsync(year, month, ct);
+    }
+
+    private static string ToDimensionQueryValue(ReportingInsightDimension dimension)
+    {
+        return dimension switch
+        {
+            ReportingInsightDimension.Group => "group",
+            ReportingInsightDimension.Payee => "payee",
+            _ => throw new ArgumentOutOfRangeException(nameof(dimension), dimension, "Unsupported reporting insight dimension.")
+        };
     }
 }

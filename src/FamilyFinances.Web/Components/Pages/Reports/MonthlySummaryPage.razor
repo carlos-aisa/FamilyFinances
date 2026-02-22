@@ -6,8 +6,11 @@
 @using FamilyFinances.Application.Reporting.Semantics
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web.Components.Pages.Reports.Charts
 @using FamilyFinances.Web.Components.Shared
 @using FamilyFinances.Web.Features.Reports
+@using FamilyFinances.Web.Features.Reports.Charts
+@using FamilyFinances.Domain.Ledger.Accounts
 @using Microsoft.AspNetCore.Components.Authorization
 @inherits ApiPageBase
 
@@ -63,7 +66,8 @@
                                        Label="Account (optional)"
                                        Placeholder="All accounts"
                                        IsRequired="false"
-                                       ShowSearch="false" />
+                                       ShowSearch="false"
+                                       AllowedNatures="@_flowAccountNatures" />
                     </div>
 
                     <!-- Payee Filter -->
@@ -116,6 +120,12 @@
         }
         else if (_report is not null)
         {
+            var selectedAccountName = GetSelectedAccountName();
+            var selectedMonthLabel = _fromDate is not null
+                ? $"{DateHelper.GetMonthName(_fromDate.Value.Month)} {_fromDate.Value.Year}"
+                : "selected month";
+            var selectedAccountChartSeries = BuildSelectedAccountMonthlyChartSeries();
+
             <!-- Report Results -->
             <div class="row g-4">
                 <!-- Summary Cards -->
@@ -184,14 +194,230 @@
                 It is not directly comparable to monthly evolution balance deltas, which are <strong>stock metrics</strong>.
             </div>
 
-            <!-- Chart Placeholder -->
-            <div class="card shadow-sm mt-4">
-                <div class="card-body text-center py-5">
-                    <i class="bi bi-bar-chart display-4 text-muted mb-3"></i>
-                    <h5 class="text-muted">Chart Visualization</h5>
-                    <p class="text-muted mb-0">Visual representation coming soon</p>
+            <div class="card shadow-sm mt-4" data-testid="monthly-summary-insights-panel">
+                <div class="card-header bg-light d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+                    <div>
+                        <h5 class="mb-1">
+                            <i class="bi bi-lightbulb me-2"></i>Period Insights
+                        </h5>
+                        <small class="text-muted">Pareto ranking, concentration, and anomaly indicators (deterministic rules).</small>
+                    </div>
+                    <div class="btn-group btn-group-sm" role="group" aria-label="Insight dimension">
+                        <button type="button"
+                                class="btn @GetInsightDimensionButtonClass(ReportingInsightDimension.Group)"
+                                @onclick="() => SetInsightDimensionAsync(ReportingInsightDimension.Group)"
+                                disabled="@_isInsightsLoading">
+                            Groups
+                        </button>
+                        <button type="button"
+                                class="btn @GetInsightDimensionButtonClass(ReportingInsightDimension.Payee)"
+                                @onclick="() => SetInsightDimensionAsync(ReportingInsightDimension.Payee)"
+                                disabled="@_isInsightsLoading">
+                            Payees
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (_isInsightsLoading)
+                    {
+                        <div class="d-flex align-items-center text-muted">
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            Loading insights...
+                        </div>
+                    }
+                    else if (!string.IsNullOrWhiteSpace(_insightsError))
+                    {
+                        <div class="alert alert-warning mb-0" role="alert">
+                            <i class="bi bi-exclamation-triangle me-2"></i>@_insightsError
+                        </div>
+                    }
+                    else if (_paretoInsights is null || _anomalyInsights is null)
+                    {
+                        <div class="text-muted">Load report data to compute insights.</div>
+                    }
+                    else
+                    {
+                        var focusedMonthLabel = $"{DateHelper.GetMonthName(_anomalyInsights.Month)} {_anomalyInsights.Year}";
+
+                        <div class="row g-3">
+                            <div class="col-12 col-xl-6">
+                                <div class="border rounded p-3 h-100">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-1">Expense Pareto</h6>
+                                        <span class="badge bg-danger-subtle text-danger">@($"{_paretoInsights.Expense.TopNCoveragePercentage:F2}% Top-{_paretoInsights.Expense.TopN}")</span>
+                                    </div>
+                                    <div class="small text-muted mb-2">
+                                        Denominator: @MoneyFormatter.FormatCents(_paretoInsights.Expense.TotalAmountCents) total expense in selected period.
+                                    </div>
+                                    <details>
+                                        <summary class="small fw-semibold">View ranked contributors</summary>
+                                        <div class="table-responsive mt-2">
+                                            <table class="table table-sm align-middle mb-0">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Contributor</th>
+                                                        <th class="text-end">Amount</th>
+                                                        <th class="text-end">Share</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var contributor in _paretoInsights.Expense.Contributors)
+                                                    {
+                                                        <tr>
+                                                            <td>@contributor.DisplayName</td>
+                                                            <td class="text-end">@MoneyFormatter.FormatCents(contributor.AmountCents)</td>
+                                                            <td class="text-end">@($"{contributor.ContributionPercentage:F2}%")</td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </details>
+                                </div>
+                            </div>
+                            <div class="col-12 col-xl-6">
+                                <div class="border rounded p-3 h-100">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-1">Income Pareto</h6>
+                                        <span class="badge bg-success-subtle text-success">@($"{_paretoInsights.Income.TopNCoveragePercentage:F2}% Top-{_paretoInsights.Income.TopN}")</span>
+                                    </div>
+                                    <div class="small text-muted mb-2">
+                                        Denominator: @MoneyFormatter.FormatCents(_paretoInsights.Income.TotalAmountCents) total income in selected period.
+                                    </div>
+                                    <details>
+                                        <summary class="small fw-semibold">View ranked contributors</summary>
+                                        <div class="table-responsive mt-2">
+                                            <table class="table table-sm align-middle mb-0">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Contributor</th>
+                                                        <th class="text-end">Amount</th>
+                                                        <th class="text-end">Share</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var contributor in _paretoInsights.Income.Contributors)
+                                                    {
+                                                        <tr>
+                                                            <td>@contributor.DisplayName</td>
+                                                            <td class="text-end">@MoneyFormatter.FormatCents(contributor.AmountCents)</td>
+                                                            <td class="text-end">@($"{contributor.ContributionPercentage:F2}%")</td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </details>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border rounded p-3 mt-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-1">Monthly Expense Anomalies</h6>
+                                <span class="badge bg-secondary-subtle text-secondary">@focusedMonthLabel</span>
+                            </div>
+                            <div class="small text-muted mb-2">
+                                @_anomalyInsights.ThresholdRule
+                                Minimum active history months: @_anomalyInsights.RequiredHistoryMonths.
+                            </div>
+                            @if (_anomalyInsights.Contributors.Count == 0)
+                            {
+                                <div class="text-muted">No contributors available for anomaly evaluation.</div>
+                            }
+                            else
+                            {
+                                <details>
+                                    <summary class="small fw-semibold">View anomaly breakdown</summary>
+                                    <div class="table-responsive mt-2">
+                                        <table class="table table-sm align-middle mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>Contributor</th>
+                                                    <th class="text-end">Current</th>
+                                                    <th class="text-end">Baseline</th>
+                                                    <th class="text-end">Threshold</th>
+                                                    <th>Status</th>
+                                                    <th>Explanation</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var contributor in _anomalyInsights.Contributors)
+                                                {
+                                                    <tr>
+                                                        <td>@contributor.DisplayName</td>
+                                                        <td class="text-end">@MoneyFormatter.FormatCents(contributor.CurrentAmountCents)</td>
+                                                        <td class="text-end">@MoneyFormatter.FormatCents(contributor.BaselineMeanAmountCents)</td>
+                                                        <td class="text-end">@MoneyFormatter.FormatCents(contributor.ThresholdAmountCents)</td>
+                                                        <td>
+                                                            @if (contributor.IsInsufficientHistory)
+                                                            {
+                                                                <span class="badge bg-secondary">Insufficient history</span>
+                                                            }
+                                                            else if (contributor.IsAnomaly)
+                                                            {
+                                                                <span class="badge bg-danger">Anomaly</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="badge bg-success">Normal</span>
+                                                            }
+                                                        </td>
+                                                        <td class="small text-muted">
+                                                            @contributor.Explanation
+                                                            @if (contributor.ZScore is not null)
+                                                            {
+                                                                <span class="ms-1">z=@($"{contributor.ZScore:F2}")</span>
+                                                            }
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </details>
+                            }
+                        </div>
+                    }
                 </div>
             </div>
+
+            @if (_selectedAccountGuid is null)
+            {
+                <div class="card shadow-sm mt-4">
+                    <div class="card-body text-center py-5">
+                        <i class="bi bi-graph-up display-4 text-muted mb-3"></i>
+                        <h5 class="text-muted">Month-focused Account Evolution</h5>
+                        <p class="text-muted mb-0">Select an account to see the day-by-day evolution for the selected month.</p>
+                    </div>
+                </div>
+            }
+            else if (!string.IsNullOrWhiteSpace(_accountChartError))
+            {
+                <div class="mt-4">
+                    <ReportingChartErrorState Message="@_accountChartError" />
+                </div>
+            }
+            else if (_accountMonthlyChart is null || _accountMonthlyChart.Points.Count == 0 || selectedAccountChartSeries.Count == 0)
+            {
+                <div class="mt-4">
+                    <ReportingChartEmptyState
+                        Title="Month-focused Account Evolution"
+                        Description="No daily points are available for the selected account and month." />
+                </div>
+            }
+            else
+            {
+                <div class="mt-4">
+                    <MonthlyLineChart
+                        Title="Month-focused Account Evolution"
+                        Subtitle="@($"Daily end balance for {selectedAccountName} in {selectedMonthLabel}.")"
+                        Year="@_accountMonthlyChart.Year"
+                        Month="@_accountMonthlyChart.Month"
+                        Series="@selectedAccountChartSeries"
+                        TestId="monthly-summary-account-monthly-chart" />
+                </div>
+            }
         }
         else if (!_isLoading && _report is null)
         {
@@ -218,8 +444,15 @@
     private IReadOnlyList<AccountDto>? _accounts;
     private IReadOnlyList<PayeeDto>? _payees;
     private MonthlySummaryDto? _report;
+    private MonthlyBalanceChartDto? _accountMonthlyChart;
+    private ReportingParetoInsightsDto? _paretoInsights;
+    private ReportingAnomalyInsightsDto? _anomalyInsights;
     private string? _error;
+    private string? _accountChartError;
+    private string? _insightsError;
     private bool _isLoading;
+    private bool _isInsightsLoading;
+    private ReportingInsightDimension _insightDimension = ReportingInsightDimension.Group;
     private static readonly ReportingMetricDefinition _incomeMetric =
         ReportingMetricSemantics.ResolveMetric("monthly-summary-income");
     private static readonly ReportingMetricDefinition _expenseMetric =
@@ -267,6 +500,12 @@
         _isLoading = true;
         _error = null;
         _report = null;
+        _accountMonthlyChart = null;
+        _accountChartError = null;
+        _paretoInsights = null;
+        _anomalyInsights = null;
+        _insightsError = null;
+        _isInsightsLoading = false;
         StateHasChanged();
 
         try
@@ -278,6 +517,10 @@
             }
 
             _report = await ReportsApi.GetMonthlySummaryAsync(_fromDate.Value, _toDate.Value, _selectedAccountGuid, _selectedPayeeGuid);
+            await LoadInsightsAsync();
+
+            if (_selectedAccountGuid.HasValue)
+                await LoadSelectedAccountMonthlyChartAsync();
         }
         catch (UnauthorizedAccessException)
         {
@@ -293,6 +536,111 @@
         }
     }
 
+    private async Task LoadSelectedAccountMonthlyChartAsync()
+    {
+        if (_selectedAccountGuid is null || _fromDate is null)
+            return;
+
+        try
+        {
+            _accountMonthlyChart = await ReportsApi.GetMonthlyChartBalanceAsync(
+                _fromDate.Value.Year,
+                _fromDate.Value.Month,
+                accountId: _selectedAccountGuid.Value,
+                payeeId: _selectedPayeeGuid);
+        }
+        catch (Exception ex)
+        {
+            _accountMonthlyChart = null;
+            _accountChartError = $"Failed to load account monthly chart: {ex.Message}";
+        }
+    }
+
+    private async Task LoadInsightsAsync()
+    {
+        if (_fromDate is null || _toDate is null)
+            return;
+
+        _isInsightsLoading = true;
+        _insightsError = null;
+        _paretoInsights = null;
+        _anomalyInsights = null;
+        StateHasChanged();
+
+        try
+        {
+            var anomalyReferenceDate = _toDate.Value.AddDays(-1);
+            var payeeFilter = _insightDimension == ReportingInsightDimension.Payee
+                ? null
+                : _selectedPayeeGuid;
+
+            _paretoInsights = await ReportsApi.GetParetoInsightsAsync(
+                _fromDate.Value,
+                _toDate.Value,
+                _insightDimension,
+                topN: 5,
+                accountId: _selectedAccountGuid,
+                payeeId: payeeFilter);
+
+            _anomalyInsights = await ReportsApi.GetAnomalyInsightsAsync(
+                anomalyReferenceDate.Year,
+                anomalyReferenceDate.Month,
+                AccountNature.Expense,
+                _insightDimension,
+                lookbackMonths: 12,
+                requiredHistoryMonths: 3,
+                accountId: _selectedAccountGuid,
+                payeeId: payeeFilter);
+        }
+        catch (Exception ex)
+        {
+            _insightsError = $"Failed to load insights: {ex.Message}";
+        }
+        finally
+        {
+            _isInsightsLoading = false;
+        }
+    }
+
+    private async Task SetInsightDimensionAsync(ReportingInsightDimension dimension)
+    {
+        if (_insightDimension == dimension)
+            return;
+
+        _insightDimension = dimension;
+
+        if (_report is not null)
+            await LoadInsightsAsync();
+    }
+
+    private string GetInsightDimensionButtonClass(ReportingInsightDimension dimension)
+    {
+        return _insightDimension == dimension ? "btn-primary" : "btn-outline-secondary";
+    }
+
+    private string GetSelectedAccountName()
+    {
+        if (_selectedAccountGuid is null || _accounts is null)
+            return "Selected account";
+
+        return _accounts.FirstOrDefault(account => account.Id == _selectedAccountGuid.Value)?.Name
+            ?? "Selected account";
+    }
+
+    private IReadOnlyList<MonthlyChartSeries> BuildSelectedAccountMonthlyChartSeries()
+    {
+        if (_accountMonthlyChart is null)
+            return Array.Empty<MonthlyChartSeries>();
+
+        return MonthlyChartDatasetAdapter.BuildSingleSeries(
+            _accountMonthlyChart,
+            key: "selected-account",
+            label: GetSelectedAccountName());
+    }
+
+    private static readonly HashSet<AccountNature> _flowAccountNatures =
+        [AccountNature.Income, AccountNature.Expense];
+
     private void ResetFilters()
     {
         _fromDate = null;
@@ -301,6 +649,13 @@
         _selectedPayeeGuid = null;
         _activePreset = null;
         _report = null;
+        _accountMonthlyChart = null;
+        _accountChartError = null;
+        _paretoInsights = null;
+        _anomalyInsights = null;
+        _insightsError = null;
+        _isInsightsLoading = false;
+        _insightDimension = ReportingInsightDimension.Group;
         _error = null;
     }
 }

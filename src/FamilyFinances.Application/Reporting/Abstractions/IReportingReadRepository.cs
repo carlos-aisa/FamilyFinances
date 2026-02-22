@@ -40,6 +40,37 @@ public interface IReportingReadRepository
         MonthlyEvolutionScope scope,
         CancellationToken ct);
 
+    Task<MonthlyBalanceChartDto> GetMonthlyBalanceChartAsync(
+        int year,
+        int month,
+        Guid? accountId,
+        Guid? payeeId,
+        AccountNature? nature,
+        CancellationToken ct);
+
+    Task<MonthlyBalanceVsGroupsChartDto> GetMonthlyBalanceVsGroupsChartAsync(
+        int year,
+        int month,
+        CancellationToken ct);
+
+    Task<IReadOnlyList<InsightContributorAggregateDto>> GetInsightContributorTotalsAsync(
+        DateOnly fromInclusive,
+        DateOnly toExclusive,
+        AccountNature nature,
+        ReportingInsightDimension dimension,
+        Guid? accountId,
+        Guid? payeeId,
+        CancellationToken ct);
+
+    Task<IReadOnlyList<InsightMonthlyContributorAggregateDto>> GetMonthlyInsightContributorTotalsAsync(
+        DateOnly fromInclusive,
+        DateOnly toExclusive,
+        AccountNature nature,
+        ReportingInsightDimension dimension,
+        Guid? accountId,
+        Guid? payeeId,
+        CancellationToken ct);
+
     Task<AccountGroupTotalsDto> GetAccountGroupTotalsAsync(
         Guid groupId,
         DateOnly fromInclusive,

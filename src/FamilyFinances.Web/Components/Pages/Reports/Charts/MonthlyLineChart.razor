@@ -1,0 +1,134 @@
+@using System.Globalization
+@using FamilyFinances.Web.Features.Reports.Charts
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+@if (Series.Count == 0 || !HasData)
+{
+    <ReportingChartEmptyState
+        Title="@Title"
+        Description="No chart points are available for the selected month." />
+}
+else
+{
+    <div class="card shadow-sm mb-4 annual-line-chart" data-testid="@TestId" data-year="@Year" data-month="@Month">
+        <div class="card-body">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 mb-3">
+                <div>
+                    <h6 class="mb-1">@Title</h6>
+                    @if (!string.IsNullOrWhiteSpace(Subtitle))
+                    {
+                        <small class="text-muted">@Subtitle</small>
+                    }
+                </div>
+                <span class="badge bg-secondary-subtle text-secondary">@($"{Year}-{Month:00}")</span>
+            </div>
+
+            <div class="annual-line-canvas-wrap">
+                <canvas id="@_canvasId" class="annual-line-canvas" aria-label="@Title"></canvas>
+            </div>
+
+            <div class="visually-hidden">
+                @foreach (var series in Series)
+                {
+                    <span data-series-key="@series.Key"
+                          data-points="@BuildDataPointString(series)"></span>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter, EditorRequired] public int Year { get; set; }
+    [Parameter, EditorRequired] public int Month { get; set; }
+    [Parameter, EditorRequired] public IReadOnlyList<MonthlyChartSeries> Series { get; set; } = Array.Empty<MonthlyChartSeries>();
+    [Parameter] public string TestId { get; set; } = "monthly-line-chart";
+
+    private readonly string _canvasId = $"monthly-line-{Guid.NewGuid():N}";
+    private bool HasData => Series.Any(s => s.Points.Count > 0);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Series.Count == 0 || !HasData)
+            return;
+
+        try
+        {
+            await JS.InvokeVoidAsync(
+                "familyFinancesCharts.renderAnnualLineChart",
+                _canvasId,
+                BuildChartPayload());
+        }
+        catch
+        {
+            // Non-browser renderers (e.g. tests/prerender) may not support JS interop.
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("familyFinancesCharts.disposeAnnualLineChart", _canvasId);
+        }
+        catch
+        {
+            // Ignore dispose failures for disconnected/non-interactive renderers.
+        }
+    }
+
+    private object BuildChartPayload()
+    {
+        var orderedDays = Series
+            .SelectMany(s => s.Points.Select(p => p.Day))
+            .Distinct()
+            .OrderBy(d => d)
+            .ToList();
+
+        var labels = orderedDays
+            .Select(d => d.ToString(CultureInfo.InvariantCulture))
+            .ToList();
+
+        var datasets = Series
+            .Select(series =>
+            {
+                var pointsByDay = series.Points.ToDictionary(x => x.Day, x => x.Value);
+                var values = orderedDays
+                    .Select(day => pointsByDay.TryGetValue(day, out var value)
+                        ? Convert.ToDouble(value / 100m, CultureInfo.InvariantCulture)
+                        : (double?)null)
+                    .ToList();
+
+                return new
+                {
+                    key = series.Key,
+                    label = series.Label,
+                    colorHex = series.ColorHex,
+                    values,
+                    yAxisId = "y"
+                };
+            })
+            .ToList();
+
+        return new
+        {
+            labels,
+            datasets,
+            useDualAxis = false,
+            xTickAutoSkip = true,
+            xTickMaxTicks = 12
+        };
+    }
+
+    private static string BuildDataPointString(MonthlyChartSeries series)
+    {
+        return string.Join(";",
+            series.Points
+                .OrderBy(p => p.Day)
+                .Select(p => $"{p.Day}:{p.Value.ToString(CultureInfo.InvariantCulture)}"));
+    }
+}

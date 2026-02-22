@@ -13,6 +13,7 @@ using FamilyFinances.Application.Ledger.Transactions.Abstractions;
 using FamilyFinances.Application.Ledger.Transactions.Handlers;
 using FamilyFinances.Application.Reporting.Abstractions;
 using FamilyFinances.Application.Reporting.Handlers;
+using FamilyFinances.Application.Reporting.Internal;
 using FamilyFinances.Infrastructure.Persistence;
 using FamilyFinances.Infrastructure.Persistence.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -46,6 +47,7 @@ public static class DependencyInjection
         services.AddScoped<ITransactionLinkRepository, TransactionLinkRepository>(); 
         services.AddScoped<IPayeeRepository, PayeeRepository>();
         services.AddScoped<IReportingReadRepository, ReportingReadRepository>();
+        services.AddScoped<IReportingInsightsCalculator, ReportingInsightsCalculator>();
         services.AddScoped<IAccountGroupRepository, AccountGroupRepository>();
         services.AddScoped<IAccountGroupMembershipRepository, AccountGroupMembershipRepository>();
         services.AddScoped<IFiscalYearGovernanceRepository, FiscalYearGovernanceRepository>();
@@ -91,6 +93,10 @@ public static class DependencyInjection
         services.AddScoped<GetAssetTotalBalanceHandler>();
         services.AddScoped<GetEconomicStateHandler>();
         services.AddScoped<GetMonthlyEvolutionHandler>();
+        services.AddScoped<GetMonthlyBalanceChartHandler>();
+        services.AddScoped<GetMonthlyBalanceVsGroupsChartHandler>();
+        services.AddScoped<GetReportingParetoInsightsHandler>();
+        services.AddScoped<GetReportingAnomalyInsightsHandler>();
 
         // Account Group Handlers
         services.AddScoped<CreateAccountGroupHandler>();

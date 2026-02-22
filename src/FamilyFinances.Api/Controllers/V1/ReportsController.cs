@@ -31,6 +31,90 @@ public sealed class ReportsController : ControllerBase
     }
 
     [Authorize(Policy = Policies.CanRead)]
+    [HttpGet("insights/pareto")]
+    public async Task<ActionResult<ReportingParetoInsightsDto>> GetParetoInsights(
+        [FromQuery] DateOnly from,
+        [FromQuery] DateOnly to,
+        [FromQuery] string? dimension,
+        [FromQuery] int? topN,
+        [FromQuery] Guid? accountId,
+        [FromQuery] Guid? payeeId,
+        [FromServices] GetReportingParetoInsightsHandler handler,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(dimension))
+            return BadRequest(new { error = "Query parameter 'dimension' is required." });
+
+        if (!TryParseInsightDimension(dimension, out var parsedDimension))
+            return BadRequest(new { error = "Query parameter 'dimension' must be one of: group, payee." });
+
+        if (parsedDimension == ReportingInsightDimension.Payee && payeeId is not null)
+            return BadRequest(new { error = "Query parameter 'payeeId' is not supported when dimension is 'payee'." });
+
+        var dto = await handler.HandleAsync(
+            new GetReportingParetoInsightsQuery(
+                from,
+                to,
+                parsedDimension,
+                topN ?? 5,
+                accountId,
+                payeeId),
+            ct);
+
+        return Ok(dto);
+    }
+
+    [Authorize(Policy = Policies.CanRead)]
+    [HttpGet("insights/anomalies")]
+    public async Task<ActionResult<ReportingAnomalyInsightsDto>> GetAnomalyInsights(
+        [FromQuery] int? year,
+        [FromQuery] int? month,
+        [FromQuery] AccountNature? nature,
+        [FromQuery] string? dimension,
+        [FromQuery] int? lookbackMonths,
+        [FromQuery] int? requiredHistoryMonths,
+        [FromQuery] Guid? accountId,
+        [FromQuery] Guid? payeeId,
+        [FromServices] GetReportingAnomalyInsightsHandler handler,
+        CancellationToken ct)
+    {
+        if (year is null)
+            return BadRequest(new { error = "Query parameter 'year' is required." });
+
+        if (month is null)
+            return BadRequest(new { error = "Query parameter 'month' is required." });
+
+        if (nature is null)
+            return BadRequest(new { error = "Query parameter 'nature' is required." });
+
+        if (nature is not AccountNature.Expense and not AccountNature.Income)
+            return BadRequest(new { error = "Query parameter 'nature' must be either Expense or Income." });
+
+        if (string.IsNullOrWhiteSpace(dimension))
+            return BadRequest(new { error = "Query parameter 'dimension' is required." });
+
+        if (!TryParseInsightDimension(dimension, out var parsedDimension))
+            return BadRequest(new { error = "Query parameter 'dimension' must be one of: group, payee." });
+
+        if (parsedDimension == ReportingInsightDimension.Payee && payeeId is not null)
+            return BadRequest(new { error = "Query parameter 'payeeId' is not supported when dimension is 'payee'." });
+
+        var dto = await handler.HandleAsync(
+            new GetReportingAnomalyInsightsQuery(
+                year.Value,
+                month.Value,
+                nature.Value,
+                parsedDimension,
+                lookbackMonths ?? 12,
+                requiredHistoryMonths ?? 3,
+                accountId,
+                payeeId),
+            ct);
+
+        return Ok(dto);
+    }
+
+    [Authorize(Policy = Policies.CanRead)]
     [HttpGet("category-totals")]
     public async Task<IActionResult> GetCategoryTotals(
         [FromQuery] DateOnly from,
@@ -133,10 +217,79 @@ public sealed class ReportsController : ControllerBase
             return BadRequest(new { error = "Query parameter 'scope' is required." });
 
         if (!TryParseMonthlyEvolutionScope(scope, out var parsedScope))
-            return BadRequest(new { error = "Query parameter 'scope' must be one of: accounts, asset-total, account-groups." });
+            return BadRequest(new { error = "Query parameter 'scope' must be one of: accounts, asset-total, account-groups, income-total." });
 
         var dto = await handler.HandleAsync(
             new GetMonthlyEvolutionQuery(year.Value, parsedScope),
+            ct);
+
+        return Ok(dto);
+    }
+
+    [Authorize(Policy = Policies.CanRead)]
+    [HttpGet("monthly-charts/balance")]
+    public async Task<ActionResult<MonthlyBalanceChartDto>> GetMonthlyBalanceChart(
+        [FromQuery] int? year,
+        [FromQuery] int? month,
+        [FromQuery] Guid? accountId,
+        [FromQuery] Guid? payeeId,
+        [FromQuery] AccountNature? nature,
+        [FromServices] GetMonthlyBalanceChartHandler handler,
+        CancellationToken ct)
+    {
+        if (year is null)
+            return BadRequest(new { error = "Query parameter 'year' is required." });
+
+        if (month is null)
+            return BadRequest(new { error = "Query parameter 'month' is required." });
+
+        if (accountId is not null && nature is not null)
+            return BadRequest(new { error = "Query parameters 'accountId' and 'nature' cannot be used together." });
+
+        var dto = await handler.HandleAsync(
+            new GetMonthlyBalanceChartQuery(year.Value, month.Value, accountId, payeeId, nature),
+            ct);
+
+        return Ok(dto);
+    }
+
+    [Authorize(Policy = Policies.CanRead)]
+    [HttpGet("monthly-charts/group-evolution")]
+    public Task<ActionResult<MonthlyBalanceVsGroupsChartDto>> GetMonthlyGroupEvolutionChart(
+        [FromQuery] int? year,
+        [FromQuery] int? month,
+        [FromServices] GetMonthlyBalanceVsGroupsChartHandler handler,
+        CancellationToken ct)
+    {
+        return GetMonthlyGroupEvolutionChartCore(year, month, handler, ct);
+    }
+
+    // Legacy alias kept for compatibility.
+    [Authorize(Policy = Policies.CanRead)]
+    [HttpGet("monthly-charts/balance-vs-groups")]
+    public Task<ActionResult<MonthlyBalanceVsGroupsChartDto>> GetMonthlyBalanceVsGroupsChart(
+        [FromQuery] int? year,
+        [FromQuery] int? month,
+        [FromServices] GetMonthlyBalanceVsGroupsChartHandler handler,
+        CancellationToken ct)
+    {
+        return GetMonthlyGroupEvolutionChartCore(year, month, handler, ct);
+    }
+
+    private async Task<ActionResult<MonthlyBalanceVsGroupsChartDto>> GetMonthlyGroupEvolutionChartCore(
+        int? year,
+        int? month,
+        GetMonthlyBalanceVsGroupsChartHandler handler,
+        CancellationToken ct)
+    {
+        if (year is null)
+            return BadRequest(new { error = "Query parameter 'year' is required." });
+
+        if (month is null)
+            return BadRequest(new { error = "Query parameter 'month' is required." });
+
+        var dto = await handler.HandleAsync(
+            new GetMonthlyBalanceVsGroupsChartQuery(year.Value, month.Value),
             ct);
 
         return Ok(dto);
@@ -171,6 +324,27 @@ public sealed class ReportsController : ControllerBase
                 return true;
             case "account-groups":
                 parsed = MonthlyEvolutionScope.AccountGroups;
+                return true;
+            case "income-total":
+                parsed = MonthlyEvolutionScope.IncomeTotal;
+                return true;
+            default:
+                parsed = default;
+                return false;
+        }
+    }
+
+    private static bool TryParseInsightDimension(string dimension, out ReportingInsightDimension parsed)
+    {
+        switch (dimension.Trim().ToLowerInvariant())
+        {
+            case "group":
+            case "groups":
+                parsed = ReportingInsightDimension.Group;
+                return true;
+            case "payee":
+            case "payees":
+                parsed = ReportingInsightDimension.Payee;
                 return true;
             default:
                 parsed = default;

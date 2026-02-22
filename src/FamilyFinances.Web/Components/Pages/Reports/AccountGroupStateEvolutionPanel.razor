@@ -24,6 +24,21 @@
                     }
                 </select>
             </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-calendar-month me-1"></i>Focused Month
+                </label>
+                <select class="form-select month-focus-select"
+                        data-testid="account-group-focused-month"
+                        value="@_focusedMonth"
+                        @onchange="OnFocusedMonthChanged"
+                        disabled="@(_isLoading || _isMonthlyChartLoading || GetAvailableMonthsForFocusedSelection().Count == 0)">
+                    @foreach (var month in GetAvailableMonthsForFocusedSelection())
+                    {
+                        <option value="@month">@DateHelper.GetMonthName(month)</option>
+                    }
+                </select>
+            </div>
         </div>
     </div>
 </div>
@@ -53,12 +68,12 @@ else if (_report is not null)
     var (latestEndBalance, latestDeltaPrev, latestDeltaYearStart) = GetLatestSummary();
     var charts = BuildChartsViewModel();
     var dataUntilMonth = GetDataUntilMonthForSelectedYear();
-    var summaryMonth = GetReferenceMonthForSelectedYear();
-    var compositionMonthOptions = GetAvailableMonthsForFocusedSelection();
+    var summaryMonth = _focusedMonth;
     var compositionMonth = _focusedMonth ?? summaryMonth;
     var compositionMonthLabel = compositionMonth is not null
         ? DateHelper.GetMonthName(compositionMonth.Value)
         : "N/A";
+    var monthlyComparisonSeries = BuildMonthlyComparisonChartSeries();
 
     <div class="row g-3 mb-4">
         <div class="col-12 col-md-4">
@@ -227,21 +242,6 @@ else if (_report is not null)
                 }
                 else
                 {
-                    @if (compositionMonthOptions.Count > 0 && _focusedMonth is not null)
-                    {
-                        <div class="mb-2">
-                            <label class="form-label fw-semibold mb-1">Focused Month</label>
-                            <select class="form-select form-select-sm month-focus-select"
-                                    value="@_focusedMonth"
-                                    @onchange="OnFocusedMonthChanged">
-                                @foreach (var month in compositionMonthOptions)
-                                {
-                                    <option value="@month">@DateHelper.GetMonthName(month)</option>
-                                }
-                            </select>
-                        </div>
-                    }
-
                     <AnnualCompositionChart
                         Title="Expense Groups Composition"
                         Subtitle="@($"Percentage split of expense-oriented groups (quesitos). Focused month: {compositionMonthLabel}.")"
@@ -251,6 +251,33 @@ else if (_report is not null)
                 }
             </div>
         </div>
+
+        @if (_isMonthlyChartLoading)
+        {
+            <ReportingChartLoadingState
+                Title="Loading group evolution"
+                Description="Loading day-by-day points..." />
+        }
+        else if (!string.IsNullOrWhiteSpace(_monthlyChartError))
+        {
+            <ReportingChartErrorState Message="@_monthlyChartError" />
+        }
+        else if (_monthlyBalanceVsGroupsChart is null || monthlyComparisonSeries.Count == 0)
+        {
+            <ReportingChartEmptyState
+                Title="Month-focused Group Evolution"
+                Description="No daily points are available for the selected month." />
+        }
+        else
+        {
+            <MonthlyLineChart
+                Title="Month-focused Group Evolution"
+                Subtitle="@($"Daily end-balance comparison by account group for {compositionMonthLabel} {_selectedYear}.")"
+                Year="@_selectedYear"
+                Month="@(_focusedMonth ?? 1)"
+                Series="@monthlyComparisonSeries"
+                TestId="account-group-totals-monthly-comparison-chart" />
+        }
     }
 }
 else
@@ -265,8 +292,11 @@ else
 
 @code {
     private MonthlyEvolutionReportDto? _report;
+    private MonthlyBalanceVsGroupsChartDto? _monthlyBalanceVsGroupsChart;
     private string? _error;
+    private string? _monthlyChartError;
     private bool _isLoading;
+    private bool _isMonthlyChartLoading;
 
     private int _selectedYear = DateHelper.GetCurrentYear();
     private IReadOnlyList<int> _yearOptions = Array.Empty<int>();
@@ -300,6 +330,8 @@ else
         _isLoading = true;
         _error = null;
         _report = null;
+        _monthlyBalanceVsGroupsChart = null;
+        _monthlyChartError = null;
         StateHasChanged();
 
         try
@@ -308,6 +340,7 @@ else
             await LoadAccountGroupNatureLookupBestEffortAsync();
             SyncFocusedMonth();
             _expandedSeriesKey = null;
+            await LoadMonthlyChartAsync();
         }
         catch (UnauthorizedAccessException)
         {
@@ -365,7 +398,7 @@ else
             _focusedMonth = month;
 
         _expandedSeriesKey = null;
-        return Task.CompletedTask;
+        return LoadMonthlyChartAsync();
     }
 
     private void ToggleSeriesDetails(string seriesKey)
@@ -453,6 +486,37 @@ else
                 : availableMonths.Max();
     }
 
+    private async Task LoadMonthlyChartAsync()
+    {
+        if (_focusedMonth is null)
+        {
+            _monthlyBalanceVsGroupsChart = null;
+            return;
+        }
+
+        _isMonthlyChartLoading = true;
+        _monthlyChartError = null;
+        _monthlyBalanceVsGroupsChart = null;
+        StateHasChanged();
+
+        try
+        {
+            _monthlyBalanceVsGroupsChart = await ReportsApi.GetMonthlyChartGroupEvolutionAsync(_selectedYear, _focusedMonth.Value);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            _monthlyChartError = "You are not authorized to view month-focused charts. Please log in again.";
+        }
+        catch (Exception ex)
+        {
+            _monthlyChartError = $"Failed to load month-focused chart: {ex.Message}";
+        }
+        finally
+        {
+            _isMonthlyChartLoading = false;
+        }
+    }
+
     private static MonthlyEvolutionPointDto? GetPointAtOrBeforeMonth(MonthlyEvolutionSeriesDto series, int month)
     {
         return series.Points
@@ -534,6 +598,18 @@ else
                 AccountGroupExpenseComposition: Array.Empty<AnnualCompositionSlice>(),
                 Error: $"Failed to build chart datasets: {ex.Message}");
         }
+    }
+
+    private IReadOnlyList<MonthlyChartSeries> BuildMonthlyComparisonChartSeries()
+    {
+        if (_monthlyBalanceVsGroupsChart is null)
+            return Array.Empty<MonthlyChartSeries>();
+
+        return MonthlyChartDatasetAdapter
+            .BuildSeries(_monthlyBalanceVsGroupsChart, maxSeries: 13)
+            .Where(series => !string.Equals(series.Key, "asset-total", StringComparison.OrdinalIgnoreCase))
+            .Take(12)
+            .ToList();
     }
 
     private enum ChartMode

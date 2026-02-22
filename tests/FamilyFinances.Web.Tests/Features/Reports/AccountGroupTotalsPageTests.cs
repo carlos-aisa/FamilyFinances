@@ -96,6 +96,15 @@ public sealed class AccountGroupTotalsPageTests : TestContext
                     };
                 }
 
+                if (uri.Contains("api/v1/reports/monthly-charts/group-evolution") &&
+                    uri.Contains($"year={currentYear}"))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(CreateMonthlyBalanceVsGroupsPayload(currentYear, groupId))
+                    };
+                }
+
                 return new HttpResponseMessage(HttpStatusCode.BadRequest);
             });
 
@@ -110,8 +119,20 @@ public sealed class AccountGroupTotalsPageTests : TestContext
         cut.WaitForAssertion(() =>
         {
             requestedUris.Should().Contain(uri => uri.Contains("scope=account-groups"));
+            requestedUris.Should().Contain(uri => uri.Contains("monthly-charts/group-evolution"));
             cut.Markup.Should().Contain("Account Group Overview");
             cut.Find("[data-testid='account-group-totals-stock-evolution-chart']");
+            cut.Find("[data-testid='account-group-totals-monthly-comparison-chart']");
+            cut.Find("[data-testid='account-group-focused-month']");
+        });
+
+        var monthSelector = cut.Find("[data-testid='account-group-focused-month']");
+        monthSelector.Change("1");
+
+        cut.WaitForAssertion(() =>
+        {
+            requestedUris.Count(uri => uri.Contains("monthly-charts/group-evolution"))
+                .Should().BeGreaterThanOrEqualTo(2);
         });
     }
 
@@ -168,6 +189,15 @@ public sealed class AccountGroupTotalsPageTests : TestContext
                     return new HttpResponseMessage(HttpStatusCode.OK)
                     {
                         Content = JsonContent.Create(CreateMonthlyEvolutionPayloadForComposition(currentYear, firstGroupId, secondGroupId))
+                    };
+                }
+
+                if (uri.Contains("api/v1/reports/monthly-charts/group-evolution") &&
+                    uri.Contains($"year={currentYear}"))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(CreateMonthlyBalanceVsGroupsPayloadForComposition(currentYear, firstGroupId, secondGroupId))
                     };
                 }
 
@@ -334,6 +364,72 @@ public sealed class AccountGroupTotalsPageTests : TestContext
                     [
                         new MonthlyEvolutionPointDto(1, new DateOnly(year, 1, 31), 200, 200, 200),
                         new MonthlyEvolutionPointDto(2, new DateOnly(year, 2, DateTime.DaysInMonth(year, 2)), 400, 200, 400)
+                    ])
+            ]);
+    }
+
+    private static MonthlyBalanceVsGroupsChartDto CreateMonthlyBalanceVsGroupsPayload(int year, Guid groupId)
+    {
+        return new MonthlyBalanceVsGroupsChartDto(
+            year,
+            2,
+            [
+                new MonthlyChartSeriesDto(
+                    "asset-total",
+                    "Asset Total",
+                    null,
+                    "scope",
+                    [
+                        new MonthlyChartPointDto(1, new DateOnly(year, 2, 1), 100_000),
+                        new MonthlyChartPointDto(2, new DateOnly(year, 2, 2), 102_500)
+                    ]),
+                new MonthlyChartSeriesDto(
+                    $"group:{groupId:D}",
+                    "Household",
+                    groupId,
+                    "account-group",
+                    [
+                        new MonthlyChartPointDto(1, new DateOnly(year, 2, 1), 20_000),
+                        new MonthlyChartPointDto(2, new DateOnly(year, 2, 2), 21_500)
+                    ])
+            ]);
+    }
+
+    private static MonthlyBalanceVsGroupsChartDto CreateMonthlyBalanceVsGroupsPayloadForComposition(
+        int year,
+        Guid firstGroupId,
+        Guid secondGroupId)
+    {
+        return new MonthlyBalanceVsGroupsChartDto(
+            year,
+            2,
+            [
+                new MonthlyChartSeriesDto(
+                    "asset-total",
+                    "Asset Total",
+                    null,
+                    "scope",
+                    [
+                        new MonthlyChartPointDto(1, new DateOnly(year, 2, 1), 150_000),
+                        new MonthlyChartPointDto(2, new DateOnly(year, 2, 2), 151_000)
+                    ]),
+                new MonthlyChartSeriesDto(
+                    $"group:{firstGroupId:D}",
+                    "Household",
+                    firstGroupId,
+                    "account-group",
+                    [
+                        new MonthlyChartPointDto(1, new DateOnly(year, 2, 1), 60_000),
+                        new MonthlyChartPointDto(2, new DateOnly(year, 2, 2), 60_500)
+                    ]),
+                new MonthlyChartSeriesDto(
+                    $"group:{secondGroupId:D}",
+                    "Transport",
+                    secondGroupId,
+                    "account-group",
+                    [
+                        new MonthlyChartPointDto(1, new DateOnly(year, 2, 1), 40_000),
+                        new MonthlyChartPointDto(2, new DateOnly(year, 2, 2), 40_500)
                     ])
             ]);
     }

@@ -75,6 +75,39 @@ public sealed class MonthlySummaryTests
     }
 
     [Fact]
+    public async Task MonthlySummary_With_Income_Account_Filter_Maps_Total_To_Income_Kpi()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var bank = await TestHelpers.CreateAccountAsync(client, "Main Bank", "Asset", "Checking");
+        var income = await TestHelpers.CreateAccountAsync(client, "Salary", "Income", "Other");
+
+        await client.PostAsJsonAsync("/api/v1/transactions", new
+        {
+            bookedOn = "2026-01-05",
+            description = "Salary",
+            splits = new[]
+            {
+                new { accountId = bank.Id, amountCents = 100_000, memo = "Salary in" },
+                new { accountId = income.Id, amountCents = -100_000, memo = "Income credit" }
+            }
+        });
+
+        var res = await client.GetAsync(
+            $"/api/v1/reports/monthly-summary?from=2026-01-01&to=2026-02-01&accountId={income.Id}");
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var summary = await res.Content.ReadFromJsonAsync<MonthlySummaryDto>();
+        summary.Should().NotBeNull();
+        summary!.IncomeTotal.Should().Be(100_000);
+        summary.ExpenseTotal.Should().Be(0);
+        summary.Net.Should().Be(100_000);
+        summary.TransactionsCount.Should().Be(1);
+    }
+
+    [Fact]
     public async Task MonthlySummary_With_Payee_Filter_Returns_Filtered_Totals()
     {
         using var factory = TestClient.CreateFactoryWithFreshDb(out _);

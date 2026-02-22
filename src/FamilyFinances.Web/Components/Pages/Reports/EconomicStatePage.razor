@@ -2,9 +2,12 @@
 @rendermode InteractiveServer
 @using FamilyFinances.Application.Reporting.Dtos
 @using FamilyFinances.Application.Reporting.Semantics
+@using FamilyFinances.Domain.Ledger.Accounts
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web.Components.Pages.Reports.Charts
 @using FamilyFinances.Web.Features.Reports
+@using FamilyFinances.Web.Features.Reports.Charts
 @using Microsoft.AspNetCore.Components.Authorization
 @inherits ApiPageBase
 
@@ -39,6 +42,14 @@
                         @onclick="() => SetActiveTab(EconomicStateTab.AssetEvolution)"
                         disabled="@_isLoading">
                     Asset Evolution
+                </button>
+            </li>
+            <li class="nav-item">
+                <button type="button"
+                        class="nav-link @GetTabClass(EconomicStateTab.IncomeEvolution)"
+                        @onclick="() => SetActiveTab(EconomicStateTab.IncomeEvolution)"
+                        disabled="@_isLoading">
+                    Income Evolution
                 </button>
             </li>
         </ul>
@@ -182,11 +193,53 @@
                         represent results over a period and are not directly comparable to stock balances.
                     </span>
                 </div>
+
+                var snapshotSeries = BuildSnapshotIncomeVsExpenseSeries();
+                var snapshotMonthLabel = DateHelper.GetMonthName(_report.AsOf.Month);
+
+                @if (_isSnapshotChartLoading)
+                {
+                    <div class="mt-4">
+                        <ReportingChartLoadingState
+                            Title="Loading month-focused income vs expense chart"
+                            Description="Loading daily points..." />
+                    </div>
+                }
+                else if (!string.IsNullOrWhiteSpace(_snapshotChartError))
+                {
+                    <div class="mt-4">
+                        <ReportingChartErrorState Message="@_snapshotChartError" />
+                    </div>
+                }
+                else if (snapshotSeries.Count == 0)
+                {
+                    <div class="mt-4">
+                        <ReportingChartEmptyState
+                            Title="Month-focused Income vs Expense"
+                            Description="No daily points are available for the selected month." />
+                    </div>
+                }
+                else
+                {
+                    <div class="mt-4">
+                        <MonthlyLineChart
+                            Title="Month-focused Income vs Expense"
+                            Subtitle="@($"Daily accumulated comparison for {snapshotMonthLabel} {_report.AsOf.Year} up to day {_report.AsOf.Day} (absolute values).")"
+                            Year="@_report.AsOf.Year"
+                            Month="@_report.AsOf.Month"
+                            Series="@snapshotSeries"
+                            TestId="economic-state-snapshot-income-expense-chart" />
+                    </div>
+                }
             }
+        }
+        else if (_activeTab == EconomicStateTab.AssetEvolution)
+        {
+            <AssetTotalEvolutionPanel />
         }
         else
         {
-            <AssetTotalEvolutionPanel />
+            <IncomeEvolutionPanel />
         }
     </Authorized>
     <NotAuthorized>
@@ -199,8 +252,12 @@
 
 @code {
     private EconomicStateDto? _report;
+    private MonthlyBalanceChartDto? _snapshotIncomeMonthlyChart;
+    private MonthlyBalanceChartDto? _snapshotExpenseMonthlyChart;
     private string? _error;
+    private string? _snapshotChartError;
     private bool _isLoading;
+    private bool _isSnapshotChartLoading;
     private DateOnly _asOfDate = DateOnly.FromDateTime(DateTime.Today);
     private EconomicStateTab _activeTab = EconomicStateTab.Snapshot;
 
@@ -230,12 +287,16 @@
     {
         _isLoading = true;
         _error = null;
+        _snapshotChartError = null;
         _report = null;
+        _snapshotIncomeMonthlyChart = null;
+        _snapshotExpenseMonthlyChart = null;
         StateHasChanged();
 
         try
         {
             _report = await ReportsApi.GetEconomicStateAsync(_asOfDate);
+            await LoadSnapshotMonthlyComparisonChartAsync();
         }
         catch (UnauthorizedAccessException)
         {
@@ -251,9 +312,98 @@
         }
     }
 
+    private async Task LoadSnapshotMonthlyComparisonChartAsync()
+    {
+        if (_report is null)
+            return;
+
+        _isSnapshotChartLoading = true;
+        _snapshotChartError = null;
+        _snapshotIncomeMonthlyChart = null;
+        _snapshotExpenseMonthlyChart = null;
+        StateHasChanged();
+
+        try
+        {
+            _snapshotIncomeMonthlyChart = await ReportsApi.GetMonthlyChartBalanceAsync(
+                _report.AsOf.Year,
+                _report.AsOf.Month,
+                nature: AccountNature.Income);
+
+            _snapshotExpenseMonthlyChart = await ReportsApi.GetMonthlyChartBalanceAsync(
+                _report.AsOf.Year,
+                _report.AsOf.Month,
+                nature: AccountNature.Expense);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            _snapshotChartError = "You are not authorized to view month-focused charts. Please log in again.";
+        }
+        catch (Exception ex)
+        {
+            _snapshotChartError = $"Failed to load month-focused chart: {ex.Message}";
+        }
+        finally
+        {
+            _isSnapshotChartLoading = false;
+        }
+    }
+
+    private IReadOnlyList<MonthlyChartSeries> BuildSnapshotIncomeVsExpenseSeries()
+    {
+        if (_report is null || _snapshotIncomeMonthlyChart is null || _snapshotExpenseMonthlyChart is null)
+            return Array.Empty<MonthlyChartSeries>();
+
+        var dayLimit = _report.AsOf.Day;
+        var series = new List<MonthlyChartSeries>(2);
+
+        var incomeSeries = BuildSnapshotSeries(
+            _snapshotIncomeMonthlyChart,
+            "snapshot-income",
+            "Income",
+            "#198754",
+            dayLimit,
+            absoluteValues: true);
+        if (incomeSeries is not null)
+            series.Add(incomeSeries);
+
+        var expenseSeries = BuildSnapshotSeries(
+            _snapshotExpenseMonthlyChart,
+            "snapshot-expense",
+            "Expense",
+            "#dc3545",
+            dayLimit);
+        if (expenseSeries is not null)
+            series.Add(expenseSeries);
+
+        return series;
+    }
+
+    private static MonthlyChartSeries? BuildSnapshotSeries(
+        MonthlyBalanceChartDto chart,
+        string key,
+        string label,
+        string colorHex,
+        int dayLimit,
+        bool absoluteValues = true)
+    {
+        var points = chart.Points
+            .Where(point => point.Day <= dayLimit)
+            .OrderBy(point => point.Day)
+            .Select(point => new MonthlyChartPoint(
+                point.Day,
+                absoluteValues ? Math.Abs(point.EndBalanceCents) : point.EndBalanceCents))
+            .ToList();
+
+        return points.Count == 0
+            ? null
+            : new MonthlyChartSeries(key, label, colorHex, points);
+    }
+
     private enum EconomicStateTab
     {
         Snapshot,
-        AssetEvolution
+        AssetEvolution,
+        IncomeEvolution
     }
 }

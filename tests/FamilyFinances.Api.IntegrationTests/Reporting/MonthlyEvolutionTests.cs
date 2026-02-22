@@ -181,6 +181,46 @@ public sealed class MonthlyEvolutionTests
     }
 
     [Fact]
+    public async Task MonthlyEvolution_IncomeTotalScope_Returns_Mirrored_Positive_Aggregation()
+    {
+        var year = DateTime.UtcNow.Year - 1;
+
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var bank = await TestHelpers.CreateAccountAsync(client, "Main Bank", "Asset", "Checking");
+        var salary = await TestHelpers.CreateAccountAsync(client, "Salary", "Income", "Other");
+
+        await PostTransactionAsync(
+            client,
+            new DateOnly(year, 1, 7),
+            "January salary",
+            new Split(bank.Id, 5_000, "Asset increase"),
+            new Split(salary.Id, -5_000, "Income credit"));
+
+        await PostTransactionAsync(
+            client,
+            new DateOnly(year, 2, 7),
+            "February salary",
+            new Split(bank.Id, 2_000, "Asset increase"),
+            new Split(salary.Id, -2_000, "Income credit"));
+
+        var response = await client.GetAsync($"/api/v1/reports/monthly-evolution?year={year}&scope=income-total");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var dto = await response.Content.ReadFromJsonAsync<MonthlyEvolutionReportDto>();
+        dto.Should().NotBeNull();
+        dto!.Series.Should().ContainSingle();
+
+        var series = dto.Series.Single();
+        series.SeriesKey.Should().Be("income-total");
+        series.Points.Should().HaveCount(12);
+        series.Points.Single(p => p.Month == 1).EndBalanceCents.Should().Be(5_000);
+        series.Points.Single(p => p.Month == 2).EndBalanceCents.Should().Be(7_000);
+        series.Points.Single(p => p.Month == 2).DeltaVsPreviousMonthCents.Should().Be(2_000);
+    }
+
+    [Fact]
     public async Task MonthlyEvolution_AccountGroupsScope_Returns_Group_Aggregates_With_Deterministic_Points()
     {
         var year = DateTime.UtcNow.Year - 1;
