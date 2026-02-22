@@ -20,9 +20,9 @@ public sealed class EconomicStatePageTests : TestContext
     public void EconomicStatePage_Loads_With_Current_Date_By_Default()
     {
         var expectedAsOf = DateOnly.FromDateTime(DateTime.Today);
-        HttpRequestMessage? capturedRequest = null;
+        var requestedUris = new List<string>();
 
-        var (httpClientFactory, _) = BuildHttpClientFactoryForEconomicState((req, _) => capturedRequest = req);
+        var (httpClientFactory, _) = BuildHttpClientFactoryForEconomicState((req, _) => requestedUris.Add(req.RequestUri!.ToString()));
 
         var tokenStore = new TestTokenStore("test-token");
         var authContext = this.AddTestAuthorization();
@@ -37,9 +37,8 @@ public sealed class EconomicStatePageTests : TestContext
 
         cut.WaitForAssertion(() =>
         {
-            capturedRequest.Should().NotBeNull();
-            capturedRequest!.RequestUri!.ToString()
-                .Should().Contain($"api/v1/reports/economic-state?asOf={expectedAsOf:yyyy-MM-dd}");
+            requestedUris.Should().Contain(uri =>
+                uri.Contains($"api/v1/reports/economic-state?asOf={expectedAsOf:yyyy-MM-dd}"));
         });
     }
 
@@ -69,6 +68,7 @@ public sealed class EconomicStatePageTests : TestContext
             cut.Markup.Should().Contain("Period Net Result");
             cut.Markup.Should().Contain("Stock metrics");
             cut.Markup.Should().Contain("Flow metrics");
+            cut.Markup.Should().Contain("Month-focused Income vs Expense");
         });
     }
 
@@ -110,6 +110,18 @@ public sealed class EconomicStatePageTests : TestContext
                     })
             });
 
+        MonthlyBalanceChartDto BuildMonthlyChartPayload(int month)
+        {
+            return new MonthlyBalanceChartDto(
+                currentYear,
+                month,
+                new[]
+                {
+                    new MonthlyChartPointDto(1, new DateOnly(currentYear, month, 1), 2_532_894),
+                    new MonthlyChartPointDto(2, new DateOnly(currentYear, month, Math.Min(2, DateTime.DaysInMonth(currentYear, month))), 2_457_005)
+                });
+        }
+
         httpMessageHandlerMock
             .Protected()
             .Setup<Task<HttpResponseMessage>>(
@@ -139,6 +151,26 @@ public sealed class EconomicStatePageTests : TestContext
                     };
                 }
 
+                if (uri.Contains("api/v1/reports/monthly-charts/balance") &&
+                    uri.Contains($"year={currentYear}"))
+                {
+                    var month = 1;
+                    var monthParam = uri.Split('&')
+                        .FirstOrDefault(part => part.Contains("month=", StringComparison.OrdinalIgnoreCase));
+
+                    if (monthParam is not null &&
+                        int.TryParse(monthParam.Split('=').LastOrDefault(), out var parsedMonth) &&
+                        parsedMonth is >= 1 and <= 12)
+                    {
+                        month = parsedMonth;
+                    }
+
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(BuildMonthlyChartPayload(month))
+                    };
+                }
+
                 return new HttpResponseMessage(HttpStatusCode.BadRequest);
             });
 
@@ -164,8 +196,152 @@ public sealed class EconomicStatePageTests : TestContext
         cut.WaitForAssertion(() =>
         {
             requestedUris.Should().Contain(uri => uri.Contains("scope=asset-total"));
+            requestedUris.Should().Contain(uri => uri.Contains("monthly-charts/balance"));
             cut.Markup.Should().Contain("Asset Total (Monthly Overview)");
             cut.Find("[data-testid='economic-state-asset-evolution-chart']");
+            cut.Find("[data-testid='economic-state-asset-monthly-chart']");
+            cut.Find("[data-testid='economic-state-asset-focused-month']");
+        });
+
+        var monthSelector = cut.Find("[data-testid='economic-state-asset-focused-month']");
+        monthSelector.Change("1");
+
+        cut.WaitForAssertion(() =>
+        {
+            requestedUris.Count(uri => uri.Contains("monthly-charts/balance"))
+                .Should().BeGreaterThanOrEqualTo(2);
+        });
+    }
+
+    [Fact]
+    public void Income_Evolution_Tab_Loads_Income_Total_Evolution_Data()
+    {
+        var currentYear = DateHelper.GetCurrentYear();
+        var requestedUris = new List<string>();
+
+        var httpMessageHandlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        var httpClient = new HttpClient(httpMessageHandlerMock.Object)
+        {
+            BaseAddress = new Uri("http://localhost:5000")
+        };
+
+        var economicPayload = new EconomicStateDto(
+            AsOf: new DateOnly(currentYear, 2, 21),
+            AssetsTotalCents: 2_457_005,
+            LiabilitiesTotalCents: 1_000_000,
+            NetWorthCents: 1_457_005,
+            IncomeTotalCents: 134_346,
+            ExpenseTotalCents: -189_895,
+            PeriodNetResultCents: -55_549);
+
+        var evolutionPayload = new MonthlyEvolutionReportDto(
+            currentYear,
+            MonthlyEvolutionScope.IncomeTotal,
+            new[]
+            {
+                new MonthlyEvolutionSeriesDto(
+                    "income-total",
+                    "Income Total",
+                    null,
+                    "scope",
+                    new[]
+                    {
+                        new MonthlyEvolutionPointDto(1, new DateOnly(currentYear, 1, 31), 125_000, 125_000, 125_000),
+                        new MonthlyEvolutionPointDto(2, new DateOnly(currentYear, 2, DateTime.DaysInMonth(currentYear, 2)), 134_346, 9_346, 134_346)
+                    })
+            });
+
+        MonthlyBalanceChartDto BuildMonthlyChartPayload(int month)
+        {
+            return new MonthlyBalanceChartDto(
+                currentYear,
+                month,
+                new[]
+                {
+                    new MonthlyChartPointDto(1, new DateOnly(currentYear, month, 1), 125_000),
+                    new MonthlyChartPointDto(2, new DateOnly(currentYear, month, Math.Min(2, DateTime.DaysInMonth(currentYear, month))), 134_346)
+                });
+        }
+
+        httpMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync((HttpRequestMessage req, CancellationToken _) =>
+            {
+                var uri = req.RequestUri!.ToString();
+                requestedUris.Add(uri);
+
+                if (uri.Contains("api/v1/reports/economic-state?asOf="))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(economicPayload)
+                    };
+                }
+
+                if (uri.Contains("api/v1/reports/state-evolution") &&
+                    uri.Contains($"year={currentYear}") &&
+                    uri.Contains("scope=income-total"))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(evolutionPayload)
+                    };
+                }
+
+                if (uri.Contains("api/v1/reports/monthly-charts/balance") &&
+                    uri.Contains($"year={currentYear}"))
+                {
+                    var month = 1;
+                    var monthParam = uri.Split('&')
+                        .FirstOrDefault(part => part.Contains("month=", StringComparison.OrdinalIgnoreCase));
+
+                    if (monthParam is not null &&
+                        int.TryParse(monthParam.Split('=').LastOrDefault(), out var parsedMonth) &&
+                        parsedMonth is >= 1 and <= 12)
+                    {
+                        month = parsedMonth;
+                    }
+
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(BuildMonthlyChartPayload(month))
+                    };
+                }
+
+                return new HttpResponseMessage(HttpStatusCode.BadRequest);
+            });
+
+        var httpClientFactory = new Mock<IHttpClientFactory>(MockBehavior.Strict);
+        httpClientFactory
+            .Setup(x => x.CreateClient("FamilyFinancesApi"))
+            .Returns(httpClient);
+
+        var tokenStore = new TestTokenStore("test-token");
+        var authContext = this.AddTestAuthorization();
+        authContext.SetAuthorized("test-user");
+
+        Services.AddSingleton(httpClientFactory.Object);
+        Services.AddSingleton<IApiTokenStore>(tokenStore);
+        Services.AddSingleton(new JwtAuthStateProvider(tokenStore));
+        Services.AddScoped<ReportsApi>();
+
+        var cut = RenderComponent<EconomicStatePage>();
+        var incomeTab = cut.FindAll("button.nav-link")
+            .First(button => button.TextContent.Contains("Income Evolution"));
+        incomeTab.Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            requestedUris.Should().Contain(uri => uri.Contains("scope=income-total"));
+            requestedUris.Should().Contain(uri => uri.Contains("monthly-charts/balance") && uri.Contains("nature=Income"));
+            cut.Markup.Should().Contain("Income Total (Monthly Overview)");
+            cut.Find("[data-testid='economic-state-income-evolution-chart']");
+            cut.Find("[data-testid='economic-state-income-monthly-chart']");
+            cut.Find("[data-testid='economic-state-income-focused-month']");
         });
     }
 
@@ -210,14 +386,33 @@ public sealed class EconomicStatePageTests : TestContext
             .Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
-                ItExpr.Is<HttpRequestMessage>(req =>
-                    req.Method == HttpMethod.Get &&
-                    req.RequestUri!.ToString().Contains("api/v1/reports/economic-state?asOf=")),
+                ItExpr.IsAny<HttpRequestMessage>(),
                 ItExpr.IsAny<CancellationToken>())
             .Callback<HttpRequestMessage, CancellationToken>((req, ct) => onRequest?.Invoke(req, ct))
-            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            .ReturnsAsync((HttpRequestMessage req, CancellationToken _) =>
             {
-                Content = JsonContent.Create(payload)
+                var uri = req.RequestUri!.ToString();
+
+                if (uri.Contains("api/v1/reports/economic-state?asOf="))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(payload)
+                    };
+                }
+
+                if (uri.Contains("api/v1/reports/monthly-charts/balance"))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(new MonthlyBalanceChartDto(
+                            payload.AsOf.Year,
+                            payload.AsOf.Month,
+                            [new MonthlyChartPointDto(1, new DateOnly(payload.AsOf.Year, payload.AsOf.Month, 1), payload.AssetsTotalCents)]))
+                    };
+                }
+
+                return new HttpResponseMessage(HttpStatusCode.BadRequest);
             });
 
         var httpClientFactory = new Mock<IHttpClientFactory>(MockBehavior.Strict);

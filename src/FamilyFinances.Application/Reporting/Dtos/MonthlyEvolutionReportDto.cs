@@ -4,7 +4,8 @@ public enum MonthlyEvolutionScope
 {
     Accounts = 1,
     AssetTotal = 2,
-    AccountGroups = 3
+    AccountGroups = 3,
+    IncomeTotal = 4
 }
 
 public sealed record MonthlyEvolutionReportDto(

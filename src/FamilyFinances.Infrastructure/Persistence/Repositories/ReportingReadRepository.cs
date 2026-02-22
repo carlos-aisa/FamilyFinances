@@ -1,5 +1,6 @@
 using FamilyFinances.Application.Reporting.Abstractions;
 using FamilyFinances.Application.Reporting.Dtos;
+using FamilyFinances.Application.Reporting.Internal;
 using FamilyFinances.Application.Ledger.FiscalYears.Abstractions;
 using FamilyFinances.Domain.Common;
 using FamilyFinances.Domain.Ledger.AccountGroups;
@@ -12,6 +13,9 @@ namespace FamilyFinances.Infrastructure.Persistence.Repositories;
 
 public sealed class ReportingReadRepository : IReportingReadRepository
 {
+    private const string UngroupedAccountsLabel = "Ungrouped accounts";
+    private const string UnknownPayeeLabel = "Unknown/Unassigned payee";
+
     private readonly LedgerDbContext _db;
     private readonly IFiscalYearGovernanceRepository _governance;
 
@@ -60,20 +64,46 @@ public sealed class ReportingReadRepository : IReportingReadRepository
 
         if (accountId is not null)
         {
-            // Materialize first to avoid translation issues with AccountId value object
+            var selectedAccountNature = await _db.Accounts
+                .AsNoTracking()
+                .Where(a => a.Id == new AccountId(accountId.Value))
+                .Select(a => (AccountNature?)a.Nature)
+                .FirstOrDefaultAsync(ct);
+
+            // Materialize first to avoid translation issues with AccountId value object.
             var allData = await q.ToListAsync(ct);
             var filtered = allData.Where(x => x.AccountId.Value == accountId.Value).ToList();
-            
-            // For account-level view compute inflows / outflows for the selected account:
-            // - inflow: sum of positive split amounts (account increased)
-            // - outflow: sum of negative split amounts (account decreased)
-            var inflowCents = filtered
-                .Where(x => x.Amount.Cents > 0)
-                .Sum(x => x.Amount.Cents);
 
-            var outflowCents = filtered
-                .Where(x => x.Amount.Cents < 0)
-                .Sum(x => x.Amount.Abs().Cents);
+            long incomeCents;
+            long expenseCents;
+
+            switch (selectedAccountNature)
+            {
+                case AccountNature.Income:
+                {
+                    var incomeSigned = filtered.Sum(x => x.Amount.Cents);
+                    incomeCents = -incomeSigned;
+                    expenseCents = 0L;
+                    break;
+                }
+                case AccountNature.Expense:
+                {
+                    var expenseSigned = filtered.Sum(x => x.Amount.Cents);
+                    incomeCents = 0L;
+                    expenseCents = -expenseSigned;
+                    break;
+                }
+                default:
+                    // Fallback for non-flow natures: show inflow vs outflow for selected account.
+                    incomeCents = filtered
+                        .Where(x => x.Amount.Cents > 0)
+                        .Sum(x => x.Amount.Cents);
+
+                    expenseCents = filtered
+                        .Where(x => x.Amount.Cents < 0)
+                        .Sum(x => x.Amount.Cents);
+                    break;
+            }
 
             var transactionsCount = filtered
                 .Select(x => x.TransactionId)
@@ -83,9 +113,9 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             return new MonthlySummaryDto(
                 From: fromInclusive,
                 To: toExclusive,
-                IncomeTotal: inflowCents,
-                ExpenseTotal: outflowCents,
-                Net: inflowCents - outflowCents,
+                IncomeTotal: incomeCents,
+                ExpenseTotal: expenseCents,
+                Net: incomeCents + expenseCents,
                 TransactionsCount: transactionsCount
             );
         }
@@ -436,6 +466,12 @@ public sealed class ReportingReadRepository : IReportingReadRepository
                 accountPointsById,
                 year,
                 monthLimit),
+            MonthlyEvolutionScope.IncomeTotal => BuildIncomeTotalSeries(
+                accounts,
+                baselineByAccount,
+                accountPointsById,
+                year,
+                monthLimit),
             MonthlyEvolutionScope.AccountGroups => await BuildAccountGroupSeriesAsync(
                 baselineByAccount,
                 accountPointsById,
@@ -450,6 +486,232 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             Scope: scope,
             Series: series
         );
+    }
+
+    public async Task<MonthlyBalanceChartDto> GetMonthlyBalanceChartAsync(
+        int year,
+        int month,
+        Guid? accountId,
+        Guid? payeeId,
+        AccountNature? nature,
+        CancellationToken ct)
+    {
+        var seedData = await BuildMonthlyChartSeedDataAsync(year, month, payeeId, ct);
+
+        long openingBalance;
+        IReadOnlyDictionary<int, long> movementByDay;
+        var shouldMirrorIncomeSign = false;
+
+        if (accountId is not null)
+        {
+            var selectedAccountId = new AccountId(accountId.Value);
+            openingBalance = seedData.OpeningBalanceByAccount.GetValueOrDefault(selectedAccountId, 0L);
+            movementByDay = BuildMovementByDayForAccounts(seedData.MovementRows, [selectedAccountId]);
+        }
+        else if (nature is not null)
+        {
+            var natureAccountIds = seedData.Accounts
+                .Where(a => a.Nature == nature.Value)
+                .Select(a => a.Id)
+                .ToList();
+
+            // For nature charts we expose month-focused flow totals, so the baseline starts at zero.
+            openingBalance = 0L;
+            movementByDay = BuildMovementByDayForAccounts(seedData.MovementRows, natureAccountIds);
+            shouldMirrorIncomeSign = nature.Value == AccountNature.Income;
+        }
+        else
+        {
+            var assetAccountIds = seedData.Accounts
+                .Where(a => a.Nature == AccountNature.Asset)
+                .Select(a => a.Id)
+                .ToList();
+
+            openingBalance = assetAccountIds
+                .Sum(id => seedData.OpeningBalanceByAccount.GetValueOrDefault(id, 0L));
+
+            movementByDay = BuildMovementByDayForAccounts(seedData.MovementRows, assetAccountIds);
+        }
+
+        var signedPoints = MonthlyChartBucketBuilder.BuildDailyEndBalancePoints(
+            year,
+            month,
+            openingBalance,
+            movementByDay);
+
+        var points = shouldMirrorIncomeSign
+            ? signedPoints.Select(point => point with { EndBalanceCents = -point.EndBalanceCents }).ToList()
+            : signedPoints;
+
+        return new MonthlyBalanceChartDto(year, month, points);
+    }
+
+    public async Task<MonthlyBalanceVsGroupsChartDto> GetMonthlyBalanceVsGroupsChartAsync(
+        int year,
+        int month,
+        CancellationToken ct)
+    {
+        var seedData = await BuildMonthlyChartSeedDataAsync(year, month, payeeId: null, ct);
+
+        var assetAccountIds = seedData.Accounts
+            .Where(a => a.Nature == AccountNature.Asset)
+            .Select(a => a.Id)
+            .ToList();
+
+        var assetOpening = assetAccountIds
+            .Sum(id => seedData.OpeningBalanceByAccount.GetValueOrDefault(id, 0L));
+
+        var assetMovementByDay = BuildMovementByDayForAccounts(seedData.MovementRows, assetAccountIds);
+        var assetSeries = new MonthlyChartSeriesDto(
+            SeriesKey: "asset-total",
+            DisplayName: "Asset Total",
+            EntityId: null,
+            EntityType: "scope",
+            Points: MonthlyChartBucketBuilder.BuildDailyEndBalancePoints(
+                year,
+                month,
+                assetOpening,
+                assetMovementByDay));
+
+        var groups = await _db.AccountGroups
+            .AsNoTracking()
+            .Select(g => new
+            {
+                g.Id,
+                g.Name
+            })
+            .OrderBy(g => g.Name)
+            .ThenBy(g => g.Id)
+            .ToListAsync(ct);
+
+        var memberships = await (
+            from m in _db.AccountGroupMembers.AsNoTracking()
+            join a in _db.Accounts.AsNoTracking() on m.AccountId equals a.Id
+            where a.Nature != AccountNature.Liability
+            select new
+            {
+                m.GroupId,
+                m.AccountId
+            }
+        ).ToListAsync(ct);
+
+        var accountIdsByGroup = memberships
+            .GroupBy(x => x.GroupId)
+            .ToDictionary(
+                g => g.Key,
+                g => g
+                    .Select(x => x.AccountId)
+                    .Distinct()
+                    .ToList());
+
+        var series = new List<MonthlyChartSeriesDto>(groups.Count + 1)
+        {
+            assetSeries
+        };
+
+        foreach (var group in groups)
+        {
+            if (!accountIdsByGroup.TryGetValue(group.Id, out var memberAccountIds))
+                memberAccountIds = new List<AccountId>();
+
+            var openingBalance = memberAccountIds
+                .Sum(id => seedData.OpeningBalanceByAccount.GetValueOrDefault(id, 0L));
+
+            var movementByDay = BuildMovementByDayForAccounts(seedData.MovementRows, memberAccountIds);
+
+            series.Add(new MonthlyChartSeriesDto(
+                SeriesKey: $"account-group:{group.Id.Value:D}",
+                DisplayName: group.Name,
+                EntityId: group.Id.Value,
+                EntityType: "account-group",
+                Points: MonthlyChartBucketBuilder.BuildDailyEndBalancePoints(
+                    year,
+                    month,
+                    openingBalance,
+                    movementByDay)
+            ));
+        }
+
+        var alignedSeries = MonthlyChartBucketBuilder.AlignSeriesDayBuckets(year, month, series);
+        return new MonthlyBalanceVsGroupsChartDto(year, month, alignedSeries);
+    }
+
+    public async Task<IReadOnlyList<InsightContributorAggregateDto>> GetInsightContributorTotalsAsync(
+        DateOnly fromInclusive,
+        DateOnly toExclusive,
+        AccountNature nature,
+        ReportingInsightDimension dimension,
+        Guid? accountId,
+        Guid? payeeId,
+        CancellationToken ct)
+    {
+        var rows = await LoadInsightSplitRowsAsync(
+            fromInclusive,
+            toExclusive,
+            nature,
+            accountId,
+            payeeId,
+            ct);
+
+        var contributorResolver = await BuildInsightContributorResolverAsync(dimension, ct);
+        var totalsByContributor = new Dictionary<InsightContributorKey, long>();
+
+        foreach (var row in rows)
+        {
+            var contributor = contributorResolver(row);
+            var current = totalsByContributor.GetValueOrDefault(contributor, 0L);
+            totalsByContributor[contributor] = current + row.SignedDisplayAmountCents;
+        }
+
+        return totalsByContributor
+            .Select(x => new InsightContributorAggregateDto(
+                x.Key.EntityId,
+                x.Key.DisplayName,
+                x.Value))
+            .OrderByDescending(x => Math.Abs(x.AmountCents))
+            .ThenBy(x => x.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<InsightMonthlyContributorAggregateDto>> GetMonthlyInsightContributorTotalsAsync(
+        DateOnly fromInclusive,
+        DateOnly toExclusive,
+        AccountNature nature,
+        ReportingInsightDimension dimension,
+        Guid? accountId,
+        Guid? payeeId,
+        CancellationToken ct)
+    {
+        var rows = await LoadInsightSplitRowsAsync(
+            fromInclusive,
+            toExclusive,
+            nature,
+            accountId,
+            payeeId,
+            ct);
+
+        var contributorResolver = await BuildInsightContributorResolverAsync(dimension, ct);
+        var totalsByContributorMonth = new Dictionary<(InsightContributorKey Contributor, int Year, int Month), long>();
+
+        foreach (var row in rows)
+        {
+            var contributor = contributorResolver(row);
+            var key = (contributor, row.BookedOn.Year, row.BookedOn.Month);
+            var current = totalsByContributorMonth.GetValueOrDefault(key, 0L);
+            totalsByContributorMonth[key] = current + row.SignedDisplayAmountCents;
+        }
+
+        return totalsByContributorMonth
+            .Select(x => new InsightMonthlyContributorAggregateDto(
+                x.Key.Contributor.EntityId,
+                x.Key.Contributor.DisplayName,
+                x.Key.Year,
+                x.Key.Month,
+                x.Value))
+            .OrderBy(x => x.Year)
+            .ThenBy(x => x.Month)
+            .ThenBy(x => x.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     private static IReadOnlyList<MonthlyEvolutionSeriesDto> BuildAssetTotalSeries(
@@ -483,6 +745,156 @@ public sealed class ReportingReadRepository : IReportingReadRepository
                 EntityId: null,
                 EntityType: "scope",
                 Points: points)
+        };
+    }
+
+    private async Task<IReadOnlyList<InsightSplitRow>> LoadInsightSplitRowsAsync(
+        DateOnly fromInclusive,
+        DateOnly toExclusive,
+        AccountNature nature,
+        Guid? accountId,
+        Guid? payeeId,
+        CancellationToken ct)
+    {
+        var accountIdVo = accountId is not null ? new AccountId(accountId.Value) : (AccountId?)null;
+        var payeeIdVo = payeeId is not null ? new PayeeId(payeeId.Value) : (PayeeId?)null;
+
+        var query =
+            from t in _db.Transactions.AsNoTracking()
+            join s in _db.TransactionSplits.AsNoTracking()
+                on t.Id equals EF.Property<TransactionId>(s, "TransactionId")
+            join a in _db.Accounts.AsNoTracking()
+                on s.AccountId equals a.Id
+            where t.BookedOn >= fromInclusive && t.BookedOn < toExclusive
+            where a.Nature == nature
+            select new
+            {
+                t.BookedOn,
+                s.AccountId,
+                t.PayeeId,
+                SignedDisplayAmountCents = -s.Amount.Cents
+            };
+
+        if (accountIdVo is not null)
+            query = query.Where(x => x.AccountId == accountIdVo);
+
+        if (payeeIdVo is not null)
+            query = query.Where(x => x.PayeeId == payeeIdVo);
+
+        var rows = await query.ToListAsync(ct);
+
+        return rows
+            .Select(x => new InsightSplitRow(
+                x.BookedOn,
+                x.AccountId,
+                x.PayeeId,
+                x.SignedDisplayAmountCents))
+            .ToList();
+    }
+
+    private async Task<Func<InsightSplitRow, InsightContributorKey>> BuildInsightContributorResolverAsync(
+        ReportingInsightDimension dimension,
+        CancellationToken ct)
+    {
+        return dimension switch
+        {
+            ReportingInsightDimension.Group => await BuildGroupContributorResolverAsync(ct),
+            ReportingInsightDimension.Payee => await BuildPayeeContributorResolverAsync(ct),
+            _ => throw new ArgumentOutOfRangeException(nameof(dimension), dimension, "Unsupported insight dimension.")
+        };
+    }
+
+    private async Task<Func<InsightSplitRow, InsightContributorKey>> BuildGroupContributorResolverAsync(CancellationToken ct)
+    {
+        var accountGroupRows = await (
+            from membership in _db.AccountGroupMembers.AsNoTracking()
+            join accountGroup in _db.AccountGroups.AsNoTracking()
+                on membership.GroupId equals accountGroup.Id
+            select new
+            {
+                membership.AccountId,
+                GroupId = (Guid?)accountGroup.Id.Value,
+                GroupName = accountGroup.Name
+            }
+        ).ToListAsync(ct);
+
+        var groupByAccount = accountGroupRows
+            .GroupBy(x => x.AccountId)
+            .ToDictionary(
+                g => g.Key,
+                g => g
+                    .OrderBy(x => x.GroupName, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(x => x.GroupId)
+                    .Select(x => new InsightContributorKey(x.GroupId, x.GroupName))
+                    .First());
+
+        return row => groupByAccount.TryGetValue(row.AccountId, out var contributor)
+            ? contributor
+            : new InsightContributorKey(null, UngroupedAccountsLabel);
+    }
+
+    private async Task<Func<InsightSplitRow, InsightContributorKey>> BuildPayeeContributorResolverAsync(CancellationToken ct)
+    {
+        var payeeRows = await _db.Payees
+            .AsNoTracking()
+            .Select(x => new
+            {
+                x.Id,
+                x.Name
+            })
+            .ToListAsync(ct);
+
+        var payeeById = payeeRows.ToDictionary(x => x.Id, x => x.Name);
+
+        return row =>
+        {
+            if (row.PayeeId is { } payeeId && payeeById.TryGetValue(payeeId, out var payeeName))
+                return new InsightContributorKey(payeeId.Value, payeeName);
+
+            return new InsightContributorKey(null, UnknownPayeeLabel);
+        };
+    }
+
+    private static IReadOnlyList<MonthlyEvolutionSeriesDto> BuildIncomeTotalSeries(
+        IReadOnlyList<AccountEvolutionSeed> accounts,
+        IReadOnlyDictionary<AccountId, long> baselineByAccount,
+        IReadOnlyDictionary<AccountId, IReadOnlyList<MonthlyEvolutionPointDto>> accountPointsById,
+        int year,
+        int monthLimit)
+    {
+        var incomeAccountIds = accounts
+            .Where(a => a.Nature == AccountNature.Income)
+            .Select(a => a.Id)
+            .ToList();
+
+        var baseline = incomeAccountIds.Sum(id => baselineByAccount.GetValueOrDefault(id, 0L));
+
+        var signedPoints = BuildAggregatedPoints(
+            year,
+            monthLimit,
+            baseline,
+            incomeAccountIds
+                .Where(accountPointsById.ContainsKey)
+                .Select(id => accountPointsById[id])
+                .ToList());
+
+        var mirroredPoints = signedPoints
+            .Select(point => point with
+            {
+                EndBalanceCents = -point.EndBalanceCents,
+                DeltaVsPreviousMonthCents = -point.DeltaVsPreviousMonthCents,
+                DeltaVsYearStartCents = -point.DeltaVsYearStartCents
+            })
+            .ToList();
+
+        return new[]
+        {
+            new MonthlyEvolutionSeriesDto(
+                SeriesKey: "income-total",
+                DisplayName: "Income Total",
+                EntityId: null,
+                EntityType: "scope",
+                Points: mirroredPoints)
         };
     }
 
@@ -585,7 +997,86 @@ public sealed class ReportingReadRepository : IReportingReadRepository
         return points;
     }
 
+    private readonly record struct InsightContributorKey(Guid? EntityId, string DisplayName);
+
+    private sealed record InsightSplitRow(
+        DateOnly BookedOn,
+        AccountId AccountId,
+        PayeeId? PayeeId,
+        long SignedDisplayAmountCents);
+
     private sealed record AccountEvolutionSeed(AccountId Id, string Name, AccountNature Nature);
+
+    private sealed record MonthlyChartMovementRow(AccountId AccountId, int Day, long AmountCents);
+
+    private sealed record MonthlyChartSeedData(
+        IReadOnlyList<AccountEvolutionSeed> Accounts,
+        IReadOnlyDictionary<AccountId, long> OpeningBalanceByAccount,
+        IReadOnlyList<MonthlyChartMovementRow> MovementRows);
+
+    private async Task<MonthlyChartSeedData> BuildMonthlyChartSeedDataAsync(
+        int year,
+        int month,
+        Guid? payeeId,
+        CancellationToken ct)
+    {
+        var monthStart = new DateOnly(year, month, 1);
+        var monthEndExclusive = monthStart.AddMonths(1);
+        var payeeIdVo = payeeId is not null ? new PayeeId(payeeId.Value) : (PayeeId?)null;
+
+        var accounts = await _db.Accounts
+            .AsNoTracking()
+            .OrderBy(a => a.Name)
+            .ThenBy(a => a.Id)
+            .Select(a => new AccountEvolutionSeed(a.Id, a.Name, a.Nature))
+            .ToListAsync(ct);
+
+        var openingRows = await (
+            from t in _db.Transactions.AsNoTracking()
+            join s in _db.TransactionSplits.AsNoTracking()
+                on t.Id equals EF.Property<TransactionId>(s, "TransactionId")
+            where t.BookedOn < monthStart
+            where payeeIdVo == null || t.PayeeId == payeeIdVo
+            select new
+            {
+                s.AccountId,
+                AmountCents = s.Amount.Cents
+            }
+        ).ToListAsync(ct);
+
+        var openingBalanceByAccount = openingRows
+            .GroupBy(x => x.AccountId)
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.AmountCents));
+
+        var movementRows = await (
+            from t in _db.Transactions.AsNoTracking()
+            join s in _db.TransactionSplits.AsNoTracking()
+                on t.Id equals EF.Property<TransactionId>(s, "TransactionId")
+            where t.BookedOn >= monthStart && t.BookedOn < monthEndExclusive
+            where payeeIdVo == null || t.PayeeId == payeeIdVo
+            select new MonthlyChartMovementRow(
+                s.AccountId,
+                t.BookedOn.Day,
+                s.Amount.Cents)
+        ).ToListAsync(ct);
+
+        return new MonthlyChartSeedData(accounts, openingBalanceByAccount, movementRows);
+    }
+
+    private static IReadOnlyDictionary<int, long> BuildMovementByDayForAccounts(
+        IReadOnlyList<MonthlyChartMovementRow> movementRows,
+        IReadOnlyCollection<AccountId> accountIds)
+    {
+        if (accountIds.Count == 0)
+            return new Dictionary<int, long>();
+
+        var accountSet = accountIds.ToHashSet();
+
+        return movementRows
+            .Where(x => accountSet.Contains(x.AccountId))
+            .GroupBy(x => x.Day)
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.AmountCents));
+    }
 
     private async Task<(long TotalCents, int AccountCount)> GetBalanceByNatureAsOfAsync(
         AccountNature nature,

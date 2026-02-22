@@ -308,4 +308,246 @@ public sealed class ReportsApiTests
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("Failed to deserialize monthly evolution response.");
     }
+
+    [Fact]
+    public async Task GetMonthlyChartBalanceAsync_ReturnsPayload_And_SendsExpectedRequest()
+    {
+        var accountId = Guid.NewGuid();
+        var payload = new MonthlyBalanceChartDto(
+            2026,
+            2,
+            [new MonthlyChartPointDto(1, new DateOnly(2026, 2, 1), 10_000)]);
+
+        HttpRequestMessage? capturedRequest = null;
+
+        _httpMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>((req, _) => capturedRequest = req)
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(payload)
+            });
+
+        var result = await _sut.GetMonthlyChartBalanceAsync(2026, 2, accountId, ct: CancellationToken.None);
+
+        result.Should().BeEquivalentTo(payload);
+        capturedRequest.Should().NotBeNull();
+        capturedRequest!.Method.Should().Be(HttpMethod.Get);
+        capturedRequest.RequestUri!.ToString()
+            .Should().Contain($"api/v1/reports/monthly-charts/balance?year=2026&month=2&accountId={accountId}");
+    }
+
+    [Fact]
+    public async Task GetMonthlyChartBalanceAsync_Appends_Payee_And_Nature_Query_Parameters()
+    {
+        var payeeId = Guid.NewGuid();
+        var payload = new MonthlyBalanceChartDto(
+            2026,
+            2,
+            [new MonthlyChartPointDto(1, new DateOnly(2026, 2, 1), 10_000)]);
+
+        HttpRequestMessage? capturedRequest = null;
+
+        _httpMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>((req, _) => capturedRequest = req)
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(payload)
+            });
+
+        var result = await _sut.GetMonthlyChartBalanceAsync(
+            2026,
+            2,
+            payeeId: payeeId,
+            nature: FamilyFinances.Domain.Ledger.Accounts.AccountNature.Income,
+            ct: CancellationToken.None);
+
+        result.Should().BeEquivalentTo(payload);
+        capturedRequest.Should().NotBeNull();
+        capturedRequest!.RequestUri!.ToString()
+            .Should().Contain($"api/v1/reports/monthly-charts/balance?year=2026&month=2&payeeId={payeeId}&nature=Income");
+    }
+
+    [Fact]
+    public async Task GetMonthlyChartGroupEvolutionAsync_ReturnsPayload_And_SendsExpectedRequest()
+    {
+        var payload = new MonthlyBalanceVsGroupsChartDto(
+            2026,
+            2,
+            [
+                new MonthlyChartSeriesDto(
+                    "asset-total",
+                    "Asset Total",
+                    null,
+                    "scope",
+                    [new MonthlyChartPointDto(1, new DateOnly(2026, 2, 1), 10_000)])
+            ]);
+
+        HttpRequestMessage? capturedRequest = null;
+
+        _httpMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>((req, _) => capturedRequest = req)
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(payload)
+            });
+
+        var result = await _sut.GetMonthlyChartGroupEvolutionAsync(2026, 2, CancellationToken.None);
+
+        result.Should().BeEquivalentTo(payload);
+        capturedRequest.Should().NotBeNull();
+        capturedRequest!.Method.Should().Be(HttpMethod.Get);
+        capturedRequest.RequestUri!.ToString()
+            .Should().Contain("api/v1/reports/monthly-charts/group-evolution?year=2026&month=2");
+    }
+
+    [Fact]
+    public async Task GetMonthlyChartBalanceAsync_ThrowsUnauthorizedAccessException_WhenNoTokenAvailable()
+    {
+        _tokenStoreMock
+            .Setup(t => t.GetAccessToken())
+            .Returns(string.Empty);
+
+        var act = () => _sut.GetMonthlyChartBalanceAsync(2026, 2, accountId: null, ct: CancellationToken.None);
+
+        await act.Should().ThrowAsync<UnauthorizedAccessException>()
+            .WithMessage("No access token available.");
+    }
+
+    [Fact]
+    public async Task GetMonthlyChartGroupEvolutionAsync_ThrowsInvalidOperationException_WhenPayloadIsNull()
+    {
+        _httpMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("null")
+            });
+
+        var act = () => _sut.GetMonthlyChartGroupEvolutionAsync(2026, 2, CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Failed to deserialize monthly balance vs groups chart response.");
+    }
+
+    [Fact]
+    public async Task GetParetoInsightsAsync_ReturnsPayload_And_SendsExpectedRequest()
+    {
+        var payload = new ReportingParetoInsightsDto(
+            From: new DateOnly(2026, 1, 1),
+            To: new DateOnly(2026, 2, 1),
+            Dimension: ReportingInsightDimension.Group,
+            Expense: new ParetoInsightSectionDto(
+                FamilyFinances.Domain.Ledger.Accounts.AccountNature.Expense,
+                100_000,
+                5,
+                85_000,
+                85m,
+                [new ParetoContributorDto(Guid.NewGuid(), "Food", 50_000, 50m)]),
+            Income: new ParetoInsightSectionDto(
+                FamilyFinances.Domain.Ledger.Accounts.AccountNature.Income,
+                120_000,
+                5,
+                120_000,
+                100m,
+                [new ParetoContributorDto(Guid.NewGuid(), "Salary", 120_000, 100m)]));
+
+        HttpRequestMessage? capturedRequest = null;
+
+        _httpMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>((req, _) => capturedRequest = req)
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(payload)
+            });
+
+        var result = await _sut.GetParetoInsightsAsync(
+            new DateOnly(2026, 1, 1),
+            new DateOnly(2026, 2, 1),
+            ReportingInsightDimension.Group,
+            topN: 5,
+            ct: CancellationToken.None);
+
+        result.Should().BeEquivalentTo(payload);
+        capturedRequest.Should().NotBeNull();
+        capturedRequest!.RequestUri!.ToString()
+            .Should().Contain("api/v1/reports/insights/pareto?from=2026-01-01&to=2026-02-01&dimension=group&topN=5");
+    }
+
+    [Fact]
+    public async Task GetAnomalyInsightsAsync_ReturnsPayload_And_SendsExpectedRequest()
+    {
+        var payload = new ReportingAnomalyInsightsDto(
+            Year: 2026,
+            Month: 2,
+            Nature: FamilyFinances.Domain.Ledger.Accounts.AccountNature.Expense,
+            Dimension: ReportingInsightDimension.Payee,
+            RequiredHistoryMonths: 3,
+            ThresholdRule: "rule",
+            Contributors:
+            [
+                new AnomalyContributorDto(
+                    Guid.NewGuid(),
+                    "Mercadona",
+                    40_000,
+                    12_000,
+                    25_000,
+                    3.2m,
+                    true,
+                    false,
+                    6,
+                    "threshold exceeded")
+            ]);
+
+        HttpRequestMessage? capturedRequest = null;
+
+        _httpMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>((req, _) => capturedRequest = req)
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(payload)
+            });
+
+        var result = await _sut.GetAnomalyInsightsAsync(
+            2026,
+            2,
+            FamilyFinances.Domain.Ledger.Accounts.AccountNature.Expense,
+            ReportingInsightDimension.Payee,
+            lookbackMonths: 12,
+            requiredHistoryMonths: 3,
+            ct: CancellationToken.None);
+
+        result.Should().BeEquivalentTo(payload);
+        capturedRequest.Should().NotBeNull();
+        capturedRequest!.RequestUri!.ToString()
+            .Should().Contain("api/v1/reports/insights/anomalies?year=2026&month=2&nature=Expense&dimension=payee&lookbackMonths=12&requiredHistoryMonths=3");
+    }
 }
