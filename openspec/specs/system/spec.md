@@ -136,7 +136,7 @@ Then the API returns `200 OK`
 And the response is `AccountGroupDetailsDto { Id, Name, Description, Accounts }`
 
 ### Requirement: Reporting Endpoints SHALL Provide Aggregated Read Models
-The system SHALL provide aggregated report read models, including `state-evolution` yearly contracts and month-level chart datasets required for intra-month balance evolution and balance-vs-group comparisons.
+The system SHALL provide aggregated report read models and derived insight models, including Pareto ranking, concentration indicators, and explainable anomaly signals for group and payee dimensions.
 
 #### Scenario: Monthly summary returns summary DTO
 Given valid date query inputs  
@@ -156,29 +156,23 @@ When the client calls `GET /api/v1/reports/asset-total-balance?asOf=YYYY-MM-DD`
 Then the API returns `200 OK`  
 And the response contains `AsOf`, `TotalCents`, and `AssetAccountsCount`
 
-#### Scenario: State evolution report returns scoped monthly series
-Given a valid `year` and `scope` and an authorized user  
-When the client calls `GET /api/v1/reports/state-evolution?year=YYYY&scope=<scope>`  
-Then the API returns `200 OK`  
-And the response contains ordered monthly points with `EndBalanceCents`, `DeltaVsPreviousMonthCents`, and `DeltaVsYearStartCents`
-
-#### Scenario: State evolution report rejects invalid query parameters
-Given a request with missing or invalid `year` or `scope`  
-When the client calls `GET /api/v1/reports/state-evolution`  
-Then the API returns `400 BadRequest`
-
-#### Scenario: Legacy monthly-evolution alias remains available
+#### Scenario: Monthly evolution report returns scoped monthly series
 Given a valid `year` and `scope` and an authorized user  
 When the client calls `GET /api/v1/reports/monthly-evolution?year=YYYY&scope=<scope>`  
 Then the API returns `200 OK`  
-And the payload shape matches the primary state-evolution contract
+And the response contains ordered monthly points with `EndBalanceCents`, `DeltaVsPreviousMonthCents`, and `DeltaVsYearStartCents`
 
-#### Scenario: Month-level chart endpoints return intra-month series
-Given valid month-level chart query parameters and authorized user  
-When the client calls `GET /api/v1/reports/monthly-charts/balance` or `GET /api/v1/reports/monthly-charts/group-evolution`  
-Then the API returns ordered day-bucket series for selected month  
-And day buckets MUST be aligned across compared series in the same response
-And the backward-compatible alias `GET /api/v1/reports/monthly-charts/balance-vs-groups` remains available
+#### Scenario: Monthly evolution report rejects invalid query parameters
+Given a request with missing or invalid `year` or `scope`  
+When the client calls `GET /api/v1/reports/monthly-evolution`  
+Then the API returns `400 BadRequest`
+
+#### Scenario: Insight endpoints return deterministic and explainable payloads
+Given a valid insight request and authorized user  
+When the client calls insight reporting endpoints  
+Then the API returns deterministic ranking/concentration/anomaly results  
+And anomaly results include baseline/threshold explanation fields
+And insight requests MUST support a dimension selector that includes `group` and `payee`
 
 ### Requirement: Health Endpoint SHALL Be Exposed
 #### Scenario: Health endpoint route exists
