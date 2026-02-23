@@ -30,7 +30,7 @@
                         <label class="form-label fw-semibold">
                             <i class="bi bi-calendar3 me-1"></i>As-of Date
                         </label>
-                        <input type="date" class="form-control" @bind="_asOfDate" />
+                        <input type="date" class="form-control" aria-label="As-of Date" @bind="_asOfDate" />
                     </div>
                     <div class="col-12 col-md-auto">
                         <button class="btn btn-primary" @onclick="LoadReportAsync" disabled="@_isLoading">

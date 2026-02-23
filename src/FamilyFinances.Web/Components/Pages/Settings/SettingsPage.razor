@@ -1,0 +1,145 @@
+@page "/settings"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.JSInterop
+
+@inject IJSRuntime JS
+
+<AuthorizeView>
+    <Authorized>
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h3 class="mb-1">
+                    <i class="bi bi-gear me-2"></i>Settings
+                </h3>
+                <p class="text-muted mb-0">Configure application behavior and maintenance operations.</p>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-12 col-lg-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">Appearance</h5>
+                        <p class="text-muted mb-3">
+                            Configure theme density and other UI preferences.
+                        </p>
+
+                        <label class="form-label fw-semibold" for="theme-mode-buttons">Theme mode</label>
+                        <div id="theme-mode-buttons" class="btn-group mb-2" role="group" aria-label="Theme mode">
+                            <button type="button"
+                                    class="btn @(GetThemeButtonClass("dark"))"
+                                    @onclick="SetDarkThemeAsync"
+                                    disabled="@_isThemeBusy"
+                                    data-testid="settings-theme-dark">
+                                <i class="bi bi-moon me-1"></i>Dark
+                            </button>
+                            <button type="button"
+                                    class="btn @(GetThemeButtonClass("light"))"
+                                    @onclick="SetLightThemeAsync"
+                                    disabled="@_isThemeBusy"
+                                    data-testid="settings-theme-light">
+                                <i class="bi bi-sun me-1"></i>Light
+                            </button>
+                        </div>
+
+                        <small class="text-muted">
+                            Current mode: @CurrentThemeLabel
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">Backup &amp; Restore</h5>
+                        <p class="text-muted mb-3">
+                            Export current data and restore validated backup packages.
+                        </p>
+                        <div class="mt-auto">
+                            <a class="btn btn-primary" href="/settings/backup-restore">
+                                <i class="bi bi-shield-lock me-1"></i>Open Backup &amp; Restore
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            Please log in to access settings.
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private string _theme = "dark";
+    private bool _isThemeBusy = true;
+
+    private string CurrentThemeLabel => _theme == "light" ? "Light" : "Dark";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        try
+        {
+            var theme = await JS.InvokeAsync<string>("themeHelper.getTheme");
+            if (string.Equals(theme, "light", StringComparison.OrdinalIgnoreCase))
+                _theme = "light";
+            else
+                _theme = "dark";
+        }
+        catch
+        {
+            _theme = "dark";
+        }
+        finally
+        {
+            _isThemeBusy = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SetThemeAsync(string theme)
+    {
+        if (_isThemeBusy || !IsValidTheme(theme) || _theme == theme)
+            return;
+
+        _isThemeBusy = true;
+        try
+        {
+            var applied = await JS.InvokeAsync<string>("themeHelper.setTheme", theme);
+            _theme = string.Equals(applied, "light", StringComparison.OrdinalIgnoreCase) ? "light" : "dark";
+        }
+        catch
+        {
+            // Keep previous state when JS theme helper is unavailable.
+        }
+        finally
+        {
+            _isThemeBusy = false;
+        }
+    }
+
+    private Task SetDarkThemeAsync() => SetThemeAsync("dark");
+
+    private Task SetLightThemeAsync() => SetThemeAsync("light");
+
+    private string GetThemeButtonClass(string theme)
+    {
+        return string.Equals(_theme, theme, StringComparison.Ordinal)
+            ? "btn-primary"
+            : "btn-outline-secondary";
+    }
+
+    private static bool IsValidTheme(string theme)
+    {
+        return string.Equals(theme, "dark", StringComparison.Ordinal) ||
+               string.Equals(theme, "light", StringComparison.Ordinal);
+    }
+}

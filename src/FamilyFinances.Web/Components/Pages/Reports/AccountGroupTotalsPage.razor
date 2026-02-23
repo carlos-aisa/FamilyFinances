@@ -8,10 +8,13 @@
 @using FamilyFinances.Web.Components.Base
 @using FamilyFinances.Web.Components.Shared
 @using FamilyFinances.Web.Features.Reports
+@using FamilyFinances.Web.Features.Reports.Export
+@using Microsoft.JSInterop
 @using Microsoft.AspNetCore.Components.Authorization
 @inject AccountGroupsApi AccountGroupsApi
 @inject ReportsApi ReportsApi
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <AuthorizeView>
     <Authorized>
@@ -78,7 +81,7 @@
                         <label class="form-label fw-semibold">
                             <i class="bi bi-collection me-1"></i>Account Group
                         </label>
-                        <select class="form-select" @bind="_selectedGroupId">
+                        <select class="form-select" aria-label="Account Group" @bind="_selectedGroupId">
                             <option value="">-- Select Group --</option>
                             @if (_groups is not null)
                             {
@@ -94,21 +97,21 @@
                         <label class="form-label fw-semibold">
                             <i class="bi bi-calendar3 me-1"></i>From Date
                         </label>
-                        <input type="date" class="form-control" @bind="_fromDate" @bind:event="oninput" @bind:after="OnDateChanged" />
+                        <input type="date" class="form-control" aria-label="From Date" @bind="_fromDate" @bind:event="oninput" @bind:after="OnDateChanged" />
                     </div>
 
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">
                             <i class="bi bi-calendar3 me-1"></i>To Date
                         </label>
-                        <input type="date" class="form-control" @bind="_toDate" @bind:event="oninput" @bind:after="OnDateChanged" />
+                        <input type="date" class="form-control" aria-label="To Date (exclusive)" @bind="_toDate" @bind:event="oninput" @bind:after="OnDateChanged" />
                     </div>
 
                     <div class="col-md-2">
                         <label class="form-label fw-semibold">
                             <i class="bi bi-tag me-1"></i>Nature
                         </label>
-                        <select class="form-select" @bind="_nature">
+                        <select class="form-select" aria-label="Account Nature" @bind="_nature">
                             <option value="">All</option>
                             <option value="@AccountNature.Expense">Expense</option>
                             <option value="@AccountNature.Income">Income</option>
@@ -150,7 +153,14 @@
                         <h5 class="card-title mb-0">
                             <i class="bi bi-collection me-2"></i>@_report.GroupName
                         </h5>
-                        <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-secondary report-export-button"
+                                    @onclick="ExportCsvAsync"
+                                    data-testid="account-group-totals-export-csv"
+                                    aria-label="Export account group totals as CSV">
+                                <i class="bi bi-download me-1"></i>Export
+                            </button>
                             <span class="badge bg-secondary">
                                 @_report.FromInclusive.ToString("MMM dd, yyyy") - @_report.ToExclusive.AddDays(-1).ToString("MMM dd, yyyy")
                             </span>
@@ -378,6 +388,64 @@
     private void GoBack()
     {
         Navigation.NavigateTo("/reports");
+    }
+
+    private async Task ExportCsvAsync()
+    {
+        if (_report is null)
+            return;
+
+        var rows = _report.Items
+            .OrderByDescending(item => Math.Abs(item.TotalCents))
+            .Select(item =>
+            {
+                var percentage = _report.TotalCents != 0
+                    ? (Math.Abs(item.TotalCents) / (double)Math.Abs(_report.TotalCents)) * 100d
+                    : 0d;
+
+                return (IReadOnlyList<string?>)
+                [
+                    item.AccountName,
+                    MoneyFormatter.FormatCents(item.TotalCents),
+                    item.TransactionsCount.ToString(),
+                    $"{percentage:F1}%"
+                ];
+            })
+            .ToList();
+
+        rows.Add(
+        [
+            "Total",
+            MoneyFormatter.FormatCents(_report.TotalCents),
+            _report.TransactionsCount.ToString(),
+            "100.0%"
+        ]);
+
+        var csv = ReportCsvBuilder.Build(
+            reportName: "Account Group Totals",
+            context: new Dictionary<string, string?>
+            {
+                ["Account Group"] = _report.GroupName,
+                ["From Date"] = _fromDate.ToString("yyyy-MM-dd"),
+                ["To Date (exclusive)"] = _toDate.ToString("yyyy-MM-dd"),
+                ["Nature"] = string.IsNullOrWhiteSpace(_nature) ? "All" : _nature
+            },
+            headers: ["Account", "Amount", "Transactions", "% of Total"],
+            rows: rows);
+
+        try
+        {
+            var fileName = ReportExportInterop.BuildFileName(
+                "account-group-totals",
+                _report.GroupName,
+                _fromDate.ToString("yyyy-MM-dd"),
+                _toDate.ToString("yyyy-MM-dd")) + ".csv";
+            await JS.DownloadCsvAsync(fileName, csv);
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to export CSV: {ex.Message}";
+        }
     }
 
     private enum AccountGroupReportTab

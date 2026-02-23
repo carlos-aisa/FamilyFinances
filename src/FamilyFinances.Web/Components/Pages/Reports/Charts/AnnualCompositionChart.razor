@@ -1,5 +1,7 @@
 @using System.Globalization
+@using System.Text.Json
 @using FamilyFinances.Web.Features.Reports
+@using FamilyFinances.Web.Features.Reports.Export
 @using FamilyFinances.Web.Features.Reports.Charts
 @using Microsoft.JSInterop
 @implements IAsyncDisposable
@@ -26,11 +28,28 @@ else
                         <small class="text-muted">@Subtitle</small>
                     }
                 </div>
-                <span class="badge bg-secondary-subtle text-secondary">@Year</span>
+                <div class="d-flex align-items-center gap-2">
+                    @if (EnableImageExport)
+                    {
+                        <button type="button"
+                                class="btn btn-sm btn-outline-secondary report-export-button"
+                                @onclick="ExportChartAsync"
+                                data-testid="@($"{TestId}-export-image")"
+                                aria-label="@($"Export {Title} chart as PNG")">
+                            <i class="bi bi-download me-1"></i>Export
+                        </button>
+                    }
+                    <span class="badge bg-secondary-subtle text-secondary">@Year</span>
+                </div>
             </div>
 
+            @if (!string.IsNullOrWhiteSpace(_exportError))
+            {
+                <div class="text-danger small mb-2">@_exportError</div>
+            }
+
             <div class="annual-composition-canvas-wrap">
-                <canvas id="@_canvasId" class="annual-composition-canvas" aria-label="@Title"></canvas>
+                <canvas id="@_canvasId" class="annual-composition-canvas" role="img" tabindex="0" aria-label="@Title"></canvas>
             </div>
         </div>
     </div>
@@ -42,8 +61,11 @@ else
     [Parameter, EditorRequired] public int Year { get; set; }
     [Parameter, EditorRequired] public IReadOnlyList<AnnualCompositionSlice> Slices { get; set; } = Array.Empty<AnnualCompositionSlice>();
     [Parameter] public string TestId { get; set; } = "annual-composition-chart";
+    [Parameter] public bool EnableImageExport { get; set; } = true;
 
     private readonly string _canvasId = $"annual-composition-{Guid.NewGuid():N}";
+    private string? _lastRenderedSignature;
+    private string? _exportError;
 
     private IReadOnlyList<AnnualCompositionSlice> OrderedSlices => Slices
         .OrderByDescending(x => x.Percentage)
@@ -57,17 +79,24 @@ else
         if (OrderedSlices.Count == 0)
             return;
 
+        var payload = new
+        {
+            labels = OrderedSlices.Select(x => x.Label).ToList(),
+            values = OrderedSlices.Select(x => Convert.ToDouble(x.Percentage, CultureInfo.InvariantCulture)).ToList(),
+            colors = OrderedSlices.Select(x => x.ColorHex).ToList()
+        };
+
+        var signature = JsonSerializer.Serialize(payload);
+        if (string.Equals(_lastRenderedSignature, signature, StringComparison.Ordinal))
+            return;
+
         try
         {
             await JS.InvokeVoidAsync(
                 "familyFinancesCharts.renderAnnualCompositionChart",
                 _canvasId,
-                new
-                {
-                    labels = OrderedSlices.Select(x => x.Label).ToList(),
-                    values = OrderedSlices.Select(x => Convert.ToDouble(x.Percentage, CultureInfo.InvariantCulture)).ToList(),
-                    colors = OrderedSlices.Select(x => x.ColorHex).ToList()
-                });
+                payload);
+            _lastRenderedSignature = signature;
         }
         catch
         {
@@ -80,10 +109,26 @@ else
         try
         {
             await JS.InvokeVoidAsync("familyFinancesCharts.disposeAnnualCompositionChart", _canvasId);
+            _lastRenderedSignature = null;
         }
         catch
         {
             // Ignore dispose failures for disconnected/non-interactive renderers.
+        }
+    }
+
+    private async Task ExportChartAsync()
+    {
+        _exportError = null;
+
+        try
+        {
+            var fileName = $"{ReportExportInterop.BuildFileName("report-chart", Title, Year)}.png";
+            await JS.DownloadChartImageAsync(_canvasId, fileName);
+        }
+        catch (Exception ex)
+        {
+            _exportError = $"Chart export failed: {ex.Message}";
         }
     }
 }

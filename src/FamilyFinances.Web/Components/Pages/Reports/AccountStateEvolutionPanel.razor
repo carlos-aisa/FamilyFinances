@@ -6,11 +6,14 @@
 @using FamilyFinances.Web.Components.Base
 @using FamilyFinances.Web.Components.Pages.Reports.Charts
 @using FamilyFinances.Web.Features.Reports
+@using FamilyFinances.Web.Features.Reports.Export
 @using FamilyFinances.Web.Features.Reports.Charts
+@using Microsoft.JSInterop
 @inherits ApiPageBase
 
 @inject ReportsApi ReportsApi
 @inject IAccountsApi AccountsApi
+@inject IJSRuntime JS
 
 <div class="card shadow-sm mb-4">
             <div class="card-body">
@@ -19,7 +22,7 @@
                         <label class="form-label fw-semibold">
                             <i class="bi bi-calendar3 me-1"></i>Year
                         </label>
-                        <select class="form-select" value="@_selectedYear" @onchange="OnYearChangedAsync" disabled="@_isLoading">
+                        <select class="form-select" aria-label="Year" value="@_selectedYear" @onchange="OnYearChangedAsync" disabled="@_isLoading">
                             @foreach (var year in _yearOptions)
                             {
                                 <option value="@year">@year</option>
@@ -108,11 +111,20 @@ else if (_report is not null)
                         <div class="col-12 col-xxl-8">
                             <div class="card shadow-sm h-100">
                                 <div class="card-header bg-transparent">
-                                    <div>
-                                        <h5 class="mb-1">
-                                            <i class="bi bi-table me-2"></i>Accounts Overview
-                                        </h5>
-                                        <p class="text-muted mb-0">Current month summary grouped by nature. Expand only the accounts you need.</p>
+                                    <div class="d-flex justify-content-between align-items-start gap-3">
+                                        <div>
+                                            <h5 class="mb-1">
+                                                <i class="bi bi-table me-2"></i>Accounts Overview
+                                            </h5>
+                                            <p class="text-muted mb-0">Current month summary grouped by nature. Expand only the accounts you need.</p>
+                                        </div>
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-secondary report-export-button"
+                                                @onclick="ExportOverviewCsvAsync"
+                                                data-testid="account-state-overview-export-csv"
+                                                aria-label="Export accounts overview as CSV">
+                                            <i class="bi bi-download me-1"></i>Export
+                                        </button>
                                     </div>
                                 </div>
                                 <div class="card-body p-0">
@@ -253,6 +265,7 @@ else if (_report is not null)
                                 <div class="mb-2">
                                     <label class="form-label fw-semibold mb-1">Account</label>
                                     <select class="form-select form-select-sm account-line-selector"
+                                            aria-label="Account Line Selector"
                                             value="@_selectedAccountSeriesKeyForChart"
                                             @onchange="OnAccountSeriesSelectionChanged">
                                         <option value="">Top accounts</option>
@@ -299,6 +312,7 @@ else if (_report is not null)
                                         <div>
                                             <label class="form-label fw-semibold mb-1">Focused Month</label>
                                             <select class="form-select form-select-sm month-focus-select"
+                                                    aria-label="Focused Month"
                                                     value="@_focusedMonth"
                                                     @onchange="OnFocusedMonthChanged">
                                                 @foreach (var month in compositionMonthOptions)
@@ -798,6 +812,54 @@ else
             DeltaYearStart: latestPoints.Sum(p => p.DeltaVsYearStartCents),
             UsesAssetOnly: usesAssetOnly
         );
+    }
+
+    private async Task ExportOverviewCsvAsync()
+    {
+        if (_report is null || _report.Series.Count == 0)
+            return;
+
+        var summaryMonth = GetReferenceMonthForSelectedYear();
+        var rows = _report.Series
+            .OrderBy(series => series.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(series => series.SeriesKey, StringComparer.Ordinal)
+            .Select(series =>
+            {
+                var point = summaryMonth is not null
+                    ? GetPointAtOrBeforeMonth(series, summaryMonth.Value)
+                    : null;
+
+                return (IReadOnlyList<string?>)
+                [
+                    GetNatureLabel(ResolveSeriesNature(series)),
+                    series.DisplayName,
+                    point is not null ? MoneyFormatter.FormatCentsWithSign(point.EndBalanceCents) : "-",
+                    point is not null ? MoneyFormatter.FormatCentsWithSign(point.DeltaVsPreviousMonthCents) : "-",
+                    point is not null ? MoneyFormatter.FormatCentsWithSign(point.DeltaVsYearStartCents) : "-"
+                ];
+            })
+            .ToList();
+
+        var csv = ReportCsvBuilder.Build(
+            reportName: "Account State Evolution",
+            context: new Dictionary<string, string?>
+            {
+                ["Year"] = _selectedYear.ToString(),
+                ["Focused Month"] = summaryMonth is not null ? DateHelper.GetMonthName(summaryMonth.Value) : null,
+                ["Chart Mode"] = _accountsChartMode.ToString()
+            },
+            headers: ["Nature", "Series Name", "End Balance", "Delta Prev Month", "Delta Year Start"],
+            rows: rows);
+
+        try
+        {
+            var fileName = $"{ReportExportInterop.BuildFileName("account-state-evolution", _selectedYear, summaryMonth)}.csv";
+            await JS.DownloadCsvAsync(fileName, csv);
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to export CSV: {ex.Message}";
+        }
     }
 
     private sealed record AnnualChartsViewModel(

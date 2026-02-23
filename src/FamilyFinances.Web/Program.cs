@@ -28,6 +28,7 @@ builder.Services.AddScoped<IAccountsApi, AccountsApi>();
 builder.Services.AddScoped<PayeesApi>();
 builder.Services.AddScoped<TransactionsApi>();
 builder.Services.AddScoped<ReportsApi>();
+builder.Services.AddScoped<BackupApi>();
 builder.Services.AddScoped<AccountGroupsApi>();
 builder.Services.AddScoped<HistoryApi>();
 builder.Services.AddSingleton<HistoryRefreshNotifier>();

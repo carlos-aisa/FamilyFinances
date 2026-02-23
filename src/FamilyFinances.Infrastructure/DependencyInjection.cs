@@ -1,4 +1,6 @@
-﻿using System.Text;
+using System.Text;
+using FamilyFinances.Application.Operations.BackupRestore.Abstractions;
+using FamilyFinances.Application.Operations.BackupRestore.Handlers;
 using FamilyFinances.Application.Ledger;
 using FamilyFinances.Application.Ledger.AccountGroups.Abstractions;
 using FamilyFinances.Application.Ledger.AccountGroups.Handlers;
@@ -55,6 +57,8 @@ public static class DependencyInjection
         // Services
         services.AddScoped<IAccountBalanceService, Persistence.Services.AccountBalanceService>();
         services.AddScoped<IFiscalYearGuard, FiscalYearGuard>();
+        services.AddSingleton<IBackupOperationLock, Persistence.Services.BackupOperationLock>();
+        services.AddScoped<IBackupRestoreService, Persistence.Services.SqliteBackupRestoreService>();
 
         // Accounts Handlers
         services.AddScoped<CloseAccountHandler>();
@@ -97,6 +101,9 @@ public static class DependencyInjection
         services.AddScoped<GetMonthlyBalanceVsGroupsChartHandler>();
         services.AddScoped<GetReportingParetoInsightsHandler>();
         services.AddScoped<GetReportingAnomalyInsightsHandler>();
+        services.AddScoped<CreateBackupHandler>();
+        services.AddScoped<PrecheckRestoreHandler>();
+        services.AddScoped<ApplyRestoreHandler>();
 
         // Account Group Handlers
         services.AddScoped<CreateAccountGroupHandler>();
@@ -223,3 +230,4 @@ public static class DependencyInjection
         await Infrastructure.Ledger.LedgerSeeder.EnsureOpeningBalanceAccountAsync(ledgerDb);
     }
 }
+

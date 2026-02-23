@@ -6,10 +6,13 @@
 @using FamilyFinances.Web.Components.Base
 @using FamilyFinances.Web.Components.Shared
 @using FamilyFinances.Web.Features.Reports
+@using FamilyFinances.Web.Features.Reports.Export
+@using Microsoft.JSInterop
 @using Microsoft.AspNetCore.Components.Authorization
 @inherits ApiPageBase
 
 @inject ReportsApi ReportsApi
+@inject IJSRuntime JS
 
 <AuthorizeView>
     <Authorized>
@@ -65,14 +68,14 @@
                             <label class="form-label fw-semibold">
                                 <i class="bi bi-calendar3 me-1"></i>From Date
                             </label>
-                            <input type="date" class="form-control" @bind="_fromDate" @bind:event="oninput" @bind:after="OnDateChanged" />
+                            <input type="date" class="form-control" aria-label="From Date" @bind="_fromDate" @bind:event="oninput" @bind:after="OnDateChanged" />
                         </div>
 
                         <div class="col-12 col-md-4">
                             <label class="form-label fw-semibold">
                                 <i class="bi bi-calendar3 me-1"></i>To Date (exclusive)
                             </label>
-                            <input type="date" class="form-control" @bind="_toDate" @bind:event="oninput" @bind:after="OnDateChanged" />
+                            <input type="date" class="form-control" aria-label="To Date (exclusive)" @bind="_toDate" @bind:event="oninput" @bind:after="OnDateChanged" />
                         </div>
 
                         <!-- Include Zero Accounts -->
@@ -144,6 +147,16 @@
                 }
                 else
                 {
+                    <div class="d-flex justify-content-end mb-3">
+                        <button type="button"
+                                class="btn btn-sm btn-outline-secondary report-export-button"
+                                @onclick="ExportCsvAsync"
+                                data-testid="account-totals-export-csv"
+                                aria-label="Export account totals as CSV">
+                            <i class="bi bi-download me-1"></i>Export
+                        </button>
+                    </div>
+
                     @foreach (var natureGroup in _report.Items.GroupBy(i => i.AccountNature).OrderBy(g => g.Key))
                     {
                         var items = natureGroup.ToList();
@@ -368,5 +381,57 @@
     {
         PeriodTotals,
         StateEvolution
+    }
+
+    private async Task ExportCsvAsync()
+    {
+        if (_report is null)
+            return;
+
+        var rows = _report.Items
+            .OrderBy(item => item.AccountNature)
+            .ThenBy(item => item.AccountName, StringComparer.OrdinalIgnoreCase)
+            .Select(item => (IReadOnlyList<string?>)
+            [
+                item.AccountNature.ToString(),
+                item.AccountName,
+                item.AccountKind.ToString(),
+                MoneyFormatter.FormatCentsWithSign(item.NetChange),
+                item.TransactionsCount.ToString()
+            ])
+            .ToList();
+
+        rows.Add(
+        [
+            "Total",
+            null,
+            null,
+            MoneyFormatter.FormatCentsWithSign(_report.Items.Sum(i => i.NetChange)),
+            _report.Items.Sum(i => i.TransactionsCount).ToString()
+        ]);
+
+        var csv = ReportCsvBuilder.Build(
+            reportName: "Account Totals",
+            context: new Dictionary<string, string?>
+            {
+                ["From Date"] = _fromDate.ToString("yyyy-MM-dd"),
+                ["To Date (exclusive)"] = _toDate.ToString("yyyy-MM-dd"),
+                ["Include Zero Accounts"] = _includeZeroAccounts ? "Yes" : "No"
+            },
+            headers: ["Nature", "Account Name", "Kind", "Net Change", "Transactions"],
+            rows: rows);
+
+        try
+        {
+            var fileName = ReportExportInterop.BuildFileName(
+                "account-totals",
+                _fromDate.ToString("yyyy-MM-dd"),
+                _toDate.ToString("yyyy-MM-dd")) + ".csv";
+            await JS.DownloadCsvAsync(fileName, csv);
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to export CSV: {ex.Message}";
+        }
     }
 }

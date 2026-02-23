@@ -4,11 +4,14 @@
 @using FamilyFinances.Web.Components.Base
 @using FamilyFinances.Web.Components.Pages.Reports.Charts
 @using FamilyFinances.Web.Features.Reports
+@using FamilyFinances.Web.Features.Reports.Export
 @using FamilyFinances.Web.Features.Reports.Charts
+@using Microsoft.JSInterop
 @inherits ApiPageBase
 
 @inject ReportsApi ReportsApi
 @inject AccountGroupsApi AccountGroupsApi
+@inject IJSRuntime JS
 
 <div class="card shadow-sm mb-4">
     <div class="card-body">
@@ -17,7 +20,7 @@
                 <label class="form-label fw-semibold">
                     <i class="bi bi-calendar3 me-1"></i>Year
                 </label>
-                <select class="form-select" value="@_selectedYear" @onchange="OnYearChangedAsync" disabled="@_isLoading">
+                <select class="form-select" aria-label="Year" value="@_selectedYear" @onchange="OnYearChangedAsync" disabled="@_isLoading">
                     @foreach (var year in _yearOptions)
                     {
                         <option value="@year">@year</option>
@@ -29,6 +32,7 @@
                     <i class="bi bi-calendar-month me-1"></i>Focused Month
                 </label>
                 <select class="form-select month-focus-select"
+                        aria-label="Focused Month"
                         data-testid="account-group-focused-month"
                         value="@_focusedMonth"
                         @onchange="OnFocusedMonthChanged"
@@ -123,11 +127,20 @@ else if (_report is not null)
             <div class="col-12 col-xxl-8">
                 <div class="card shadow-sm h-100">
                     <div class="card-header bg-transparent">
-                        <div>
-                            <h5 class="mb-1">
-                                <i class="bi bi-table me-2"></i>Account Group Overview
-                            </h5>
-                            <p class="text-muted mb-0">Current month summary by group. Expand rows only when needed.</p>
+                        <div class="d-flex justify-content-between align-items-start gap-3">
+                            <div>
+                                <h5 class="mb-1">
+                                    <i class="bi bi-table me-2"></i>Account Group Overview
+                                </h5>
+                                <p class="text-muted mb-0">Current month summary by group. Expand rows only when needed.</p>
+                            </div>
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-secondary report-export-button"
+                                    @onclick="ExportOverviewCsvAsync"
+                                    data-testid="account-group-state-overview-export-csv"
+                                    aria-label="Export account group overview as CSV">
+                                <i class="bi bi-download me-1"></i>Export
+                            </button>
                         </div>
                     </div>
                     <div class="card-body p-0">
@@ -610,6 +623,52 @@ else
             .Where(series => !string.Equals(series.Key, "asset-total", StringComparison.OrdinalIgnoreCase))
             .Take(12)
             .ToList();
+    }
+
+    private async Task ExportOverviewCsvAsync()
+    {
+        if (_report is null || _report.Series.Count == 0)
+            return;
+
+        var summaryMonth = _focusedMonth;
+        var rows = _report.Series
+            .OrderBy(series => series.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(series => series.SeriesKey, StringComparer.Ordinal)
+            .Select(series =>
+            {
+                var point = summaryMonth is not null
+                    ? GetPointAtOrBeforeMonth(series, summaryMonth.Value)
+                    : null;
+
+                return (IReadOnlyList<string?>)
+                [
+                    series.DisplayName,
+                    point is not null ? MoneyFormatter.FormatCentsWithSign(point.EndBalanceCents) : "-",
+                    point is not null ? MoneyFormatter.FormatCentsWithSign(point.DeltaVsPreviousMonthCents) : "-",
+                    point is not null ? MoneyFormatter.FormatCentsWithSign(point.DeltaVsYearStartCents) : "-"
+                ];
+            })
+            .ToList();
+
+        var csv = ReportCsvBuilder.Build(
+            reportName: "Account Group State Evolution",
+            context: new Dictionary<string, string?>
+            {
+                ["Year"] = _selectedYear.ToString(),
+                ["Focused Month"] = _focusedMonth is not null ? DateHelper.GetMonthName(_focusedMonth.Value) : null
+            },
+            headers: ["Series Name", "End Balance", "Delta Prev Month", "Delta Year Start"],
+            rows: rows);
+
+        try
+        {
+            var fileName = $"{ReportExportInterop.BuildFileName("account-group-state-evolution", _selectedYear, _focusedMonth)}.csv";
+            await JS.DownloadCsvAsync(fileName, csv);
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to export CSV: {ex.Message}";
+        }
     }
 
     private enum ChartMode

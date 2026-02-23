@@ -6,10 +6,18 @@ public static class TestAuth
 {
     public static async Task<string> LoginAndGetTokenAsync(HttpClient client)
     {
+        return await LoginAndGetTokenAsync(client, "admin@familyfinances.local", "Admin123!");
+    }
+
+    public static async Task<string> LoginAndGetTokenAsync(
+        HttpClient client,
+        string email,
+        string password)
+    {
         var response = await client.PostAsJsonAsync("/api/v1/auth/login", new
         {
-            email = "admin@familyfinances.local",
-            password = "Admin123!"
+            email,
+            password
         });
 
         response.EnsureSuccessStatusCode();

@@ -136,7 +136,7 @@ Then the API returns `200 OK`
 And the response is `AccountGroupDetailsDto { Id, Name, Description, Accounts }`
 
 ### Requirement: Reporting Endpoints SHALL Provide Aggregated Read Models
-The system SHALL provide aggregated report read models and derived insight models, including Pareto ranking, concentration indicators, and explainable anomaly signals for group and payee dimensions.
+The system SHALL provide aggregated report read models with release-ready reliability characteristics, including export compatibility, responsive web usability, and regression-safe behavior in reporting flows.
 
 #### Scenario: Monthly summary returns summary DTO
 Given valid date query inputs  
@@ -167,12 +167,11 @@ Given a request with missing or invalid `year` or `scope`
 When the client calls `GET /api/v1/reports/monthly-evolution`  
 Then the API returns `400 BadRequest`
 
-#### Scenario: Insight endpoints return deterministic and explainable payloads
-Given a valid insight request and authorized user  
-When the client calls insight reporting endpoints  
-Then the API returns deterministic ranking/concentration/anomaly results  
-And anomaly results include baseline/threshold explanation fields
-And insight requests MUST support a dimension selector that includes `group` and `payee`
+#### Scenario: Reporting flows remain export-compatible and regression-safe
+Given final `0.9` reporting features are enabled  
+When users execute supported report flows and export actions  
+Then output values MUST remain consistent with report read models  
+And release gates MUST block shipment on critical regression failures
 
 ### Requirement: Health Endpoint SHALL Be Exposed
 #### Scenario: Health endpoint route exists
@@ -206,6 +205,31 @@ Given a request that triggers a conflict exception
 When the exception reaches API middleware  
 Then the API returns `409 Conflict`  
 And response body is `{ error }`
+
+### Requirement: System SHALL Provide First-Class Backup and Restore Operations
+The system SHALL provide operational data protection and recovery capabilities through authenticated backup export and restore workflows.
+
+#### Scenario: Backup and restore are exposed for authorized administrators
+- **WHEN** an authenticated admin accesses application settings and backup endpoints
+- **THEN** the system MUST expose backup export and restore actions
+- **AND** those operations MUST be available through versioned API routes and Web UI entry points
+
+#### Scenario: Backup and restore are unavailable to unauthorized actors
+- **WHEN** an unauthenticated user or non-admin user attempts backup/restore operations
+- **THEN** the system MUST block access using existing authorization policy enforcement
+
+### Requirement: System SHALL Preserve Runtime Consistency During Restore
+Restore workflows SHALL enforce validation-before-apply and consistency guarantees so failed restore attempts do not corrupt active runtime data.
+
+#### Scenario: Incompatible package never reaches apply
+- **WHEN** restore pre-check reports incompatible format, version, or structure
+- **THEN** the system MUST reject apply execution
+- **AND** current runtime data MUST remain unchanged
+
+#### Scenario: Restore failures are deterministic and non-destructive
+- **WHEN** restore apply encounters operational failure
+- **THEN** the system MUST return a deterministic failure result
+- **AND** active runtime data state MUST be preserved
 
 ## Non-Goals
 - Multi-currency support.
