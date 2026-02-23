@@ -15,7 +15,7 @@ using Moq.Protected;
 
 namespace FamilyFinances.Web.Tests.Features.History;
 
-public sealed class HistoryTransactionsPageTests : TestContext
+public sealed class HistoryTransactionsPageTests : WebTestContext
 {
     [Fact]
     public void RendersReadOnlyHistoryWithoutEditOrDeleteActions()

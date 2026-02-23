@@ -14,7 +14,7 @@ using Moq.Protected;
 
 namespace FamilyFinances.Web.Tests.Features.Reports;
 
-public sealed class EconomicStatePageTests : TestContext
+public sealed class EconomicStatePageTests : WebTestContext
 {
     [Fact]
     public void EconomicStatePage_Loads_With_Current_Date_By_Default()

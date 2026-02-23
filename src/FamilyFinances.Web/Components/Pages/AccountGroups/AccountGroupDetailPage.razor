@@ -4,12 +4,15 @@
 @using System.ComponentModel.DataAnnotations
 @using FamilyFinances.Application.Ledger.AccountGroups.Dtos
 @using FamilyFinances.Application.Ledger.Accounts.Dtos
+@using FamilyFinances.Web
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.Extensions.Localization
 @inject AccountGroupsApi AccountGroupsApi
 @inject IAccountsApi AccountsApi
 @inject NavigationManager Navigation
+@inject IStringLocalizer<SharedResource> L
 
 <AuthorizeView>
     <Authorized Context="authContext">
@@ -18,20 +21,19 @@
             <div class="card shadow-sm">
                 <div class="card-body text-center py-5">
                     <div class="spinner-border text-primary mb-3" role="status">
-                        <span class="visually-hidden">Loading...</span>
+                        <span class="visually-hidden">@L["Common_Loading"]</span>
                     </div>
-                    <p class="text-muted mb-0">Loading account group details...</p>
+                    <p class="text-muted mb-0">@L["AccountGroupDetail_Loading"]</p>
                 </div>
             </div>
         }
         else
         {
-            <!-- Header -->
             <div class="d-flex align-items-center justify-content-between mb-4">
                 <div>
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-2">
-                            <li class="breadcrumb-item"><a href="/account-groups">Account Groups</a></li>
+                            <li class="breadcrumb-item"><a href="/account-groups">@L["Nav_AccountGroups"]</a></li>
                             <li class="breadcrumb-item active" aria-current="page">@_details.Name</li>
                         </ol>
                     </nav>
@@ -41,11 +43,10 @@
                 </div>
 
                 <button class="btn btn-outline-secondary" @onclick="GoBack">
-                    <i class="bi bi-arrow-left me-1"></i>Back to List
+                    <i class="bi bi-arrow-left me-1"></i>@L["AccountGroupDetail_BackToList"]
                 </button>
             </div>
 
-            <!-- Alerts -->
             @if (!string.IsNullOrWhiteSpace(_error))
             {
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -63,12 +64,11 @@
             }
 
             <div class="row">
-                <!-- Group Info Card -->
                 <div class="col-md-5 mb-4">
                     <div class="card shadow-sm h-100">
                         <div class="card-header bg-light">
                             <h5 class="card-title mb-0">
-                                <i class="bi bi-info-circle me-2"></i>Group Information
+                                <i class="bi bi-info-circle me-2"></i>@L["AccountGroupDetail_Info_Title"]
                             </h5>
                         </div>
                         <div class="card-body">
@@ -77,16 +77,16 @@
                                 <EditForm Model="_renameModel" OnValidSubmit="RenameAsync">
                                     <DataAnnotationsValidator />
                                     <div class="mb-3">
-                                        <label class="form-label">Group Name</label>
+                                        <label class="form-label">@L["AccountGroupDetail_Name"]</label>
                                         <InputText class="form-control" @bind-Value="_renameModel.Name" />
                                         <ValidationMessage For="@(() => _renameModel.Name)" />
                                     </div>
                                     <div class="d-flex gap-2">
                                         <button class="btn btn-success btn-sm" type="submit" disabled="@_isBusy">
-                                            <i class="bi bi-check-circle me-1"></i>Save
+                                            <i class="bi bi-check-circle me-1"></i>@L["AccountGroupDetail_Save"]
                                         </button>
                                         <button class="btn btn-outline-secondary btn-sm" type="button" @onclick="CancelRename" disabled="@_isBusy">
-                                            <i class="bi bi-x-circle me-1"></i>Cancel
+                                            <i class="bi bi-x-circle me-1"></i>@L["AccountGroupDetail_Cancel"]
                                         </button>
                                     </div>
                                 </EditForm>
@@ -94,7 +94,7 @@
                             else
                             {
                                 <div class="mb-3">
-                                    <label class="form-label text-muted small">Group Name</label>
+                                    <label class="form-label text-muted small">@L["AccountGroupDetail_Name"]</label>
                                     <div class="d-flex justify-content-between align-items-center">
                                         <strong>@_details.Name</strong>
                                         <button class="btn btn-sm btn-outline-primary" @onclick="StartRename">
@@ -105,31 +105,30 @@
                             }
 
                             <div class="mb-0">
-                                <label class="form-label text-muted small">Description</label>
+                                <label class="form-label text-muted small">@L["AccountGroupDetail_Description"]</label>
                                 @if (!string.IsNullOrWhiteSpace(_details.Description))
                                 {
                                     <p class="mb-0">@_details.Description</p>
                                 }
                                 else
                                 {
-                                    <p class="mb-0 text-muted fst-italic">No description</p>
+                                    <p class="mb-0 text-muted fst-italic">@L["AccountGroups_NoDescription"]</p>
                                 }
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Members Management Card -->
                 <div class="col-md-7 mb-4">
                     <div class="card shadow-sm h-100">
                         <div class="card-header bg-light d-flex justify-content-between align-items-center">
                             <h5 class="card-title mb-0">
-                                <i class="bi bi-wallet2 me-2"></i>Accounts in Group
+                                <i class="bi bi-wallet2 me-2"></i>@L["AccountGroupDetail_AccountsInGroup"]
                                 <span class="badge bg-primary ms-2">@_details.Accounts.Count</span>
                             </h5>
                             <button class="btn btn-sm btn-outline-success" @onclick="ToggleAddAccount">
                                 <i class="bi @(_showAddAccount ? "bi-x-circle" : "bi-plus-circle") me-1"></i>
-                                @(_showAddAccount ? "Cancel" : "Add Account")
+                                @(_showAddAccount ? L["AccountGroupDetail_Cancel"] : L["AccountGroupDetail_AddAccount"])
                             </button>
                         </div>
                         <div class="card-body">
@@ -137,22 +136,21 @@
                             {
                                 <div class="mb-3 p-3 bg-light rounded">
                                     <h6 class="mb-2">
-                                        <i class="bi bi-plus-circle me-2"></i>Add Account to Group
+                                        <i class="bi bi-plus-circle me-2"></i>@L["AccountGroupDetail_AddAccountToGroup"]
                                     </h6>
 
-                                    <!-- Search/Filter -->
                                     <div class="input-group mb-3">
                                         <span class="input-group-text">
                                             <i class="bi bi-search"></i>
                                         </span>
-                                        <input type="text" class="form-control" placeholder="Search accounts..." @bind="_accountSearch" @bind:event="oninput" />
+                                        <input type="text" class="form-control" placeholder="@L["AccountGroupDetail_SearchAccounts"]" @bind="_accountSearch" @bind:event="oninput" />
                                     </div>
 
                                     @if (_allAccounts is null)
                                     {
                                         <div class="text-center py-3">
                                             <div class="spinner-border spinner-border-sm" role="status"></div>
-                                            <small class="text-muted ms-2">Loading accounts...</small>
+                                            <small class="text-muted ms-2">@L["AccountGroupDetail_LoadingAccounts"]</small>
                                         </div>
                                     }
                                     else
@@ -163,7 +161,7 @@
                                         {
                                             <div class="alert alert-info mb-0">
                                                 <i class="bi bi-info-circle me-2"></i>
-                                                <small>All accounts are already in this group or no accounts match your search.</small>
+                                                <small>@L["AccountGroupDetail_NoAvailableAccounts"]</small>
                                             </div>
                                         }
                                         else
@@ -174,7 +172,7 @@
                                                     var otherGroups = GetOtherGroupsForAccount(account.Id);
                                                     var hasOtherGroups = otherGroups.Count > 0;
 
-                                                    <button type="button" 
+                                                    <button type="button"
                                                             class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
                                                             @onclick="@(() => AddAccountToGroup(account.Id))">
                                                         <div>
@@ -186,7 +184,7 @@
                                                                 <br />
                                                                 <small class="text-warning">
                                                                     <i class="bi bi-exclamation-triangle me-1"></i>
-                                                                    Already in @otherGroups.Count other group@(otherGroups.Count > 1 ? "s" : ""): @string.Join(", ", otherGroups.Select(g => g.Name))
+                                                                    @L["AccountGroupDetail_AlreadyInOtherGroups", otherGroups.Count, string.Join(", ", otherGroups.Select(g => g.Name))]
                                                                 </small>
                                                             }
                                                         </div>
@@ -203,8 +201,8 @@
                             {
                                 <div class="text-center py-4">
                                     <i class="bi bi-inbox display-4 text-muted"></i>
-                                    <p class="text-muted mt-2 mb-0">No accounts in this group yet.</p>
-                                    <small class="text-muted">Click "Add Account" to get started.</small>
+                                    <p class="text-muted mt-2 mb-0">@L["AccountGroupDetail_Empty"]</p>
+                                    <small class="text-muted">@L["AccountGroupDetail_EmptyHint"]</small>
                                 </div>
                             }
                             else
@@ -218,7 +216,7 @@
                                                 <br />
                                                 <small class="text-muted">@account.Nature - @account.Kind</small>
                                             </div>
-                                            <button class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAccountFromGroup(account.AccountId))">
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAccountFromGroup(account.AccountId))" title="@L["AccountGroupDetail_RemoveAccount"]">
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                         </div>
@@ -236,10 +234,10 @@
         <div class="card shadow-sm">
             <div class="card-body text-center py-5">
                 <i class="bi bi-shield-lock display-1 text-muted mb-3"></i>
-                <h5 class="text-muted">Authentication Required</h5>
-                <p class="text-muted">You must be logged in to manage account groups.</p>
+                <h5 class="text-muted">@L["AccountGroups_AuthRequired_Title"]</h5>
+                <p class="text-muted">@L["AccountGroups_AuthRequired_Description"]</p>
                 <a class="btn btn-primary mt-3" href="/login">
-                    <i class="bi bi-box-arrow-in-right me-1"></i>Login
+                    <i class="bi bi-box-arrow-in-right me-1"></i>@L["Common_Login"]
                 </a>
             </div>
         </div>
@@ -252,7 +250,6 @@
 
     private AccountGroupDetailsDto? _details;
     private IReadOnlyList<AccountDto>? _allAccounts;
-    private Dictionary<Guid, List<AccountGroupDto>> _accountGroupsCache = new();
 
     private string? _error;
     private string? _info;
@@ -323,7 +320,7 @@
             {
                 await AccountGroupsApi.RenameAsync(Id, _renameModel.Name.Trim(), ct);
                 _isEditingName = false;
-                _info = "Group renamed successfully.";
+                _info = L["AccountGroupDetail_Message_Renamed"];
                 _details = await AccountGroupsApi.GetByIdAsync(Id, ct);
             });
         }
@@ -364,7 +361,7 @@
             await ExecuteApiAsync(async ct =>
             {
                 await AccountGroupsApi.AddAccountAsync(Id, accountId, ct);
-                _info = "Account added to group successfully.";
+                _info = L["AccountGroupDetail_Message_AccountAdded"];
                 _details = await AccountGroupsApi.GetByIdAsync(Id, ct);
                 _showAddAccount = false;
                 _accountSearch = string.Empty;
@@ -394,7 +391,7 @@
             await ExecuteApiAsync(async ct =>
             {
                 await AccountGroupsApi.RemoveAccountAsync(Id, accountId, ct);
-                _info = "Account removed from group successfully.";
+                _info = L["AccountGroupDetail_Message_AccountRemoved"];
                 _details = await AccountGroupsApi.GetByIdAsync(Id, ct);
             });
         }
@@ -430,13 +427,9 @@
         return available.OrderBy(a => a.Name).ToList();
     }
 
-    private List<AccountGroupDto> GetOtherGroupsForAccount(Guid accountId)
+    private static List<AccountGroupDto> GetOtherGroupsForAccount(Guid accountId)
     {
-        // For now, return empty list. In a real implementation, you would query the API
-        // to get all groups that contain this account, then filter out the current group.
-        // This would require adding a new endpoint: GET /api/v1/accounts/{accountId}/groups
-        // For the POC, we'll just show a warning without specific group names.
-        return new List<AccountGroupDto>();
+        return [];
     }
 
     private void GoBack()
@@ -446,8 +439,8 @@
 
     private sealed class RenameModel
     {
-        [Required(ErrorMessage = "Name is required")]
-        [StringLength(200, ErrorMessage = "Name cannot exceed 200 characters")]
+        [Required]
+        [StringLength(200)]
         public string Name { get; set; } = string.Empty;
     }
 }

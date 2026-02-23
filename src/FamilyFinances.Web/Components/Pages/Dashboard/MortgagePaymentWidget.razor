@@ -1,19 +1,22 @@
+@using System.Globalization
 @using FamilyFinances.Application.Ledger.Accounts.Dtos
 @using FamilyFinances.Application.Ledger.Transactions.Requests
-@using FamilyFinances.Domain.Ledger.Accounts
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Shared
+@using FamilyFinances.Web
+@using Microsoft.Extensions.Localization
 @inject TransactionsApi TransactionsApi
 @inject NavigationManager Nav
+@inject IStringLocalizer<SharedResource> L
 
 <div class="card shadow-sm mb-3 border-start border-4 border-info">
     <div class="card-header bg-info-subtle cursor-pointer" @onclick="ToggleExpanded">
         <div class="d-flex justify-content-between align-items-center">
             <div>
                 <h6 class="mb-0 text-info-emphasis">
-                    <i class="bi bi-house me-2"></i>Mortgage Payment
+                    <i class="bi bi-house me-2"></i>@L["MortgageWidget_Title"]
                 </h6>
-                <small class="text-muted">Quick entry for mortgage payments</small>
+                <small class="text-muted">@L["MortgageWidget_Subtitle"]</small>
             </div>
             <i class="bi @(_isExpanded ? "bi-chevron-up" : "bi-chevron-down") text-info-emphasis"></i>
         </div>
@@ -47,7 +50,7 @@
     [Parameter] public bool IsExpanded { get; set; }
     [Parameter] public EventCallback<string> OnToggle { get; set; }
 
-    private bool _isSaving = false;
+    private bool _isSaving;
     private string? _error;
     private string? _success;
 
@@ -76,16 +79,16 @@
 
             var splits = new List<TransactionSplitInput>
             {
-                new TransactionSplitInput(preset.PaymentAccountId, ToCents(-totalPayment), "Payment"),
-                new TransactionSplitInput(preset.MortgagePrincipalAccountId, ToCents(preset.PrincipalAmount), "Principal"),
-                new TransactionSplitInput(preset.InterestExpenseAccountId, ToCents(preset.InterestAmount), "Interest")
+                new(preset.PaymentAccountId, ToCents(-totalPayment), L["MortgageWidget_SplitPayment"]),
+                new(preset.MortgagePrincipalAccountId, ToCents(preset.PrincipalAmount), L["MortgageWidget_SplitPrincipal"]),
+                new(preset.InterestExpenseAccountId, ToCents(preset.InterestAmount), L["MortgageWidget_SplitInterest"])
             };
 
-            // Use the mortgage liability account name in the description
             var mortgageAccount = Accounts.FirstOrDefault(a => a.Id == preset.MortgagePrincipalAccountId);
-            var description = mortgageAccount != null 
-                ? $"{mortgageAccount.Name} - {preset.BookedOn:MMM yyyy}"
-                : $"Mortgage Payment - {preset.BookedOn:MMM yyyy}";
+            var descriptionMonth = preset.BookedOn.ToString("MMM yyyy", CultureInfo.CurrentCulture);
+            var description = mortgageAccount != null
+                ? L["MortgageWidget_DescriptionWithAccount", mortgageAccount.Name, descriptionMonth]
+                : L["MortgageWidget_DescriptionFallback", descriptionMonth];
 
             var request = new CreateTransactionRequest(
                 preset.BookedOn,
@@ -97,14 +100,14 @@
 
             await TransactionsApi.CreateAsync(request, CancellationToken.None);
 
-            _success = "Mortgage payment created successfully!";
+            _success = L["MortgageWidget_Success"];
             StateHasChanged();
-            await Task.Delay(3000); // Show success message for 3 seconds
+            await Task.Delay(3000);
             await OnTransactionCreated.InvokeAsync();
         }
         catch (Exception ex)
         {
-            _error = $"Failed to create transaction: {ex.Message}";
+            _error = L["MortgageWidget_Error", ex.Message];
         }
         finally
         {

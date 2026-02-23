@@ -16,7 +16,7 @@ using Moq.Protected;
 
 namespace FamilyFinances.Web.Tests.Features.Reports;
 
-public sealed class MonthlySummaryPageTests : TestContext
+public sealed class MonthlySummaryPageTests : WebTestContext
 {
     [Fact]
     public async Task LoadReport_WithSelectedAccount_LoadsMonthlySummary_And_AccountMonthlyChart()

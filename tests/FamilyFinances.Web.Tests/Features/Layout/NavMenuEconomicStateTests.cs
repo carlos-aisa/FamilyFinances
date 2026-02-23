@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using Bunit;
@@ -6,6 +7,7 @@ using FamilyFinances.Application.Reporting.Dtos;
 using FamilyFinances.Web.Api;
 using FamilyFinances.Web.Auth;
 using FamilyFinances.Web.Components.Layout;
+using FamilyFinances.Web.Features.Reports;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
@@ -13,12 +15,18 @@ using Moq.Protected;
 
 namespace FamilyFinances.Web.Tests.Features.Layout;
 
-public sealed class NavMenuEconomicStateTests : TestContext
+public sealed class NavMenuEconomicStateTests : WebTestContext
 {
+    public NavMenuEconomicStateTests()
+    {
+    }
+
     [Fact]
     public void Authorized_User_Sees_EconomicState_Link_And_Asset_Preview()
     {
-        JSInterop.Setup<string>("themeHelper.getTheme").SetResult("dark");
+        using var _ = UseCulture("en-US");
+
+        JSInterop.Setup<string>("cultureHelper.getCulture").SetResult("en-US");
 
         var httpMessageHandlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
         var httpClient = new HttpClient(httpMessageHandlerMock.Object)
@@ -68,15 +76,18 @@ public sealed class NavMenuEconomicStateTests : TestContext
         {
             cut.Markup.Should().Contain("Economic State");
             cut.Markup.Should().Contain("Asset Balance");
-            cut.Markup.Should().Contain("As of 2026-02-21");
-            cut.Markup.Should().Contain("1.234,56\u20AC");
+            cut.Markup.Should().Contain("As of");
+            cut.Markup.Should().Contain(payload.AsOf.ToString("d", CultureInfo.CurrentCulture));
+            cut.Markup.Should().Contain(MoneyFormatter.FormatCents(payload.AssetsTotalCents));
         });
     }
 
     [Fact]
     public void Unauthenticated_User_Does_Not_See_EconomicState_Section()
     {
-        JSInterop.Setup<string>("themeHelper.getTheme").SetResult("dark");
+        using var _ = UseCulture("en-US");
+
+        JSInterop.Setup<string>("cultureHelper.getCulture").SetResult("en-US");
 
         var httpClientFactory = new Mock<IHttpClientFactory>(MockBehavior.Strict);
         httpClientFactory
@@ -102,7 +113,9 @@ public sealed class NavMenuEconomicStateTests : TestContext
     [Fact]
     public void EconomicState_Link_Navigates_To_EconomicState_Report()
     {
-        JSInterop.Setup<string>("themeHelper.getTheme").SetResult("dark");
+        using var _ = UseCulture("en-US");
+
+        JSInterop.Setup<string>("cultureHelper.getCulture").SetResult("en-US");
 
         var httpMessageHandlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
         var httpClient = new HttpClient(httpMessageHandlerMock.Object)
@@ -163,7 +176,9 @@ public sealed class NavMenuEconomicStateTests : TestContext
     [Fact]
     public void Asset_Preview_Refreshes_After_Token_Becomes_Available_And_Location_Changes()
     {
-        JSInterop.Setup<string>("themeHelper.getTheme").SetResult("dark");
+        using var _ = UseCulture("en-US");
+
+        JSInterop.Setup<string>("cultureHelper.getCulture").SetResult("en-US");
 
         var httpMessageHandlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
         var httpClient = new HttpClient(httpMessageHandlerMock.Object)
@@ -221,8 +236,8 @@ public sealed class NavMenuEconomicStateTests : TestContext
 
         cut.WaitForAssertion(() =>
         {
-            cut.Markup.Should().Contain("1.234,56\u20AC");
-            cut.Markup.Should().Contain("As of 2026-02-21");
+            cut.Markup.Should().Contain(MoneyFormatter.FormatCents(payload.AssetsTotalCents));
+            cut.Markup.Should().Contain(payload.AsOf.ToString("d", CultureInfo.CurrentCulture));
         });
     }
 
@@ -243,5 +258,5 @@ public sealed class NavMenuEconomicStateTests : TestContext
 
         public Task<string?> WaitForTokenAsync(TimeSpan timeout, CancellationToken ct) => Task.FromResult(_token);
     }
-}
 
+}

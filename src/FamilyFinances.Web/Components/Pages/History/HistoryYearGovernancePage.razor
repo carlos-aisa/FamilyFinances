@@ -1,11 +1,14 @@
 @page "/history/years"
 @inherits ApiPageBase
 @using FamilyFinances.Application.Ledger.FiscalYears.Dtos
+@using FamilyFinances.Web
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
 @using FamilyFinances.Web.State
+@using Microsoft.Extensions.Localization
 @inject HistoryApi HistoryApi
 @inject HistoryRefreshNotifier HistoryRefreshNotifier
+@inject IStringLocalizer<SharedResource> L
 
 <HistoryTabs />
 
@@ -28,10 +31,10 @@
 <div class="card shadow-sm">
     <div class="card-header bg-light d-flex justify-content-between align-items-center">
         <h5 class="mb-0">
-            <i class="bi bi-calendar-check me-2"></i>Fiscal Year Governance
+            <i class="bi bi-calendar-check me-2"></i>@L["HistoryYears_Title"]
         </h5>
         <button class="btn btn-outline-secondary btn-sm" @onclick="LoadAsync" disabled="@_isBusy">
-            <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+            <i class="bi bi-arrow-clockwise me-1"></i>@L["History_Refresh"]
         </button>
     </div>
     <div class="card-body p-0">
@@ -39,13 +42,13 @@
         {
             <div class="d-flex justify-content-center py-5">
                 <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
+                    <span class="visually-hidden">@L["Common_Loading"]</span>
                 </div>
             </div>
         }
         else if (_items.Count == 0)
         {
-            <div class="p-4 text-muted">No fiscal years available.</div>
+            <div class="p-4 text-muted">@L["HistoryYears_NoData"]</div>
         }
         else
         {
@@ -53,11 +56,11 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="ps-3" style="width: 100px;">Year</th>
-                            <th style="width: 120px;">Status</th>
-                            <th style="width: 220px;">Closed At (UTC)</th>
-                            <th style="width: 220px;">Reopened At (UTC)</th>
-                            <th class="text-end pe-3" style="width: 180px;">Actions</th>
+                            <th class="ps-3" style="width: 100px;">@L["History_Year"]</th>
+                            <th style="width: 120px;">@L["HistoryYears_Table_Status"]</th>
+                            <th style="width: 220px;">@L["HistoryYears_Table_ClosedAtUtc"]</th>
+                            <th style="width: 220px;">@L["HistoryYears_Table_ReopenedAtUtc"]</th>
+                            <th class="text-end pe-3" style="width: 180px;">@L["HistoryYears_Table_Actions"]</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -68,11 +71,11 @@
                                 <td>
                                     @if (item.IsClosed)
                                     {
-                                        <span class="badge bg-danger">Closed</span>
+                                        <span class="badge bg-danger">@L["HistoryYears_Status_Closed"]</span>
                                     }
                                     else
                                     {
-                                        <span class="badge bg-success">Open</span>
+                                        <span class="badge bg-success">@L["HistoryYears_Status_Open"]</span>
                                     }
                                 </td>
                                 <td>@(item.ClosedAtUtc?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-")</td>
@@ -83,7 +86,7 @@
                                         <button class="btn btn-sm btn-outline-warning"
                                                 @onclick="() => OpenConfirm(YearAction.Reopen, item.Year)"
                                                 disabled="@_isBusy">
-                                            Reopen Year
+                                            @L["HistoryYears_Action_Reopen"]
                                         </button>
                                     }
                                     else
@@ -91,7 +94,7 @@
                                         <button class="btn btn-sm btn-outline-danger"
                                                 @onclick="() => OpenConfirm(YearAction.Close, item.Year)"
                                                 disabled="@_isBusy">
-                                            Close Year
+                                            @L["HistoryYears_Action_Close"]
                                         </button>
                                     }
                                 </td>
@@ -113,11 +116,11 @@
                     <h5 class="modal-title">
                         @if (_pendingAction == YearAction.Close)
                         {
-                            <span>Close Fiscal Year @_pendingYear</span>
+                            <span>@L["HistoryYears_Confirm_Close_Title", _pendingYear]</span>
                         }
                         else
                         {
-                            <span>Reopen Fiscal Year @_pendingYear</span>
+                            <span>@L["HistoryYears_Confirm_Reopen_Title", _pendingYear]</span>
                         }
                     </h5>
                     <button type="button" class="btn-close" @onclick="CloseConfirm" disabled="@_isBusy"></button>
@@ -125,25 +128,25 @@
                 <div class="modal-body">
                     @if (_pendingAction == YearAction.Close)
                     {
-                        <p class="mb-0">Closing the year will block create/edit/delete/reconcile operations for year @_pendingYear.</p>
+                        <p class="mb-0">@L["HistoryYears_Confirm_Close_Body", _pendingYear]</p>
                     }
                     else
                     {
-                        <p class="mb-0">Reopening the year will allow modifications again for year @_pendingYear and remove stale snapshots.</p>
+                        <p class="mb-0">@L["HistoryYears_Confirm_Reopen_Body", _pendingYear]</p>
                     }
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-secondary" @onclick="CloseConfirm" disabled="@_isBusy">Cancel</button>
+                    <button class="btn btn-secondary" @onclick="CloseConfirm" disabled="@_isBusy">@L["HistoryYears_Cancel"]</button>
                     <button class="btn @(_pendingAction == YearAction.Close ? "btn-danger" : "btn-warning")"
                             @onclick="ExecutePendingActionAsync"
                             disabled="@_isBusy">
                         @if (_pendingAction == YearAction.Close)
                         {
-                            <span>Confirm Close</span>
+                            <span>@L["HistoryYears_Confirm_Close"]</span>
                         }
                         else
                         {
-                            <span>Confirm Reopen</span>
+                            <span>@L["HistoryYears_Confirm_Reopen"]</span>
                         }
                     </button>
                 </div>
@@ -159,7 +162,7 @@
         Reopen
     }
 
-    private readonly List<FiscalYearStatusDto> _items = new();
+    private readonly List<FiscalYearStatusDto> _items = [];
     private bool _isBusy;
     private string? _error;
     private string? _success;
@@ -222,12 +225,12 @@
                 if (_pendingAction == YearAction.Close)
                 {
                     await HistoryApi.CloseYearAsync(_pendingYear, ct);
-                    _success = $"Year {_pendingYear} closed successfully.";
+                    _success = L["HistoryYears_Message_Closed", _pendingYear];
                 }
                 else
                 {
                     await HistoryApi.ReopenYearAsync(_pendingYear, ct);
-                    _success = $"Year {_pendingYear} reopened successfully.";
+                    _success = L["HistoryYears_Message_Reopened", _pendingYear];
                 }
 
                 await RefreshStatusesAsync(ct);

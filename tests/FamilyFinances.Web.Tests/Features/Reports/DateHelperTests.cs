@@ -1,3 +1,4 @@
+using System.Globalization;
 using FamilyFinances.Web.Features.Reports;
 using FluentAssertions;
 
@@ -8,26 +9,19 @@ public sealed class DateHelperTests
     [Fact]
     public void GetCurrentMonthStart_ReturnsFirstDayOfCurrentMonth()
     {
-        // Act
         var result = DateHelper.GetCurrentMonthStart();
 
-        // Assert
         result.Day.Should().Be(1);
-        // Note: Exact year/month will vary based on when test runs,
-        // but we can verify it's a valid date and the first day of a month
         result.Should().BeAfter(new DateOnly(2020, 1, 1));
     }
 
     [Fact]
     public void GetCurrentMonthEnd_ReturnsFirstDayOfNextMonth()
     {
-        // Arrange
         var start = DateHelper.GetCurrentMonthStart();
 
-        // Act
         var result = DateHelper.GetCurrentMonthEnd();
 
-        // Assert
         result.Should().Be(start.AddMonths(1));
         result.Day.Should().Be(1);
     }
@@ -35,10 +29,8 @@ public sealed class DateHelperTests
     [Fact]
     public void GetCurrentYear_ReturnsValidYear()
     {
-        // Act
         var result = DateHelper.GetCurrentYear();
 
-        // Assert
         result.Should().BeGreaterThanOrEqualTo(2024);
         result.Should().BeLessThanOrEqualTo(2100);
     }
@@ -46,33 +38,43 @@ public sealed class DateHelperTests
     [Fact]
     public void GetCurrentMonth_ReturnsValidMonth()
     {
-        // Act
         var result = DateHelper.GetCurrentMonth();
 
-        // Assert
         result.Should().BeInRange(1, 12);
     }
 
     [Theory]
-    [InlineData(1, "January")]
-    [InlineData(2, "February")]
-    [InlineData(3, "March")]
-    [InlineData(4, "April")]
-    [InlineData(5, "May")]
-    [InlineData(6, "June")]
-    [InlineData(7, "July")]
-    [InlineData(8, "August")]
-    [InlineData(9, "September")]
-    [InlineData(10, "October")]
-    [InlineData(11, "November")]
-    [InlineData(12, "December")]
-    public void GetMonthName_ReturnsCorrectMonthName(int month, string expected)
+    [InlineData(1, "January", "en-US")]
+    [InlineData(2, "February", "en-US")]
+    [InlineData(3, "March", "en-US")]
+    [InlineData(1, "enero", "es-ES")]
+    [InlineData(2, "febrero", "es-ES")]
+    [InlineData(3, "marzo", "es-ES")]
+    public void GetMonthName_UsesSpecifiedCulture(int month, string expected, string culture)
     {
-        // Act
-        var result = DateHelper.GetMonthName(month);
+        var result = DateHelper.GetMonthName(month, CultureInfo.GetCultureInfo(culture));
 
-        // Assert
         result.Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData("en-US", "January")]
+    [InlineData("es-ES", "enero")]
+    public void GetMonthName_UsesCurrentCulture_WhenCultureNotProvided(string cultureName, string expected)
+    {
+        var original = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(cultureName);
+
+            var result = DateHelper.GetMonthName(1);
+
+            result.Should().Be(expected);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = original;
+        }
     }
 
     [Theory]
@@ -81,10 +83,8 @@ public sealed class DateHelperTests
     [InlineData(2025, 6, 2025, 6, 1)]
     public void GetMonthStart_ReturnsFirstDayOfGivenMonth(int year, int month, int expectedYear, int expectedMonth, int expectedDay)
     {
-        // Act
         var result = DateHelper.GetMonthStart(year, month);
 
-        // Assert
         result.Year.Should().Be(expectedYear);
         result.Month.Should().Be(expectedMonth);
         result.Day.Should().Be(expectedDay);
@@ -96,10 +96,8 @@ public sealed class DateHelperTests
     [InlineData(2025, 6, 2025, 7, 1)]
     public void GetMonthEnd_ReturnsFirstDayOfNextMonth(int year, int month, int expectedYear, int expectedMonth, int expectedDay)
     {
-        // Act
         var result = DateHelper.GetMonthEnd(year, month);
 
-        // Assert
         result.Year.Should().Be(expectedYear);
         result.Month.Should().Be(expectedMonth);
         result.Day.Should().Be(expectedDay);

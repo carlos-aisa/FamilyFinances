@@ -1,25 +1,28 @@
 @using Microsoft.AspNetCore.Components
+@using Microsoft.Extensions.Localization
+@using FamilyFinances.Web
+@inject IStringLocalizer<SharedResource> L
 
 <div class="d-inline-flex flex-wrap gap-2">
-    <button type="button" class="btn btn-sm btn-outline-primary @(IsActive("ThisMonth") ? "active" : "")" 
+    <button type="button" class="btn btn-sm btn-outline-primary @(IsActive("ThisMonth") ? "active" : "")"
             @onclick="() => OnPresetSelected.InvokeAsync(new DateRangePreset { Type = PresetType.ThisMonth })">
-        <i class="bi bi-calendar-month me-1"></i>This Month
+        <i class="bi bi-calendar-month me-1"></i>@L["DatePreset_ThisMonth"]
     </button>
-    <button type="button" class="btn btn-sm btn-outline-primary @(IsActive("LastMonth") ? "active" : "")" 
+    <button type="button" class="btn btn-sm btn-outline-primary @(IsActive("LastMonth") ? "active" : "")"
             @onclick="() => OnPresetSelected.InvokeAsync(new DateRangePreset { Type = PresetType.LastMonth })">
-        <i class="bi bi-calendar-week me-1"></i>Last Month
+        <i class="bi bi-calendar-week me-1"></i>@L["DatePreset_LastMonth"]
     </button>
-    <button type="button" class="btn btn-sm btn-outline-primary @(IsActive("ThisQuarter") ? "active" : "")" 
+    <button type="button" class="btn btn-sm btn-outline-primary @(IsActive("ThisQuarter") ? "active" : "")"
             @onclick="() => OnPresetSelected.InvokeAsync(new DateRangePreset { Type = PresetType.ThisQuarter })">
-        <i class="bi bi-calendar3 me-1"></i>This Quarter
+        <i class="bi bi-calendar3 me-1"></i>@L["DatePreset_ThisQuarter"]
     </button>
-    <button type="button" class="btn btn-sm btn-outline-primary @(IsActive("ThisYear") ? "active" : "")" 
+    <button type="button" class="btn btn-sm btn-outline-primary @(IsActive("ThisYear") ? "active" : "")"
             @onclick="() => OnPresetSelected.InvokeAsync(new DateRangePreset { Type = PresetType.ThisYear })">
-        <i class="bi bi-calendar-event me-1"></i>This Year
+        <i class="bi bi-calendar-event me-1"></i>@L["DatePreset_ThisYear"]
     </button>
-    <button type="button" class="btn btn-sm btn-outline-primary @(IsActive("LastYear") ? "active" : "")" 
+    <button type="button" class="btn btn-sm btn-outline-primary @(IsActive("LastYear") ? "active" : "")"
             @onclick="() => OnPresetSelected.InvokeAsync(new DateRangePreset { Type = PresetType.LastYear })">
-        <i class="bi bi-calendar-check me-1"></i>Last Year
+        <i class="bi bi-calendar-check me-1"></i>@L["DatePreset_LastYear"]
     </button>
 </div>
 
@@ -45,7 +48,7 @@
         public (DateOnly From, DateOnly To) GetDateRange()
         {
             var today = DateOnly.FromDateTime(DateTime.Today);
-            
+
             return Type switch
             {
                 PresetType.ThisMonth => (

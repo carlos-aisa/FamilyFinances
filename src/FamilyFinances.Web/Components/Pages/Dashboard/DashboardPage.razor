@@ -1,25 +1,29 @@
-﻿@page "/"
+@page "/"
 @rendermode InteractiveServer
+@using System.Globalization
 @using FamilyFinances.Application.Ledger.Accounts.Dtos
 @using FamilyFinances.Application.Ledger.Payees.Dtos
 @using FamilyFinances.Domain.Ledger.Accounts
 @using FamilyFinances.Web.Components.Dashboard
 @using FamilyFinances.Web.Components.QuickEntry
+@using FamilyFinances.Web
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.Extensions.Localization
 @inherits FamilyFinances.Web.Components.Base.ApiPageBase
 
 @inject FamilyFinances.Web.Api.IAccountsApi AccountsApi
 @inject FamilyFinances.Web.Api.PayeesApi PayeesApi
 @inject FamilyFinances.Web.Api.TransactionsApi TransactionsApi
+@inject IStringLocalizer<SharedResource> L
 
 <AuthorizeView>
     <Authorized Context="auth">
         <div class="d-flex align-items-center justify-content-between mb-4">
             <div>
                 <h3 class="mb-1">
-                    <i class="bi bi-speedometer2 me-2"></i>Dashboard
+                    <i class="bi bi-speedometer2 me-2"></i>@L["Dashboard_Title"]
                 </h3>
-                <p class="text-muted mb-0">Quick entry for transactions</p>
+                <p class="text-muted mb-0">@L["Dashboard_Subtitle"]</p>
             </div>
         </div>
 
@@ -28,9 +32,9 @@
             <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
                 <div class="text-center">
                     <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                        <span class="visually-hidden">Loading...</span>
+                        <span class="visually-hidden">@L["Common_Loading"]</span>
                     </div>
-                    <p class="text-muted">Loading accounts...</p>
+                    <p class="text-muted">@L["Dashboard_LoadingAccounts"]</p>
                 </div>
             </div>
         }
@@ -39,10 +43,10 @@
             <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
                 <div class="text-center">
                     <i class="bi bi-rocket-takeoff display-1 text-primary mb-3"></i>
-                    <h4 class="mb-3">Get started</h4>
-                    <p class="text-muted mb-4">Set the starting balances for your accounts to begin tracking your finances.</p>
+                    <h4 class="mb-3">@L["Dashboard_GetStarted_Title"]</h4>
+                    <p class="text-muted mb-4">@L["Dashboard_GetStarted_Description"]</p>
                     <button class="btn btn-success btn-lg" @onclick="GoToOpeningBalance">
-                        <i class="bi bi-play-circle me-2"></i>Get started
+                        <i class="bi bi-play-circle me-2"></i>@L["Dashboard_GetStarted_Action"]
                     </button>
                 </div>
             </div>
@@ -53,82 +57,85 @@
                 <div class="col-12 col-lg-7">
                     <QuickEntryCard Title="@Specs[QuickEntryType.Expense].Title"
                                     Subtitle="@Specs[QuickEntryType.Expense].Hint"
+                                    Type="@QuickEntryType.Expense"
                                     IsActive="@(_activeEntry == QuickEntryType.Expense)"
                                     OnHeaderClick="@(() => SetActive(QuickEntryType.Expense))">
                         <QuickEntryDrawer Mode="@(_activeEntry ?? QuickEntryType.Expense)"
-                                    Specs="Specs" 
-                                    Accounts="_accounts"
-                                    Payees="_payees"
-                                    SelectedFromAccountId="_selectedFromAccountId"
-                                    SelectedToAccountId="_selectedToAccountId"
-                                    OnTransactionCreated="OnTransactionCreatedAsync"
-                                    OnClearSelection="ClearSelection"
-                                    OnSwapAccounts="SwapTransferAccounts" />
+                                          Specs="Specs"
+                                          Accounts="_accounts"
+                                          Payees="_payees"
+                                          SelectedFromAccountId="_selectedFromAccountId"
+                                          SelectedToAccountId="_selectedToAccountId"
+                                          OnTransactionCreated="OnTransactionCreatedAsync"
+                                          OnClearSelection="ClearSelection"
+                                          OnSwapAccounts="SwapTransferAccounts" />
 
                         <div class="mt-3">
                             <small class="text-muted">
                                 <i class="bi bi-info-circle me-1"></i>
-                                Click an Asset/Liability to set <strong>Paid from</strong>, then click an Expense to set <strong>Category</strong>.
+                                @L["Dashboard_QuickEntryHint_Expense"]
                             </small>
                         </div>
                     </QuickEntryCard>
 
                     <QuickEntryCard Title="@Specs[QuickEntryType.Income].Title"
                                     Subtitle="@Specs[QuickEntryType.Income].Hint"
+                                    Type="@QuickEntryType.Income"
                                     IsActive="@(_activeEntry == QuickEntryType.Income)"
                                     OnHeaderClick="@(() => SetActive(QuickEntryType.Income))">
                         <QuickEntryDrawer Mode="@(_activeEntry ?? QuickEntryType.Income)"
-                                        Specs="Specs" 
-                                        Accounts="_accounts"
-                                        Payees="_payees"
-                                        SelectedFromAccountId="_incomeFromSourceId"
-                                        SelectedToAccountId="_incomeToAssetId"
-                                        OnTransactionCreated="OnTransactionCreatedAsync"
-                                        OnClearSelection="ClearSelection"
-                                        OnSwapAccounts="SwapTransferAccounts" />
+                                          Specs="Specs"
+                                          Accounts="_accounts"
+                                          Payees="_payees"
+                                          SelectedFromAccountId="_incomeFromSourceId"
+                                          SelectedToAccountId="_incomeToAssetId"
+                                          OnTransactionCreated="OnTransactionCreatedAsync"
+                                          OnClearSelection="ClearSelection"
+                                          OnSwapAccounts="SwapTransferAccounts" />
                     </QuickEntryCard>
 
                     <QuickEntryCard Title="@Specs[QuickEntryType.Transfer].Title"
                                     Subtitle="@Specs[QuickEntryType.Transfer].Hint"
+                                    Type="@QuickEntryType.Transfer"
                                     IsActive="@(_activeEntry == QuickEntryType.Transfer)"
                                     OnHeaderClick="@(() => SetActive(QuickEntryType.Transfer))">
                         <QuickEntryDrawer Mode="@(_activeEntry ?? QuickEntryType.Transfer)"
-                                        Specs="Specs"
-                                        Accounts="_accounts"
-                                        Payees="_payees"
-                                        SelectedFromAccountId="_transferFromAssetId"
-                                        SelectedToAccountId="_transferToAssetId"
-                                        OnTransactionCreated="OnTransactionCreatedAsync"
-                                        OnClearSelection="ClearSelection"
-                                        OnSwapAccounts="SwapTransferAccounts" />
+                                          Specs="Specs"
+                                          Accounts="_accounts"
+                                          Payees="_payees"
+                                          SelectedFromAccountId="_transferFromAssetId"
+                                          SelectedToAccountId="_transferToAssetId"
+                                          OnTransactionCreated="OnTransactionCreatedAsync"
+                                          OnClearSelection="ClearSelection"
+                                          OnSwapAccounts="SwapTransferAccounts" />
                     </QuickEntryCard>
 
                     <QuickEntryCard Title="@Specs[QuickEntryType.Refund].Title"
                                     Subtitle="@Specs[QuickEntryType.Refund].Hint"
+                                    Type="@QuickEntryType.Refund"
                                     IsActive="@(_activeEntry == QuickEntryType.Refund)"
                                     OnHeaderClick="@(() => SetActive(QuickEntryType.Refund))">
                         <QuickEntryDrawer Mode="@(_activeEntry ?? QuickEntryType.Refund)"
-                                        Specs="Specs"
-                                        Accounts="_accounts"
-                                        Payees="_payees"
-                                        SelectedFromAccountId="_refundFromExpenseId"
-                                        SelectedToAccountId="_refundToAssetId"
-                                        OnTransactionCreated="OnTransactionCreatedAsync"
-                                        OnClearSelection="ClearSelection"
-                                        OnSwapAccounts="SwapTransferAccounts" />
+                                          Specs="Specs"
+                                          Accounts="_accounts"
+                                          Payees="_payees"
+                                          SelectedFromAccountId="_refundFromExpenseId"
+                                          SelectedToAccountId="_refundToAssetId"
+                                          OnTransactionCreated="OnTransactionCreatedAsync"
+                                          OnClearSelection="ClearSelection"
+                                          OnSwapAccounts="SwapTransferAccounts" />
                     </QuickEntryCard>
 
-                    <!-- Multi-Split Widgets -->
-                    <MortgagePaymentWidget Accounts="_accounts" 
-                                          IsExpanded="@(_expandedWidget == "mortgage")"
-                                          OnToggle="OnWidgetToggle"
-                                          OnTransactionCreated="OnWidgetTransactionCreatedAsync" />
-                    
-                    <MultiSplitWidget Accounts="_accounts" 
-                                     Payees="_payees"
-                                     IsExpanded="@(_expandedWidget == "multisplit")"
-                                     OnToggle="OnWidgetToggle"
-                                     OnTransactionCreated="OnWidgetTransactionCreatedAsync" />
+                    <MortgagePaymentWidget Accounts="_accounts"
+                                           IsExpanded="@(_expandedWidget == "mortgage")"
+                                           OnToggle="OnWidgetToggle"
+                                           OnTransactionCreated="OnWidgetTransactionCreatedAsync" />
+
+                    <MultiSplitWidget Accounts="_accounts"
+                                      Payees="_payees"
+                                      IsExpanded="@(_expandedWidget == "multisplit")"
+                                      OnToggle="OnWidgetToggle"
+                                      OnTransactionCreated="OnWidgetTransactionCreatedAsync" />
                 </div>
 
                 <div class="col-12 col-lg-5">
@@ -143,7 +150,7 @@
                             <div class="card-header @GetNatureHeaderClass(nature)">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <h6 class="mb-0 @GetNatureTextClass(nature)">
-                                        <i class="@GetNatureIcon(nature) me-2"></i>@nature
+                                        <i class="@GetNatureIcon(nature) me-2"></i>@GetNatureLabel(nature)
                                     </h6>
                                     <span class="badge @GetNatureCountBadgeClass(nature)">@items.Count</span>
                                 </div>
@@ -153,10 +160,10 @@
                                 @if (items.Count > 8)
                                 {
                                     <div class="p-2 border-bottom">
-                                        <input type="text" 
-                                               class="form-control form-control-sm" 
-                                               placeholder="Search @nature.ToString().ToLower() accounts..."
-                                               @bind="_accountSearchQueries[nature]" 
+                                        <input type="text"
+                                               class="form-control form-control-sm"
+                                               placeholder="@L["Dashboard_SearchAccountsPlaceholder", GetNatureLabel(nature).ToLower(CultureInfo.CurrentCulture)]"
+                                               @bind="_accountSearchQueries[nature]"
                                                @bind:event="oninput" />
                                     </div>
                                 }
@@ -176,13 +183,13 @@
                                             @if (isSelectedFrom)
                                             {
                                                 <span class="badge bg-warning text-dark">
-                                                    <i class="bi bi-arrow-up-right me-1"></i>From
+                                                    <i class="bi bi-arrow-up-right me-1"></i>@L["Dashboard_FromBadge"]
                                                 </span>
                                             }
                                             else if (isSelectedTo)
                                             {
                                                 <span class="badge bg-success">
-                                                    <i class="bi bi-arrow-down-left me-1"></i>To
+                                                    <i class="bi bi-arrow-down-left me-1"></i>@L["Dashboard_ToBadge"]
                                                 </span>
                                             }
                                         </button>
@@ -200,10 +207,10 @@
         <div class="card shadow-sm">
             <div class="card-body text-center py-5">
                 <i class="bi bi-shield-lock display-1 text-muted mb-3"></i>
-                <h5 class="text-muted">Authentication Required</h5>
-                <p class="text-muted">You must be logged in to access the dashboard.</p>
+                <h5 class="text-muted">@L["Dashboard_AuthenticationRequired"]</h5>
+                <p class="text-muted">@L["Dashboard_MustLogin"]</p>
                 <a class="btn btn-primary mt-3" href="/login">
-                    <i class="bi bi-box-arrow-in-right me-1"></i>Login
+                    <i class="bi bi-box-arrow-in-right me-1"></i>@L["Common_Login"]
                 </a>
             </div>
         </div>
@@ -232,14 +239,19 @@
     private Guid? _refundFromExpenseId;
     private Guid? _refundToAssetId;
 
-    private Dictionary<AccountNature, string> _accountSearchQueries = new()
+    private readonly Dictionary<AccountNature, string> _accountSearchQueries = new()
     {
         { AccountNature.Asset, "" },
         { AccountNature.Liability, "" },
         { AccountNature.Expense, "" },
         { AccountNature.Income, "" }
     };
+
     private string? _expandedWidget;
+
+    private Dictionary<QuickEntryType, QuickEntrySpec> _specs = new();
+    private Dictionary<QuickEntryType, QuickEntrySpec> Specs => _specs;
+
     private void GoToOpeningBalance() => Nav.NavigateTo("/opening-balance");
 
     private static readonly AccountNature[] _natureOrder =
@@ -247,11 +259,13 @@
         AccountNature.Asset,
         AccountNature.Liability,
         AccountNature.Expense,
-        AccountNature.Income    
+        AccountNature.Income
     ];
 
     protected override async Task OnInitializedAsync()
     {
+        _specs = BuildSpecs();
+
         await ExecuteApiAsync(async ct =>
         {
             var allAccounts = await AccountsApi.ListAsync(ct);
@@ -260,16 +274,62 @@
                 .ToList();
 
             _payees = await PayeesApi.ListAsync(ct);
-            
+
             _hasAnyTransactions = await TransactionsApi.HasAnyAsync(ct);
         });
+    }
+
+    private Dictionary<QuickEntryType, QuickEntrySpec> BuildSpecs()
+    {
+        return new Dictionary<QuickEntryType, QuickEntrySpec>
+        {
+            [QuickEntryType.Expense] = new(
+                Title: L["QuickEntry_Expense_Title"],
+                Hint: L["QuickEntry_Expense_Hint"],
+                FromAllowed: new() { AccountNature.Asset, AccountNature.Liability },
+                ToAllowed: new() { AccountNature.Expense },
+                ReplaceToWhenBothSelected: false),
+
+            [QuickEntryType.Income] = new(
+                Title: L["QuickEntry_Income_Title"],
+                Hint: L["QuickEntry_Income_Hint"],
+                FromAllowed: new() { AccountNature.Income },
+                ToAllowed: new() { AccountNature.Asset },
+                ReplaceToWhenBothSelected: false),
+
+            [QuickEntryType.Transfer] = new(
+                Title: L["QuickEntry_Transfer_Title"],
+                Hint: L["QuickEntry_Transfer_Hint"],
+                FromAllowed: new() { AccountNature.Asset, AccountNature.Liability },
+                ToAllowed: new() { AccountNature.Asset, AccountNature.Liability },
+                ReplaceToWhenBothSelected: true),
+
+            [QuickEntryType.Refund] = new(
+                Title: L["QuickEntry_Refund_Title"],
+                Hint: L["QuickEntry_Refund_Hint"],
+                FromAllowed: new() { AccountNature.Expense },
+                ToAllowed: new() { AccountNature.Asset, AccountNature.Liability },
+                ReplaceToWhenBothSelected: false),
+        };
+    }
+
+    private string GetNatureLabel(AccountNature nature)
+    {
+        return nature switch
+        {
+            AccountNature.Asset => L["Dashboard_Nature_Asset"].Value,
+            AccountNature.Liability => L["Dashboard_Nature_Liability"].Value,
+            AccountNature.Expense => L["Dashboard_Nature_Expense"].Value,
+            AccountNature.Income => L["Dashboard_Nature_Income"].Value,
+            _ => nature.ToString()
+        };
     }
 
     private void OnAccountClicked(AccountDto account)
     {
         if (!_activeEntry.HasValue)
             return;
-            
+
         var spec = Specs[_activeEntry.Value];
 
         var canBeFrom = spec.FromAllowed.Contains(account.Nature);
@@ -301,7 +361,7 @@
     {
         if (!_activeEntry.HasValue)
             return;
-            
+
         switch (_activeEntry.Value)
         {
             case QuickEntryType.Expense:
@@ -330,7 +390,7 @@
     {
         if (!_activeEntry.HasValue)
             return;
-            
+
         switch (_activeEntry.Value)
         {
             case QuickEntryType.Expense:
@@ -373,12 +433,11 @@
         }
     }
 
-
     private Task OnTransactionCreatedAsync()
     {
         if (!_activeEntry.HasValue)
             return Task.CompletedTask;
-            
+
         switch (_activeEntry.Value)
         {
             case QuickEntryType.Expense:
@@ -404,20 +463,17 @@
 
     private Task OnWidgetTransactionCreatedAsync()
     {
-        // Widgets don't interact with QuickEntry state
         StateHasChanged();
         return Task.CompletedTask;
     }
 
     private void OnWidgetToggle(string widgetName)
     {
-        // Close QuickEntry when a widget is opened
         if (_expandedWidget != widgetName)
         {
             _activeEntry = null;
         }
-        
-        // Toggle widget: close if same, open if different
+
         _expandedWidget = _expandedWidget == widgetName ? null : widgetName;
         StateHasChanged();
     }
@@ -453,10 +509,7 @@
     private void SetActive(QuickEntryType type)
     {
         _activeEntry = type;
-        
-        // Close any open widget when a QuickEntry is opened
         _expandedWidget = null;
-        
         SyncSelectionForActiveEntry();
     }
 
@@ -464,7 +517,7 @@
     {
         if (!_activeEntry.HasValue)
             return;
-            
+
         switch (_activeEntry.Value)
         {
             case QuickEntryType.Expense:
@@ -507,10 +560,10 @@
     private IReadOnlyList<AccountDto> GetFilteredAccounts(AccountNature nature, IReadOnlyList<AccountDto> accounts)
     {
         var searchQuery = _accountSearchQueries[nature];
-        
+
         if (string.IsNullOrWhiteSpace(searchQuery))
             return accounts;
-        
+
         return accounts
             .Where(a => a.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase))
             .ToList();
@@ -568,36 +621,5 @@
         AccountNature.Expense => "bi-arrow-up-circle",
         AccountNature.Income => "bi-arrow-down-circle",
         _ => "bi-wallet2"
-    };
-
-    private static readonly Dictionary<QuickEntryType, QuickEntrySpec> Specs = new()
-    {
-        [QuickEntryType.Expense] = new(
-            Title: "Expense",
-            Hint: "Select an account and an expense category",
-            FromAllowed: new() { AccountNature.Asset, AccountNature.Liability },
-            ToAllowed: new() { AccountNature.Expense },
-            ReplaceToWhenBothSelected: false),
-
-        [QuickEntryType.Income] = new(
-            Title: "Income",
-            Hint: "Select an income source and a destination account",
-            FromAllowed: new() { AccountNature.Income },
-            ToAllowed: new() { AccountNature.Asset },
-            ReplaceToWhenBothSelected: false),
-
-        [QuickEntryType.Transfer] = new(
-            Title: "Transfer",
-            Hint: "Select two accounts to move money between them",
-            FromAllowed: new() { AccountNature.Asset, AccountNature.Liability },
-            ToAllowed: new() { AccountNature.Asset, AccountNature.Liability},
-            ReplaceToWhenBothSelected: true),
-
-        [QuickEntryType.Refund] = new(
-            Title: "Refund",
-            Hint: "Select an expense category and destination account",
-            FromAllowed: new() { AccountNature.Expense },
-            ToAllowed: new() { AccountNature.Asset, AccountNature.Liability },
-            ReplaceToWhenBothSelected: false),
     };
 }

@@ -6,20 +6,23 @@
 @using FamilyFinances.Web.Features.Reports
 @using FamilyFinances.Web.Features.Reports.Export
 @using FamilyFinances.Web.Features.Reports.Charts
+@using Microsoft.Extensions.Localization
+@using FamilyFinances.Web
 @using Microsoft.JSInterop
 @inherits ApiPageBase
 
 @inject ReportsApi ReportsApi
 @inject IJSRuntime JS
+@inject IStringLocalizer<SharedResource> L
 
 <div class="card shadow-sm mb-4">
     <div class="card-body">
         <div class="row g-3 align-items-end">
             <div class="col-12 col-md-4">
                 <label class="form-label fw-semibold">
-                    <i class="bi bi-calendar3 me-1"></i>Year
+                    <i class="bi bi-calendar3 me-1"></i>@L["Reports_Year"]
                 </label>
-                <select class="form-select" aria-label="Year" value="@_selectedYear" @onchange="OnYearChangedAsync" disabled="@_isLoading">
+                <select class="form-select" aria-label="@L["Reports_Year"]" value="@_selectedYear" @onchange="OnYearChangedAsync" disabled="@_isLoading">
                     @foreach (var year in _yearOptions)
                     {
                         <option value="@year">@year</option>
@@ -28,10 +31,10 @@
             </div>
             <div class="col-12 col-md-4">
                 <label class="form-label fw-semibold">
-                    <i class="bi bi-calendar-month me-1"></i>Focused Month
+                    <i class="bi bi-calendar-month me-1"></i>@L["Reports_FocusedMonth"]
                 </label>
                 <select class="form-select asset-focused-month-select"
-                        aria-label="Focused Month"
+                        aria-label="@L["Reports_FocusedMonth"]"
                         data-testid="economic-state-asset-focused-month"
                         value="@_focusedMonth"
                         @onchange="OnFocusedMonthChangedAsync"
@@ -57,14 +60,14 @@
 @if (_isLoading)
 {
     <ReportingChartLoadingState
-        Title="Loading asset evolution"
-        Description="Loading report data..." />
+        Title="@L["AssetEvolution_LoadingTitle"]"
+        Description="@L["Reports_LoadingData"]" />
 }
 else if (_report is not null && _report.Series.Count == 0)
 {
     <ReportingChartEmptyState
-        Title="Asset evolution"
-        Description="No evolution data for selected year." />
+        Title="@L["EconomicState_Tab_AssetEvolution"]"
+        Description="@L["Reports_NoEvolutionDataForYear"]" />
 }
 else if (_report is not null)
 {
@@ -79,7 +82,7 @@ else if (_report is not null)
         <div class="col-12 col-md-4">
             <div class="card shadow-sm h-100 border-start border-primary border-4">
                 <div class="card-body">
-                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Latest @_assetBalanceMetric.CanonicalName</h6>
+                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@L["Reports_LatestMetric", _assetBalanceMetric.CanonicalName]</h6>
                     <h4 class="mb-0 @MoneyFormatter.GetColorClass(latestEndBalance)">
                         @MoneyFormatter.FormatCentsWithSign(latestEndBalance)
                     </h4>
@@ -89,7 +92,7 @@ else if (_report is not null)
         <div class="col-12 col-md-4">
             <div class="card shadow-sm h-100">
                 <div class="card-body">
-                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Latest @_assetBalanceMetric.CanonicalName @_deltaPrevMetric.CanonicalName</h6>
+                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@L["Reports_LatestMetric", $"{_assetBalanceMetric.CanonicalName} {_deltaPrevMetric.CanonicalName}"]</h6>
                     <h4 class="mb-0 @MoneyFormatter.GetColorClass(latestDeltaPrev)">
                         @MoneyFormatter.FormatCentsWithSign(latestDeltaPrev)
                     </h4>
@@ -99,7 +102,7 @@ else if (_report is not null)
         <div class="col-12 col-md-4">
             <div class="card shadow-sm h-100">
                 <div class="card-body">
-                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Latest @_assetBalanceMetric.CanonicalName @_deltaYearStartMetric.CanonicalName</h6>
+                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@L["Reports_LatestMetric", $"{_assetBalanceMetric.CanonicalName} {_deltaYearStartMetric.CanonicalName}"]</h6>
                     <h4 class="mb-0 @MoneyFormatter.GetColorClass(latestDeltaYearStart)">
                         @MoneyFormatter.FormatCentsWithSign(latestDeltaYearStart)
                     </h4>
@@ -110,7 +113,7 @@ else if (_report is not null)
 
     <div class="alert alert-info mb-4" role="alert">
         <i class="bi bi-info-circle me-2"></i>
-        Asset balance and deltas are stock metrics.
+        @L["AssetEvolution_StockMetricsHint"]
     </div>
 
     <div class="row g-3 mb-4 asset-total-overview-grid economic-state-two-col-grid">
@@ -119,20 +122,20 @@ else if (_report is not null)
                 <div class="card-header bg-transparent">
                     <div class="d-flex justify-content-between align-items-center gap-3">
                         <h5 class="mb-0">
-                            <i class="bi bi-list-ul me-2"></i>Asset Total (Monthly Overview)
+                            <i class="bi bi-list-ul me-2"></i>@L["AssetEvolution_MonthlyOverview"]
                         </h5>
                         <div class="d-flex align-items-center gap-2">
                             <button type="button"
                                     class="btn btn-sm btn-outline-secondary report-export-button"
                                     @onclick="ExportMonthlyOverviewCsvAsync"
                                     data-testid="economic-state-asset-overview-export-csv"
-                                    aria-label="Export asset monthly overview as CSV">
-                                <i class="bi bi-download me-1"></i>Export
+                                    aria-label="@L["Reports_AriaExportCsv"]">
+                                <i class="bi bi-download me-1"></i>@L["Reports_Export"]
                             </button>
                             @if (dataUntilMonth is not null)
                             {
                                 <span class="badge text-bg-secondary">
-                                    Current month: @DateHelper.GetMonthName(dataUntilMonth.Value)
+                                    @L["Reports_CurrentMonth", DateHelper.GetMonthName(dataUntilMonth.Value)]
                                 </span>
                             }
                         </div>
@@ -143,10 +146,10 @@ else if (_report is not null)
                         <table class="table table-sm table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th class="border-0 ps-3">Month</th>
-                                    <th class="border-0 text-end">End Balance</th>
-                                    <th class="border-0 text-end">Delta Prev Month</th>
-                                    <th class="border-0 text-end pe-3">Delta Year Start</th>
+                                    <th class="border-0 ps-3">@L["Reports_Month"]</th>
+                                    <th class="border-0 text-end">@L["Reports_EndBalance"]</th>
+                                    <th class="border-0 text-end">@L["Reports_DeltaPrevMonth"]</th>
+                                    <th class="border-0 text-end pe-3">@L["Reports_DeltaYearStart"]</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -160,7 +163,7 @@ else if (_report is not null)
                                             @DateHelper.GetMonthName(point.Month)
                                             @if (isCurrentMonth)
                                             {
-                                                <span class="badge rounded-pill text-bg-primary ms-2">Current</span>
+                                                <span class="badge rounded-pill text-bg-primary ms-2">@L["Reports_Current"]</span>
                                             }
                                         </td>
                                         <td class="text-end @MoneyFormatter.GetColorClass(point.EndBalanceCents)">
@@ -186,8 +189,8 @@ else if (_report is not null)
                     @if (_isMonthlyChartLoading)
                     {
                         <ReportingChartLoadingState
-                            Title="Loading month-focused asset chart"
-                            Description="Loading daily points..." />
+                            Title="@L["AssetEvolution_LoadingMonthFocusedAsset"]"
+                            Description="@L["Reports_LoadingDailyPoints"]" />
                     }
                     else if (!string.IsNullOrWhiteSpace(_monthlyChartError))
                     {
@@ -196,14 +199,14 @@ else if (_report is not null)
                     else if (_monthlyBalanceChart is null || _monthlyBalanceChart.Points.Count == 0 || monthlyChartSeries.Count == 0)
                     {
                         <ReportingChartEmptyState
-                            Title="Month-focused Asset Evolution"
-                            Description="No daily points are available for the selected month." />
+                            Title="@L["AssetEvolution_MonthFocusedTitle"]"
+                            Description="@L["Reports_NoDailyPointsForMonth"]" />
                     }
                     else
                     {
                         <MonthlyLineChart
-                            Title="Month-focused Asset Evolution"
-                            Subtitle="@($"Daily end balance for {focusedMonthLabel} {_selectedYear} (no-activity days carry forward).")"
+                            Title="@L["AssetEvolution_MonthFocusedTitle"]"
+                            Subtitle="@L["AssetEvolution_MonthFocusedSubtitle", focusedMonthLabel, _selectedYear]"
                             Year="@_selectedYear"
                             Month="@_focusedMonth"
                             YTickMaxTicks="5"
@@ -219,14 +222,14 @@ else if (_report is not null)
                     else if (charts.AssetEndBalanceEvolution.Count == 0)
                     {
                         <ReportingChartEmptyState
-                            Title="Asset Total Evolution"
-                            Description="No chart points are available for the selected filters." />
+                            Title="@L["AssetEvolution_AnnualTitle"]"
+                            Description="@L["Reports_NoChartPointsForFilters"]" />
                     }
                     else
                     {
                         <AnnualLineChart
-                            Title="Asset Total Evolution"
-                            Subtitle="Final balance by month (current month uses latest available data)."
+                            Title="@L["AssetEvolution_AnnualTitle"]"
+                            Subtitle="@L["AssetEvolution_AnnualSubtitle"]"
                             Year="@_selectedYear"
                             Series="@charts.AssetEndBalanceEvolution"
                             DataUntilMonth="@dataUntilMonth"
@@ -243,7 +246,7 @@ else
     <div class="card shadow-sm">
         <div class="card-body text-center py-5">
             <i class="bi bi-graph-up display-4 text-muted mb-3"></i>
-            <h5 class="text-muted">Select year to load asset evolution.</h5>
+            <h5 class="text-muted">@L["AssetEvolution_SelectYearHint"]</h5>
         </div>
     </div>
 }
@@ -312,11 +315,11 @@ else
         }
         catch (UnauthorizedAccessException)
         {
-            _error = "You are not authorized to view this report. Please log in again.";
+            _error = L["Reports_Error_Unauthorized"];
         }
         catch (Exception ex)
         {
-            _error = $"Failed to load report: {ex.Message}";
+            _error = L["Reports_Error_LoadFailed", ex.Message];
         }
         finally
         {
@@ -337,11 +340,11 @@ else
         }
         catch (UnauthorizedAccessException)
         {
-            _monthlyChartError = "You are not authorized to view month-focused charts. Please log in again.";
+            _monthlyChartError = L["Reports_Error_Unauthorized"];
         }
         catch (Exception ex)
         {
-            _monthlyChartError = $"Failed to load month-focused chart: {ex.Message}";
+            _monthlyChartError = L["Reports_Error_LoadMonthFocusedChart", ex.Message];
         }
         finally
         {
@@ -453,7 +456,7 @@ else
         }
         catch (Exception ex)
         {
-            return new ChartsViewModel(Array.Empty<AnnualChartSeries>(), $"Failed to build chart datasets: {ex.Message}");
+            return new ChartsViewModel(Array.Empty<AnnualChartSeries>(), L["Reports_Error_BuildChartDataset", ex.Message]);
         }
     }
 
@@ -465,7 +468,7 @@ else
         return MonthlyChartDatasetAdapter.BuildSingleSeries(
             _monthlyBalanceChart,
             key: "asset-total-monthly",
-            label: "End Balance");
+            label: L["Reports_EndBalance"]);
     }
 
     private async Task ExportMonthlyOverviewCsvAsync()
@@ -490,13 +493,13 @@ else
             .ToList();
 
         var csv = ReportCsvBuilder.Build(
-            reportName: "Asset Total Evolution",
+            reportName: L["AssetEvolution_AnnualTitle"],
             context: new Dictionary<string, string?>
             {
-                ["Year"] = _selectedYear.ToString(),
-                ["Focused Month"] = DateHelper.GetMonthName(_focusedMonth)
+                [L["Reports_Year"]] = _selectedYear.ToString(),
+                [L["Reports_FocusedMonth"]] = DateHelper.GetMonthName(_focusedMonth)
             },
-            headers: ["Month", "End Balance", "Delta Prev Month", "Delta Year Start"],
+            headers: [L["Reports_Month"], L["Reports_EndBalance"], L["Reports_DeltaPrevMonth"], L["Reports_DeltaYearStart"]],
             rows: rows);
 
         try
@@ -506,7 +509,7 @@ else
         }
         catch (Exception ex)
         {
-            _error = $"Failed to export CSV: {ex.Message}";
+            _error = L["Reports_Error_ExportCsvFailed", ex.Message];
         }
     }
 

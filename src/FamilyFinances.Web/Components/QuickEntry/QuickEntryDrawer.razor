@@ -6,42 +6,45 @@
 @using FamilyFinances.Application.Ledger.Payees.Dtos
 @using FamilyFinances.Application.Ledger.Transactions.Dtos
 @using FamilyFinances.Domain.Ledger.Accounts
+@using FamilyFinances.Web
 @using FamilyFinances.Web.Components.Dashboard
+@using FamilyFinances.Web.Components.Shared
 @using FamilyFinances.Web.Features.Reports
 @using FamilyFinances.Web.Features.Transactions
-@using FamilyFinances.Web.Components.Shared
+@using Microsoft.Extensions.Localization
 @inject FamilyFinances.Web.Api.TransactionsApi TransactionsApi
+@inject IStringLocalizer<SharedResource> L
 
 <div class="mb-3 p-3 bg-light rounded border">
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
         <div class="flex-grow-1">
             <small class="text-muted d-block">
                 <i class="bi bi-arrow-up-right me-1"></i>
-                <strong>From:</strong> <span class="text-body">@(FromAccountName ?? "—")</span>
+                <strong>@L["QuickEntryDrawer_From"]:</strong> <span class="text-body">@(FromAccountName ?? "-")</span>
             </small>
             <small class="text-muted d-block">
                 <i class="bi bi-arrow-down-left me-1"></i>
-                <strong>To:</strong> <span class="text-body">@(ToAccountName ?? "—")</span>
+                <strong>@L["QuickEntryDrawer_To"]:</strong> <span class="text-body">@(ToAccountName ?? "-")</span>
             </small>
         </div>
 
         <div class="d-flex gap-2">
             @if (Mode == QuickEntryType.Transfer)
             {
-                <button type="button" 
-                        class="btn btn-sm btn-outline-primary" 
+                <button type="button"
+                        class="btn btn-sm btn-outline-primary"
                         @onclick="SwapAccountsClicked"
                         disabled="@(SelectedFromAccountId is null || SelectedToAccountId is null)"
-                        title="Swap accounts">
-                    <i class="bi bi-arrow-left-right me-1"></i>Swap
+                        title="@L["QuickEntryDrawer_SwapAccounts"]">
+                    <i class="bi bi-arrow-left-right me-1"></i>@L["QuickEntryDrawer_SwapAccounts"]
                 </button>
             }
-            
-            <button type="button" 
-                    class="btn btn-sm btn-outline-secondary" 
+
+            <button type="button"
+                    class="btn btn-sm btn-outline-secondary"
                     @onclick="ClearSelectionClicked"
-                    title="Clear selection">
-                <i class="bi bi-x-circle me-1"></i>Clear
+                    title="@L["QuickEntryDrawer_ClearSelection"]">
+                <i class="bi bi-x-circle me-1"></i>@L["QuickEntryDrawer_ClearSelection"]
             </button>
         </div>
     </div>
@@ -69,35 +72,35 @@
     <div class="row g-3">
         <div class="col-md-4">
             <label class="form-label">
-                <i class="bi bi-calendar-event me-1"></i>Date
+                <i class="bi bi-calendar-event me-1"></i>@L["QuickEntryDrawer_Date"]
             </label>
             <InputDate class="form-control" @bind-Value="_model.BookedOn" @bind-Value:after="ValidateForm" />
         </div>
 
         <div class="col-md-8">
             <label class="form-label">
-                <i class="bi bi-pencil me-1"></i>Description
+                <i class="bi bi-pencil me-1"></i>@L["QuickEntryDrawer_Description"]
             </label>
-            <input type="text" 
-                   class="form-control" 
-                   placeholder="Enter description"
-                   @bind="_model.Description" 
+            <input type="text"
+                   class="form-control"
+                   placeholder="@L["QuickEntryDrawer_DescriptionPlaceholder"]"
+                   @bind="_model.Description"
                    @bind:event="oninput"
                    @bind:after="ValidateForm" />
         </div>
 
         <div class="col-md-4">
             <label class="form-label">
-                <i class="bi bi-currency-euro me-1"></i>Amount
+                <i class="bi bi-currency-euro me-1"></i>@L["QuickEntryDrawer_Amount"]
             </label>
             <div class="input-group">
-                <input type="text" 
-                       class="form-control" 
-                       placeholder="0.00"
-                       @bind="_amountText" 
+                <input type="text"
+                       class="form-control"
+                       placeholder="@L["QuickEntryDrawer_AmountPlaceholder"]"
+                       @bind="_amountText"
                        @bind:event="oninput"
                        @bind:after="OnAmountChanged" />
-                <span class="input-group-text">€</span>
+                <span class="input-group-text">&euro;</span>
             </div>
         </div>
 
@@ -105,9 +108,9 @@
         {
             <div class="col-md-8">
                 <PayeeSelector @bind-SelectedPayeeId="_model.PayeeId"
-                              IsRequired="false"
-                              IsDisabled="@_isBusy"
-                              @bind-SelectedPayeeId:after="OnPayeeChanged" />
+                               IsRequired="false"
+                               IsDisabled="@_isBusy"
+                               @bind-SelectedPayeeId:after="OnPayeeChanged" />
             </div>
         }
 
@@ -118,20 +121,20 @@
                     <div class="card-header bg-secondary-subtle" style="cursor: pointer;" @onclick="ToggleExpenseSearch">
                         <small class="text-muted">
                             <i class="bi bi-link-45deg me-1"></i>
-                            <strong>Link to original expense (optional)</strong>
+                            <strong>@L["QuickEntryDrawer_LinkOriginalExpense"]</strong>
                             <i class="bi @(_showExpenseSearch ? "bi-chevron-up" : "bi-chevron-down") float-end"></i>
                         </small>
                     </div>
                     @if (_showExpenseSearch)
                     {
                         <div class="card-body">
-                            <input type="text" 
-                                   class="form-control mb-2" 
-                                   placeholder="Search by payee, description, or expense account..."
-                                   @bind="_expenseSearchQuery" 
+                            <input type="text"
+                                   class="form-control mb-2"
+                                   placeholder="@L["QuickEntryDrawer_SearchExpensesPlaceholder"]"
+                                   @bind="_expenseSearchQuery"
                                    @bind:event="oninput"
                                    @bind:after="SearchExpensesAsync" />
-                            
+
                             @if (_isSearching)
                             {
                                 <div class="text-center py-2">
@@ -143,17 +146,17 @@
                                 <div class="list-group">
                                     @foreach (var expense in _expenseSearchResults)
                                     {
-                                        <button type="button" 
+                                        <button type="button"
                                                 class="list-group-item list-group-item-action @(_model.RelatedTransactionId == expense.Id ? "active" : "")"
                                                 @onclick="() => SelectExpense(expense)">
                                             <div class="d-flex justify-content-between align-items-start">
                                                 <div class="flex-grow-1">
                                                     <strong>@expense.Description</strong>
                                                     <small class="d-block text-muted">
-                                                        @expense.BookedOn.ToString("MMM dd, yyyy")
+                                                        @expense.BookedOn.ToString("MMM dd, yyyy", CultureInfo.CurrentCulture)
                                                         @if (!string.IsNullOrWhiteSpace(expense.PayeeName))
                                                         {
-                                                            <span> • @expense.PayeeName</span>
+                                                            <span> - @expense.PayeeName</span>
                                                         }
                                                         <br />
                                                         <i class="bi bi-tag me-1"></i>@expense.ExpenseAccountName
@@ -169,15 +172,15 @@
                             {
                                 <div class="alert alert-info mb-0">
                                     <i class="bi bi-info-circle me-2"></i>
-                                    <small>No expenses found matching your search.</small>
+                                    <small>@L["QuickEntryDrawer_NoExpensesFound"]</small>
                                 </div>
                             }
-                            
+
                             @if (_model.RelatedTransactionId is not null)
                             {
                                 <div class="mt-2">
                                     <button type="button" class="btn btn-sm btn-outline-danger" @onclick="ClearExpenseLink">
-                                        <i class="bi bi-x-circle me-1"></i>Clear link
+                                        <i class="bi bi-x-circle me-1"></i>@L["QuickEntryDrawer_ClearLink"]
                                     </button>
                                 </div>
                             }
@@ -199,7 +202,7 @@
         <div class="form-check">
             <InputCheckbox class="form-check-input" id="@_checkboxId" @bind-Value="_model.KeepSource" />
             <label class="form-check-label" for="@_checkboxId">
-                <i class="bi bi-pin me-1"></i>Keep source account
+                <i class="bi bi-pin me-1"></i>@L["QuickEntryDrawer_KeepSourceAccount"]
             </label>
         </div>
 
@@ -212,7 +215,7 @@
             {
                 <i class="bi bi-plus-circle me-1"></i>
             }
-            Create Transaction
+            @L["QuickEntryDrawer_CreateTransaction"]
         </button>
     </div>
 </EditForm>
@@ -227,7 +230,7 @@
     [Parameter] public EventCallback OnTransactionCreated { get; set; }
     [Parameter] public EventCallback OnClearSelection { get; set; }
     [Parameter] public EventCallback OnSwapAccounts { get; set; }
-    
+
     [Parameter] public QuickEntryType Mode { get; set; }
 
     [Parameter] public required Dictionary<QuickEntryType, QuickEntrySpec> Specs { get; set; }
@@ -238,7 +241,7 @@
     private string? _info;
     private string? _formError;
     private string _amountText = "";
-    private string _checkboxId = Guid.NewGuid().ToString();
+    private readonly string _checkboxId = Guid.NewGuid().ToString();
 
     private QuickEntryModel _model = new()
     {
@@ -248,8 +251,8 @@
     private string? FromAccountName => Accounts.FirstOrDefault(a => a.Id == SelectedFromAccountId)?.Name;
     private string? ToAccountName => Accounts.FirstOrDefault(a => a.Id == SelectedToAccountId)?.Name;
 
-    private bool _showExpenseSearch = false;
-    private bool _isSearching = false;
+    private bool _showExpenseSearch;
+    private bool _isSearching;
     private string _expenseSearchQuery = "";
     private List<ExpenseSearchResultDto> _expenseSearchResults = new();
 
@@ -267,14 +270,17 @@
         else
         {
             var normalizedText = _amountText.Replace(',', '.');
-            
-            if (decimal.TryParse(normalizedText, NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign, 
-                CultureInfo.InvariantCulture, out var amount))
+
+            if (decimal.TryParse(
+                normalizedText,
+                NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign,
+                CultureInfo.InvariantCulture,
+                out var amount))
             {
                 _model.Amount = amount;
             }
         }
-        
+
         ValidateForm();
     }
 
@@ -291,59 +297,59 @@
 
         if (SelectedFromAccountId is null)
         {
-            _formError = spec.Title switch
-            {
-                "Transfer" => "Select a From account from the list.",
-                "Income" => "Select a Source account from the list.",
-                "Refund" => "Select an Expense account from the list.",
-                _ => "Select a Paid from account from the list."
-            };
+            _formError = GetMissingFromAccountMessage();
         }
         else if (SelectedToAccountId is null)
         {
-            _formError = spec.Title switch
-            {
-                "Transfer" => "Select a To account from the list.",
-                "Income" => "Select a Destination account from the list.",
-                "Refund" => "Select a Destination account from the list.",
-                _ => "Select a Category account from the list."
-            };
+            _formError = GetMissingToAccountMessage();
         }
         else if (SelectedFromAccountId == SelectedToAccountId)
         {
-            _formError = "From and To accounts must be different.";
+            _formError = L["QuickEntryDrawer_Error_FromToDifferent"];
         }
         else
         {
             var from = Accounts.FirstOrDefault(a => a.Id == SelectedFromAccountId);
             if (from is not null && !spec.FromAllowed.Contains(from.Nature))
-                _formError = $"From account must be one of: {string.Join(", ", spec.FromAllowed)}.";
+            {
+                _formError = L["QuickEntryDrawer_Error_FromAllowedNatures", FormatNatureList(spec.FromAllowed)];
+            }
 
             var to = Accounts.FirstOrDefault(a => a.Id == SelectedToAccountId);
             if (_formError is null && to is not null && !spec.ToAllowed.Contains(to.Nature))
-                _formError = $"To account must be one of: {string.Join(", ", spec.ToAllowed)}.";
+            {
+                _formError = L["QuickEntryDrawer_Error_ToAllowedNatures", FormatNatureList(spec.ToAllowed)];
+            }
         }
 
         if (_formError is null)
         {
             if (string.IsNullOrWhiteSpace(_model.Description))
-                _formError = "Description is required.";
+            {
+                _formError = L["QuickEntryDrawer_Error_DescriptionRequired"];
+            }
             else if (_model.Amount <= 0)
-                _formError = "Amount must be greater than zero.";
+            {
+                _formError = L["QuickEntryDrawer_Error_AmountGreaterThanZero"];
+            }
         }
 
         _canSubmit = string.IsNullOrWhiteSpace(_formError);
 
         if (_canSubmit)
+        {
             _error = null;
+        }
     }
 
     private async Task CreateAsync()
     {
         ValidateForm();
-        
+
         if (!_canSubmit || _isBusy)
+        {
             return;
+        }
 
         _isBusy = true;
         _error = null;
@@ -398,7 +404,7 @@
                 await TransactionsApi.CreateAsync(request, ct);
             });
 
-            _info = "Transaction created successfully.";
+            _info = L["QuickEntryDrawer_Info_TransactionCreated"];
 
             _model.Amount = 0m;
             _model.Description = "";
@@ -412,13 +418,15 @@
             await OnTransactionCreated.InvokeAsync();
 
             if (!_model.KeepSource)
+            {
                 await OnClearSelection.InvokeAsync();
+            }
 
             ValidateForm();
         }
         catch (Exception ex)
         {
-            _error = $"Failed to create transaction: {ex.Message}";
+            _error = L["QuickEntryDrawer_Error_CreateFailed", ex.Message];
         }
         finally
         {
@@ -466,7 +474,7 @@
         }
         catch (Exception ex)
         {
-            _error = $"Failed to search expenses: {ex.Message}";
+            _error = L["QuickEntryDrawer_Error_SearchFailed", ex.Message];
             _expenseSearchResults.Clear();
         }
         finally
@@ -483,6 +491,45 @@
     private void ClearExpenseLink()
     {
         _model.RelatedTransactionId = null;
+    }
+
+    private string GetMissingFromAccountMessage()
+    {
+        return Mode switch
+        {
+            QuickEntryType.Transfer => L["QuickEntryDrawer_Error_SelectFromTransfer"],
+            QuickEntryType.Income => L["QuickEntryDrawer_Error_SelectFromIncome"],
+            QuickEntryType.Refund => L["QuickEntryDrawer_Error_SelectFromRefund"],
+            _ => L["QuickEntryDrawer_Error_SelectFromExpense"]
+        };
+    }
+
+    private string GetMissingToAccountMessage()
+    {
+        return Mode switch
+        {
+            QuickEntryType.Transfer => L["QuickEntryDrawer_Error_SelectToTransfer"],
+            QuickEntryType.Income => L["QuickEntryDrawer_Error_SelectToIncome"],
+            QuickEntryType.Refund => L["QuickEntryDrawer_Error_SelectToRefund"],
+            _ => L["QuickEntryDrawer_Error_SelectToExpense"]
+        };
+    }
+
+    private string FormatNatureList(IEnumerable<AccountNature> natures)
+    {
+        return string.Join(", ", natures.Select(GetNatureLabel));
+    }
+
+    private string GetNatureLabel(AccountNature nature)
+    {
+        return nature switch
+        {
+            AccountNature.Asset => L["Dashboard_Nature_Asset"],
+            AccountNature.Liability => L["Dashboard_Nature_Liability"],
+            AccountNature.Expense => L["Dashboard_Nature_Expense"],
+            AccountNature.Income => L["Dashboard_Nature_Income"],
+            _ => nature.ToString()
+        };
     }
 
     private sealed class QuickEntryModel

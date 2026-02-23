@@ -16,7 +16,7 @@ using Moq.Protected;
 
 namespace FamilyFinances.Web.Tests.Features.Reports;
 
-public sealed class ReportResponsiveLayoutTests : TestContext
+public sealed class ReportResponsiveLayoutTests : WebTestContext
 {
     [Fact]
     public void EconomicState_Snapshot_Uses_Responsive_Grid_And_Accessible_Date_Label()

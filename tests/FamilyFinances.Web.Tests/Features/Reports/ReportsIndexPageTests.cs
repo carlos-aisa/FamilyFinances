@@ -7,11 +7,13 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace FamilyFinances.Web.Tests.Features.Reports;
 
-public sealed class ReportsIndexPageTests : TestContext
+public sealed class ReportsIndexPageTests : WebTestContext
 {
     [Fact]
     public void Authorized_User_Can_Open_Account_Group_Totals_From_Reports_Index()
     {
+        using var _ = UseCulture("en-US");
+
         var authContext = this.AddTestAuthorization();
         authContext.SetAuthorized("test-user");
 
@@ -37,6 +39,8 @@ public sealed class ReportsIndexPageTests : TestContext
     [Fact]
     public void Reports_Index_Does_Not_Show_Monthly_Evolution_Card()
     {
+        using var _ = UseCulture("en-US");
+
         var authContext = this.AddTestAuthorization();
         authContext.SetAuthorized("test-user");
 
@@ -53,6 +57,8 @@ public sealed class ReportsIndexPageTests : TestContext
     [Fact]
     public void Authorized_User_Can_Open_Economic_State_From_Reports_Index()
     {
+        using var _ = UseCulture("en-US");
+
         var authContext = this.AddTestAuthorization();
         authContext.SetAuthorized("test-user");
 
@@ -76,6 +82,8 @@ public sealed class ReportsIndexPageTests : TestContext
     [Fact]
     public void Authorized_User_Sees_Flow_Vs_Stock_Semantic_Disclaimer()
     {
+        using var _ = UseCulture("en-US");
+
         var authContext = this.AddTestAuthorization();
         authContext.SetAuthorized("test-user");
 

@@ -96,7 +96,7 @@
                                                                @bind="line.AmountText" 
                                                                @bind:event="oninput"
                                                                @bind:after="@(() => OnAmountChanged(line))"
-                                                               placeholder="0.00" />
+                                                               placeholder="@GetDecimalPlaceholder()" />
                                                     </div>
                                                 </div>
                                             }
@@ -302,6 +302,9 @@
 
     private static string FormatCurrency(decimal amount)
         => MoneyFormatter.FormatEuros(amount);
+
+    private static string GetDecimalPlaceholder()
+        => 0m.ToString("N2", CultureInfo.CurrentCulture);
 
     private static string GetNatureBorderClass(AccountNature nature) => nature switch
     {

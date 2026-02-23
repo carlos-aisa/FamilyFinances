@@ -9,33 +9,30 @@ namespace FamilyFinances.Web.Features.Reports;
 public static class MoneyFormatter
 {
     private const string EuroSymbol = "\u20AC";
-    private static readonly CultureInfo DisplayCulture = CultureInfo.GetCultureInfo("es-ES");
 
     /// <summary>
     /// Formats cents to localized euros with optional currency symbol.
-    /// Example: 123456 -> "1.234,56 EUR".
     /// </summary>
-    public static string FormatCents(long cents, bool showCurrency = true)
-        => FormatMoneyCore(new Money(cents), showCurrency, forceSignForPositive: false);
+    public static string FormatCents(long cents, bool showCurrency = true, CultureInfo? culture = null)
+        => FormatMoneyCore(new Money(cents), showCurrency, forceSignForPositive: false, culture);
 
     /// <summary>
     /// Formats cents to localized euros and always prefixes '+' for positive values.
-    /// Example: 123456 -> "+1.234,56 EUR".
     /// </summary>
-    public static string FormatCentsWithSign(long cents, bool showCurrency = true)
-        => FormatMoneyCore(new Money(cents), showCurrency, forceSignForPositive: true);
+    public static string FormatCentsWithSign(long cents, bool showCurrency = true, CultureInfo? culture = null)
+        => FormatMoneyCore(new Money(cents), showCurrency, forceSignForPositive: true, culture);
 
     /// <summary>
     /// Formats euros to localized display with optional currency symbol.
     /// </summary>
-    public static string FormatEuros(decimal amount, bool showCurrency = true)
-        => FormatMoneyCore(Money.FromEuros(amount), showCurrency, forceSignForPositive: false);
+    public static string FormatEuros(decimal amount, bool showCurrency = true, CultureInfo? culture = null)
+        => FormatMoneyCore(Money.FromEuros(amount), showCurrency, forceSignForPositive: false, culture);
 
     /// <summary>
     /// Formats euros to localized display and always prefixes '+' for positive values.
     /// </summary>
-    public static string FormatEurosWithSign(decimal amount, bool showCurrency = true)
-        => FormatMoneyCore(Money.FromEuros(amount), showCurrency, forceSignForPositive: true);
+    public static string FormatEurosWithSign(decimal amount, bool showCurrency = true, CultureInfo? culture = null)
+        => FormatMoneyCore(Money.FromEuros(amount), showCurrency, forceSignForPositive: true, culture);
 
     /// <summary>
     /// Returns Bootstrap color class from sign.
@@ -56,13 +53,23 @@ public static class MoneyFormatter
     public static string GetColorClass(decimal amount)
         => GetColorClass(Money.FromEuros(amount).Cents);
 
-    private static string FormatMoneyCore(Money money, bool showCurrency, bool forceSignForPositive)
+    private static string FormatMoneyCore(Money money, bool showCurrency, bool forceSignForPositive, CultureInfo? culture)
     {
-        var euros = money.ToEuros();
-        var absoluteText = Math.Abs(euros).ToString("N2", DisplayCulture);
-        var sign = euros < 0 ? "-" : (forceSignForPositive && euros > 0 ? "+" : string.Empty);
-        var value = $"{sign}{absoluteText}";
+        var displayCulture = ResolveCulture(culture);
+        var formatInfo = (NumberFormatInfo)displayCulture.NumberFormat.Clone();
+        formatInfo.CurrencySymbol = EuroSymbol;
 
-        return showCurrency ? $"{value}{EuroSymbol}" : value;
+        var euros = money.ToEuros();
+        var magnitude = Math.Abs(euros).ToString(showCurrency ? "C2" : "N2", formatInfo);
+        var sign = euros < 0 ? "-" : (forceSignForPositive && euros > 0 ? "+" : string.Empty);
+
+        return $"{sign}{magnitude}";
+    }
+
+    private static CultureInfo ResolveCulture(CultureInfo? culture)
+    {
+        return culture
+            ?? CultureInfo.CurrentCulture
+            ?? CultureInfo.GetCultureInfo("es-ES");
     }
 }

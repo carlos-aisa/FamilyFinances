@@ -9,21 +9,24 @@
 @using FamilyFinances.Web.Features.Reports
 @using FamilyFinances.Web.Features.Reports.Charts
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.Extensions.Localization
+@using FamilyFinances.Web
 @inherits ApiPageBase
 
 @inject ReportsApi ReportsApi
+@inject IStringLocalizer<SharedResource> L
 
 <AuthorizeView>
     <Authorized>
         <div class="d-flex align-items-center justify-content-between mb-4">
             <div>
                 <h3 class="mb-1">
-                    <i class="bi bi-piggy-bank me-2"></i>Economic State
+                    <i class="bi bi-piggy-bank me-2"></i>@L["EconomicState_Title"]
                 </h3>
-                <p class="text-muted mb-0">Current financial position at a selected date with period-to-date flow context</p>
+                <p class="text-muted mb-0">@L["EconomicState_Subtitle"]</p>
             </div>
             <a class="btn btn-outline-secondary" href="/reports">
-                <i class="bi bi-arrow-left me-1"></i>Back to Reports
+                <i class="bi bi-arrow-left me-1"></i>@L["Reports_BackToReports"]
             </a>
         </div>
 
@@ -33,7 +36,7 @@
                         class="nav-link @GetTabClass(EconomicStateTab.Snapshot)"
                         @onclick="() => SetActiveTab(EconomicStateTab.Snapshot)"
                         disabled="@_isLoading">
-                    Snapshot
+                    @L["EconomicState_Tab_Snapshot"]
                 </button>
             </li>
             <li class="nav-item">
@@ -41,7 +44,7 @@
                         class="nav-link @GetTabClass(EconomicStateTab.AssetEvolution)"
                         @onclick="() => SetActiveTab(EconomicStateTab.AssetEvolution)"
                         disabled="@_isLoading">
-                    Asset Evolution
+                    @L["EconomicState_Tab_AssetEvolution"]
                 </button>
             </li>
             <li class="nav-item">
@@ -49,7 +52,7 @@
                         class="nav-link @GetTabClass(EconomicStateTab.IncomeEvolution)"
                         @onclick="() => SetActiveTab(EconomicStateTab.IncomeEvolution)"
                         disabled="@_isLoading">
-                    Income Evolution
+                    @L["EconomicState_Tab_IncomeEvolution"]
                 </button>
             </li>
         </ul>
@@ -60,10 +63,10 @@
                 <div class="card-body">
                     <div class="row g-3 align-items-end">
                         <div class="col-12 col-md-4">
-                            <label class="form-label fw-semibold">
-                                <i class="bi bi-calendar3 me-1"></i>As-of Date
+                                <label class="form-label fw-semibold">
+                                <i class="bi bi-calendar3 me-1"></i>@L["EconomicState_AsOfDate"]
                             </label>
-                            <input type="date" class="form-control" aria-label="As-of Date" @bind="_asOfDate" />
+                            <input type="date" class="form-control" aria-label="@L["EconomicState_AsOfDate"]" @bind="_asOfDate" />
                         </div>
                         <div class="col-12 col-md-auto">
                             <button class="btn btn-primary" @onclick="LoadReportAsync" disabled="@_isLoading">
@@ -75,7 +78,7 @@
                                 {
                                     <i class="bi bi-search me-1"></i>
                                 }
-                                Load Report
+                                @L["Reports_LoadReport"]
                             </button>
                         </div>
                     </div>
@@ -95,9 +98,9 @@
                 <div class="card shadow-sm">
                     <div class="card-body text-center py-5">
                         <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                            <span class="visually-hidden">Loading...</span>
+                            <span class="visually-hidden">@L["Common_Loading"]</span>
                         </div>
-                        <p class="text-muted mb-0">Loading report data...</p>
+                        <p class="text-muted mb-0">@L["Reports_LoadingData"]</p>
                     </div>
                 </div>
             }
@@ -108,10 +111,10 @@
 
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 gap-2">
                     <div class="badge bg-primary bg-opacity-10 text-primary px-3 py-2">
-                        <i class="bi bi-clock-history me-1"></i>Stock snapshot as of @_report.AsOf.ToString("yyyy-MM-dd")
+                        <i class="bi bi-clock-history me-1"></i>@L["EconomicState_StockSnapshotAsOf", _report.AsOf.ToString("yyyy-MM-dd")]
                     </div>
                     <div class="badge bg-success bg-opacity-10 text-success px-3 py-2">
-                        <i class="bi bi-calendar-range me-1"></i>Flow period: @flowFrom.ToString("yyyy-MM-dd") to @flowTo.ToString("yyyy-MM-dd")
+                        <i class="bi bi-calendar-range me-1"></i>@L["EconomicState_FlowPeriod", flowFrom.ToString("yyyy-MM-dd"), flowTo.ToString("yyyy-MM-dd")]
                     </div>
                 </div>
 
@@ -184,13 +187,13 @@
                 <div class="alert alert-info mb-0" role="alert">
                     <i class="bi bi-info-circle me-2"></i>
                     <span>
-                        <strong>Stock metrics</strong> (@_assetMetric.CanonicalName, @_liabilityMetric.CanonicalName, @_netWorthMetric.CanonicalName)
-                        represent balances at a point in time.
+                        <strong>@L["Reports_StockMetrics"]</strong> (@_assetMetric.CanonicalName, @_liabilityMetric.CanonicalName, @_netWorthMetric.CanonicalName)
+                        @L["EconomicState_StockMetricsInfo"]
                     </span>
                     <br />
                     <span>
-                        <strong>Flow metrics</strong> (@_incomeMetric.CanonicalName, @_expenseMetric.CanonicalName, @_periodNetMetric.CanonicalName)
-                        represent results over a period and are not directly comparable to stock balances.
+                        <strong>@L["Reports_FlowMetrics"]</strong> (@_incomeMetric.CanonicalName, @_expenseMetric.CanonicalName, @_periodNetMetric.CanonicalName)
+                        @L["EconomicState_FlowMetricsInfo"]
                     </span>
                 </div>
 
@@ -201,8 +204,8 @@
                 {
                     <div class="mt-4 economic-state-snapshot-chart">
                         <ReportingChartLoadingState
-                            Title="Loading month-focused income vs expense chart"
-                            Description="Loading daily points..." />
+                            Title="@L["EconomicState_LoadingMonthFocusedChart"]"
+                            Description="@L["Reports_LoadingDailyPoints"]" />
                     </div>
                 }
                 else if (!string.IsNullOrWhiteSpace(_snapshotChartError))
@@ -215,16 +218,16 @@
                 {
                     <div class="mt-4 economic-state-snapshot-chart">
                         <ReportingChartEmptyState
-                            Title="Month-focused Income vs Expense"
-                            Description="No daily points are available for the selected month." />
+                            Title="@L["EconomicState_MonthFocusedChartTitle"]"
+                            Description="@L["EconomicState_NoDailyPoints"]" />
                     </div>
                 }
                 else
                 {
                     <div class="mt-4 economic-state-snapshot-chart">
                         <MonthlyLineChart
-                            Title="Month-focused Income vs Expense"
-                            Subtitle="@($"Daily accumulated comparison for {snapshotMonthLabel} {_report.AsOf.Year} up to day {_report.AsOf.Day} (absolute values).")"
+                            Title="@L["EconomicState_MonthFocusedChartTitle"]"
+                            Subtitle="@L["EconomicState_MonthFocusedSubtitle", snapshotMonthLabel, _report.AsOf.Year, _report.AsOf.Day]"
                             Year="@_report.AsOf.Year"
                             Month="@_report.AsOf.Month"
                             YTickMaxTicks="5"
@@ -246,7 +249,7 @@
     <NotAuthorized>
         <div class="alert alert-warning">
             <i class="bi bi-exclamation-triangle me-2"></i>
-            Please log in to view reports.
+            @L["Reports_LoginRequired"]
         </div>
     </NotAuthorized>
 </AuthorizeView>
@@ -301,11 +304,11 @@
         }
         catch (UnauthorizedAccessException)
         {
-            _error = "You are not authorized to view this report. Please log in again.";
+            _error = L["Reports_Error_Unauthorized"];
         }
         catch (Exception ex)
         {
-            _error = $"Failed to load report: {ex.Message}";
+            _error = L["Reports_Error_LoadFailed", ex.Message];
         }
         finally
         {
@@ -338,11 +341,11 @@
         }
         catch (UnauthorizedAccessException)
         {
-            _snapshotChartError = "You are not authorized to view month-focused charts. Please log in again.";
+            _snapshotChartError = L["Reports_Error_Unauthorized"];
         }
         catch (Exception ex)
         {
-            _snapshotChartError = $"Failed to load month-focused chart: {ex.Message}";
+            _snapshotChartError = L["Reports_Error_LoadMonthFocusedChart", ex.Message];
         }
         finally
         {
@@ -361,7 +364,7 @@
         var incomeSeries = BuildSnapshotSeries(
             _snapshotIncomeMonthlyChart,
             "snapshot-income",
-            "Income",
+            L["Dashboard_Nature_Income"],
             "#198754",
             dayLimit,
             absoluteValues: true);
@@ -371,7 +374,7 @@
         var expenseSeries = BuildSnapshotSeries(
             _snapshotExpenseMonthlyChart,
             "snapshot-expense",
-            "Expense",
+            L["Dashboard_Nature_Expense"],
             "#dc3545",
             dayLimit);
         if (expenseSeries is not null)

@@ -1,54 +1,57 @@
 @page "/transactions"
 @inherits ApiPageBase
+@using System.Globalization
 @using FamilyFinances.Application.Ledger.Transactions.Dtos
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
 @using FamilyFinances.Web.Components.Shared
 @using FamilyFinances.Web.Features.Reports
-@using System.Globalization
+@using FamilyFinances.Web
+@using Microsoft.Extensions.Localization
 @inject TransactionsApi TransactionsApi
+@inject IStringLocalizer<SharedResource> L
 
 <!-- Header -->
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
-        <h3 class="mb-1">Transactions</h3>
+        <h3 class="mb-1">@L["Transactions_Title"]</h3>
         <p class="text-muted mb-0">
             @if (_items is not null)
             {
                 <i class="bi bi-receipt me-1"></i>
-                <span>@_items.Count transaction@(_items.Count != 1 ? "s" : "")</span>
+                <span>@GetCountLabel(_items.Count)</span>
             }
         </p>
     </div>
 
     <div class="d-flex gap-2">
         <button class="btn btn-outline-secondary" @onclick="LoadAsync" disabled="@(_items is null)">
-            <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+            <i class="bi bi-arrow-clockwise me-1"></i>@L["Transactions_Refresh"]
         </button>
         <div class="btn-group">
             <a class="btn btn-primary" href="/">
-                <i class="bi bi-plus-circle me-1"></i>New Transaction
+                <i class="bi bi-plus-circle me-1"></i>@L["Transactions_NewTransaction"]
             </a>
-            <button type="button" 
-                    class="btn btn-primary dropdown-toggle dropdown-toggle-split" 
-                    data-bs-toggle="dropdown" 
+            <button type="button"
+                    class="btn btn-primary dropdown-toggle dropdown-toggle-split"
+                    data-bs-toggle="dropdown"
                     aria-expanded="false">
-                <span class="visually-hidden">Toggle Dropdown</span>
+                <span class="visually-hidden">@L["Transactions_ToggleDropdown"]</span>
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
                 <li>
                     <a class="dropdown-item" href="/">
-                        <i class="bi bi-lightning me-2"></i>Quick Entry
+                        <i class="bi bi-lightning me-2"></i>@L["Transactions_QuickEntry"]
                     </a>
                 </li>
                 <li>
                     <a class="dropdown-item" href="/transactions/new">
-                        <i class="bi bi-pencil me-2"></i>Simple Transaction
+                        <i class="bi bi-pencil me-2"></i>@L["Transactions_SimpleTransaction"]
                     </a>
                 </li>
                 <li>
                     <a class="dropdown-item" href="/transactions/new-multi">
-                        <i class="bi bi-distribute-vertical me-2"></i>Multi-Split Transaction
+                        <i class="bi bi-distribute-vertical me-2"></i>@L["Transactions_MultiSplitTransaction"]
                     </a>
                 </li>
             </ul>
@@ -63,12 +66,12 @@
             <!-- Quick Date Presets -->
             <div class="col-12">
                 <label class="form-label fw-semibold">
-                    <i class="bi bi-calendar-range me-1"></i>Quick Date Filter
+                    <i class="bi bi-calendar-range me-1"></i>@L["Transactions_QuickDateFilter"]
                 </label>
                 <div class="d-flex flex-wrap gap-2">
                     <DateRangePresets OnPresetSelected="HandlePresetSelected" ActivePreset="@_activePreset" />
                     <button class="btn btn-sm btn-outline-secondary" @onclick="ClearDateFilter">
-                        <i class="bi bi-x-circle me-1"></i>All Time
+                        <i class="bi bi-x-circle me-1"></i>@L["DatePreset_AllTime"]
                     </button>
                 </div>
             </div>
@@ -76,14 +79,14 @@
             <!-- Date Range -->
             <div class="col-12 col-md-4">
                 <label class="form-label fw-semibold">
-                    <i class="bi bi-calendar3 me-1"></i>From Date
+                    <i class="bi bi-calendar3 me-1"></i>@L["Transactions_FromDate"]
                 </label>
                 <input type="date" class="form-control" @bind="_fromDate" @bind:event="oninput" />
             </div>
 
             <div class="col-12 col-md-4">
                 <label class="form-label fw-semibold">
-                    <i class="bi bi-calendar3 me-1"></i>To Date
+                    <i class="bi bi-calendar3 me-1"></i>@L["Transactions_ToDate"]
                 </label>
                 <input type="date" class="form-control" @bind="_toDate" @bind:event="oninput" />
             </div>
@@ -91,19 +94,19 @@
             <!-- Search -->
             <div class="col-12 col-md-4">
                 <label class="form-label fw-semibold">
-                    <i class="bi bi-search me-1"></i>Search
+                    <i class="bi bi-search me-1"></i>@L["Transactions_Search"]
                 </label>
-                <input type="text" class="form-control" placeholder="Description or payee..."
+                <input type="text" class="form-control" placeholder="@L["Transactions_SearchPlaceholder"]"
                        @bind="_searchQuery" @bind:event="oninput" />
             </div>
         </div>
 
         <div class="mt-3">
             <button class="btn btn-primary" @onclick="ApplyFilters">
-                <i class="bi bi-filter me-1"></i>Apply Filters
+                <i class="bi bi-filter me-1"></i>@L["Transactions_ApplyFilters"]
             </button>
             <button class="btn btn-outline-secondary ms-2" @onclick="ResetFilters">
-                <i class="bi bi-x-circle me-1"></i>Reset
+                <i class="bi bi-x-circle me-1"></i>@L["Transactions_Reset"]
             </button>
         </div>
     </div>
@@ -113,7 +116,7 @@
 @if (_result == "deleted")
 {
     <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="bi bi-check-circle me-2"></i>Transaction deleted successfully.
+        <i class="bi bi-check-circle me-2"></i>@L["Transactions_DeletedSuccess"]
         <button type="button" class="btn-close" @onclick="@(() => _result = null)"></button>
     </div>
 }
@@ -131,9 +134,9 @@
     <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
         <div class="text-center">
             <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                <span class="visually-hidden">Loading...</span>
+                <span class="visually-hidden">@L["Common_Loading"]</span>
             </div>
-            <p class="text-muted">Loading transactions...</p>
+            <p class="text-muted">@L["Transactions_LoadingItems"]</p>
         </div>
     </div>
 }
@@ -142,10 +145,10 @@ else if (_items.Count == 0)
     <div class="card shadow-sm">
         <div class="card-body text-center py-5">
             <i class="bi bi-inbox display-1 text-muted mb-3"></i>
-            <h5 class="text-muted">No transactions yet</h5>
-            <p class="text-muted">Start by creating your first transaction from the dashboard.</p>
+            <h5 class="text-muted">@L["Transactions_EmptyTitle"]</h5>
+            <p class="text-muted">@L["Transactions_EmptyDescription"]</p>
             <a class="btn btn-primary mt-3" href="/">
-                <i class="bi bi-plus-circle me-1"></i>Go to Dashboard
+                <i class="bi bi-plus-circle me-1"></i>@L["Transactions_GoDashboard"]
             </a>
         </div>
     </div>
@@ -159,16 +162,16 @@ else
                     <thead class="table-light">
                         <tr>
                             <th class="border-0 ps-3" style="width: 120px;">
-                                <i class="bi bi-calendar3 me-1"></i>Date
+                                <i class="bi bi-calendar3 me-1"></i>@L["Transactions_TableDate"]
                             </th>
                             <th class="border-0" style="width: 80px;">
-                                <i class="bi bi-tag me-1"></i>Type
+                                <i class="bi bi-tag me-1"></i>@L["Transactions_TableType"]
                             </th>
                             <th class="border-0">
-                                <i class="bi bi-file-text me-1"></i>Description
+                                <i class="bi bi-file-text me-1"></i>@L["Transactions_TableDescription"]
                             </th>
                             <th class="border-0 text-end pe-3" style="width: 160px;">
-                                <i class="bi bi-currency-euro me-1"></i>Amount
+                                <i class="bi bi-currency-euro me-1"></i>@L["Transactions_TableAmount"]
                             </th>
                         </tr>
                     </thead>
@@ -178,7 +181,7 @@ else
                             <tr class="transaction-row" style="cursor: pointer;" @onclick="() => NavigateToDetail(t.Id)">
                                 <td class="ps-3">
                                     <div class="d-flex flex-column">
-                                        <span class="fw-semibold">@t.BookedOn.ToString("dd MMM", new CultureInfo("es-ES"))</span>
+                                        <span class="fw-semibold">@t.BookedOn.ToString("dd MMM", CultureInfo.CurrentCulture)</span>
                                         <small class="text-muted">@t.BookedOn.Year</small>
                                     </div>
                                 </td>
@@ -202,12 +205,12 @@ else
                 </table>
             </div>
         </div>
-        
+
         <!-- Footer with pagination -->
         <div class="card-footer bg-light">
             <div class="d-flex justify-content-between align-items-center">
                 <small class="text-muted">
-                    Showing @_items.Count transaction@(_items.Count != 1 ? "s" : "")
+                    @GetShowingCountLabel(_items.Count)
                 </small>
                 @if (_items.Count >= _pageSize && _allItems is not null && _items.Count < _allItems.Count)
                 {
@@ -220,13 +223,13 @@ else
                         {
                             <i class="bi bi-arrow-down-circle me-1"></i>
                         }
-                        Load More
+                        @L["Transactions_LoadMore"]
                     </button>
                 }
                 else
                 {
                     <small class="text-muted">
-                        <i class="bi bi-info-circle me-1"></i>Click on a transaction to view details
+                        <i class="bi bi-info-circle me-1"></i>@L["Transactions_ClickDetailHint"]
                     </small>
                 }
             </div>
@@ -283,15 +286,17 @@ else
     private async Task ApplyFilters()
     {
         _error = null;
-        _items = null; // Show loading state
+        _items = null;
 
         try
         {
             await ExecuteApiAsync(async ct =>
             {
                 if (_allItems is null)
+                {
                     _allItems = await TransactionsApi.ListAsync(take: 1000, ct);
-                
+                }
+
                 _items = FilterTransactions(_allItems);
             });
         }
@@ -315,14 +320,12 @@ else
     {
         var filtered = items.AsEnumerable();
 
-        // Date filters
         if (_fromDate.HasValue)
             filtered = filtered.Where(t => t.BookedOn >= _fromDate.Value);
 
         if (_toDate.HasValue)
             filtered = filtered.Where(t => t.BookedOn < _toDate.Value);
 
-        // Search filter
         if (!string.IsNullOrWhiteSpace(_searchQuery))
         {
             var query = _searchQuery.ToLowerInvariant();
@@ -337,7 +340,7 @@ else
     private async Task LoadAsync()
     {
         _error = null;
-        _items = null; // Show loading state
+        _items = null;
 
         try
         {
@@ -364,10 +367,10 @@ else
 
         try
         {
-            await Task.Delay(300); // Small delay for UX
+            await Task.Delay(300);
             var currentCount = _items.Count;
             var hasFilters = _fromDate.HasValue || _toDate.HasValue || !string.IsNullOrWhiteSpace(_searchQuery);
-            
+
             if (hasFilters)
             {
                 var filtered = FilterTransactions(_allItems);
@@ -380,7 +383,7 @@ else
         }
         catch (Exception ex)
         {
-            _error = $"Failed to load more transactions: {ex.Message}";
+            _error = L["Transactions_LoadMoreFailed", ex.Message];
         }
         finally
         {
@@ -405,24 +408,38 @@ else
         Nav.NavigateTo($"/transactions/{transactionId}");
     }
 
+    private string GetCountLabel(int count)
+    {
+        return count == 1
+            ? L["Transactions_Count_Singular", count]
+            : L["Transactions_Count_Plural", count];
+    }
+
+    private string GetShowingCountLabel(int count)
+    {
+        return count == 1
+            ? L["Transactions_ShowingCount_Singular", count]
+            : L["Transactions_ShowingCount_Plural", count];
+    }
+
     private RenderFragment GetTypeBadge(TransactionListItemType type)
     {
         return type switch
         {
             TransactionListItemType.Expense => @<span class="badge bg-danger-subtle text-danger">
-                <i class="bi bi-arrow-up-circle me-1"></i>Expense
+                <i class="bi bi-arrow-up-circle me-1"></i>@L["TransactionType_Expense"]
             </span>,
             TransactionListItemType.Income => @<span class="badge bg-success-subtle text-success">
-                <i class="bi bi-arrow-down-circle me-1"></i>Income
+                <i class="bi bi-arrow-down-circle me-1"></i>@L["TransactionType_Income"]
             </span>,
             TransactionListItemType.Transfer => @<span class="badge bg-primary-subtle text-primary">
-                <i class="bi bi-arrow-left-right me-1"></i>Transfer
+                <i class="bi bi-arrow-left-right me-1"></i>@L["TransactionType_Transfer"]
             </span>,
             TransactionListItemType.Refund => @<span class="badge bg-info-subtle text-info">
-                <i class="bi bi-arrow-counterclockwise me-1"></i>Refund
+                <i class="bi bi-arrow-counterclockwise me-1"></i>@L["TransactionType_Refund"]
             </span>,
             _ => @<span class="badge bg-secondary-subtle text-secondary">
-                <i class="bi bi-question-circle me-1"></i>Other
+                <i class="bi bi-question-circle me-1"></i>@L["TransactionType_Other"]
             </span>
         };
     }

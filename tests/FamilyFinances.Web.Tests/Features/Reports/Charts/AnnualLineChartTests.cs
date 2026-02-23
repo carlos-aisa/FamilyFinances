@@ -5,7 +5,7 @@ using FluentAssertions;
 
 namespace FamilyFinances.Web.Tests.Features.Reports.Charts;
 
-public sealed class AnnualLineChartTests : TestContext
+public sealed class AnnualLineChartTests : WebTestContext
 {
     [Fact]
     public void Export_Image_Button_Triggers_Download_For_Visible_Chart()

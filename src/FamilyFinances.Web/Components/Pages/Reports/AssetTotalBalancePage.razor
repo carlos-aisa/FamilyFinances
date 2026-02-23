@@ -1,25 +1,28 @@
 @page "/reports/asset-total-balance"
 @rendermode InteractiveServer
 @using FamilyFinances.Application.Reporting.Dtos
+@using FamilyFinances.Web
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
 @using FamilyFinances.Web.Features.Reports
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.Extensions.Localization
 @inherits ApiPageBase
 
 @inject ReportsApi ReportsApi
+@inject IStringLocalizer<SharedResource> L
 
 <AuthorizeView>
     <Authorized>
         <div class="d-flex align-items-center justify-content-between mb-4">
             <div>
                 <h3 class="mb-1">
-                    <i class="bi bi-cash-coin me-2"></i>Asset Total Balance
+                    <i class="bi bi-cash-coin me-2"></i>@L["AssetTotalBalance_Title"]
                 </h3>
-                <p class="text-muted mb-0">Aggregated balance of all asset accounts as-of a selected date</p>
+                <p class="text-muted mb-0">@L["AssetTotalBalance_Subtitle"]</p>
             </div>
             <a class="btn btn-outline-secondary" href="/reports">
-                <i class="bi bi-arrow-left me-1"></i>Back to Reports
+                <i class="bi bi-arrow-left me-1"></i>@L["Reports_BackToReports"]
             </a>
         </div>
 
@@ -28,9 +31,9 @@
                 <div class="row g-3 align-items-end">
                     <div class="col-12 col-md-4">
                         <label class="form-label fw-semibold">
-                            <i class="bi bi-calendar3 me-1"></i>As-of Date
+                            <i class="bi bi-calendar3 me-1"></i>@L["AssetTotalBalance_AsOfDate"]
                         </label>
-                        <input type="date" class="form-control" aria-label="As-of Date" @bind="_asOfDate" />
+                        <input type="date" class="form-control" aria-label="@L["AssetTotalBalance_AsOfDate"]" @bind="_asOfDate" />
                     </div>
                     <div class="col-12 col-md-auto">
                         <button class="btn btn-primary" @onclick="LoadReportAsync" disabled="@_isLoading">
@@ -42,7 +45,7 @@
                             {
                                 <i class="bi bi-search me-1"></i>
                             }
-                            Load Report
+                            @L["Reports_LoadReport"]
                         </button>
                     </div>
                 </div>
@@ -60,14 +63,14 @@
         @if (_isLoading)
         {
             <div class="card shadow-sm">
-                <div class="card-body text-center py-5">
-                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                        <span class="visually-hidden">Loading...</span>
+                    <div class="card-body text-center py-5">
+                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">@L["Common_Loading"]</span>
+                        </div>
+                        <p class="text-muted mb-0">@L["Reports_LoadingData"]</p>
                     </div>
-                    <p class="text-muted mb-0">Loading report data...</p>
                 </div>
-            </div>
-        }
+            }
         else if (_report is not null)
         {
             <div class="row g-4">
@@ -76,12 +79,12 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
-                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Total Asset Balance</h6>
+                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@L["AssetTotalBalance_TotalLabel"]</h6>
                                     <h2 class="mb-1 @MoneyFormatter.GetColorClass(_report.TotalCents)">
                                         @MoneyFormatter.FormatCentsWithSign(_report.TotalCents)
                                     </h2>
                                     <p class="text-muted mb-0">
-                                        As of @_report.AsOf.ToString("yyyy-MM-dd")
+                                        @L["AssetTotalBalance_AsOfValue", _report.AsOf.ToString("yyyy-MM-dd")]
                                     </p>
                                 </div>
                                 <i class="bi bi-wallet2 text-primary fs-1 opacity-50"></i>
@@ -91,12 +94,12 @@
                 </div>
 
                 <div class="col-12 col-lg-4">
-                    <div class="card shadow-sm h-100">
-                        <div class="card-body d-flex flex-column justify-content-center">
-                            <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Asset Accounts Included</h6>
-                            <h3 class="mb-0 text-info">@_report.AssetAccountsCount</h3>
+                        <div class="card shadow-sm h-100">
+                            <div class="card-body d-flex flex-column justify-content-center">
+                                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@L["AssetTotalBalance_AccountsIncluded"]</h6>
+                                <h3 class="mb-0 text-info">@_report.AssetAccountsCount</h3>
+                            </div>
                         </div>
-                    </div>
                 </div>
             </div>
         }
@@ -105,7 +108,7 @@
     <NotAuthorized>
         <div class="alert alert-warning">
             <i class="bi bi-exclamation-triangle me-2"></i>
-            Please log in to view reports.
+            @L["Reports_LoginRequired"]
         </div>
     </NotAuthorized>
 </AuthorizeView>
@@ -129,11 +132,11 @@
         }
         catch (UnauthorizedAccessException)
         {
-            _error = "You are not authorized to view this report. Please log in again.";
+            _error = L["Reports_Error_Unauthorized"];
         }
         catch (Exception ex)
         {
-            _error = $"Failed to load report: {ex.Message}";
+            _error = L["Reports_Error_LoadFailed", ex.Message];
         }
         finally
         {

@@ -17,7 +17,7 @@ using Moq.Protected;
 
 namespace FamilyFinances.Web.Tests.Features.Reports;
 
-public sealed class AccountTotalsPageTests : TestContext
+public sealed class AccountTotalsPageTests : WebTestContext
 {
     [Fact]
     public void Default_View_Shows_Period_Totals_Tab_And_Filters()

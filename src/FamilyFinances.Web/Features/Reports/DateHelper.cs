@@ -47,11 +47,11 @@ public static class DateHelper
     }
 
     /// <summary>
-    /// Gets the month name from a month number (in English).
+    /// Gets the month name from a month number using active culture.
     /// </summary>
-    public static string GetMonthName(int month)
+    public static string GetMonthName(int month, CultureInfo? culture = null)
     {
-        return new DateTime(2000, month, 1).ToString("MMMM", CultureInfo.InvariantCulture);
+        return new DateTime(2000, month, 1).ToString("MMMM", culture ?? CultureInfo.CurrentCulture);
     }
 
     /// <summary>
