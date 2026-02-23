@@ -4,7 +4,7 @@
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
 @inject TransactionsApi TransactionsApi
-@inject AccountsApi AccountsApi
+@inject IAccountsApi AccountsApi
 @inject PayeesApi PayeesApi
 
 <h3>New transaction</h3>
@@ -14,29 +14,32 @@
     <div class="alert alert-danger" role="alert">@_error</div>
 }
 
-<EditForm Model="_model" OnValidSubmit="CreateAsync">
+<EditForm Model="_model" OnValidSubmit="CreateAsync" OnInvalidSubmit="HandleInvalidSubmit">
     <DataAnnotationsValidator />
     <ValidationSummary />
 
     <div class="row g-3">
         <div class="col-md-3">
             <label class="form-label">Date</label>
-            <InputDate class="form-control" @bind-Value="_model.BookedOn" />
+            <InputDate class="form-control" @bind-Value="_model.BookedOn" @bind-Value:after="ValidateForm" />
         </div>
 
         <div class="col-md-9">
             <label class="form-label">Description</label>
-            <InputText class="form-control" @bind-Value="_model.Description" />
+            <input class="form-control"
+                   @bind="_model.Description"
+                   @bind:event="oninput"
+                   @bind:after="ValidateForm" />
         </div>
 
         <div class="col-md-4">
             <label class="form-label">Amount</label>
-            <InputNumber class="form-control" @bind-Value="_model.Amount" />
+            <InputNumber class="form-control" @bind-Value="_model.Amount" @bind-Value:after="ValidateForm" />
         </div>
 
         <div class="col-md-4">
             <label class="form-label">From account</label>
-            <InputSelect class="form-select" @bind-Value="_model.FromAccountId">
+            <InputSelect class="form-select" @bind-Value="_model.FromAccountId" @bind-Value:after="ValidateForm">
                 <option value="">-- select --</option>
                 @foreach (var a in _accounts)
                 {
@@ -47,7 +50,7 @@
 
         <div class="col-md-4">
             <label class="form-label">To account</label>
-            <InputSelect class="form-select" @bind-Value="_model.ToAccountId">
+            <InputSelect class="form-select" @bind-Value="_model.ToAccountId" @bind-Value:after="ValidateForm">
                 <option value="">-- select --</option>
                 @foreach (var a in _accounts)
                 {
@@ -58,7 +61,7 @@
 
         <div class="col-md-6">
             <label class="form-label">Payee (optional)</label>
-            <InputSelect class="form-select" @bind-Value="_model.PayeeId">
+            <InputSelect class="form-select" @bind-Value="_model.PayeeId" @bind-Value:after="ValidateForm">
                 <option value="">-- none --</option>
                 @foreach (var p in _payees)
                 {
@@ -69,7 +72,7 @@
 
         <div class="col-md-6">
             <label class="form-label">Memo (optional)</label>
-            <InputText class="form-control" @bind-Value="_model.Memo" />
+            <InputText class="form-control" @bind-Value="_model.Memo" @bind-Value:after="ValidateForm" />
         </div>
     </div>
 
@@ -177,6 +180,11 @@
 
     private void Cancel() => Nav.NavigateTo("/transactions");
 
+    private void HandleInvalidSubmit()
+    {
+        ValidateForm();
+    }
+
     private static class Money
     {
         public static long ToCents(decimal amount)
@@ -191,7 +199,7 @@
         [Required, StringLength(200)]
         public string Description { get; set; } = "";
 
-        [Range(typeof(decimal), "0.01", "999999999")]
+        [Range(typeof(decimal), "0,01", "999999999")]
         public decimal Amount { get; set; }
 
         public Guid? PayeeId { get; set; }

@@ -231,6 +231,7 @@ Schema source:
   - Transactions
   - Account Groups
   - Reports
+  - Backup
   - Health
 
 ### Reporting Map (Current UI)
@@ -260,6 +261,27 @@ Schema source:
   - `docs/reporting-export-accessibility.md`
   - `docs/v0.9-reporting-regression-checklist.md`
   - `docs/v0.9.6-closeout-notes.md`
+
+### Settings Map (Current UI)
+- `Settings` (`/settings`)
+  - Entry point for operational preferences and maintenance features.
+- `Backup & Restore` (`/settings/backup-restore`) - admin only
+  - `Create Backup`: downloads deterministic `.ffbackup` package.
+  - `Restore from File`: upload + pre-check + explicit `RESTORE` confirmation + apply.
+  - Successful restore enforces reauthentication flow.
+
+### Backup API Endpoints
+- `GET /api/v1/backup/export`
+  - Admin-only binary export (`application/octet-stream`).
+  - Response filename format: `familyfinances-backup-YYYYMMDD-HHmmss.ffbackup`.
+- `POST /api/v1/backup/restore/precheck`
+  - Admin-only multipart upload.
+  - Returns compatibility payload (`IsCompatible`, metadata, `Errors`, `Warnings`).
+- `POST /api/v1/backup/restore/apply`
+  - Admin-only multipart upload.
+  - Re-validates package before apply.
+  - Returns `Applied`, `AppliedAtUtc`, `RequiresReauthentication`, `Errors`, `Warnings`.
+  - Concurrent operation conflict: `409` with `reason=OperationInProgress`.
 
 ### Reporting API Evolution Endpoint
 - Primary endpoint: `GET /api/v1/reports/state-evolution?year=YYYY&scope=<accounts|asset-total|account-groups>`

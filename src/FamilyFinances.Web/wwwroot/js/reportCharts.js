@@ -68,6 +68,16 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
         }, "image/png");
     }
 
+    async function downloadStreamFile(fileName, contentType, streamReference) {
+        if (!fileName || !streamReference) {
+            return;
+        }
+
+        const arrayBuffer = await streamReference.arrayBuffer();
+        const blob = new Blob([arrayBuffer], { type: contentType || "application/octet-stream" });
+        triggerBrowserDownload(blob, fileName);
+    }
+
     function renderAnnualLineChart(canvasId, payload) {
         if (!canvasId || !payload || !window.Chart) {
             return;
@@ -257,6 +267,7 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
         renderAnnualCompositionChart,
         disposeAnnualCompositionChart,
         downloadCsv,
-        downloadChartImage
+        downloadChartImage,
+        downloadStreamFile
     };
 })();

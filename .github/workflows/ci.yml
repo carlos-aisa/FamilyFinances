@@ -86,10 +86,17 @@ jobs:
         id: get_version
         shell: pwsh
         run: |
-          if ("${{ github.ref }}" -match "refs/tags/v(.*)") {
+          if ("${{ github.ref }}" -match "^refs/tags/v(.*)$") {
             $version = $matches[1]
           } else {
-            $version = "0.6.7-dev"
+            git fetch --tags --force | Out-Null
+            $latestTag = git tag --list "v*.*.*" --sort=-v:refname | Select-Object -First 1
+            if ($latestTag) {
+              $baseVersion = $latestTag.Substring(1)
+            } else {
+              $baseVersion = "0.0.0"
+            }
+            $version = "$baseVersion-dev.${{ github.run_number }}"
           }
           echo "VERSION=$version" >> $env:GITHUB_OUTPUT
           echo "Building version: $version"

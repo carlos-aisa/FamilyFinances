@@ -1,0 +1,473 @@
+@page "/settings/backup-restore"
+@rendermode InteractiveServer
+@using FamilyFinances.Application.Operations.BackupRestore.Dtos
+@using FamilyFinances.Web.Api
+@using FamilyFinances.Web.Components.Base
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.JSInterop
+@inherits ApiPageBase
+
+@inject BackupApi BackupApi
+@inject IJSRuntime JS
+@inject ILogger<BackupRestorePage> Logger
+
+<AuthorizeView Roles="Admin">
+    <Authorized>
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h3 class="mb-1">
+                    <i class="bi bi-shield-lock me-2"></i>Backup &amp; Restore
+                </h3>
+                <p class="text-muted mb-0">Export current data or restore from a validated backup package.</p>
+            </div>
+            <a class="btn btn-outline-secondary" href="/settings">
+                <i class="bi bi-arrow-left me-1"></i>Back to Settings
+            </a>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header fw-semibold">Safety Notice</div>
+            <div class="card-body">
+                <ul class="mb-0">
+                    <li>Restore replaces current data completely.</li>
+                    <li>Only admins can execute backup/restore operations.</li>
+                    <li>Create a fresh backup before applying restore.</li>
+                </ul>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(_successMessage))
+        {
+            <div class="alert alert-success" role="alert" data-testid="backup-restore-success">
+                <i class="bi bi-check-circle me-2"></i>@_successMessage
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_errorMessage))
+        {
+            <div class="alert alert-danger" role="alert" data-testid="backup-restore-error">
+                <i class="bi bi-exclamation-triangle me-2"></i>@_errorMessage
+            </div>
+        }
+
+        <div class="row g-4">
+            <div class="col-12 col-xl-5">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header fw-semibold">Create Backup</div>
+                    <div class="card-body d-flex flex-column">
+                        <p class="text-muted">
+                            Export a full `.ffbackup` package with current identity and ledger data.
+                        </p>
+                        <button class="btn btn-primary mt-auto"
+                                @onclick="CreateBackupAsync"
+                                disabled="@IsBusy"
+                                data-testid="backup-restore-create-button">
+                            @if (_isExporting)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-download me-1"></i>
+                            }
+                            Create Backup
+                        </button>
+
+                        @if (_lastBackupCreatedAtUtc is not null)
+                        {
+                            <small class="text-muted mt-2">
+                                Last export: @_lastBackupCreatedAtUtc.Value.ToString("yyyy-MM-dd HH:mm:ss 'UTC'")
+                            </small>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-xl-7">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header fw-semibold">Restore from File</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" for="restore-file-input">Backup file (`.ffbackup`)</label>
+                            <InputFile id="restore-file-input"
+                                       class="form-control"
+                                       OnChange="OnRestoreFileSelectedAsync"
+                                       accept=".ffbackup"
+                                       disabled="@IsBusy"
+                                       data-testid="backup-restore-file-input" />
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(_selectedFileName))
+                        {
+                            <p class="mb-3">
+                                <span class="badge bg-secondary-subtle text-secondary-emphasis">Selected: @_selectedFileName</span>
+                            </p>
+                        }
+
+                        @if (_isPrechecking)
+                        {
+                            <div class="alert alert-info py-2">
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                Running package pre-check...
+                            </div>
+                        }
+                        else if (_precheckResult is not null)
+                        {
+                            <div class="border rounded p-3 mb-3" data-testid="backup-restore-precheck-summary">
+                                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                                    <strong>Pre-check Result</strong>
+                                    <span class="badge @(_precheckResult.IsCompatible ? "bg-success" : "bg-danger")">
+                                        @(_precheckResult.IsCompatible ? "Compatible" : "Incompatible")
+                                    </span>
+                                </div>
+                                <dl class="row mb-0 small">
+                                    <dt class="col-sm-5">Format Version</dt>
+                                    <dd class="col-sm-7">@(_precheckResult.FormatVersion ?? "-")</dd>
+                                    <dt class="col-sm-5">Source App Version</dt>
+                                    <dd class="col-sm-7">@(_precheckResult.SourceAppVersion ?? "-")</dd>
+                                    <dt class="col-sm-5">Created At (UTC)</dt>
+                                    <dd class="col-sm-7">@(_precheckResult.CreatedAtUtc?.ToString("yyyy-MM-dd HH:mm:ss 'UTC'") ?? "-")</dd>
+                                    <dt class="col-sm-5">Source Migration</dt>
+                                    <dd class="col-sm-7">@(_precheckResult.SourceMigration ?? "-")</dd>
+                                </dl>
+
+                                @if (_precheckResult.Errors.Count > 0)
+                                {
+                                    <div class="mt-3">
+                                        <strong class="text-danger d-block mb-1">Errors</strong>
+                                        <ul class="mb-0">
+                                            @foreach (var error in _precheckResult.Errors)
+                                            {
+                                                <li class="text-danger">@error</li>
+                                            }
+                                        </ul>
+                                    </div>
+                                }
+
+                                @if (_precheckResult.Warnings.Count > 0)
+                                {
+                                    <div class="mt-3">
+                                        <strong class="text-warning d-block mb-1">Warnings</strong>
+                                        <ul class="mb-0">
+                                            @foreach (var warning in _precheckResult.Warnings)
+                                            {
+                                                <li>@warning</li>
+                                            }
+                                        </ul>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Confirmation</label>
+                            <input class="form-control"
+                                   type="text"
+                                   placeholder="Type RESTORE to enable apply"
+                                   @bind="_restoreConfirmationText"
+                                   disabled="@IsBusy"
+                                   data-testid="backup-restore-confirmation-input" />
+                            <small class="text-muted">Restore is destructive and replaces current data.</small>
+                        </div>
+
+                        <button class="btn btn-danger"
+                                @onclick="ApplyRestoreAsync"
+                                disabled="@(!CanApplyRestore)"
+                                data-testid="backup-restore-apply-button">
+                            @if (_isApplying)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-arrow-repeat me-1"></i>
+                            }
+                            Apply Restore
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mt-4">
+            <div class="card-header fw-semibold">Operation Log (session)</div>
+            <div class="card-body">
+                @if (_operationLog.Count == 0)
+                {
+                    <p class="text-muted mb-0">No operations yet.</p>
+                }
+                else
+                {
+                    <ul class="mb-0">
+                        @foreach (var entry in _operationLog)
+                        {
+                            <li>@entry</li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            Backup and restore are available for admin users only.
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private const long MaxUploadSizeBytes = 209_715_200; // 200 MB
+
+    private readonly List<string> _operationLog = [];
+    private RestorePrecheckResultDto? _precheckResult;
+    private IBrowserFile? _selectedFile;
+    private string? _selectedFileName;
+    private string _restoreConfirmationText = string.Empty;
+    private string? _successMessage;
+    private string? _errorMessage;
+    private DateTimeOffset? _lastBackupCreatedAtUtc;
+    private bool _isExporting;
+    private bool _isPrechecking;
+    private bool _isApplying;
+
+    private bool IsBusy => _isExporting || _isPrechecking || _isApplying;
+
+    private bool CanApplyRestore =>
+        !IsBusy &&
+        _selectedFile is not null &&
+        _precheckResult?.IsCompatible == true &&
+        string.Equals(_restoreConfirmationText, "RESTORE", StringComparison.Ordinal);
+
+    private async Task CreateBackupAsync()
+    {
+        _isExporting = true;
+        ClearMessages();
+
+        try
+        {
+            var download = await ExecuteApiAsync(ct => BackupApi.ExportBackupAsync(ct));
+            if (download is null)
+                return;
+
+            await using var contentStream = new MemoryStream(download.Content);
+            using var streamReference = new DotNetStreamReference(contentStream);
+            await JS.InvokeVoidAsync(
+                "familyFinancesCharts.downloadStreamFile",
+                download.FileName,
+                download.ContentType,
+                streamReference);
+
+            _lastBackupCreatedAtUtc = DateTimeOffset.UtcNow;
+            _successMessage = $"Backup created successfully ({download.FileName}).";
+            AddLog($"Backup created: {download.FileName}");
+        }
+        catch (BackupApiException ex)
+        {
+            HandleBackupApiException(ex);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Backup export failed unexpectedly.");
+            _errorMessage = $"Backup export failed: {ex.Message}";
+            AddLog($"Backup export failed: {ex.Message}");
+        }
+        finally
+        {
+            _isExporting = false;
+        }
+    }
+
+    private async Task OnRestoreFileSelectedAsync(InputFileChangeEventArgs eventArgs)
+    {
+        ClearMessages();
+        _precheckResult = null;
+        _restoreConfirmationText = string.Empty;
+
+        var file = eventArgs.File;
+        if (file is null)
+        {
+            _selectedFile = null;
+            _selectedFileName = null;
+            return;
+        }
+
+        _selectedFile = file;
+        _selectedFileName = file.Name;
+
+        if (!file.Name.EndsWith(".ffbackup", StringComparison.OrdinalIgnoreCase))
+        {
+            _selectedFile = null;
+            _precheckResult = null;
+            _errorMessage = "Selected file must have .ffbackup extension.";
+            AddLog("Restore pre-check blocked: invalid file extension.");
+            return;
+        }
+
+        if (file.Size <= 0)
+        {
+            _selectedFile = null;
+            _precheckResult = null;
+            _errorMessage = "Selected backup file is empty.";
+            AddLog("Restore pre-check blocked: empty file.");
+            return;
+        }
+
+        if (file.Size > MaxUploadSizeBytes)
+        {
+            _selectedFile = null;
+            _precheckResult = null;
+            _errorMessage = "Selected backup file exceeds 200 MB upload limit.";
+            AddLog("Restore pre-check blocked: file too large.");
+            return;
+        }
+
+        await RunPrecheckAsync();
+    }
+
+    private async Task RunPrecheckAsync()
+    {
+        if (_selectedFile is null)
+            return;
+
+        _isPrechecking = true;
+        ClearMessages();
+
+        try
+        {
+            var precheck = await ExecuteApiAsync(ct => BackupApi.PrecheckRestoreAsync(_selectedFile, ct));
+            if (precheck is null)
+                return;
+
+            _precheckResult = precheck;
+
+            if (_precheckResult.IsCompatible)
+            {
+                _successMessage = "Pre-check succeeded. You can apply restore after confirmation.";
+                AddLog("Restore pre-check passed.");
+            }
+            else
+            {
+                _errorMessage = BuildErrorMessage(
+                    "Restore pre-check failed.",
+                    _precheckResult.Errors);
+                AddLog("Restore pre-check failed.");
+            }
+        }
+        catch (BackupApiException ex)
+        {
+            HandleBackupApiException(ex);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Restore pre-check failed unexpectedly.");
+            _errorMessage = $"Restore pre-check failed: {ex.Message}";
+            AddLog($"Restore pre-check failed: {ex.Message}");
+        }
+        finally
+        {
+            _isPrechecking = false;
+        }
+    }
+
+    private async Task ApplyRestoreAsync()
+    {
+        if (!CanApplyRestore || _selectedFile is null)
+            return;
+
+        _isApplying = true;
+        ClearMessages();
+
+        try
+        {
+            var result = await ExecuteApiAsync(ct => BackupApi.ApplyRestoreAsync(_selectedFile, ct));
+            if (result is null)
+                return;
+
+            if (!result.Applied)
+            {
+                _errorMessage = BuildErrorMessage("Restore failed.", result.Errors);
+                AddLog("Restore apply failed.");
+                return;
+            }
+
+            var appliedAtUtc = result.AppliedAtUtc?.ToString("yyyy-MM-dd HH:mm:ss 'UTC'") ?? "unknown time";
+            _successMessage = $"Restore applied successfully at {appliedAtUtc}.";
+            AddLog($"Restore applied at {appliedAtUtc}.");
+
+            if (result.RequiresReauthentication)
+            {
+                AddLog("Restore requires reauthentication. Signing out current session.");
+                await ForceReauthenticationAsync();
+            }
+        }
+        catch (BackupApiException ex)
+        {
+            HandleBackupApiException(ex);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Restore apply failed unexpectedly.");
+            _errorMessage = $"Restore apply failed: {ex.Message}";
+            AddLog($"Restore apply failed: {ex.Message}");
+        }
+        finally
+        {
+            _isApplying = false;
+        }
+    }
+
+    private async Task ForceReauthenticationAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("sessionHelper.clearSessionActive");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogDebug(ex, "Session active flag could not be cleared from JS.");
+        }
+
+        var http = HttpClientFactory.CreateClient();
+        var url = new Uri(new Uri(Nav.BaseUri), "auth/session");
+        await http.DeleteAsync(url);
+
+        TokenStore.Clear();
+        await AuthProvider.RefreshAsync();
+        Nav.NavigateTo("/login?reason=restore");
+    }
+
+    private void HandleBackupApiException(BackupApiException ex)
+    {
+        if (ex.StatusCode == System.Net.HttpStatusCode.Conflict &&
+            string.Equals(ex.Reason, "OperationInProgress", StringComparison.Ordinal))
+        {
+            _errorMessage = "Another maintenance operation is currently running. Please try again in a moment.";
+            AddLog("Operation blocked: another maintenance operation is in progress.");
+            return;
+        }
+
+        _errorMessage = ex.Message;
+        AddLog($"Backup/restore API error: {ex.Message}");
+    }
+
+    private static string BuildErrorMessage(string prefix, IReadOnlyList<string> errors)
+    {
+        if (errors.Count == 0)
+            return prefix;
+
+        return $"{prefix} {string.Join(" ", errors)}";
+    }
+
+    private void AddLog(string message)
+    {
+        _operationLog.Insert(0, $"[{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss 'UTC'}] {message}");
+    }
+
+    private void ClearMessages()
+    {
+        _successMessage = null;
+        _errorMessage = null;
+    }
+}

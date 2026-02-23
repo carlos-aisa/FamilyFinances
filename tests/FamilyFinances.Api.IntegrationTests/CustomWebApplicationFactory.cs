@@ -12,7 +12,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace FamilyFinances.Api.IntegrationTests;
 
-public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
+public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     private readonly string _dbPath;
     private bool _initialized;
