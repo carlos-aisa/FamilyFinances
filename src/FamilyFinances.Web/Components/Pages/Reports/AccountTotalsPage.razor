@@ -155,7 +155,7 @@
                                 class="btn btn-sm btn-outline-secondary report-export-button"
                                 @onclick="ExportCsvAsync"
                                 data-testid="account-totals-export-csv"
-                                aria-label="Export account totals as CSV">
+                                aria-label="@L["Reports_AriaExportCsv"]">
                             <i class="bi bi-download me-1"></i>@L["Reports_Export"]
                         </button>
                     </div>
@@ -170,7 +170,7 @@
                                 <div class="d-flex justify-content-between align-items-center">
                                     <h5 class="mb-0">
                                         <i class="bi @GetNatureIcon(natureGroup.Key) me-2"></i>
-                                        @L["AccountTotals_NatureAccounts", natureGroup.Key]
+                                        @L["AccountTotals_NatureAccounts", GetNatureLabel(natureGroup.Key)]
                                     </h5>
                                     <span class="badge @GetNatureBadgeClass(natureGroup.Key) fs-6">
                                         @MoneyFormatter.FormatCentsWithSign(total)
@@ -206,7 +206,7 @@
                                                     <td>
                                                         <!-- Use same badge classes as Accounts list to match contrast behavior -->
                                                         <span class="badge bg-secondary-subtle text-secondary">
-                                                            @item.AccountKind
+                                                            @GetKindLabel(item.AccountKind)
                                                         </span>
                                                     </td>
                                                     <td class="text-end">
@@ -233,7 +233,7 @@
                                 <div class="col-12 col-md-4">
                                     <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@L["AccountTotals_Summary_Period"]</h6>
                                     <p class="mb-0 fw-semibold">
-                                        @_report.FromInclusive.ToString("MMM dd, yyyy") - @_report.ToExclusive.ToString("MMM dd, yyyy")
+                                        @DateHelper.FormatShortDate(_report.FromInclusive) - @DateHelper.FormatShortDate(_report.ToExclusive)
                                     </p>
                                 </div>
                                 <div class="col-12 col-md-4">
@@ -370,6 +370,37 @@
         };
     }
 
+    private string GetNatureLabel(AccountNature nature)
+    {
+        return nature switch
+        {
+            AccountNature.Asset => L["Dashboard_Nature_Asset"],
+            AccountNature.Liability => L["Dashboard_Nature_Liability"],
+            AccountNature.Expense => L["Dashboard_Nature_Expense"],
+            AccountNature.Income => L["Dashboard_Nature_Income"],
+            AccountNature.Equity => L["Accounts_Nature_Equity"],
+            _ => nature.ToString()
+        };
+    }
+
+    private string GetKindLabel(AccountKind kind)
+    {
+        return kind switch
+        {
+            AccountKind.Cash => L["Accounts_Kind_Cash"],
+            AccountKind.Checking => L["Accounts_Kind_Checking"],
+            AccountKind.Savings => L["Accounts_Kind_Savings"],
+            AccountKind.Investment => L["Accounts_Kind_Investment"],
+            AccountKind.CreditCard => L["Accounts_Kind_CreditCard"],
+            AccountKind.Loan => L["Accounts_Kind_Loan"],
+            AccountKind.Mortgage => L["Accounts_Kind_Mortgage"],
+            AccountKind.ExpenseCategory => L["Accounts_Kind_ExpenseCategory"],
+            AccountKind.IncomeSource => L["Accounts_Kind_IncomeSource"],
+            AccountKind.Other => L["Accounts_Kind_Other"],
+            _ => kind.ToString()
+        };
+    }
+
     private void SetActiveTab(AccountTotalsReportTab tab)
     {
         _activeTab = tab;
@@ -396,9 +427,9 @@
             .ThenBy(item => item.AccountName, StringComparer.OrdinalIgnoreCase)
             .Select(item => (IReadOnlyList<string?>)
             [
-                item.AccountNature.ToString(),
+                GetNatureLabel(item.AccountNature),
                 item.AccountName,
-                item.AccountKind.ToString(),
+                GetKindLabel(item.AccountKind),
                 MoneyFormatter.FormatCentsWithSign(item.NetChange),
                 item.TransactionsCount.ToString()
             ])
@@ -406,7 +437,7 @@
 
         rows.Add(
         [
-            "Total",
+            L["CategoryTotals_Total"],
             null,
             null,
             MoneyFormatter.FormatCentsWithSign(_report.Items.Sum(i => i.NetChange)),
@@ -414,14 +445,14 @@
         ]);
 
         var csv = ReportCsvBuilder.Build(
-            reportName: "Account Totals",
+            reportName: L["AccountTotals_Title"],
             context: new Dictionary<string, string?>
             {
-                ["From Date"] = _fromDate.ToString("yyyy-MM-dd"),
-                ["To Date (exclusive)"] = _toDate.ToString("yyyy-MM-dd"),
-                ["Include Zero Accounts"] = _includeZeroAccounts ? "Yes" : "No"
+                [L["Reports_FromDate"]] = _fromDate.ToString("yyyy-MM-dd"),
+                [L["Reports_ToDateExclusive"]] = _toDate.ToString("yyyy-MM-dd"),
+                [L["AccountTotals_IncludeNoActivity"]] = _includeZeroAccounts ? "Yes" : "No"
             },
-            headers: ["Nature", "Account Name", "Kind", "Net Change", "Transactions"],
+            headers: [L["Reports_Nature"], L["AccountTotals_Table_AccountName"], L["AccountTotals_Table_Kind"], L["AccountTotals_Table_NetChange"], L["AccountTotals_Table_Transactions"]],
             rows: rows);
 
         try

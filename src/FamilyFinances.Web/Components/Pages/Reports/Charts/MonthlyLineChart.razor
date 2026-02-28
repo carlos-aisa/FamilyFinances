@@ -34,8 +34,8 @@ else
                                 class="btn btn-sm btn-outline-secondary report-export-button"
                                 @onclick="ExportChartAsync"
                                 data-testid="@($"{TestId}-export-image")"
-                                aria-label="@($"Export {Title} chart as PNG")">
-                            <i class="bi bi-download me-1"></i>Export
+                                aria-label="@L["ReportingChart_AriaExportPng", Title]">
+                            <i class="bi bi-download me-1"></i>@L["Reports_Export"]
                         </button>
                     }
                     <span class="badge bg-secondary-subtle text-secondary">@($"{Year}-{Month:00}")</span>

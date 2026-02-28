@@ -82,7 +82,7 @@ else if (_report is not null)
         <div class="col-12 col-md-4">
             <div class="card shadow-sm h-100 border-start border-primary border-4">
                 <div class="card-body">
-                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@L["Reports_LatestMetric", _assetBalanceMetric.CanonicalName]</h6>
+                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@L["Reports_LatestMetric", ReportingMetricLocalizer.GetLabel(L, _assetBalanceMetric)]</h6>
                     <h4 class="mb-0 @MoneyFormatter.GetColorClass(latestEndBalance)">
                         @MoneyFormatter.FormatCentsWithSign(latestEndBalance)
                     </h4>
@@ -92,7 +92,7 @@ else if (_report is not null)
         <div class="col-12 col-md-4">
             <div class="card shadow-sm h-100">
                 <div class="card-body">
-                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@L["Reports_LatestMetric", $"{_assetBalanceMetric.CanonicalName} {_deltaPrevMetric.CanonicalName}"]</h6>
+                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@L["Reports_LatestMetric", $"{ReportingMetricLocalizer.GetLabel(L, _assetBalanceMetric)} {ReportingMetricLocalizer.GetLabel(L, _deltaPrevMetric)}"]</h6>
                     <h4 class="mb-0 @MoneyFormatter.GetColorClass(latestDeltaPrev)">
                         @MoneyFormatter.FormatCentsWithSign(latestDeltaPrev)
                     </h4>
@@ -102,7 +102,7 @@ else if (_report is not null)
         <div class="col-12 col-md-4">
             <div class="card shadow-sm h-100">
                 <div class="card-body">
-                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@L["Reports_LatestMetric", $"{_assetBalanceMetric.CanonicalName} {_deltaYearStartMetric.CanonicalName}"]</h6>
+                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@L["Reports_LatestMetric", $"{ReportingMetricLocalizer.GetLabel(L, _assetBalanceMetric)} {ReportingMetricLocalizer.GetLabel(L, _deltaYearStartMetric)}"]</h6>
                     <h4 class="mb-0 @MoneyFormatter.GetColorClass(latestDeltaYearStart)">
                         @MoneyFormatter.FormatCentsWithSign(latestDeltaYearStart)
                     </h4>
@@ -451,7 +451,7 @@ else
 
         try
         {
-            var assetEndBalanceEvolution = AnnualChartDatasetAdapter.BuildEndBalanceSeries(_report, key: "end-balance", label: "End Balance");
+            var assetEndBalanceEvolution = AnnualChartDatasetAdapter.BuildEndBalanceSeries(_report, key: "end-balance", label: L["Reports_EndBalance"]);
             return new ChartsViewModel(assetEndBalanceEvolution, null);
         }
         catch (Exception ex)

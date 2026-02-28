@@ -63,8 +63,7 @@ var localizationOptions = new RequestLocalizationOptions
         new CookieRequestCultureProvider
         {
             CookieName = CookieRequestCultureProvider.DefaultCookieName
-        },
-        new AcceptLanguageHeaderRequestCultureProvider()
+        }
     ]
 };
 

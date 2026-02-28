@@ -137,7 +137,7 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@_incomeMetric.CanonicalName</h6>
+                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@ReportingMetricLocalizer.GetLabel(L, _incomeMetric)</h6>
                                     <h4 class="mb-0 text-success">@MoneyFormatter.FormatCentsWithSign(_report.IncomeTotal)</h4>
                                 </div>
                                 <i class="bi bi-arrow-down-circle text-success fs-2 opacity-50"></i>
@@ -151,7 +151,7 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@_expenseMetric.CanonicalName</h6>
+                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@ReportingMetricLocalizer.GetLabel(L, _expenseMetric)</h6>
                                     <h4 class="mb-0 text-danger">@MoneyFormatter.FormatCentsWithSign(_report.ExpenseTotal)</h4>
                                 </div>
                                 <i class="bi bi-arrow-up-circle text-danger fs-2 opacity-50"></i>
@@ -165,7 +165,7 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@_periodNetResultMetric.CanonicalName</h6>
+                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@ReportingMetricLocalizer.GetLabel(L, _periodNetResultMetric)</h6>
                                     <h4 class="mb-0 @MoneyFormatter.GetColorClass(_report.Net)">
                                         @MoneyFormatter.FormatCentsWithSign(_report.Net)
                                     </h4>
@@ -181,7 +181,7 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@_transactionsCountMetric.CanonicalName</h6>
+                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@ReportingMetricLocalizer.GetLabel(L, _transactionsCountMetric)</h6>
                                     <h4 class="mb-0 text-info">@_report.TransactionsCount</h4>
                                 </div>
                                 <i class="bi bi-receipt text-info fs-2 opacity-50"></i>
@@ -193,11 +193,11 @@
 
             <div class="alert alert-info mt-3 mb-0" role="alert">
                 <i class="bi bi-info-circle me-2"></i>
-                <strong>@_periodNetResultMetric.CanonicalName</strong> @L["MonthlySummary_FlowMetricInfo"]
+                <strong>@ReportingMetricLocalizer.GetLabel(L, _periodNetResultMetric)</strong> @L["MonthlySummary_FlowMetricInfo"]
             </div>
 
             <div class="row g-4 mt-1 period-summary-detail-grid">
-                <div class="col-12 col-xxl-6">
+                <div class="col-12 col-xxl-5">
                     @if (_selectedAccountGuid is null)
                     {
                         <div class="card shadow-sm">
@@ -229,7 +229,7 @@
                             TestId="monthly-summary-account-monthly-chart" />
                     }
                 </div>
-                <div class="col-12 col-xxl-6">
+                <div class="col-12 col-xxl-7">
                     <div class="card shadow-sm" data-testid="monthly-summary-insights-panel">
                         <div class="card-header bg-light d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
                             <div>
@@ -276,7 +276,7 @@
                                 var focusedMonthLabel = $"{DateHelper.GetMonthName(_anomalyInsights.Month)} {_anomalyInsights.Year}";
 
                                 <div class="row g-3">
-                                    <div class="col-12 col-xl-6">
+                                    <div class="col-12 col-xxl-6">
                                         <div class="border rounded p-3 h-100">
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <h6 class="mb-1">@L["MonthlySummary_ExpensePareto"]</h6>
@@ -311,7 +311,7 @@
                                             </details>
                                         </div>
                                     </div>
-                                    <div class="col-12 col-xl-6">
+                                    <div class="col-12 col-xxl-6">
                                         <div class="border rounded p-3 h-100">
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <h6 class="mb-1">@L["MonthlySummary_IncomePareto"]</h6>
@@ -354,7 +354,7 @@
                                         <span class="badge bg-secondary-subtle text-secondary">@focusedMonthLabel</span>
                                     </div>
                                     <div class="small text-muted mb-2">
-                                        @_anomalyInsights.ThresholdRule
+                                        @L["MonthlySummary_AnomalyRule"]
                                         @L["MonthlySummary_MinimumHistoryMonths", _anomalyInsights.RequiredHistoryMonths]
                                     </div>
                                     @if (_anomalyInsights.Contributors.Count == 0)
@@ -400,7 +400,7 @@
                                                                     }
                                                                 </td>
                                                                 <td class="small text-muted">
-                                                                    @contributor.Explanation
+                                                                    @BuildAnomalyExplanation(contributor, _anomalyInsights.RequiredHistoryMonths)
                                                                     @if (contributor.ZScore is not null)
                                                                     {
                                                                         <span class="ms-1">z=@($"{contributor.ZScore:F2}")</span>
@@ -637,6 +637,18 @@
             _accountMonthlyChart,
             key: "selected-account",
             label: GetSelectedAccountName());
+    }
+
+    private string BuildAnomalyExplanation(AnomalyContributorDto contributor, int requiredHistoryMonths)
+    {
+        if (contributor.IsInsufficientHistory)
+        {
+            return L["MonthlySummary_Explanation_InsufficientHistory", contributor.HistoryMonthsCount, requiredHistoryMonths];
+        }
+
+        return contributor.IsAnomaly
+            ? L["MonthlySummary_Explanation_Anomaly"]
+            : L["MonthlySummary_Explanation_Normal"];
     }
 
     private static readonly HashSet<AccountNature> _flowAccountNatures =

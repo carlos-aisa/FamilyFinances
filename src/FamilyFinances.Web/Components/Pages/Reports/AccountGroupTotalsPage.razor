@@ -161,16 +161,16 @@
                                     class="btn btn-sm btn-outline-secondary report-export-button"
                                     @onclick="ExportCsvAsync"
                                     data-testid="account-group-totals-export-csv"
-                                    aria-label="Export account group totals as CSV">
+                                    aria-label="@L["Reports_AriaExportCsv"]">
                                 <i class="bi bi-download me-1"></i>@L["Reports_Export"]
                             </button>
                             <span class="badge bg-secondary">
-                                @_report.FromInclusive.ToString("MMM dd, yyyy") - @_report.ToExclusive.AddDays(-1).ToString("MMM dd, yyyy")
+                                @DateHelper.FormatShortDate(_report.FromInclusive) - @DateHelper.FormatShortDate(_report.ToExclusive.AddDays(-1))
                             </span>
                             @if (_report.Nature != 0)
                             {
                                 <span class="badge @(_report.Nature == AccountNature.Expense ? "bg-danger" : "bg-success")">
-                                    @_report.Nature
+                                    @GetNatureLabel(_report.Nature)
                                 </span>
                             }
                         </div>
@@ -425,15 +425,17 @@
         ]);
 
         var csv = ReportCsvBuilder.Build(
-            reportName: "Account Group Totals",
+            reportName: L["AccountGroupTotals_Title"],
             context: new Dictionary<string, string?>
             {
-                ["Account Group"] = _report.GroupName,
-                ["From Date"] = _fromDate.ToString("yyyy-MM-dd"),
-                ["To Date (exclusive)"] = _toDate.ToString("yyyy-MM-dd"),
-                ["Nature"] = string.IsNullOrWhiteSpace(_nature) ? "All" : _nature
+                [L["AccountGroupTotals_AccountGroup"]] = _report.GroupName,
+                [L["Reports_FromDate"]] = _fromDate.ToString("yyyy-MM-dd"),
+                [L["Reports_ToDateExclusive"]] = _toDate.ToString("yyyy-MM-dd"),
+                [L["Reports_Nature"]] = string.IsNullOrWhiteSpace(_nature)
+                    ? "-"
+                    : GetNatureLabel(Enum.Parse<AccountNature>(_nature))
             },
-            headers: ["Account", "Amount", "Transactions", "% of Total"],
+            headers: [L["AccountGroupTotals_Table_Account"], L["AccountGroupTotals_Table_Amount"], L["AccountGroupTotals_Table_Transactions"], L["Reports_Share"]],
             rows: rows);
 
         try
@@ -455,6 +457,19 @@
     {
         PeriodTotals,
         StateEvolution
+    }
+
+    private string GetNatureLabel(AccountNature nature)
+    {
+        return nature switch
+        {
+            AccountNature.Asset => L["Dashboard_Nature_Asset"],
+            AccountNature.Liability => L["Dashboard_Nature_Liability"],
+            AccountNature.Expense => L["Dashboard_Nature_Expense"],
+            AccountNature.Income => L["Dashboard_Nature_Income"],
+            AccountNature.Equity => L["Accounts_Nature_Equity"],
+            _ => nature.ToString()
+        };
     }
 
 }

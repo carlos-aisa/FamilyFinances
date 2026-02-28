@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
@@ -19,10 +19,10 @@
     <value>Add Account</value>
   </data>
   <data name="AccountGroupDetail_AddAccountToGroup" xml:space="preserve">
-    <value>Add Account To Group</value>
+    <value>Add account to group</value>
   </data>
   <data name="AccountGroupDetail_AlreadyInOtherGroups" xml:space="preserve">
-    <value>Already In Other Groups</value>
+    <value>Already in {0} other groups: {1}</value>
   </data>
   <data name="AccountGroupDetail_BackToList" xml:space="preserve">
     <value>Back To List</value>
@@ -34,19 +34,19 @@
     <value>Description</value>
   </data>
   <data name="AccountGroupDetail_Empty" xml:space="preserve">
-    <value>Empty</value>
+    <value>No accounts in this group yet.</value>
   </data>
   <data name="AccountGroupDetail_EmptyHint" xml:space="preserve">
-    <value>Empty Hint</value>
+    <value>Add an account to start tracking this group.</value>
   </data>
   <data name="AccountGroupDetail_Info_Title" xml:space="preserve">
-    <value>Info Title</value>
+    <value>Group details</value>
   </data>
   <data name="AccountGroupDetail_Loading" xml:space="preserve">
-    <value>Loading</value>
+    <value>Loading group details...</value>
   </data>
   <data name="AccountGroupDetail_LoadingAccounts" xml:space="preserve">
-    <value>Loading Accounts</value>
+    <value>Loading accounts...</value>
   </data>
   <data name="AccountGroupDetail_Message_AccountAdded" xml:space="preserve">
     <value>Account Added</value>
@@ -73,28 +73,28 @@
     <value>Search Accounts</value>
   </data>
   <data name="AccountGroups_AuthRequired_Description" xml:space="preserve">
-    <value>Auth Required Description</value>
+    <value>You must sign in to manage account groups.</value>
   </data>
   <data name="AccountGroups_AuthRequired_Title" xml:space="preserve">
-    <value>Auth Required Title</value>
+    <value>Authentication required</value>
   </data>
   <data name="AccountGroups_Cancel" xml:space="preserve">
     <value>Cancel</value>
   </data>
   <data name="AccountGroups_ConfirmDelete_Hint" xml:space="preserve">
-    <value>Confirm Delete Hint</value>
+    <value>This action cannot be undone.</value>
   </data>
   <data name="AccountGroups_ConfirmDelete_Question" xml:space="preserve">
-    <value>Confirm Delete Question</value>
+    <value>Are you sure you want to delete "{0}"?</value>
   </data>
   <data name="AccountGroups_ConfirmDelete_Title" xml:space="preserve">
-    <value>Confirm Delete Title</value>
+    <value>Delete account group</value>
   </data>
   <data name="AccountGroups_Count_Plural" xml:space="preserve">
-    <value>Count Plural</value>
+    <value>{0} groups</value>
   </data>
   <data name="AccountGroups_Count_Singular" xml:space="preserve">
-    <value>Count Singular</value>
+    <value>{0} group</value>
   </data>
   <data name="AccountGroups_Create" xml:space="preserve">
     <value>Create</value>
@@ -103,37 +103,37 @@
     <value>Delete</value>
   </data>
   <data name="AccountGroups_Empty_Description" xml:space="preserve">
-    <value>Empty Description</value>
+    <value>Create your first account group to organize accounts.</value>
   </data>
   <data name="AccountGroups_Empty_Title" xml:space="preserve">
-    <value>Empty Title</value>
+    <value>No account groups yet</value>
   </data>
   <data name="AccountGroups_EmptyFiltered_Description" xml:space="preserve">
-    <value>Empty Filtered Description</value>
+    <value>No account groups match your search.</value>
   </data>
   <data name="AccountGroups_EmptyFiltered_Title" xml:space="preserve">
-    <value>Empty Filtered Title</value>
+    <value>No matching account groups</value>
   </data>
   <data name="AccountGroups_Error_NotFound" xml:space="preserve">
-    <value>Error Not Found</value>
+    <value>Account group not found.</value>
   </data>
   <data name="AccountGroups_Field_Description_Optional" xml:space="preserve">
     <value>Description Optional</value>
   </data>
   <data name="AccountGroups_Field_Description_Placeholder" xml:space="preserve">
-    <value>Description Placeholder</value>
+    <value>Enter an optional description</value>
   </data>
   <data name="AccountGroups_Field_Name" xml:space="preserve">
     <value>Name</value>
   </data>
   <data name="AccountGroups_Field_Name_Placeholder" xml:space="preserve">
-    <value>Name Placeholder</value>
+    <value>Enter group name</value>
   </data>
   <data name="AccountGroups_FilteredFromTotal" xml:space="preserve">
-    <value>Filtered From Total</value>
+    <value>of {0} total</value>
   </data>
   <data name="AccountGroups_Loading" xml:space="preserve">
-    <value>Loading</value>
+    <value>Loading account groups...</value>
   </data>
   <data name="AccountGroups_Message_Created" xml:space="preserve">
     <value>Created</value>
@@ -145,13 +145,13 @@
     <value>New Group</value>
   </data>
   <data name="AccountGroups_NewGroup_CardTitle" xml:space="preserve">
-    <value>New Group Card Title</value>
+    <value>New account group</value>
   </data>
   <data name="AccountGroups_NoDescription" xml:space="preserve">
     <value>No Description</value>
   </data>
   <data name="AccountGroups_Search_Placeholder" xml:space="preserve">
-    <value>Search Placeholder</value>
+    <value>Search account groups...</value>
   </data>
   <data name="AccountGroups_Title" xml:space="preserve">
     <value>Account Groups</value>
@@ -160,37 +160,37 @@
     <value>View Edit</value>
   </data>
   <data name="AccountGroupState_AnnualEvolutionSubtitle" xml:space="preserve">
-    <value>Annual Evolution Subtitle</value>
+    <value>Monthly evolution across the selected year.</value>
   </data>
   <data name="AccountGroupState_AnnualEvolutionTitle" xml:space="preserve">
-    <value>Annual Evolution Title</value>
+    <value>Annual evolution</value>
   </data>
   <data name="AccountGroupState_ChartMode" xml:space="preserve">
     <value>Chart Mode</value>
   </data>
   <data name="AccountGroupState_CompositionSubtitle" xml:space="preserve">
-    <value>Composition Subtitle</value>
+    <value>Percentage split by account group for {0}.</value>
   </data>
   <data name="AccountGroupState_CompositionTitle" xml:space="preserve">
-    <value>Composition Title</value>
+    <value>Group composition</value>
   </data>
   <data name="AccountGroupState_LoadingMonthFocused" xml:space="preserve">
-    <value>Loading Month Focused</value>
+    <value>Loading month-focused evolution...</value>
   </data>
   <data name="AccountGroupState_LoadingTitle" xml:space="preserve">
-    <value>Loading Title</value>
+    <value>Loading account group state...</value>
   </data>
   <data name="AccountGroupState_MonthFocusedSubtitle" xml:space="preserve">
-    <value>Month Focused Subtitle</value>
+    <value>Daily end-balance evolution for {0} {1}.</value>
   </data>
   <data name="AccountGroupState_MonthFocusedTitle" xml:space="preserve">
-    <value>Month Focused Title</value>
+    <value>Month-focused evolution</value>
   </data>
   <data name="AccountGroupState_SelectYearHint" xml:space="preserve">
-    <value>Select Year Hint</value>
+    <value>Select a year to load account group state.</value>
   </data>
   <data name="AccountGroupState_Subtitle" xml:space="preserve">
-    <value>Account Group State subtitle</value>
+    <value>Balances and composition by account group.</value>
   </data>
   <data name="AccountGroupState_Title" xml:space="preserve">
     <value>Account Group State</value>
@@ -208,19 +208,19 @@
     <value>Nature</value>
   </data>
   <data name="AccountGroupTotals_Nature_All" xml:space="preserve">
-    <value>Nature All</value>
+    <value>All natures</value>
   </data>
   <data name="AccountGroupTotals_NoTransactionsForPeriod" xml:space="preserve">
-    <value>No Transactions For Period</value>
+    <value>No transactions in the selected period.</value>
   </data>
   <data name="AccountGroupTotals_Ready_Hint" xml:space="preserve">
-    <value>Ready Hint</value>
+    <value>Select filters and click Load Report.</value>
   </data>
   <data name="AccountGroupTotals_Ready_Title" xml:space="preserve">
-    <value>Ready Title</value>
+    <value>Ready to load</value>
   </data>
   <data name="AccountGroupTotals_SelectGroupOption" xml:space="preserve">
-    <value>Select Group Option</value>
+    <value>-- Select a group --</value>
   </data>
   <data name="AccountGroupTotals_Tab_PeriodTotals" xml:space="preserve">
     <value>Period Totals</value>
@@ -301,7 +301,7 @@
     <value>From Date</value>
   </data>
   <data name="AccountMovements_LoadError" xml:space="preserve">
-    <value>Error loading movements: {0}</value>
+    <value>Could not load movements: {0}</value>
   </data>
   <data name="AccountMovements_LoadingMovements" xml:space="preserve">
     <value>Loading movements...</value>
@@ -388,40 +388,40 @@
     <value>View Movements</value>
   </data>
   <data name="Accounts_AuthRequired_Desc" xml:space="preserve">
-    <value>Auth Required Desc</value>
+    <value>You must sign in to manage accounts.</value>
   </data>
   <data name="Accounts_AuthRequired_Title" xml:space="preserve">
-    <value>Auth Required Title</value>
+    <value>Authentication required</value>
   </data>
   <data name="Accounts_Cancel" xml:space="preserve">
     <value>Cancel</value>
   </data>
   <data name="Accounts_Confirm_Close" xml:space="preserve">
-    <value>Confirm Close</value>
+    <value>Confirm closing "{0}"?</value>
   </data>
   <data name="Accounts_Confirm_Delete" xml:space="preserve">
-    <value>Confirm Delete</value>
+    <value>Confirm deleting "{0}"?</value>
   </data>
   <data name="Accounts_Confirm_Reopen" xml:space="preserve">
-    <value>Confirm Reopen</value>
+    <value>Confirm reopening "{0}"?</value>
   </data>
   <data name="Accounts_Count_Plural" xml:space="preserve">
-    <value>Count Plural</value>
+    <value>{0} accounts</value>
   </data>
   <data name="Accounts_Count_Singular" xml:space="preserve">
-    <value>Count Singular</value>
+    <value>{0} account</value>
   </data>
   <data name="Accounts_Create" xml:space="preserve">
     <value>Create</value>
   </data>
   <data name="Accounts_CreateAccountButton" xml:space="preserve">
-    <value>Create Account Button</value>
+    <value>Create account</value>
   </data>
   <data name="Accounts_Empty_Desc" xml:space="preserve">
-    <value>Empty Desc</value>
+    <value>Create your first account to start tracking balances.</value>
   </data>
   <data name="Accounts_Empty_Title" xml:space="preserve">
-    <value>Empty Title</value>
+    <value>No accounts yet</value>
   </data>
   <data name="Accounts_Field_Kind" xml:space="preserve">
     <value>Kind</value>
@@ -430,43 +430,43 @@
     <value>Name</value>
   </data>
   <data name="Accounts_Field_Name_Placeholder" xml:space="preserve">
-    <value>Name Placeholder</value>
+    <value>Enter account name</value>
   </data>
   <data name="Accounts_Field_Nature" xml:space="preserve">
     <value>Nature</value>
   </data>
   <data name="Accounts_Kind_Cash" xml:space="preserve">
-    <value>Kind Cash</value>
+    <value>Cash</value>
   </data>
   <data name="Accounts_Kind_Checking" xml:space="preserve">
-    <value>Kind Checking</value>
+    <value>Checking</value>
   </data>
   <data name="Accounts_Kind_CreditCard" xml:space="preserve">
-    <value>Kind Credit Card</value>
+    <value>Credit card</value>
   </data>
   <data name="Accounts_Kind_ExpenseCategory" xml:space="preserve">
-    <value>Kind Expense Category</value>
+    <value>Expense category</value>
   </data>
   <data name="Accounts_Kind_IncomeSource" xml:space="preserve">
-    <value>Kind Income Source</value>
+    <value>Income source</value>
   </data>
   <data name="Accounts_Kind_Investment" xml:space="preserve">
-    <value>Kind Investment</value>
+    <value>Investment</value>
   </data>
   <data name="Accounts_Kind_Loan" xml:space="preserve">
-    <value>Kind Loan</value>
+    <value>Loan</value>
   </data>
   <data name="Accounts_Kind_Mortgage" xml:space="preserve">
-    <value>Kind Mortgage</value>
+    <value>Mortgage</value>
   </data>
   <data name="Accounts_Kind_Other" xml:space="preserve">
-    <value>Kind Other</value>
+    <value>Other</value>
   </data>
   <data name="Accounts_Kind_Savings" xml:space="preserve">
-    <value>Kind Savings</value>
+    <value>Savings</value>
   </data>
   <data name="Accounts_Loading" xml:space="preserve">
-    <value>Loading</value>
+    <value>Loading accounts...</value>
   </data>
   <data name="Accounts_Message_Closed" xml:space="preserve">
     <value>Closed</value>
@@ -484,16 +484,16 @@
     <value>Reopened</value>
   </data>
   <data name="Accounts_Nature_Equity" xml:space="preserve">
-    <value>Nature Equity</value>
+    <value>Equity</value>
   </data>
   <data name="Accounts_NewAccount" xml:space="preserve">
     <value>New Account</value>
   </data>
   <data name="Accounts_NewAccount_CardTitle" xml:space="preserve">
-    <value>New Account Card Title</value>
+    <value>New account</value>
   </data>
   <data name="Accounts_OpenedOnHint" xml:space="preserve">
-    <value>Opened On Hint</value>
+    <value>Leave empty to use today's date.</value>
   </data>
   <data name="Accounts_Save" xml:space="preserve">
     <value>Save</value>
@@ -526,64 +526,64 @@
     <value>Accounts</value>
   </data>
   <data name="AccountStateOverview_AnnualEvolutionSubtitle" xml:space="preserve">
-    <value>Annual Evolution Subtitle</value>
+    <value>Monthly evolution across the selected year.</value>
   </data>
   <data name="AccountStateOverview_AnnualEvolutionTitle" xml:space="preserve">
-    <value>Annual Evolution Title</value>
+    <value>Annual evolution</value>
   </data>
   <data name="AccountStateOverview_ChartMode" xml:space="preserve">
     <value>Chart Mode</value>
   </data>
   <data name="AccountStateOverview_CompositionNature" xml:space="preserve">
-    <value>Composition Nature</value>
+    <value>Composition by nature</value>
   </data>
   <data name="AccountStateOverview_CompositionSubtitle" xml:space="preserve">
-    <value>Composition Subtitle</value>
+    <value>Percentage split of {0} accounts in {1}.</value>
   </data>
   <data name="AccountStateOverview_ExpenseCompositionTitle" xml:space="preserve">
-    <value>Expense Composition Title</value>
+    <value>Expense composition</value>
   </data>
   <data name="AccountStateOverview_IncomeCompositionTitle" xml:space="preserve">
-    <value>Income Composition Title</value>
+    <value>Income composition</value>
   </data>
   <data name="AccountStateOverview_SelectYearHint" xml:space="preserve">
-    <value>Select Year Hint</value>
+    <value>Select a year to load account state.</value>
   </data>
   <data name="AccountStateOverview_Subtitle" xml:space="preserve">
-    <value>Account State Overview subtitle</value>
+    <value>Totals and composition by account.</value>
   </data>
   <data name="AccountStateOverview_Title" xml:space="preserve">
     <value>Account State Overview</value>
   </data>
   <data name="AccountStateOverview_TopAccounts" xml:space="preserve">
-    <value>Top Accounts</value>
+    <value>Top accounts</value>
   </data>
   <data name="AccountTotals_DisplayOptions" xml:space="preserve">
     <value>Display Options</value>
   </data>
   <data name="AccountTotals_IncludeNoActivity" xml:space="preserve">
-    <value>Include No Activity</value>
+    <value>Include accounts with no activity</value>
   </data>
   <data name="AccountTotals_NatureAccounts" xml:space="preserve">
-    <value>Nature Accounts</value>
+    <value>Accounts: {0}</value>
   </data>
   <data name="AccountTotals_NoDataHint" xml:space="preserve">
-    <value>No Data Hint</value>
+    <value>No data for the selected filters.</value>
   </data>
   <data name="AccountTotals_ReadyHint" xml:space="preserve">
-    <value>Ready Hint</value>
+    <value>Select filters and click Load Report.</value>
   </data>
   <data name="AccountTotals_Subtitle" xml:space="preserve">
-    <value>Account Totals subtitle</value>
+    <value>Totals and composition by account.</value>
   </data>
   <data name="AccountTotals_Summary_Period" xml:space="preserve">
-    <value>Summary Period</value>
+    <value>Period</value>
   </data>
   <data name="AccountTotals_Summary_TotalAccounts" xml:space="preserve">
-    <value>Summary Total Accounts</value>
+    <value>Total accounts</value>
   </data>
   <data name="AccountTotals_Summary_TotalTransactions" xml:space="preserve">
-    <value>Summary Total Transactions</value>
+    <value>Total transactions</value>
   </data>
   <data name="AccountTotals_Tab_PeriodTotals" xml:space="preserve">
     <value>Period Totals</value>
@@ -592,13 +592,13 @@
     <value>State Evolution</value>
   </data>
   <data name="AccountTotals_Table_AccountName" xml:space="preserve">
-    <value>Account Name</value>
+    <value>Account name</value>
   </data>
   <data name="AccountTotals_Table_Kind" xml:space="preserve">
     <value>Kind</value>
   </data>
   <data name="AccountTotals_Table_NetChange" xml:space="preserve">
-    <value>Net Change</value>
+    <value>Net change</value>
   </data>
   <data name="AccountTotals_Table_Transactions" xml:space="preserve">
     <value>Transactions</value>
@@ -607,31 +607,31 @@
     <value>Account Totals</value>
   </data>
   <data name="AssetEvolution_AnnualSubtitle" xml:space="preserve">
-    <value>Annual Subtitle</value>
+    <value>Final balance by month for the selected year.</value>
   </data>
   <data name="AssetEvolution_AnnualTitle" xml:space="preserve">
-    <value>Annual Title</value>
+    <value>Asset total evolution</value>
   </data>
   <data name="AssetEvolution_LoadingMonthFocusedAsset" xml:space="preserve">
-    <value>Loading Month Focused Asset</value>
+    <value>Loading month-focused asset evolution...</value>
   </data>
   <data name="AssetEvolution_LoadingTitle" xml:space="preserve">
-    <value>Loading Title</value>
+    <value>Loading asset evolution...</value>
   </data>
   <data name="AssetEvolution_MonthFocusedSubtitle" xml:space="preserve">
-    <value>Month Focused Subtitle</value>
+    <value>Daily end balance for {0} {1}.</value>
   </data>
   <data name="AssetEvolution_MonthFocusedTitle" xml:space="preserve">
-    <value>Month Focused Title</value>
+    <value>Month-focused asset evolution</value>
   </data>
   <data name="AssetEvolution_MonthlyOverview" xml:space="preserve">
     <value>Monthly Overview</value>
   </data>
   <data name="AssetEvolution_SelectYearHint" xml:space="preserve">
-    <value>Select Year Hint</value>
+    <value>Select a year to load asset evolution.</value>
   </data>
   <data name="AssetEvolution_StockMetricsHint" xml:space="preserve">
-    <value>Stock Metrics Hint</value>
+    <value>Asset balances and deltas are stock metrics.</value>
   </data>
   <data name="AssetTotalBalance_AccountsIncluded" xml:space="preserve">
     <value>Accounts Included</value>
@@ -640,10 +640,10 @@
     <value>As Of Date</value>
   </data>
   <data name="AssetTotalBalance_AsOfValue" xml:space="preserve">
-    <value>As Of Value</value>
+    <value>As of {0}</value>
   </data>
   <data name="AssetTotalBalance_Subtitle" xml:space="preserve">
-    <value>Asset Total Balance subtitle</value>
+    <value>End balance and deltas by month.</value>
   </data>
   <data name="AssetTotalBalance_Title" xml:space="preserve">
     <value>Asset Total Balance</value>
@@ -826,25 +826,25 @@
     <value>Account Nature</value>
   </data>
   <data name="CategoryTotals_NatureAccounts" xml:space="preserve">
-    <value>Nature Accounts</value>
+    <value>{0} accounts</value>
   </data>
   <data name="CategoryTotals_NoDataHint" xml:space="preserve">
-    <value>No Data Hint</value>
+    <value>No categories found for the selected filters.</value>
   </data>
   <data name="CategoryTotals_PieChart_ComingSoon" xml:space="preserve">
     <value>Pie Chart Coming Soon</value>
   </data>
   <data name="CategoryTotals_PieChart_Title" xml:space="preserve">
-    <value>Pie Chart Title</value>
+    <value>Category distribution</value>
   </data>
   <data name="CategoryTotals_ReadyHint" xml:space="preserve">
-    <value>Ready Hint</value>
+    <value>Select filters and click Load Report.</value>
   </data>
   <data name="CategoryTotals_Subtitle" xml:space="preserve">
-    <value>Category Totals subtitle</value>
+    <value>Breakdown by category for the selected period.</value>
   </data>
   <data name="CategoryTotals_Table_AccountName" xml:space="preserve">
-    <value>Account Name</value>
+    <value>Account name</value>
   </data>
   <data name="CategoryTotals_Table_Total" xml:space="preserve">
     <value>Total</value>
@@ -853,7 +853,7 @@
     <value>Transactions</value>
   </data>
   <data name="CategoryTotals_Title" xml:space="preserve">
-    <value>Category Totals</value>
+    <value>Category totals</value>
   </data>
   <data name="CategoryTotals_Total" xml:space="preserve">
     <value>Total</value>
@@ -874,7 +874,7 @@
     <value>Logout</value>
   </data>
   <data name="Common_UnexpectedErrorWithDetails" xml:space="preserve">
-    <value>Unexpected Error With Details</value>
+    <value>Unexpected error: {0}</value>
   </data>
   <data name="Dashboard_AuthenticationRequired" xml:space="preserve">
     <value>Authentication Required</value>
@@ -943,34 +943,34 @@
     <value>This Year</value>
   </data>
   <data name="EconomicState_AsOfDate" xml:space="preserve">
-    <value>As Of Date</value>
+    <value>As of date</value>
   </data>
   <data name="EconomicState_FlowMetricsInfo" xml:space="preserve">
-    <value>Flow Metrics Info</value>
+    <value>represent results over a period and are not directly comparable to stock balances.</value>
   </data>
   <data name="EconomicState_FlowPeriod" xml:space="preserve">
-    <value>Flow Period</value>
+    <value>Flow period: {0} - {1}</value>
   </data>
   <data name="EconomicState_LoadingMonthFocusedChart" xml:space="preserve">
-    <value>Loading Month Focused Chart</value>
+    <value>Loading month-focused chart...</value>
   </data>
   <data name="EconomicState_MonthFocusedChartTitle" xml:space="preserve">
-    <value>Month Focused Chart Title</value>
+    <value>Month-focused income vs expense</value>
   </data>
   <data name="EconomicState_MonthFocusedSubtitle" xml:space="preserve">
-    <value>Month Focused Subtitle</value>
+    <value>Daily accumulated comparison for {0} {1} up to day {2} (absolute values).</value>
   </data>
   <data name="EconomicState_NoDailyPoints" xml:space="preserve">
-    <value>No Daily Points</value>
+    <value>No daily points</value>
   </data>
   <data name="EconomicState_StockMetricsInfo" xml:space="preserve">
-    <value>Stock Metrics Info</value>
+    <value>represent balances at a point in time.</value>
   </data>
   <data name="EconomicState_StockSnapshotAsOf" xml:space="preserve">
-    <value>Stock Snapshot As Of</value>
+    <value>Stock snapshot as of {0}</value>
   </data>
   <data name="EconomicState_Subtitle" xml:space="preserve">
-    <value>Economic State subtitle</value>
+    <value>Current financial position at a selected date with period-to-date flow context.</value>
   </data>
   <data name="EconomicState_Tab_AssetEvolution" xml:space="preserve">
     <value>Asset Evolution</value>
@@ -991,7 +991,7 @@
     <value>Refresh</value>
   </data>
   <data name="History_Subtitle" xml:space="preserve">
-    <value>History subtitle</value>
+    <value>Audit trail for balances and transactions.</value>
   </data>
   <data name="History_Tab_Movements" xml:space="preserve">
     <value>Movements</value>
@@ -1012,13 +1012,13 @@
     <value>Account</value>
   </data>
   <data name="HistoryMovements_NoData" xml:space="preserve">
-    <value>No Data</value>
+    <value>No movements found.</value>
   </data>
   <data name="HistoryMovements_Search" xml:space="preserve">
     <value>Search</value>
   </data>
   <data name="HistoryMovements_SearchPlaceholder" xml:space="preserve">
-    <value>Search Placeholder</value>
+    <value>Search movements...</value>
   </data>
   <data name="HistoryMovements_SelectAccountToLoad" xml:space="preserve">
     <value>Select Account To Load</value>
@@ -1042,7 +1042,7 @@
     <value>Running Balance</value>
   </data>
   <data name="HistoryTransactions_NoDataForYear" xml:space="preserve">
-    <value>No Data For Year</value>
+    <value>No transactions for year {0}.</value>
   </data>
   <data name="HistoryTransactions_Table_Amount" xml:space="preserve">
     <value>Amount</value>
@@ -1069,28 +1069,28 @@
     <value>Confirm Close</value>
   </data>
   <data name="HistoryYears_Confirm_Close_Body" xml:space="preserve">
-    <value>Confirm Close Body</value>
+    <value>You are about to close year {0}. You can reopen it later if needed.</value>
   </data>
   <data name="HistoryYears_Confirm_Close_Title" xml:space="preserve">
-    <value>Confirm Close Title</value>
+    <value>Close year {0}</value>
   </data>
   <data name="HistoryYears_Confirm_Reopen" xml:space="preserve">
     <value>Confirm Reopen</value>
   </data>
   <data name="HistoryYears_Confirm_Reopen_Body" xml:space="preserve">
-    <value>Confirm Reopen Body</value>
+    <value>You are about to reopen year {0}. You can register new movements in that year.</value>
   </data>
   <data name="HistoryYears_Confirm_Reopen_Title" xml:space="preserve">
-    <value>Confirm Reopen Title</value>
+    <value>Reopen year {0}</value>
   </data>
   <data name="HistoryYears_Message_Closed" xml:space="preserve">
-    <value>Closed</value>
+    <value>Year {0} closed.</value>
   </data>
   <data name="HistoryYears_Message_Reopened" xml:space="preserve">
-    <value>Reopened</value>
+    <value>Year {0} reopened.</value>
   </data>
   <data name="HistoryYears_NoData" xml:space="preserve">
-    <value>No Data</value>
+    <value>No yearly snapshots available.</value>
   </data>
   <data name="HistoryYears_Status_Closed" xml:space="preserve">
     <value>Closed</value>
@@ -1114,10 +1114,10 @@
     <value>History Years</value>
   </data>
   <data name="IncomeEvolution_AnnualSubtitle" xml:space="preserve">
-    <value>Annual Subtitle</value>
+    <value>Final income balance by month for the selected year.</value>
   </data>
   <data name="IncomeEvolution_AnnualTitle" xml:space="preserve">
-    <value>Annual Title</value>
+    <value>Income evolution</value>
   </data>
   <data name="IncomeEvolution_IncomeBalance" xml:space="preserve">
     <value>Income Balance</value>
@@ -1126,25 +1126,25 @@
     <value>Latest Income Balance</value>
   </data>
   <data name="IncomeEvolution_LoadingMonthFocusedIncome" xml:space="preserve">
-    <value>Loading Month Focused Income</value>
+    <value>Loading month-focused income evolution...</value>
   </data>
   <data name="IncomeEvolution_LoadingTitle" xml:space="preserve">
-    <value>Loading Title</value>
+    <value>Loading income evolution...</value>
   </data>
   <data name="IncomeEvolution_MonthFocusedSubtitle" xml:space="preserve">
-    <value>Month Focused Subtitle</value>
+    <value>Daily accumulated income for {0} {1}.</value>
   </data>
   <data name="IncomeEvolution_MonthFocusedTitle" xml:space="preserve">
-    <value>Month Focused Title</value>
+    <value>Month-focused income evolution</value>
   </data>
   <data name="IncomeEvolution_MonthlyOverview" xml:space="preserve">
     <value>Monthly Overview</value>
   </data>
   <data name="IncomeEvolution_SelectYearHint" xml:space="preserve">
-    <value>Select Year Hint</value>
+    <value>Select a year to load income evolution.</value>
   </data>
   <data name="IncomeEvolution_StockMetricsHint" xml:space="preserve">
-    <value>Stock Metrics Hint</value>
+    <value>Income balances and deltas are stock metrics.</value>
   </data>
   <data name="Main_Reload" xml:space="preserve">
     <value>Reload</value>
@@ -1153,79 +1153,79 @@
     <value>An unhandled error has occurred.</value>
   </data>
   <data name="MonthlySummary_AccountOptional" xml:space="preserve">
-    <value>Account Optional</value>
+    <value>Account (optional)</value>
   </data>
   <data name="MonthlySummary_AllAccounts" xml:space="preserve">
-    <value>All Accounts</value>
+    <value>All accounts</value>
   </data>
   <data name="MonthlySummary_DailyEndBalanceSubtitle" xml:space="preserve">
-    <value>Daily End Balance Subtitle</value>
+    <value>Daily end balance for {0} in {1}.</value>
   </data>
   <data name="MonthlySummary_DenominatorExpense" xml:space="preserve">
-    <value>Denominator Expense</value>
+    <value>Denominator: {0} total expense in selected period.</value>
   </data>
   <data name="MonthlySummary_DenominatorIncome" xml:space="preserve">
-    <value>Denominator Income</value>
+    <value>Denominator: {0} total income in selected period.</value>
   </data>
   <data name="MonthlySummary_Error_LoadAccountChart" xml:space="preserve">
-    <value>Error Load Account Chart</value>
+    <value>Could not load account chart: {0}</value>
   </data>
   <data name="MonthlySummary_Error_LoadInsights" xml:space="preserve">
-    <value>Error Load Insights</value>
+    <value>Could not load insights: {0}</value>
   </data>
   <data name="MonthlySummary_Error_SelectDates" xml:space="preserve">
-    <value>Error Select Dates</value>
+    <value>From date must be earlier than To date.</value>
   </data>
   <data name="MonthlySummary_ExpensePareto" xml:space="preserve">
     <value>Expense Pareto</value>
   </data>
   <data name="MonthlySummary_FlowMetricInfo" xml:space="preserve">
-    <value>Flow Metric Info</value>
+    <value>is a flow metric.</value>
   </data>
   <data name="MonthlySummary_IncomePareto" xml:space="preserve">
     <value>Income Pareto</value>
   </data>
   <data name="MonthlySummary_InsightDimension" xml:space="preserve">
-    <value>Insight Dimension</value>
+    <value>Analysis dimension</value>
   </data>
   <data name="MonthlySummary_LoadingInsights" xml:space="preserve">
-    <value>Loading Insights</value>
+    <value>Loading insights...</value>
   </data>
   <data name="MonthlySummary_LoadReportForInsights" xml:space="preserve">
-    <value>Load Report For Insights</value>
+    <value>Load a report to view insights.</value>
   </data>
   <data name="MonthlySummary_MinimumHistoryMonths" xml:space="preserve">
-    <value>Minimum History Months</value>
+    <value>Minimum active history months: {0}.</value>
   </data>
   <data name="MonthlySummary_MonthFocusedEvolution" xml:space="preserve">
-    <value>Month Focused Evolution</value>
+    <value>Month-focused evolution</value>
   </data>
   <data name="MonthlySummary_MonthlyExpenseAnomalies" xml:space="preserve">
     <value>Monthly Expense Anomalies</value>
   </data>
   <data name="MonthlySummary_NoContributorsForAnomaly" xml:space="preserve">
-    <value>No Contributors For Anomaly</value>
+    <value>No contributors available for anomaly evaluation.</value>
   </data>
   <data name="MonthlySummary_NoDailyPointsForAccount" xml:space="preserve">
-    <value>No Daily Points For Account</value>
+    <value>No daily points available for the selected account.</value>
   </data>
   <data name="MonthlySummary_PeriodInsights" xml:space="preserve">
-    <value>Period Insights</value>
+    <value>Period insights</value>
   </data>
   <data name="MonthlySummary_PeriodInsights_Subtitle" xml:space="preserve">
-    <value>Period Insights Subtitle</value>
+    <value>Pareto ranking, concentration, and anomaly indicators.</value>
   </data>
   <data name="MonthlySummary_ReadyHint" xml:space="preserve">
-    <value>Ready Hint</value>
+    <value>Select filters and click Load Report.</value>
   </data>
   <data name="MonthlySummary_SelectAccountHint" xml:space="preserve">
-    <value>Select Account Hint</value>
+    <value>Select an account to load the month-focused chart.</value>
   </data>
   <data name="MonthlySummary_SelectedAccount" xml:space="preserve">
-    <value>Selected Account</value>
+    <value>Selected account</value>
   </data>
   <data name="MonthlySummary_SelectedMonth" xml:space="preserve">
-    <value>Selected Month</value>
+    <value>Selected month</value>
   </data>
   <data name="MonthlySummary_Status_Anomaly" xml:space="preserve">
     <value>Anomaly</value>
@@ -1237,16 +1237,16 @@
     <value>Normal</value>
   </data>
   <data name="MonthlySummary_Subtitle" xml:space="preserve">
-    <value>Monthly Summary subtitle</value>
+    <value>Income, expenses, and net result for the selected period.</value>
   </data>
   <data name="MonthlySummary_Title" xml:space="preserve">
-    <value>Monthly Summary</value>
+    <value>Period Summary</value>
   </data>
   <data name="MonthlySummary_ViewAnomalyBreakdown" xml:space="preserve">
     <value>View Anomaly Breakdown</value>
   </data>
   <data name="MonthlySummary_ViewRankedContributors" xml:space="preserve">
-    <value>View Ranked Contributors</value>
+    <value>View ranked contributors</value>
   </data>
   <data name="MortgageWidget_DescriptionFallback" xml:space="preserve">
     <value>Mortgage Payment - {0}</value>
@@ -1275,6 +1275,60 @@
   <data name="MortgageWidget_Title" xml:space="preserve">
     <value>Mortgage Payment</value>
   </data>
+  <data name="MortgagePreset_Title" xml:space="preserve">
+    <value>Mortgage payment preset</value>
+  </data>
+  <data name="MortgagePreset_Subtitle" xml:space="preserve">
+    <value>Configure a mortgage payment split into principal and interest components.</value>
+  </data>
+  <data name="MortgagePreset_DateRequired" xml:space="preserve">
+    <value>Date *</value>
+  </data>
+  <data name="MortgagePreset_PaymentAccount" xml:space="preserve">
+    <value>Payment account * (where payment comes from)</value>
+  </data>
+  <data name="MortgagePreset_MortgageAccount" xml:space="preserve">
+    <value>Mortgage account * (Liability)</value>
+  </data>
+  <data name="MortgagePreset_InterestExpenseAccount" xml:space="preserve">
+    <value>Interest expense account *</value>
+  </data>
+  <data name="MortgagePreset_SelectAccountOption" xml:space="preserve">
+    <value>-- select account --</value>
+  </data>
+  <data name="MortgagePreset_PrincipalAmount" xml:space="preserve">
+    <value>Principal amount (EUR) *</value>
+  </data>
+  <data name="MortgagePreset_PrincipalAmountHint" xml:space="preserve">
+    <value>Amount applied to mortgage balance</value>
+  </data>
+  <data name="MortgagePreset_InterestAmount" xml:space="preserve">
+    <value>Interest amount (EUR) *</value>
+  </data>
+  <data name="MortgagePreset_InterestAmountHint" xml:space="preserve">
+    <value>Interest expense for this period</value>
+  </data>
+  <data name="MortgagePreset_TotalPayment" xml:space="preserve">
+    <value>Total payment:</value>
+  </data>
+  <data name="MortgagePreset_Apply" xml:space="preserve">
+    <value>Apply preset</value>
+  </data>
+  <data name="MortgagePreset_Validation_PaymentAccountRequired" xml:space="preserve">
+    <value>Payment account is required.</value>
+  </data>
+  <data name="MortgagePreset_Validation_MortgageAccountRequired" xml:space="preserve">
+    <value>Mortgage account is required.</value>
+  </data>
+  <data name="MortgagePreset_Validation_InterestAccountRequired" xml:space="preserve">
+    <value>Interest expense account is required.</value>
+  </data>
+  <data name="MortgagePreset_Validation_PrincipalGreaterThanZero" xml:space="preserve">
+    <value>Principal amount must be greater than zero.</value>
+  </data>
+  <data name="MortgagePreset_Validation_InterestGreaterThanZero" xml:space="preserve">
+    <value>Interest amount must be greater than zero.</value>
+  </data>
   <data name="MultiSplitCreate_Cancel" xml:space="preserve">
     <value>Cancel</value>
   </data>
@@ -1282,10 +1336,10 @@
     <value>Create Transaction</value>
   </data>
   <data name="MultiSplitCreate_DefaultDescription" xml:space="preserve">
-    <value>Default Description</value>
+    <value>Mortgage payment {0}</value>
   </data>
   <data name="MultiSplitCreate_Error_CreateFailed" xml:space="preserve">
-    <value>Error Create Failed</value>
+    <value>Could not create multi-split transaction: {0}</value>
   </data>
   <data name="MultiSplitCreate_ModeManual" xml:space="preserve">
     <value>Mode Manual</value>
@@ -1306,7 +1360,7 @@
     <value>Split Memo Principal</value>
   </data>
   <data name="MultiSplitCreate_Subtitle" xml:space="preserve">
-    <value>Multi Split Create subtitle</value>
+    <value>Create a transaction with multiple splits.</value>
   </data>
   <data name="MultiSplitCreate_Title" xml:space="preserve">
     <value>Multi Split Create</value>
@@ -1321,7 +1375,7 @@
     <value>Add Split</value>
   </data>
   <data name="MultiSplitEditor_AmountPlaceholder" xml:space="preserve">
-    <value>Amount Placeholder</value>
+    <value>0.00</value>
   </data>
   <data name="MultiSplitEditor_AmountRequired" xml:space="preserve">
     <value>Amount Required</value>
@@ -1333,25 +1387,25 @@
     <value>Date Required</value>
   </data>
   <data name="MultiSplitEditor_DescriptionPlaceholder" xml:space="preserve">
-    <value>Description Placeholder</value>
+    <value>Enter description</value>
   </data>
   <data name="MultiSplitEditor_DescriptionRequired" xml:space="preserve">
     <value>Description Required</value>
   </data>
   <data name="MultiSplitEditor_Error_DescriptionRequired" xml:space="preserve">
-    <value>Error Description Required</value>
+    <value>Description is required.</value>
   </data>
   <data name="MultiSplitEditor_Error_MinSplits" xml:space="preserve">
-    <value>Error Min Splits</value>
+    <value>At least two splits are required.</value>
   </data>
   <data name="MultiSplitEditor_MaxSplitsReached" xml:space="preserve">
-    <value>Max Splits Reached</value>
+    <value>Maximum number of splits reached ({0}).</value>
   </data>
   <data name="MultiSplitEditor_MemoOptional" xml:space="preserve">
     <value>Memo Optional</value>
   </data>
   <data name="MultiSplitEditor_MemoPlaceholder" xml:space="preserve">
-    <value>Memo Placeholder</value>
+    <value>Optional memo</value>
   </data>
   <data name="MultiSplitEditor_NoneOption" xml:space="preserve">
     <value>None Option</value>
@@ -1369,10 +1423,10 @@
     <value>Select Account Option</value>
   </data>
   <data name="MultiSplitEditor_SplitsHint" xml:space="preserve">
-    <value>Splits Hint</value>
+    <value>Splits must balance to the transaction amount.</value>
   </data>
   <data name="MultiSplitEditor_SplitsTitle" xml:space="preserve">
-    <value>Splits Title</value>
+    <value>Splits</value>
   </data>
   <data name="MultiSplitWidget_Clear" xml:space="preserve">
     <value>Clear</value>
@@ -1450,13 +1504,13 @@
     <value>Clear Search</value>
   </data>
   <data name="Payees_Confirm_Delete" xml:space="preserve">
-    <value>Confirm Delete</value>
+    <value>Are you sure you want to delete "{0}"?</value>
   </data>
   <data name="Payees_Count_Plural" xml:space="preserve">
-    <value>Count Plural</value>
+    <value>{0} payees</value>
   </data>
   <data name="Payees_Count_Singular" xml:space="preserve">
-    <value>Count Singular</value>
+    <value>{0} payee</value>
   </data>
   <data name="Payees_Create" xml:space="preserve">
     <value>Create</value>
@@ -1465,25 +1519,25 @@
     <value>Create First</value>
   </data>
   <data name="Payees_Empty_Description" xml:space="preserve">
-    <value>Empty Description</value>
+    <value>Create your first payee to speed up transaction entry.</value>
   </data>
   <data name="Payees_Empty_Title" xml:space="preserve">
-    <value>Empty Title</value>
+    <value>No payees yet</value>
   </data>
   <data name="Payees_Field_Name" xml:space="preserve">
     <value>Name</value>
   </data>
   <data name="Payees_Field_Name_Placeholder" xml:space="preserve">
-    <value>Name Placeholder</value>
+    <value>Enter payee name</value>
   </data>
   <data name="Payees_FilteredFromTotal" xml:space="preserve">
-    <value>Filtered From Total</value>
+    <value>of {0} total</value>
   </data>
   <data name="Payees_Footer_Hint" xml:space="preserve">
-    <value>Footer Hint</value>
+    <value>Tip: payees help with reporting and filtering.</value>
   </data>
   <data name="Payees_Loading" xml:space="preserve">
-    <value>Loading</value>
+    <value>Loading payees...</value>
   </data>
   <data name="Payees_Message_Created" xml:space="preserve">
     <value>Created</value>
@@ -1501,13 +1555,13 @@
     <value>No Results Description</value>
   </data>
   <data name="Payees_NoResults_Title" xml:space="preserve">
-    <value>No Results Title</value>
+    <value>No matching payees</value>
   </data>
   <data name="Payees_Save" xml:space="preserve">
     <value>Save</value>
   </data>
   <data name="Payees_Search_Placeholder" xml:space="preserve">
-    <value>Search Placeholder</value>
+    <value>Search payees...</value>
   </data>
   <data name="Payees_Table_Actions" xml:space="preserve">
     <value>Actions</value>
@@ -1525,40 +1579,40 @@
     <value>Create</value>
   </data>
   <data name="PayeeSelector_CreateNew" xml:space="preserve">
-    <value>Create New</value>
+    <value>Create new payee</value>
   </data>
   <data name="PayeeSelector_CreateTitle" xml:space="preserve">
-    <value>Create Title</value>
+    <value>Create New Payee</value>
   </data>
   <data name="PayeeSelector_ErrorLoad" xml:space="preserve">
-    <value>Error Load</value>
+    <value>Error loading payees: {0}</value>
   </data>
   <data name="PayeeSelector_ErrorUnexpected" xml:space="preserve">
-    <value>Error Unexpected</value>
+    <value>Unexpected error: {0}</value>
   </data>
   <data name="PayeeSelector_Label" xml:space="preserve">
-    <value>Label</value>
+    <value>Payee {0}</value>
   </data>
   <data name="PayeeSelector_LoadFailed" xml:space="preserve">
-    <value>Load Failed</value>
+    <value>Failed to load payees.</value>
   </data>
   <data name="PayeeSelector_NamePlaceholder" xml:space="preserve">
-    <value>Name Placeholder</value>
+    <value>Enter payee name</value>
   </data>
   <data name="PayeeSelector_NameRequired" xml:space="preserve">
-    <value>Name Required</value>
+    <value>Name *</value>
   </data>
   <data name="PayeeSelector_OptionalSuffix" xml:space="preserve">
-    <value>Optional Suffix</value>
+    <value>(Optional)</value>
   </data>
   <data name="PayeeSelector_OptionSelect" xml:space="preserve">
-    <value>Option Select</value>
+    <value>-- Select Payee --</value>
   </data>
   <data name="PayeeSelector_Retry" xml:space="preserve">
     <value>Retry</value>
   </data>
   <data name="PayeeSelector_RetryLoad" xml:space="preserve">
-    <value>Retry Load</value>
+    <value>Retry loading payees</value>
   </data>
   <data name="QuickEntry_Expense_Hint" xml:space="preserve">
     <value>Select an account and an expense category</value>
@@ -1588,13 +1642,13 @@
     <value>Amount</value>
   </data>
   <data name="QuickEntryDrawer_AmountPlaceholder" xml:space="preserve">
-    <value>Amount Placeholder</value>
+    <value>0.00</value>
   </data>
   <data name="QuickEntryDrawer_ClearLink" xml:space="preserve">
-    <value>Clear Link</value>
+    <value>Clear link</value>
   </data>
   <data name="QuickEntryDrawer_ClearSelection" xml:space="preserve">
-    <value>Clear Selection</value>
+    <value>Clear</value>
   </data>
   <data name="QuickEntryDrawer_CreateTransaction" xml:space="preserve">
     <value>Create Transaction</value>
@@ -1606,109 +1660,109 @@
     <value>Description</value>
   </data>
   <data name="QuickEntryDrawer_DescriptionPlaceholder" xml:space="preserve">
-    <value>Description Placeholder</value>
+    <value>Enter description</value>
   </data>
   <data name="QuickEntryDrawer_Error_AmountGreaterThanZero" xml:space="preserve">
-    <value>Error Amount Greater Than Zero</value>
+    <value>Amount must be greater than zero.</value>
   </data>
   <data name="QuickEntryDrawer_Error_CreateFailed" xml:space="preserve">
-    <value>Error Create Failed</value>
+    <value>Could not create transaction: {0}</value>
   </data>
   <data name="QuickEntryDrawer_Error_DescriptionRequired" xml:space="preserve">
-    <value>Error Description Required</value>
+    <value>Description is required.</value>
   </data>
   <data name="QuickEntryDrawer_Error_FromAllowedNatures" xml:space="preserve">
-    <value>Error From Allowed Natures</value>
+    <value>From account must be one of: {0}.</value>
   </data>
   <data name="QuickEntryDrawer_Error_FromToDifferent" xml:space="preserve">
-    <value>Error From To Different</value>
+    <value>From and To accounts must be different.</value>
   </data>
   <data name="QuickEntryDrawer_Error_SearchFailed" xml:space="preserve">
-    <value>Error Search Failed</value>
+    <value>Search failed: {0}</value>
   </data>
   <data name="QuickEntryDrawer_Error_SelectFromExpense" xml:space="preserve">
-    <value>Error Select From Expense</value>
+    <value>Select a Paid from account from the list.</value>
   </data>
   <data name="QuickEntryDrawer_Error_SelectFromIncome" xml:space="preserve">
-    <value>Error Select From Income</value>
+    <value>Select a Source account from the list.</value>
   </data>
   <data name="QuickEntryDrawer_Error_SelectFromRefund" xml:space="preserve">
-    <value>Error Select From Refund</value>
+    <value>Select an Expense account from the list.</value>
   </data>
   <data name="QuickEntryDrawer_Error_SelectFromTransfer" xml:space="preserve">
-    <value>Error Select From Transfer</value>
+    <value>Select a From account from the list.</value>
   </data>
   <data name="QuickEntryDrawer_Error_SelectToExpense" xml:space="preserve">
-    <value>Error Select To Expense</value>
+    <value>Select a Category account from the list.</value>
   </data>
   <data name="QuickEntryDrawer_Error_SelectToIncome" xml:space="preserve">
-    <value>Error Select To Income</value>
+    <value>Select a Destination account from the list.</value>
   </data>
   <data name="QuickEntryDrawer_Error_SelectToRefund" xml:space="preserve">
-    <value>Error Select To Refund</value>
+    <value>Select a Destination account from the list.</value>
   </data>
   <data name="QuickEntryDrawer_Error_SelectToTransfer" xml:space="preserve">
-    <value>Error Select To Transfer</value>
+    <value>Select a To account from the list.</value>
   </data>
   <data name="QuickEntryDrawer_Error_ToAllowedNatures" xml:space="preserve">
-    <value>Error To Allowed Natures</value>
+    <value>To account must be one of: {0}.</value>
   </data>
   <data name="QuickEntryDrawer_From" xml:space="preserve">
     <value>From</value>
   </data>
   <data name="QuickEntryDrawer_Info_TransactionCreated" xml:space="preserve">
-    <value>Info Transaction Created</value>
+    <value>Transaction created successfully.</value>
   </data>
   <data name="QuickEntryDrawer_KeepSourceAccount" xml:space="preserve">
-    <value>Keep Source Account</value>
+    <value>Keep source account</value>
   </data>
   <data name="QuickEntryDrawer_LinkOriginalExpense" xml:space="preserve">
-    <value>Link Original Expense</value>
+    <value>Link to original expense (optional)</value>
   </data>
   <data name="QuickEntryDrawer_NoExpensesFound" xml:space="preserve">
-    <value>No Expenses Found</value>
+    <value>No expenses found matching your search.</value>
   </data>
   <data name="QuickEntryDrawer_SearchExpensesPlaceholder" xml:space="preserve">
-    <value>Search Expenses Placeholder</value>
+    <value>Search by payee, description, or expense account...</value>
   </data>
   <data name="QuickEntryDrawer_SwapAccounts" xml:space="preserve">
-    <value>Swap Accounts</value>
+    <value>Swap</value>
   </data>
   <data name="QuickEntryDrawer_To" xml:space="preserve">
     <value>To</value>
   </data>
   <data name="ReportingChart_Empty_NoCompositionForFilters" xml:space="preserve">
-    <value>Empty No Composition For Filters</value>
+    <value>No composition data for the selected filters.</value>
   </data>
   <data name="ReportingChart_Empty_NoPointsForFilters" xml:space="preserve">
-    <value>Empty No Points For Filters</value>
+    <value>No chart points for the selected filters.</value>
   </data>
   <data name="ReportingChart_Empty_NoPointsForMonth" xml:space="preserve">
-    <value>Empty No Points For Month</value>
+    <value>No chart points for the selected month.</value>
   </data>
   <data name="ReportingChart_Error_DefaultMessage" xml:space="preserve">
-    <value>Error Default Message</value>
+    <value>The chart could not be loaded.</value>
   </data>
   <data name="ReportingChart_Error_ExportFailed" xml:space="preserve">
-    <value>Error Export Failed</value>
+    <value>Could not export chart image: {0}</value>
   </data>
   <data name="ReportingChart_Error_Title" xml:space="preserve">
-    <value>Error Title</value>
+    <value>Chart error</value>
   </data>
   <data name="Reports_Account" xml:space="preserve">
     <value>Account</value>
   </data>
   <data name="Reports_AccountLineSelector" xml:space="preserve">
-    <value>Account Line Selector</value>
+    <value>Account line selector</value>
   </data>
   <data name="Reports_Amount" xml:space="preserve">
     <value>Amount</value>
   </data>
   <data name="Reports_AnnualCharts" xml:space="preserve">
-    <value>Annual Charts</value>
+    <value>Annual charts</value>
   </data>
   <data name="Reports_AriaExportCsv" xml:space="preserve">
-    <value>Aria Export Csv</value>
+    <value>Export CSV</value>
   </data>
   <data name="Reports_BackToReports" xml:space="preserve">
     <value>Back To Reports</value>
@@ -1720,16 +1774,16 @@
     <value>Chart Mode</value>
   </data>
   <data name="Reports_ChartMode_Composition" xml:space="preserve">
-    <value>Chart Mode Composition</value>
+    <value>Composition</value>
   </data>
   <data name="Reports_ChartMode_Evolution" xml:space="preserve">
-    <value>Chart Mode Evolution</value>
+    <value>Evolution</value>
   </data>
   <data name="Reports_ComparabilityAssetOnly" xml:space="preserve">
-    <value>Comparability Asset Only</value>
+    <value>{0} and related deltas are stock metrics. {1} in Period Summary is a flow metric; they are not directly comparable.</value>
   </data>
   <data name="Reports_ComparabilityGeneral" xml:space="preserve">
-    <value>Comparability General</value>
+    <value>Monthly evolution end balances and deltas are stock metrics. {0} in Period Summary is a flow metric; they are not directly comparable.</value>
   </data>
   <data name="Reports_Contributor" xml:space="preserve">
     <value>Contributor</value>
@@ -1738,46 +1792,46 @@
     <value>Current</value>
   </data>
   <data name="Reports_CurrentMonth" xml:space="preserve">
-    <value>Current Month</value>
+    <value>Current month: {0}</value>
   </data>
   <data name="Reports_DeltaPrevMonth" xml:space="preserve">
-    <value>Delta Prev Month</value>
+    <value>Delta vs previous month</value>
   </data>
   <data name="Reports_DeltaYearStart" xml:space="preserve">
-    <value>Delta Year Start</value>
+    <value>Delta vs year start</value>
   </data>
   <data name="Reports_Details" xml:space="preserve">
     <value>Details</value>
   </data>
   <data name="Reports_DimensionGroups" xml:space="preserve">
-    <value>Dimension Groups</value>
+    <value>Groups</value>
   </data>
   <data name="Reports_DimensionPayees" xml:space="preserve">
-    <value>Dimension Payees</value>
+    <value>Payees</value>
   </data>
   <data name="Reports_EndBalance" xml:space="preserve">
     <value>End Balance</value>
   </data>
   <data name="Reports_Error_BuildAnnualChartDataset" xml:space="preserve">
-    <value>Error Build Annual Chart Dataset</value>
+    <value>Could not build annual chart dataset: {0}</value>
   </data>
   <data name="Reports_Error_BuildChartDataset" xml:space="preserve">
-    <value>Error Build Chart Dataset</value>
+    <value>Could not build chart dataset: {0}</value>
   </data>
   <data name="Reports_Error_ExportCsvFailed" xml:space="preserve">
-    <value>Error Export Csv Failed</value>
+    <value>Could not export CSV: {0}</value>
   </data>
   <data name="Reports_Error_FromBeforeTo" xml:space="preserve">
-    <value>Error From Before To</value>
+    <value>From date must be earlier than To date.</value>
   </data>
   <data name="Reports_Error_LoadFailed" xml:space="preserve">
-    <value>Error Load Failed</value>
+    <value>Could not load report data: {0}</value>
   </data>
   <data name="Reports_Error_LoadMonthFocusedChart" xml:space="preserve">
-    <value>Error Load Month Focused Chart</value>
+    <value>Could not load month-focused chart: {0}</value>
   </data>
   <data name="Reports_Error_Unauthorized" xml:space="preserve">
-    <value>Error Unauthorized</value>
+    <value>You are not authorized. Please sign in again.</value>
   </data>
   <data name="Reports_Explanation" xml:space="preserve">
     <value>Explanation</value>
@@ -1789,13 +1843,13 @@
     <value>Filters</value>
   </data>
   <data name="Reports_FlowMetrics" xml:space="preserve">
-    <value>Flow Metrics</value>
+    <value>Flow metrics</value>
   </data>
   <data name="Reports_FocusedMonth" xml:space="preserve">
-    <value>Focused Month</value>
+    <value>Focused month</value>
   </data>
   <data name="Reports_FromDate" xml:space="preserve">
-    <value>From Date</value>
+    <value>From date</value>
   </data>
   <data name="Reports_GenerateReport" xml:space="preserve">
     <value>Generate Report</value>
@@ -1807,22 +1861,22 @@
     <value>Latest End Balance</value>
   </data>
   <data name="Reports_LatestMetric" xml:space="preserve">
-    <value>Latest Metric</value>
+    <value>Latest metric: {0}</value>
   </data>
   <data name="Reports_LoadingAnnualCharts" xml:space="preserve">
-    <value>Loading Annual Charts</value>
+    <value>Loading annual charts...</value>
   </data>
   <data name="Reports_LoadingDailyPoints" xml:space="preserve">
-    <value>Loading Daily Points</value>
+    <value>Loading daily points...</value>
   </data>
   <data name="Reports_LoadingData" xml:space="preserve">
-    <value>Loading Data</value>
+    <value>Loading report data...</value>
   </data>
   <data name="Reports_LoadReport" xml:space="preserve">
-    <value>Load Report</value>
+    <value>Load report</value>
   </data>
   <data name="Reports_LoginRequired" xml:space="preserve">
-    <value>Login Required</value>
+    <value>Please sign in to access reports.</value>
   </data>
   <data name="Reports_Month" xml:space="preserve">
     <value>Month</value>
@@ -1831,16 +1885,16 @@
     <value>Nature</value>
   </data>
   <data name="Reports_NoChartPointsForFilters" xml:space="preserve">
-    <value>No Chart Points For Filters</value>
+    <value>No chart points available for the selected filters.</value>
   </data>
   <data name="Reports_NoDailyPointsForMonth" xml:space="preserve">
-    <value>No Daily Points For Month</value>
+    <value>No daily points available for the selected month.</value>
   </data>
   <data name="Reports_NoDataForPeriod" xml:space="preserve">
-    <value>No Data For Period</value>
+    <value>No data for the selected period.</value>
   </data>
   <data name="Reports_NoEvolutionDataForYear" xml:space="preserve">
-    <value>No Evolution Data For Year</value>
+    <value>No evolution data available for the selected year.</value>
   </data>
   <data name="Reports_NotAvailable" xml:space="preserve">
     <value>Not Available</value>
@@ -1848,20 +1902,23 @@
   <data name="Reports_QuickSelect" xml:space="preserve">
     <value>Quick Select</value>
   </data>
+  <data name="Reports_PayeeOptional" xml:space="preserve">
+    <value>Payee (optional)</value>
+  </data>
   <data name="Reports_ReadyToGenerate" xml:space="preserve">
-    <value>Ready To Generate</value>
+    <value>Ready to generate</value>
   </data>
   <data name="Reports_Reset" xml:space="preserve">
     <value>Reset</value>
   </data>
   <data name="Reports_ResetToCurrentMonth" xml:space="preserve">
-    <value>Reset To Current Month</value>
+    <value>Reset to current month</value>
   </data>
   <data name="Reports_SeriesCount" xml:space="preserve">
-    <value>Series Count</value>
+    <value>{0} series</value>
   </data>
   <data name="Reports_SeriesName" xml:space="preserve">
-    <value>Series Name</value>
+    <value>Series</value>
   </data>
   <data name="Reports_Share" xml:space="preserve">
     <value>Share</value>
@@ -1870,13 +1927,13 @@
     <value>Status</value>
   </data>
   <data name="Reports_StockMetrics" xml:space="preserve">
-    <value>Stock Metrics</value>
+    <value>Stock metrics</value>
   </data>
   <data name="Reports_Threshold" xml:space="preserve">
     <value>Threshold</value>
   </data>
   <data name="Reports_ToDateExclusive" xml:space="preserve">
-    <value>To Date Exclusive</value>
+    <value>To date (exclusive)</value>
   </data>
   <data name="Reports_Uncategorized" xml:space="preserve">
     <value>Uncategorized</value>
@@ -1936,7 +1993,7 @@
     <value>Monthly</value>
   </data>
   <data name="ReportsIndex_MonthlySummary_Description" xml:space="preserve">
-    <value>View Income, Expense, and Period Net Result (flow metrics) for any date range.</value>
+    <value>View income, expense, and net result for any date range.</value>
   </data>
   <data name="ReportsIndex_MonthlySummary_Title" xml:space="preserve">
     <value>Monthly Summary</value>
@@ -2020,40 +2077,40 @@
     <value>Description</value>
   </data>
   <data name="TransactionCreate_Error_AmountGreaterThanZero" xml:space="preserve">
-    <value>Error Amount Greater Than Zero</value>
+    <value>Amount must be greater than zero.</value>
   </data>
   <data name="TransactionCreate_Error_DescriptionRequired" xml:space="preserve">
-    <value>Error Description Required</value>
+    <value>Description is required.</value>
   </data>
   <data name="TransactionCreate_Error_FromRequired" xml:space="preserve">
-    <value>Error From Required</value>
+    <value>From account is required.</value>
   </data>
   <data name="TransactionCreate_Error_FromToDifferent" xml:space="preserve">
-    <value>Error From To Different</value>
+    <value>From and To accounts must be different.</value>
   </data>
   <data name="TransactionCreate_Error_ToRequired" xml:space="preserve">
-    <value>Error To Required</value>
+    <value>To account is required.</value>
   </data>
   <data name="TransactionCreate_FromAccount" xml:space="preserve">
-    <value>From Account</value>
+    <value>From account</value>
   </data>
   <data name="TransactionCreate_MemoOptional" xml:space="preserve">
     <value>Memo Optional</value>
   </data>
   <data name="TransactionCreate_NoneOption" xml:space="preserve">
-    <value>None Option</value>
+    <value>-- none --</value>
   </data>
   <data name="TransactionCreate_PayeeOptional" xml:space="preserve">
     <value>Payee Optional</value>
   </data>
   <data name="TransactionCreate_SelectOption" xml:space="preserve">
-    <value>Select Option</value>
+    <value>-- select an option --</value>
   </data>
   <data name="TransactionCreate_Title" xml:space="preserve">
-    <value>Transaction Create</value>
+    <value>Create transaction</value>
   </data>
   <data name="TransactionCreate_ToAccount" xml:space="preserve">
-    <value>To Account</value>
+    <value>To account</value>
   </data>
   <data name="TransactionDetail_Account" xml:space="preserve">
     <value>Account</value>
@@ -2264,5 +2321,80 @@
   </data>
   <data name="TransactionType_Unknown" xml:space="preserve">
     <value>Unknown</value>
+  </data>
+  <data name="Metric_AssetBalance" xml:space="preserve">
+    <value>Asset balance</value>
+  </data>
+  <data name="Metric_LiabilityBalance" xml:space="preserve">
+    <value>Liability balance</value>
+  </data>
+  <data name="Metric_NetWorth" xml:space="preserve">
+    <value>Net worth</value>
+  </data>
+  <data name="Metric_Income" xml:space="preserve">
+    <value>Income</value>
+  </data>
+  <data name="Metric_Expense" xml:space="preserve">
+    <value>Expense</value>
+  </data>
+  <data name="Metric_PeriodNetResult" xml:space="preserve">
+    <value>Period net result</value>
+  </data>
+  <data name="Metric_TransactionsCount" xml:space="preserve">
+    <value>Transactions count</value>
+  </data>
+  <data name="Metric_DeltaVsPreviousMonth" xml:space="preserve">
+    <value>Delta vs previous month</value>
+  </data>
+  <data name="Metric_DeltaVsYearStart" xml:space="preserve">
+    <value>Delta vs year start</value>
+  </data>
+  <data name="MonthlySummary_AnomalyRule" xml:space="preserve">
+    <value>Anomaly when current amount is above baseline + 2sigma (or baseline x1.25 when sigma=0).</value>
+  </data>
+  <data name="MonthlySummary_Explanation_InsufficientHistory" xml:space="preserve">
+    <value>Insufficient history ({0}/{1} months).</value>
+  </data>
+  <data name="MonthlySummary_Explanation_Anomaly" xml:space="preserve">
+    <value>Current amount is above the calculated threshold.</value>
+  </data>
+  <data name="MonthlySummary_Explanation_Normal" xml:space="preserve">
+    <value>Within expected range.</value>
+  </data>
+  <data name="Login_EmailLabel" xml:space="preserve">
+    <value>Email</value>
+  </data>
+  <data name="Login_PasswordLabel" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="Login_PasswordPlaceholder" xml:space="preserve">
+    <value>Enter password</value>
+  </data>
+  <data name="Login_Submit" xml:space="preserve">
+    <value>Login</value>
+  </data>
+  <data name="Login_DefaultCredentials" xml:space="preserve">
+    <value>Default: admin@familyfinances.local / Admin123!</value>
+  </data>
+  <data name="Login_Error_SessionExpired" xml:space="preserve">
+    <value>Your session has expired. Please log in again.</value>
+  </data>
+  <data name="Login_Error_Loading" xml:space="preserve">
+    <value>Please wait, loading...</value>
+  </data>
+  <data name="Login_Error_InvalidCredentials" xml:space="preserve">
+    <value>Invalid email or password.</value>
+  </data>
+  <data name="Login_Error_MissingAccessToken" xml:space="preserve">
+    <value>Missing access token.</value>
+  </data>
+  <data name="Login_Error_System" xml:space="preserve">
+    <value>Login system error. Please refresh the page and try again.</value>
+  </data>
+  <data name="Login_Error_Failed" xml:space="preserve">
+    <value>Login failed</value>
+  </data>
+  <data name="ReportingChart_AriaExportPng" xml:space="preserve">
+    <value>Export chart "{0}" as PNG</value>
   </data>
 </root>

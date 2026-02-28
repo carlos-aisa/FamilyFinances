@@ -93,7 +93,7 @@ else if (_report is not null)
         <div class="col-12 col-md-4">
             <div class="card shadow-sm h-100">
                 <div class="card-body">
-                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@L["Reports_LatestMetric", $"{L["IncomeEvolution_IncomeBalance"]} {_deltaPrevMetric.CanonicalName}"]</h6>
+                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@L["Reports_LatestMetric", $"{L["IncomeEvolution_IncomeBalance"]} {ReportingMetricLocalizer.GetLabel(L, _deltaPrevMetric)}"]</h6>
                     <h4 class="mb-0 @MoneyFormatter.GetColorClass(latestDeltaPrev)">
                         @MoneyFormatter.FormatCentsWithSign(latestDeltaPrev)
                     </h4>
@@ -103,7 +103,7 @@ else if (_report is not null)
         <div class="col-12 col-md-4">
             <div class="card shadow-sm h-100">
                 <div class="card-body">
-                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@L["Reports_LatestMetric", $"{L["IncomeEvolution_IncomeBalance"]} {_deltaYearStartMetric.CanonicalName}"]</h6>
+                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@L["Reports_LatestMetric", $"{L["IncomeEvolution_IncomeBalance"]} {ReportingMetricLocalizer.GetLabel(L, _deltaYearStartMetric)}"]</h6>
                     <h4 class="mb-0 @MoneyFormatter.GetColorClass(latestDeltaYearStart)">
                         @MoneyFormatter.FormatCentsWithSign(latestDeltaYearStart)
                     </h4>
@@ -453,7 +453,7 @@ else
 
         try
         {
-            var incomeEndBalanceEvolution = AnnualChartDatasetAdapter.BuildEndBalanceSeries(_report, key: "end-balance", label: "End Balance");
+            var incomeEndBalanceEvolution = AnnualChartDatasetAdapter.BuildEndBalanceSeries(_report, key: "end-balance", label: L["Reports_EndBalance"]);
             return new ChartsViewModel(incomeEndBalanceEvolution, null);
         }
         catch (Exception ex)

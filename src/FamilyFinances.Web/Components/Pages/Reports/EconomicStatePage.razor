@@ -122,7 +122,7 @@
                     <div class="col-12 col-md-6 col-xl-4">
                         <div class="card shadow-sm border-start border-primary border-4 h-100">
                             <div class="card-body">
-                                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@_assetMetric.CanonicalName</h6>
+                                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@ReportingMetricLocalizer.GetLabel(L, _assetMetric)</h6>
                                 <h4 class="mb-0 @MoneyFormatter.GetColorClass(_report.AssetsTotalCents)">
                                     @MoneyFormatter.FormatCentsWithSign(_report.AssetsTotalCents)
                                 </h4>
@@ -132,7 +132,7 @@
                     <div class="col-12 col-md-6 col-xl-4">
                         <div class="card shadow-sm border-start border-warning border-4 h-100">
                             <div class="card-body">
-                                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@_liabilityMetric.CanonicalName</h6>
+                                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@ReportingMetricLocalizer.GetLabel(L, _liabilityMetric)</h6>
                                 <h4 class="mb-0 text-danger">
                                     @MoneyFormatter.FormatCents(_report.LiabilitiesTotalCents)
                                 </h4>
@@ -142,7 +142,7 @@
                     <div class="col-12 col-md-6 col-xl-4">
                         <div class="card shadow-sm border-start border-info border-4 h-100">
                             <div class="card-body">
-                                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@_netWorthMetric.CanonicalName</h6>
+                                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@ReportingMetricLocalizer.GetLabel(L, _netWorthMetric)</h6>
                                 <h4 class="mb-0 @MoneyFormatter.GetColorClass(_report.NetWorthCents)">
                                     @MoneyFormatter.FormatCentsWithSign(_report.NetWorthCents)
                                 </h4>
@@ -155,7 +155,7 @@
                     <div class="col-12 col-md-6 col-xl-4">
                         <div class="card shadow-sm border-start border-success border-4 h-100">
                             <div class="card-body">
-                                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@_incomeMetric.CanonicalName</h6>
+                                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@ReportingMetricLocalizer.GetLabel(L, _incomeMetric)</h6>
                                 <h4 class="mb-0 text-success">
                                     @MoneyFormatter.FormatCentsWithSign(_report.IncomeTotalCents)
                                 </h4>
@@ -165,7 +165,7 @@
                     <div class="col-12 col-md-6 col-xl-4">
                         <div class="card shadow-sm border-start border-danger border-4 h-100">
                             <div class="card-body">
-                                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@_expenseMetric.CanonicalName</h6>
+                                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@ReportingMetricLocalizer.GetLabel(L, _expenseMetric)</h6>
                                 <h4 class="mb-0 text-danger">
                                     @MoneyFormatter.FormatCentsWithSign(_report.ExpenseTotalCents)
                                 </h4>
@@ -175,7 +175,7 @@
                     <div class="col-12 col-md-6 col-xl-4">
                         <div class="card shadow-sm border-start border-secondary border-4 h-100">
                             <div class="card-body">
-                                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@_periodNetMetric.CanonicalName</h6>
+                                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@ReportingMetricLocalizer.GetLabel(L, _periodNetMetric)</h6>
                                 <h4 class="mb-0 @MoneyFormatter.GetColorClass(_report.PeriodNetResultCents)">
                                     @MoneyFormatter.FormatCentsWithSign(_report.PeriodNetResultCents)
                                 </h4>
@@ -187,12 +187,12 @@
                 <div class="alert alert-info mb-0" role="alert">
                     <i class="bi bi-info-circle me-2"></i>
                     <span>
-                        <strong>@L["Reports_StockMetrics"]</strong> (@_assetMetric.CanonicalName, @_liabilityMetric.CanonicalName, @_netWorthMetric.CanonicalName)
+                        <strong>@L["Reports_StockMetrics"]</strong> (@ReportingMetricLocalizer.GetLabel(L, _assetMetric), @ReportingMetricLocalizer.GetLabel(L, _liabilityMetric), @ReportingMetricLocalizer.GetLabel(L, _netWorthMetric))
                         @L["EconomicState_StockMetricsInfo"]
                     </span>
                     <br />
                     <span>
-                        <strong>@L["Reports_FlowMetrics"]</strong> (@_incomeMetric.CanonicalName, @_expenseMetric.CanonicalName, @_periodNetMetric.CanonicalName)
+                        <strong>@L["Reports_FlowMetrics"]</strong> (@ReportingMetricLocalizer.GetLabel(L, _incomeMetric), @ReportingMetricLocalizer.GetLabel(L, _expenseMetric), @ReportingMetricLocalizer.GetLabel(L, _periodNetMetric))
                         @L["EconomicState_FlowMetricsInfo"]
                     </span>
                 </div>

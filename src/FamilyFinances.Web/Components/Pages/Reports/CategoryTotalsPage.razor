@@ -70,7 +70,7 @@
                         <select class="form-select" aria-label="@L["CategoryTotals_AccountNature"]" @bind="_selectedNature">
                             @foreach (var nature in Enum.GetValues<AccountNature>())
                             {
-                                <option value="@nature">@nature</option>
+                                <option value="@nature">@GetNatureLabel(nature)</option>
                             }
                         </select>
                     </div>
@@ -129,20 +129,20 @@
                     <div class="d-flex justify-content-between align-items-center">
                             <h5 class="mb-0">
                                 <i class="bi bi-list-ul me-2"></i>
-                                @L["CategoryTotals_NatureAccounts", _report.Nature]
+                                @L["CategoryTotals_NatureAccounts", GetNatureLabel(_report.Nature)]
                             </h5>
                         <div class="d-flex align-items-center gap-2">
                             <div class="text-muted">
                                 <small>
                                     <i class="bi bi-calendar-range me-1"></i>
-                                    @_report.FromInclusive.ToString("MMM dd, yyyy") - @_report.ToExclusive.ToString("MMM dd, yyyy")
+                                    @DateHelper.FormatShortDate(_report.FromInclusive) - @DateHelper.FormatShortDate(_report.ToExclusive)
                                 </small>
                             </div>
                             <button type="button"
                                     class="btn btn-sm btn-outline-secondary report-export-button"
                                     @onclick="ExportCsvAsync"
                                     data-testid="category-totals-export-csv"
-                                    aria-label="Export category totals as CSV">
+                                    aria-label="@L["Reports_AriaExportCsv"]">
                                 <i class="bi bi-download me-1"></i>@L["Reports_Export"]
                             </button>
                         </div>
@@ -325,21 +325,21 @@
 
         rows.Add(
         [
-            "Total",
+            L["CategoryTotals_Total"],
             MoneyFormatter.FormatCentsWithSign(totalAmount),
             totalTransactions.ToString()
         ]);
 
         var csv = ReportCsvBuilder.Build(
-            reportName: "Category Totals",
+            reportName: L["CategoryTotals_Title"],
             context: new Dictionary<string, string?>
             {
-                ["From Date"] = _fromDate.ToString("yyyy-MM-dd"),
-                ["To Date (exclusive)"] = _toDate.ToString("yyyy-MM-dd"),
-                ["Nature"] = _selectedNature.ToString(),
-                ["Payee Id"] = _selectedPayeeId?.ToString()
+                [L["Reports_FromDate"]] = _fromDate.ToString("yyyy-MM-dd"),
+                [L["Reports_ToDateExclusive"]] = _toDate.ToString("yyyy-MM-dd"),
+                [L["Reports_Nature"]] = GetNatureLabel(_selectedNature),
+                [L["Reports_PayeeOptional"]] = _selectedPayeeId?.ToString()
             },
-            headers: ["Account Name", "Total", "Transactions"],
+            headers: [L["CategoryTotals_Table_AccountName"], L["CategoryTotals_Table_Total"], L["CategoryTotals_Table_Transactions"]],
             rows: rows);
 
         try
@@ -355,5 +355,18 @@
         {
             _error = L["Reports_Error_ExportCsvFailed", ex.Message];
         }
+    }
+
+    private string GetNatureLabel(AccountNature nature)
+    {
+        return nature switch
+        {
+            AccountNature.Asset => L["Dashboard_Nature_Asset"],
+            AccountNature.Liability => L["Dashboard_Nature_Liability"],
+            AccountNature.Expense => L["Dashboard_Nature_Expense"],
+            AccountNature.Income => L["Dashboard_Nature_Income"],
+            AccountNature.Equity => L["Accounts_Nature_Equity"],
+            _ => nature.ToString()
+        };
     }
 }

@@ -4,6 +4,7 @@
 @using System.ComponentModel.DataAnnotations
 @using FamilyFinances.Application.Ledger.AccountGroups.Dtos
 @using FamilyFinances.Application.Ledger.Accounts.Dtos
+@using FamilyFinances.Domain.Ledger.Accounts
 @using FamilyFinances.Web
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
@@ -178,7 +179,7 @@
                                                         <div>
                                                             <strong>@account.Name</strong>
                                                             <br />
-                                                            <small class="text-muted">@account.Nature - @account.Kind</small>
+                                                            <small class="text-muted">@GetNatureLabel(account.Nature) - @GetKindLabel(account.Kind)</small>
                                                             @if (hasOtherGroups)
                                                             {
                                                                 <br />
@@ -214,7 +215,7 @@
                                             <div>
                                                 <strong>@account.Name</strong>
                                                 <br />
-                                                <small class="text-muted">@account.Nature - @account.Kind</small>
+                                                <small class="text-muted">@GetNatureLabel(account.Nature) - @GetKindLabel(account.Kind)</small>
                                             </div>
                                             <button class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAccountFromGroup(account.AccountId))" title="@L["AccountGroupDetail_RemoveAccount"]">
                                                 <i class="bi bi-trash"></i>
@@ -430,6 +431,37 @@
     private static List<AccountGroupDto> GetOtherGroupsForAccount(Guid accountId)
     {
         return [];
+    }
+
+    private string GetNatureLabel(AccountNature nature)
+    {
+        return nature switch
+        {
+            AccountNature.Asset => L["Dashboard_Nature_Asset"],
+            AccountNature.Liability => L["Dashboard_Nature_Liability"],
+            AccountNature.Expense => L["Dashboard_Nature_Expense"],
+            AccountNature.Income => L["Dashboard_Nature_Income"],
+            AccountNature.Equity => L["Accounts_Nature_Equity"],
+            _ => nature.ToString()
+        };
+    }
+
+    private string GetKindLabel(AccountKind kind)
+    {
+        return kind switch
+        {
+            AccountKind.Cash => L["Accounts_Kind_Cash"],
+            AccountKind.Checking => L["Accounts_Kind_Checking"],
+            AccountKind.Savings => L["Accounts_Kind_Savings"],
+            AccountKind.Investment => L["Accounts_Kind_Investment"],
+            AccountKind.CreditCard => L["Accounts_Kind_CreditCard"],
+            AccountKind.Loan => L["Accounts_Kind_Loan"],
+            AccountKind.Mortgage => L["Accounts_Kind_Mortgage"],
+            AccountKind.ExpenseCategory => L["Accounts_Kind_ExpenseCategory"],
+            AccountKind.IncomeSource => L["Accounts_Kind_IncomeSource"],
+            AccountKind.Other => L["Accounts_Kind_Other"],
+            _ => kind.ToString()
+        };
     }
 
     private void GoBack()

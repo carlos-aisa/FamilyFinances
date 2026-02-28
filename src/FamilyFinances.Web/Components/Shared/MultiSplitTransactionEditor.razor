@@ -65,7 +65,7 @@
                             <option value="">@L["MultiSplitEditor_SelectAccountOption"]</option>
                             @foreach (var account in Accounts)
                             {
-                                <option value="@account.Id">@account.Name (@account.Nature)</option>
+                                <option value="@account.Id">@account.Name (@GetNatureLabel(account.Nature))</option>
                             }
                         </select>
                     </div>
@@ -277,6 +277,19 @@
     private string GetBalanceCardClass()
     {
         return Math.Abs(_balance) < 0.01m ? "border-success" : "border-warning";
+    }
+
+    private string GetNatureLabel(FamilyFinances.Domain.Ledger.Accounts.AccountNature nature)
+    {
+        return nature switch
+        {
+            FamilyFinances.Domain.Ledger.Accounts.AccountNature.Asset => L["Dashboard_Nature_Asset"],
+            FamilyFinances.Domain.Ledger.Accounts.AccountNature.Liability => L["Dashboard_Nature_Liability"],
+            FamilyFinances.Domain.Ledger.Accounts.AccountNature.Expense => L["Dashboard_Nature_Expense"],
+            FamilyFinances.Domain.Ledger.Accounts.AccountNature.Income => L["Dashboard_Nature_Income"],
+            FamilyFinances.Domain.Ledger.Accounts.AccountNature.Equity => L["Accounts_Nature_Equity"],
+            _ => nature.ToString()
+        };
     }
 
     public sealed class FormModel

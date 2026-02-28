@@ -153,7 +153,7 @@
                                                 <div class="flex-grow-1">
                                                     <strong>@expense.Description</strong>
                                                     <small class="d-block text-muted">
-                                                        @expense.BookedOn.ToString("MMM dd, yyyy", CultureInfo.CurrentCulture)
+                                                        @DateHelper.FormatShortDate(expense.BookedOn)
                                                         @if (!string.IsNullOrWhiteSpace(expense.PayeeName))
                                                         {
                                                             <span> - @expense.PayeeName</span>
@@ -528,6 +528,7 @@
             AccountNature.Liability => L["Dashboard_Nature_Liability"],
             AccountNature.Expense => L["Dashboard_Nature_Expense"],
             AccountNature.Income => L["Dashboard_Nature_Income"],
+            AccountNature.Equity => L["Accounts_Nature_Equity"],
             _ => nature.ToString()
         };
     }
@@ -540,7 +541,7 @@
         [Required, StringLength(200)]
         public string Description { get; set; } = "";
 
-        [Range(typeof(decimal), "0,01", "999999999")]
+        [Range(0.01d, 999999999d)]
         public decimal Amount { get; set; }
 
         public Guid? PayeeId { get; set; }

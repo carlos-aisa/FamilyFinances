@@ -548,31 +548,31 @@ else
     {
         if (usesAssetOnly)
         {
-            return L["Reports_ComparabilityAssetOnly", _assetBalanceMetric.CanonicalName, _periodNetResultMetric.CanonicalName];
+            return L["Reports_ComparabilityAssetOnly", ReportingMetricLocalizer.GetLabel(L, _assetBalanceMetric), ReportingMetricLocalizer.GetLabel(L, _periodNetResultMetric)];
         }
 
-        return L["Reports_ComparabilityGeneral", _periodNetResultMetric.CanonicalName];
+        return L["Reports_ComparabilityGeneral", ReportingMetricLocalizer.GetLabel(L, _periodNetResultMetric)];
     }
 
     private string GetLatestEndBalanceLabel(bool usesAssetOnly)
     {
         return usesAssetOnly
-            ? L["Reports_LatestMetric", _assetBalanceMetric.CanonicalName]
+            ? L["Reports_LatestMetric", ReportingMetricLocalizer.GetLabel(L, _assetBalanceMetric)]
             : L["Reports_LatestEndBalance"];
     }
 
     private string GetLatestDeltaPrevLabel(bool usesAssetOnly)
     {
         return usesAssetOnly
-            ? L["Reports_LatestMetric", $"{_assetBalanceMetric.CanonicalName} {_deltaPrevMetric.CanonicalName}"]
-            : L["Reports_LatestMetric", _deltaPrevMetric.CanonicalName];
+            ? L["Reports_LatestMetric", $"{ReportingMetricLocalizer.GetLabel(L, _assetBalanceMetric)} {ReportingMetricLocalizer.GetLabel(L, _deltaPrevMetric)}"]
+            : L["Reports_LatestMetric", ReportingMetricLocalizer.GetLabel(L, _deltaPrevMetric)];
     }
 
     private string GetLatestDeltaYearStartLabel(bool usesAssetOnly)
     {
         return usesAssetOnly
-            ? L["Reports_LatestMetric", $"{_assetBalanceMetric.CanonicalName} {_deltaYearStartMetric.CanonicalName}"]
-            : L["Reports_LatestMetric", _deltaYearStartMetric.CanonicalName];
+            ? L["Reports_LatestMetric", $"{ReportingMetricLocalizer.GetLabel(L, _assetBalanceMetric)} {ReportingMetricLocalizer.GetLabel(L, _deltaYearStartMetric)}"]
+            : L["Reports_LatestMetric", ReportingMetricLocalizer.GetLabel(L, _deltaYearStartMetric)];
     }
 
     private IReadOnlyList<int> GetAvailableMonths()

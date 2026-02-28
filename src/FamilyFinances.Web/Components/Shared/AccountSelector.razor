@@ -1,5 +1,8 @@
 @using FamilyFinances.Application.Ledger.Accounts.Dtos
 @using FamilyFinances.Domain.Ledger.Accounts
+@using FamilyFinances.Web
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<SharedResource> L
 
 <div>
     <label class="form-label fw-semibold">
@@ -27,7 +30,7 @@
         <option value="">@Placeholder</option>
         @foreach (var account in FilteredAccounts.OrderBy(a => a.Name))
         {
-            <option value="@account.Id">@account.Name (@account.Nature)</option>
+            <option value="@account.Id">@account.Name (@GetNatureLabel(account.Nature))</option>
         }
     </select>
     
@@ -97,5 +100,18 @@
     private async Task OnSelectionChanged()
     {
         await SelectedAccountIdChanged.InvokeAsync(SelectedAccountId);
+    }
+
+    private string GetNatureLabel(AccountNature nature)
+    {
+        return nature switch
+        {
+            AccountNature.Asset => L["Dashboard_Nature_Asset"],
+            AccountNature.Liability => L["Dashboard_Nature_Liability"],
+            AccountNature.Expense => L["Dashboard_Nature_Expense"],
+            AccountNature.Income => L["Dashboard_Nature_Income"],
+            AccountNature.Equity => L["Accounts_Nature_Equity"],
+            _ => nature.ToString()
+        };
     }
 }

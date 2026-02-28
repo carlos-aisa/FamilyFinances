@@ -1,17 +1,20 @@
 @using System.ComponentModel.DataAnnotations
 @using FamilyFinances.Application.Ledger.Accounts.Dtos
 @using FamilyFinances.Domain.Ledger.Accounts
+@using FamilyFinances.Web
 @using FamilyFinances.Web.Features.Reports
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<SharedResource> L
 
 <div class="card border-primary">
     <div class="card-header bg-primary text-white">
         <h6 class="mb-0">
-            <i class="bi bi-house me-2"></i>Mortgage Payment Preset
+            <i class="bi bi-house me-2"></i>@L["MortgagePreset_Title"]
         </h6>
     </div>
     <div class="card-body">
         <p class="small text-muted mb-3">
-            Configure a mortgage payment split into principal and interest components.
+            @L["MortgagePreset_Subtitle"]
         </p>
 
         <EditForm Model="_model" OnValidSubmit="@(() => Task.CompletedTask)">
@@ -20,30 +23,30 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label small fw-semibold">
-                        <i class="bi bi-calendar-event me-1"></i>Date *
+                        <i class="bi bi-calendar-event me-1"></i>@L["MortgagePreset_DateRequired"]
                     </label>
                     <InputDate class="form-control" @bind-Value="_model.BookedOn" @bind-Value:after="ValidateAndNotify" />
                 </div>
 
                 <div class="col-md-12">
                     <label class="form-label small fw-semibold">
-                        <i class="bi bi-bank me-1"></i>Payment Account * (where payment comes from)
+                        <i class="bi bi-bank me-1"></i>@L["MortgagePreset_PaymentAccount"]
                     </label>
                     <select class="form-select" @bind="_model.PaymentAccountId" @bind:after="ValidateAndNotify">
-                        <option value="">&mdash; select account &mdash;</option>
+                        <option value="">@L["MortgagePreset_SelectAccountOption"]</option>
                         @foreach (var account in Accounts.Where(a => a.Nature == AccountNature.Asset || a.Nature == AccountNature.Liability))
                         {
-                            <option value="@account.Id">@account.Name (@account.Nature)</option>
+                            <option value="@account.Id">@account.Name (@GetNatureLabel(account.Nature))</option>
                         }
                     </select>
                 </div>
 
                 <div class="col-md-6">
                     <label class="form-label small fw-semibold">
-                        <i class="bi bi-house-door me-1"></i>Mortgage Account * (Liability)
+                        <i class="bi bi-house-door me-1"></i>@L["MortgagePreset_MortgageAccount"]
                     </label>
                     <select class="form-select" @bind="_model.MortgagePrincipalAccountId" @bind:after="ValidateAndNotify">
-                        <option value="">&mdash; select account &mdash;</option>
+                        <option value="">@L["MortgagePreset_SelectAccountOption"]</option>
                         @foreach (var account in Accounts.Where(a => a.Nature == AccountNature.Liability))
                         {
                             <option value="@account.Id">@account.Name</option>
@@ -53,10 +56,10 @@
 
                 <div class="col-md-6">
                     <label class="form-label small fw-semibold">
-                        <i class="bi bi-percent me-1"></i>Interest Expense Account *
+                        <i class="bi bi-percent me-1"></i>@L["MortgagePreset_InterestExpenseAccount"]
                     </label>
                     <select class="form-select" @bind="_model.InterestExpenseAccountId" @bind:after="ValidateAndNotify">
-                        <option value="">&mdash; select account &mdash;</option>
+                        <option value="">@L["MortgagePreset_SelectAccountOption"]</option>
                         @foreach (var account in Accounts.Where(a => a.Nature == AccountNature.Expense))
                         {
                             <option value="@account.Id">@account.Name</option>
@@ -66,34 +69,34 @@
 
                 <div class="col-md-6">
                     <label class="form-label small fw-semibold">
-                        <i class="bi bi-currency-euro me-1"></i>Principal Amount (&euro;) *
+                        <i class="bi bi-currency-euro me-1"></i>@L["MortgagePreset_PrincipalAmount"]
                     </label>
                     <input type="text" 
                            class="form-control" 
-                           placeholder="0.00"
+                           placeholder="@L["QuickEntryDrawer_AmountPlaceholder"]"
                            @bind="_principalText" 
                            @bind:event="oninput"
                            @bind:after="OnPrincipalChanged" />
-                    <small class="text-muted">Amount applied to mortgage balance</small>
+                    <small class="text-muted">@L["MortgagePreset_PrincipalAmountHint"]</small>
                 </div>
 
                 <div class="col-md-6">
                     <label class="form-label small fw-semibold">
-                        <i class="bi bi-currency-euro me-1"></i>Interest Amount (&euro;) *
+                        <i class="bi bi-currency-euro me-1"></i>@L["MortgagePreset_InterestAmount"]
                     </label>
                     <input type="text" 
                            class="form-control" 
-                           placeholder="0.00"
+                           placeholder="@L["QuickEntryDrawer_AmountPlaceholder"]"
                            @bind="_interestText" 
                            @bind:event="oninput"
                            @bind:after="OnInterestChanged" />
-                    <small class="text-muted">Interest expense for this period</small>
+                    <small class="text-muted">@L["MortgagePreset_InterestAmountHint"]</small>
                 </div>
 
                 <div class="col-12">
                     <div class="alert @GetTotalAlertClass() mb-0" role="alert">
                         <div class="d-flex justify-content-between align-items-center">
-                            <span class="fw-semibold">Total Payment:</span>
+                            <span class="fw-semibold">@L["MortgagePreset_TotalPayment"]</span>
                             <span class="fs-5 fw-bold">@MoneyFormatter.FormatEuros(_model.PrincipalAmount + _model.InterestAmount)</span>
                         </div>
                     </div>
@@ -112,10 +115,10 @@
             <button class="btn btn-primary btn-sm" 
                     @onclick="ApplyPreset" 
                     disabled="@(!_isValid)">
-                <i class="bi bi-check-circle me-1"></i>Apply Preset
+                <i class="bi bi-check-circle me-1"></i>@L["MortgagePreset_Apply"]
             </button>
             <button class="btn btn-outline-secondary btn-sm" @onclick="Clear">
-                <i class="bi bi-x-circle me-1"></i>Clear
+                <i class="bi bi-x-circle me-1"></i>@L["MultiSplitWidget_Clear"]
             </button>
         </div>
     </div>
@@ -174,31 +177,31 @@
 
         if (_model.PaymentAccountId == Guid.Empty)
         {
-            _validationMessage = "Payment account is required.";
+            _validationMessage = L["MortgagePreset_Validation_PaymentAccountRequired"];
             return;
         }
 
         if (_model.MortgagePrincipalAccountId == Guid.Empty)
         {
-            _validationMessage = "Mortgage account is required.";
+            _validationMessage = L["MortgagePreset_Validation_MortgageAccountRequired"];
             return;
         }
 
         if (_model.InterestExpenseAccountId == Guid.Empty)
         {
-            _validationMessage = "Interest expense account is required.";
+            _validationMessage = L["MortgagePreset_Validation_InterestAccountRequired"];
             return;
         }
 
         if (_model.PrincipalAmount <= 0)
         {
-            _validationMessage = "Principal amount must be greater than zero.";
+            _validationMessage = L["MortgagePreset_Validation_PrincipalGreaterThanZero"];
             return;
         }
 
         if (_model.InterestAmount <= 0)
         {
-            _validationMessage = "Interest amount must be greater than zero.";
+            _validationMessage = L["MortgagePreset_Validation_InterestGreaterThanZero"];
             return;
         }
 
@@ -237,6 +240,19 @@
     {
         var total = _model.PrincipalAmount + _model.InterestAmount;
         return total > 0 ? "alert-info" : "alert-secondary";
+    }
+
+    private string GetNatureLabel(AccountNature nature)
+    {
+        return nature switch
+        {
+            AccountNature.Asset => L["Dashboard_Nature_Asset"],
+            AccountNature.Liability => L["Dashboard_Nature_Liability"],
+            AccountNature.Expense => L["Dashboard_Nature_Expense"],
+            AccountNature.Income => L["Dashboard_Nature_Income"],
+            AccountNature.Equity => L["Accounts_Nature_Equity"],
+            _ => nature.ToString()
+        };
     }
 
     private sealed class PresetFormModel

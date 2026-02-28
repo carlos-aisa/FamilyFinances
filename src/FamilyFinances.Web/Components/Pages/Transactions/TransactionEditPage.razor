@@ -378,7 +378,7 @@ else
         [Required]
         public Guid ToAccountId { get; set; }
 
-        [Range(typeof(decimal), "0,01", "999999999")]
+        [Range(0.01d, 999999999d)]
         public decimal Amount { get; set; }
     }
 }
