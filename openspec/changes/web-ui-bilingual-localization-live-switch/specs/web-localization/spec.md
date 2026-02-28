@@ -1,11 +1,11 @@
 ## ADDED Requirements
 
-### Requirement: Web UI SHALL Provide Global Runtime Language Selection
-The Web UI MUST expose a language selector in the shared navigation shell so authenticated users can switch between supported UI languages without changing route manually.
+### Requirement: Web UI SHALL Provide Runtime Language Selection From Settings
+The Web UI MUST expose a language selector in the Settings page so authenticated users can switch between supported UI languages without changing backend/user profile data.
 
-#### Scenario: Language selector is available from any page
-- **WHEN** a user renders any page that uses the main application layout
-- **THEN** the navigation shell MUST display a language selector control in the top navigation controls area
+#### Scenario: Language selector is available from Settings
+- **WHEN** a user renders `/settings`
+- **THEN** the Settings page MUST display a language selector control in the language preferences section
 - **AND** the selector MUST include exactly `es-ES` and `en-US` options
 
 #### Scenario: Selector reflects active language
@@ -39,7 +39,7 @@ This change MUST localize only the Blazor Web UI and MUST NOT alter backend resp
 The targeted shared and page-level UI elements MUST use localization resources instead of hardcoded display strings.
 
 #### Scenario: Targeted shell and high-traffic pages are resource-driven
-- **WHEN** the following pages/components are rendered: navigation shell, transactions list/detail, account movements, reports index, and shared date presets
+- **WHEN** the following pages/components are rendered: settings page, transactions list/detail, account movements, reports index, and shared date presets
 - **THEN** user-facing labels and messages in those components MUST be served through localization resources for both supported cultures
 
 ### Requirement: User-Facing Formatting SHALL Follow Active Culture
@@ -65,11 +65,11 @@ The Web UI MUST normalize unsupported persisted culture values to a supported de
 - **THEN** the app MUST fallback to default `es-ES`
 - **AND** the selector MUST render the fallback value consistently
 
-### Requirement: Culture Helper Contract SHALL Be Stable for Web Shell Integration
-The client-side culture helper MUST expose a stable API used by the navigation selector.
+### Requirement: Culture Helper Contract SHALL Be Stable for Settings Integration
+The client-side culture helper MUST expose a stable API used by the Settings language selector.
 
 #### Scenario: Culture helper API surface
-- **WHEN** Web shell initializes language controls
+- **WHEN** Settings page initializes language controls
 - **THEN** JavaScript helper MUST provide methods with signatures compatible with:
   - `string getCulture()`
   - `string setCulture(string culture)`

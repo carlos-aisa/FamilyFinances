@@ -72,7 +72,7 @@ public sealed class ReportResponsiveLayoutTests : WebTestContext
         cut.WaitForAssertion(() =>
         {
             cut.Markup.Should().Contain("col-12 col-md-6 col-xl-4");
-            cut.Markup.Should().Contain("aria-label=\"As-of Date\"");
+            cut.Markup.Should().Contain("aria-label=\"As of date\"");
         });
     }
 
@@ -135,7 +135,7 @@ public sealed class ReportResponsiveLayoutTests : WebTestContext
             ]);
 
         var cut = RenderComponent<AccountTotalsPage>();
-        cut.FindAll("button.nav-link").First(button => button.TextContent.Contains("State Evolution")).Click();
+        cut.FindAll("button.nav-link").First(button => button.TextContent.Contains("state", StringComparison.OrdinalIgnoreCase)).Click();
 
         cut.WaitForAssertion(() =>
         {

@@ -113,14 +113,14 @@ public sealed class AccountGroupTotalsPageTests : WebTestContext
         var cut = RenderComponent<AccountGroupTotalsPage>();
 
         var stateTab = cut.FindAll("button.nav-link")
-            .First(button => button.TextContent.Contains("State Evolution"));
+            .First(button => button.TextContent.Contains("state", StringComparison.OrdinalIgnoreCase));
         stateTab.Click();
 
         cut.WaitForAssertion(() =>
         {
             requestedUris.Should().Contain(uri => uri.Contains("scope=account-groups"));
             requestedUris.Should().Contain(uri => uri.Contains("monthly-charts/group-evolution"));
-            cut.Markup.Should().Contain("Account Group Overview");
+            cut.Markup.Should().Contain("Account Group State");
             cut.Find("[data-testid='account-group-totals-stock-evolution-chart']");
             cut.Find("[data-testid='account-group-totals-monthly-comparison-chart']");
             cut.Find("[data-testid='account-group-focused-month']");
@@ -209,7 +209,7 @@ public sealed class AccountGroupTotalsPageTests : WebTestContext
         var cut = RenderComponent<AccountGroupTotalsPage>();
 
         var stateTab = cut.FindAll("button.nav-link")
-            .First(button => button.TextContent.Contains("State Evolution"));
+            .First(button => button.TextContent.Contains("state", StringComparison.OrdinalIgnoreCase));
         stateTab.Click();
 
         cut.WaitForAssertion(() =>
@@ -292,7 +292,9 @@ public sealed class AccountGroupTotalsPageTests : WebTestContext
 
         var cut = RenderComponent<AccountGroupTotalsPage>();
         cut.Find("select.form-select").Change(groupId.ToString());
-        cut.FindAll("button").First(button => button.TextContent.Contains("Generate Report")).Click();
+        cut.FindAll("button").First(button =>
+            button.TextContent.Contains("generate", StringComparison.OrdinalIgnoreCase) &&
+            button.TextContent.Contains("report", StringComparison.OrdinalIgnoreCase)).Click();
 
         cut.WaitForAssertion(() =>
         {

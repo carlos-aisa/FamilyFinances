@@ -4,10 +4,10 @@
 - [x] 1.2 Add a client culture helper script at `src/FamilyFinances.Web/wwwroot/js/culture.js` exposing `getCulture(): string` and `setCulture(culture: string): string`, persisting both localStorage key and `.AspNetCore.Culture` cookie values.
 - [x] 1.3 Register the culture helper script in `src/FamilyFinances.Web/Components/App.razor` alongside existing scripts and ensure script load order allows `NavMenu` JS interop usage on first interactive render.
 
-## 2. Global Language Selector and Immediate Switch
+## 2. Settings Language Selector and Immediate Switch
 
-- [x] 2.1 Extend `src/FamilyFinances.Web/Components/Layout/NavMenu.razor` top controls to include a language selector with exactly two options (`es-ES`, `en-US`) while preserving existing theme toggle behavior.
-- [x] 2.2 Implement selector change handling in `src/FamilyFinances.Web/Components/Layout/NavMenu.razor` using JS interop call pattern `cultureHelper.setCulture(selected)` and immediate route reload pattern `NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true)`.
+- [x] 2.1 Add a language selector with exactly two options (`es-ES`, `en-US`) in `src/FamilyFinances.Web/Components/Pages/Settings/SettingsPage.razor`, keeping the existing top navigation behavior unchanged.
+- [x] 2.2 Implement selector change handling in `src/FamilyFinances.Web/Components/Pages/Settings/SettingsPage.razor` using JS interop call pattern `cultureHelper.setCulture(selected)` and immediate route reload pattern `NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true)`.
 - [x] 2.3 Ensure selector initialization on first render reads persisted culture via `cultureHelper.getCulture()` and updates UI selected value deterministically.
 - [x] 2.4 Replace static HTML language metadata behavior in `src/FamilyFinances.Web/Components/App.razor` so rendered language metadata aligns with active culture strategy rather than fixed `lang="en"`.
 
@@ -36,5 +36,5 @@
 
 - [x] 6.1 Run `dotnet build src/FamilyFinances.Web/FamilyFinances.Web.csproj` and confirm clean compilation after localization and resource integration.
 - [x] 6.2 Run `dotnet test tests/FamilyFinances.Web.Tests/FamilyFinances.Web.Tests.csproj` and confirm all updated localization/formatting tests pass.
-- [ ] 6.3 Execute manual acceptance checks for both languages on `/`, `/transactions`, `/transactions/{id}`, `/accounts/{id}/movements`, and `/reports` verifying immediate switch, persistence across reload, and consistent date/currency formatting.
+- [x] 6.3 Execute manual acceptance checks for both languages on `/`, `/transactions`, `/transactions/{id}`, `/accounts/{id}/movements`, and `/reports` verifying immediate switch, persistence across reload, and consistent date/currency formatting.
 - [x] 6.4 Confirm no API/OpenAPI, database schema, or migration files were changed by this Web-only localization capability.

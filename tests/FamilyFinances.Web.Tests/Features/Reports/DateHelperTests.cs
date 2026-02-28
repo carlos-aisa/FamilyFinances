@@ -63,9 +63,12 @@ public sealed class DateHelperTests
     public void GetMonthName_UsesCurrentCulture_WhenCultureNotProvided(string cultureName, string expected)
     {
         var original = CultureInfo.CurrentCulture;
+        var originalUi = CultureInfo.CurrentUICulture;
         try
         {
-            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(cultureName);
+            var selected = CultureInfo.GetCultureInfo(cultureName);
+            CultureInfo.CurrentCulture = selected;
+            CultureInfo.CurrentUICulture = selected;
 
             var result = DateHelper.GetMonthName(1);
 
@@ -74,6 +77,7 @@ public sealed class DateHelperTests
         finally
         {
             CultureInfo.CurrentCulture = original;
+            CultureInfo.CurrentUICulture = originalUi;
         }
     }
 

@@ -7,6 +7,11 @@ public abstract class WebTestContext : TestContext
     protected WebTestContext()
     {
         Services.AddLocalization();
+
+        // Keep tests deterministic regardless of machine/OS locale.
+        var defaultCulture = CultureInfo.GetCultureInfo("en-US");
+        CultureInfo.CurrentCulture = defaultCulture;
+        CultureInfo.CurrentUICulture = defaultCulture;
     }
 
     protected static IDisposable UseCulture(string cultureName)

@@ -61,7 +61,7 @@ public sealed class AssetTotalBalancePageTests : WebTestContext
 
         cut.WaitForAssertion(() =>
         {
-            cut.Markup.Should().Contain("Asset Accounts Included");
+            cut.Markup.Should().Contain("Accounts Included");
             cut.Markup.Should().Contain("As of 2026-01-31");
             cut.Markup.Should().Contain("+\u20AC1,234.56");
         });
@@ -94,7 +94,7 @@ public sealed class AssetTotalBalancePageTests : WebTestContext
 
         var cut = RenderComponent<AssetTotalBalancePage>();
 
-        cut.Markup.Should().Contain("Please log in to view reports.");
+        cut.Markup.Should().Contain("Please sign in to access reports.");
     }
 
     private sealed class TestTokenStore : IApiTokenStore

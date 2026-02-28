@@ -294,8 +294,8 @@ public sealed class ReconcileAccountApiTests
         var accountsResponse = await client.GetAsync("/api/v1/accounts");
         var accounts = await accountsResponse.Content.ReadFromJsonAsync<List<AccountDto>>();
         accounts.Should().Contain(a =>
-            a.Name == "Balance Adjustments" &&
-            (a.Nature == (int)AccountNature.Income || a.Nature == (int)AccountNature.Expense));
+            (a.Name == "Balance Adjustments (Expense)" || a.Name == "Balance Adjustments") &&
+            a.Nature == (int)AccountNature.Expense);
     }
 
     private static async Task CreateTransactionAsync(

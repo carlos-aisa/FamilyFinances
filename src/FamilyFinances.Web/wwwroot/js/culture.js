@@ -43,9 +43,12 @@
     }
 
     function getCulture() {
-        const storageCulture = normalize(localStorage.getItem(STORAGE_KEY));
-        const cookieCulture = normalize(readCookie());
-        const resolved = normalize(storageCulture || cookieCulture || DEFAULT_CULTURE);
+        const rawStorageCulture = localStorage.getItem(STORAGE_KEY);
+        const rawCookieCulture = readCookie();
+
+        const storageCulture = SUPPORTED.includes(rawStorageCulture) ? rawStorageCulture : null;
+        const cookieCulture = SUPPORTED.includes(rawCookieCulture) ? rawCookieCulture : null;
+        const resolved = storageCulture || cookieCulture || DEFAULT_CULTURE;
 
         if (storageCulture !== resolved || cookieCulture !== resolved) {
             setCulture(resolved);
