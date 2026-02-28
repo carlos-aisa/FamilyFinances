@@ -6,6 +6,7 @@ using FamilyFinances.Web.Auth;
 using FamilyFinances.Web.Components;
 using FamilyFinances.Web.Endpoints;
 using FamilyFinances.Web.Features.Localization;
+using FamilyFinances.Web.Features.Packaging;
 using FamilyFinances.Web.State;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -13,6 +14,8 @@ using Microsoft.Extensions.Options;
 using System.Net.Http.Headers;
 
 var builder = WebApplication.CreateBuilder(args);
+
+PackagedConfiguration.Apply(builder.Configuration, builder.Environment.EnvironmentName);
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();

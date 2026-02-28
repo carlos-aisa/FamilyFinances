@@ -405,5 +405,8 @@ FodyWeavers.xsd
 
 # Windows distribution artifacts
 publish-temp/
+publish_compare*/
 dist/FamilyFinances-v*/
+dist/legacy-layout-*/
+dist/smoke-extract-*/
 dist/*.zip

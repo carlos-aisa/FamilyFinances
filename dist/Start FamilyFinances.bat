@@ -28,7 +28,8 @@ if "%ERRORLEVEL%"=="0" (
 
 REM Start API in background (minimized)
 echo [2/5] Starting API on http://localhost:5084...
-start /D "%ROOT_DIR%api" /min "FamilyFinances API" "%ROOT_DIR%api\FamilyFinances.Api.exe"
+set "FF_CONFIG_ROOT=%ROOT_DIR%config\api"
+start /D "%ROOT_DIR%" /min "FamilyFinances API" "%ROOT_DIR%FamilyFinances.Api.exe"
 
 REM Save API PID for later shutdown
 for /f "tokens=2" %%a in ('tasklist /FI "IMAGENAME eq FamilyFinances.Api.exe" /NH') do (
@@ -60,7 +61,7 @@ if %RETRY_COUNT% LSS %MAX_RETRIES% (
 
 echo.
 echo ERROR: API did not start within 30 seconds
-echo Please check logs\api-*.log for details
+echo Please check logs\api*.log for details
 pause
 exit /b 1
 
@@ -74,7 +75,8 @@ if "%ERRORLEVEL%"=="0" (
 
 REM Start Web in background (minimized)
 echo [4/5] Starting Web on http://localhost:5019...
-start /D "%ROOT_DIR%web" /min "FamilyFinances Web" "%ROOT_DIR%web\FamilyFinances.Web.exe"
+set "FF_CONFIG_ROOT=%ROOT_DIR%config\web"
+start /D "%ROOT_DIR%" /min "FamilyFinances Web" "%ROOT_DIR%FamilyFinances.Web.exe"
 
 REM Save Web PID for later shutdown
 for /f "tokens=2" %%a in ('tasklist /FI "IMAGENAME eq FamilyFinances.Web.exe" /NH') do (
