@@ -1,4 +1,4 @@
-@page "/reports/monthly-summary"
+﻿@page "/reports/monthly-summary"
 @rendermode InteractiveServer
 @using FamilyFinances.Application.Ledger.Accounts.Dtos
 @using FamilyFinances.Application.Ledger.Payees.Dtos
@@ -12,23 +12,26 @@
 @using FamilyFinances.Web.Features.Reports.Charts
 @using FamilyFinances.Domain.Ledger.Accounts
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.Extensions.Localization
+@using FamilyFinances.Web
 @inherits ApiPageBase
 
 @inject ReportsApi ReportsApi
 @inject IAccountsApi AccountsApi
 @inject PayeesApi PayeesApi
+@inject IStringLocalizer<SharedResource> L
 
 <AuthorizeView>
     <Authorized>
         <div class="d-flex align-items-center justify-content-between mb-4">
             <div>
                 <h3 class="mb-1">
-                    <i class="bi bi-calendar-month me-2"></i>Period Summary
+                    <i class="bi bi-calendar-month me-2"></i>@L["MonthlySummary_Title"]
                 </h3>
-                <p class="text-muted mb-0">Income, expense, and period net result (flow metrics) for the selected period</p>
+                <p class="text-muted mb-0">@L["MonthlySummary_Subtitle"]</p>
             </div>
             <a class="btn btn-outline-secondary" href="/reports">
-                <i class="bi bi-arrow-left me-1"></i>Back to Reports
+                <i class="bi bi-arrow-left me-1"></i>@L["Reports_BackToReports"]
             </a>
         </div>
 
@@ -38,7 +41,7 @@
                 <!-- Quick Date Presets -->
                 <div class="mb-3">
                     <label class="form-label fw-semibold">
-                        <i class="bi bi-calendar-range me-1"></i>Quick Select
+                        <i class="bi bi-calendar-range me-1"></i>@L["Reports_QuickSelect"]
                     </label>
                     <DateRangePresets OnPresetSelected="HandlePresetSelected" ActivePreset="@_activePreset" />
                 </div>
@@ -47,24 +50,24 @@
                     <!-- Date Range -->
                     <div class="col-12 col-md-3">
                         <label class="form-label fw-semibold">
-                            <i class="bi bi-calendar3 me-1"></i>From Date
+                            <i class="bi bi-calendar3 me-1"></i>@L["Reports_FromDate"]
                         </label>
-                        <input type="date" class="form-control" aria-label="From Date" @bind="_fromDate" />
+                        <input type="date" class="form-control" aria-label="@L["Reports_FromDate"]" @bind="_fromDate" />
                     </div>
 
                     <div class="col-12 col-md-3">
                         <label class="form-label fw-semibold">
-                            <i class="bi bi-calendar3 me-1"></i>To Date
+                            <i class="bi bi-calendar3 me-1"></i>@L["Reports_ToDateExclusive"]
                         </label>
-                        <input type="date" class="form-control" aria-label="To Date" @bind="_toDate" />
+                        <input type="date" class="form-control" aria-label="@L["Reports_ToDateExclusive"]" @bind="_toDate" />
                     </div>
 
                     <!-- Account Filter -->
                     <div class="col-12 col-md-3">
                         <AccountSelector Accounts="@(_accounts ?? Array.Empty<AccountDto>())"
                                        @bind-SelectedAccountId="_selectedAccountGuid"
-                                       Label="Account (optional)"
-                                       Placeholder="All accounts"
+                                       Label="@L["MonthlySummary_AccountOptional"]"
+                                       Placeholder="@L["MonthlySummary_AllAccounts"]"
                                        IsRequired="false"
                                        ShowSearch="false"
                                        AllowedNatures="@_flowAccountNatures" />
@@ -88,10 +91,10 @@
                         {
                             <i class="bi bi-search me-1"></i>
                         }
-                        Load Report
+                        @L["Reports_LoadReport"]
                     </button>
                     <button class="btn btn-outline-secondary ms-2" @onclick="ResetFilters">
-                        <i class="bi bi-x-circle me-1"></i>Reset
+                        <i class="bi bi-x-circle me-1"></i>@L["Reports_Reset"]
                     </button>
                 </div>
             </div>
@@ -112,9 +115,9 @@
             <div class="card shadow-sm">
                 <div class="card-body text-center py-5">
                     <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                        <span class="visually-hidden">Loading...</span>
+                        <span class="visually-hidden">@L["Common_Loading"]</span>
                     </div>
-                    <p class="text-muted">Loading report data...</p>
+                    <p class="text-muted">@L["Reports_LoadingData"]</p>
                 </div>
             </div>
         }
@@ -123,7 +126,7 @@
             var selectedAccountName = GetSelectedAccountName();
             var selectedMonthLabel = _fromDate is not null
                 ? $"{DateHelper.GetMonthName(_fromDate.Value.Month)} {_fromDate.Value.Year}"
-                : "selected month";
+                : L["MonthlySummary_SelectedMonth"];
             var selectedAccountChartSeries = BuildSelectedAccountMonthlyChartSeries();
 
             <!-- Report Results -->
@@ -134,7 +137,7 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@_incomeMetric.CanonicalName</h6>
+                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@ReportingMetricLocalizer.GetLabel(L, _incomeMetric)</h6>
                                     <h4 class="mb-0 text-success">@MoneyFormatter.FormatCentsWithSign(_report.IncomeTotal)</h4>
                                 </div>
                                 <i class="bi bi-arrow-down-circle text-success fs-2 opacity-50"></i>
@@ -148,7 +151,7 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@_expenseMetric.CanonicalName</h6>
+                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@ReportingMetricLocalizer.GetLabel(L, _expenseMetric)</h6>
                                     <h4 class="mb-0 text-danger">@MoneyFormatter.FormatCentsWithSign(_report.ExpenseTotal)</h4>
                                 </div>
                                 <i class="bi bi-arrow-up-circle text-danger fs-2 opacity-50"></i>
@@ -162,7 +165,7 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@_periodNetResultMetric.CanonicalName</h6>
+                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@ReportingMetricLocalizer.GetLabel(L, _periodNetResultMetric)</h6>
                                     <h4 class="mb-0 @MoneyFormatter.GetColorClass(_report.Net)">
                                         @MoneyFormatter.FormatCentsWithSign(_report.Net)
                                     </h4>
@@ -178,7 +181,7 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@_transactionsCountMetric.CanonicalName</h6>
+                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@ReportingMetricLocalizer.GetLabel(L, _transactionsCountMetric)</h6>
                                     <h4 class="mb-0 text-info">@_report.TransactionsCount</h4>
                                 </div>
                                 <i class="bi bi-receipt text-info fs-2 opacity-50"></i>
@@ -190,19 +193,18 @@
 
             <div class="alert alert-info mt-3 mb-0" role="alert">
                 <i class="bi bi-info-circle me-2"></i>
-                <strong>@_periodNetResultMetric.CanonicalName</strong> is a <strong>flow metric</strong> based on income and expense accounts.
-                It is not directly comparable to monthly evolution balance deltas, which are <strong>stock metrics</strong>.
+                <strong>@ReportingMetricLocalizer.GetLabel(L, _periodNetResultMetric)</strong> @L["MonthlySummary_FlowMetricInfo"]
             </div>
 
             <div class="row g-4 mt-1 period-summary-detail-grid">
-                <div class="col-12 col-xxl-6">
+                <div class="col-12 col-xxl-5">
                     @if (_selectedAccountGuid is null)
                     {
                         <div class="card shadow-sm">
                             <div class="card-body text-center py-5">
                                 <i class="bi bi-graph-up display-4 text-muted mb-3"></i>
-                                <h5 class="text-muted">Month-focused Account Evolution</h5>
-                                <p class="text-muted mb-0">Select an account to see the day-by-day evolution for the selected month.</p>
+                                <h5 class="text-muted">@L["MonthlySummary_MonthFocusedEvolution"]</h5>
+                                <p class="text-muted mb-0">@L["MonthlySummary_SelectAccountHint"]</p>
                             </div>
                         </div>
                     }
@@ -213,41 +215,41 @@
                     else if (_accountMonthlyChart is null || _accountMonthlyChart.Points.Count == 0 || selectedAccountChartSeries.Count == 0)
                     {
                         <ReportingChartEmptyState
-                            Title="Month-focused Account Evolution"
-                            Description="No daily points are available for the selected account and month." />
+                            Title="@L["MonthlySummary_MonthFocusedEvolution"]"
+                            Description="@L["MonthlySummary_NoDailyPointsForAccount"]" />
                     }
                     else
                     {
                         <MonthlyLineChart
-                            Title="Month-focused Account Evolution"
-                            Subtitle="@($"Daily end balance for {selectedAccountName} in {selectedMonthLabel}.")"
+                            Title="@L["MonthlySummary_MonthFocusedEvolution"]"
+                            Subtitle="@L["MonthlySummary_DailyEndBalanceSubtitle", selectedAccountName, selectedMonthLabel]"
                             Year="@_accountMonthlyChart.Year"
                             Month="@_accountMonthlyChart.Month"
                             Series="@selectedAccountChartSeries"
                             TestId="monthly-summary-account-monthly-chart" />
                     }
                 </div>
-                <div class="col-12 col-xxl-6">
+                <div class="col-12 col-xxl-7">
                     <div class="card shadow-sm" data-testid="monthly-summary-insights-panel">
                         <div class="card-header bg-light d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
                             <div>
                                 <h5 class="mb-1">
-                                    <i class="bi bi-lightbulb me-2"></i>Period Insights
+                                    <i class="bi bi-lightbulb me-2"></i>@L["MonthlySummary_PeriodInsights"]
                                 </h5>
-                                <small class="text-muted">Pareto ranking, concentration, and anomaly indicators (deterministic rules).</small>
+                                <small class="text-muted">@L["MonthlySummary_PeriodInsights_Subtitle"]</small>
                             </div>
-                            <div class="btn-group btn-group-sm" role="group" aria-label="Insight dimension">
+                            <div class="btn-group btn-group-sm" role="group" aria-label="@L["MonthlySummary_InsightDimension"]">
                                 <button type="button"
                                         class="btn @GetInsightDimensionButtonClass(ReportingInsightDimension.Group)"
                                         @onclick="() => SetInsightDimensionAsync(ReportingInsightDimension.Group)"
                                         disabled="@_isInsightsLoading">
-                                    Groups
+                                    @L["Reports_DimensionGroups"]
                                 </button>
                                 <button type="button"
                                         class="btn @GetInsightDimensionButtonClass(ReportingInsightDimension.Payee)"
                                         @onclick="() => SetInsightDimensionAsync(ReportingInsightDimension.Payee)"
                                         disabled="@_isInsightsLoading">
-                                    Payees
+                                    @L["Reports_DimensionPayees"]
                                 </button>
                             </div>
                         </div>
@@ -256,7 +258,7 @@
                             {
                                 <div class="d-flex align-items-center text-muted">
                                     <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                    Loading insights...
+                                    @L["MonthlySummary_LoadingInsights"]
                                 </div>
                             }
                             else if (!string.IsNullOrWhiteSpace(_insightsError))
@@ -267,31 +269,31 @@
                             }
                             else if (_paretoInsights is null || _anomalyInsights is null)
                             {
-                                <div class="text-muted">Load report data to compute insights.</div>
+                                <div class="text-muted">@L["MonthlySummary_LoadReportForInsights"]</div>
                             }
                             else
                             {
                                 var focusedMonthLabel = $"{DateHelper.GetMonthName(_anomalyInsights.Month)} {_anomalyInsights.Year}";
 
                                 <div class="row g-3">
-                                    <div class="col-12 col-xl-6">
+                                    <div class="col-12 col-xxl-6">
                                         <div class="border rounded p-3 h-100">
                                             <div class="d-flex justify-content-between align-items-center">
-                                                <h6 class="mb-1">Expense Pareto</h6>
+                                                <h6 class="mb-1">@L["MonthlySummary_ExpensePareto"]</h6>
                                                 <span class="badge bg-danger-subtle text-danger">@($"{_paretoInsights.Expense.TopNCoveragePercentage:F2}% Top-{_paretoInsights.Expense.TopN}")</span>
                                             </div>
                                             <div class="small text-muted mb-2">
-                                                Denominator: @MoneyFormatter.FormatCents(_paretoInsights.Expense.TotalAmountCents) total expense in selected period.
+                                                @L["MonthlySummary_DenominatorExpense", MoneyFormatter.FormatCents(_paretoInsights.Expense.TotalAmountCents)]
                                             </div>
                                             <details>
-                                                <summary class="small fw-semibold">View ranked contributors</summary>
+                                                <summary class="small fw-semibold">@L["MonthlySummary_ViewRankedContributors"]</summary>
                                                 <div class="table-responsive mt-2">
                                                     <table class="table table-sm align-middle mb-0">
                                                         <thead>
                                                             <tr>
-                                                                <th>Contributor</th>
-                                                                <th class="text-end">Amount</th>
-                                                                <th class="text-end">Share</th>
+                                                                <th>@L["Reports_Contributor"]</th>
+                                                                <th class="text-end">@L["Reports_Amount"]</th>
+                                                                <th class="text-end">@L["Reports_Share"]</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
@@ -309,24 +311,24 @@
                                             </details>
                                         </div>
                                     </div>
-                                    <div class="col-12 col-xl-6">
+                                    <div class="col-12 col-xxl-6">
                                         <div class="border rounded p-3 h-100">
                                             <div class="d-flex justify-content-between align-items-center">
-                                                <h6 class="mb-1">Income Pareto</h6>
+                                                <h6 class="mb-1">@L["MonthlySummary_IncomePareto"]</h6>
                                                 <span class="badge bg-success-subtle text-success">@($"{_paretoInsights.Income.TopNCoveragePercentage:F2}% Top-{_paretoInsights.Income.TopN}")</span>
                                             </div>
                                             <div class="small text-muted mb-2">
-                                                Denominator: @MoneyFormatter.FormatCents(_paretoInsights.Income.TotalAmountCents) total income in selected period.
+                                                @L["MonthlySummary_DenominatorIncome", MoneyFormatter.FormatCents(_paretoInsights.Income.TotalAmountCents)]
                                             </div>
                                             <details>
-                                                <summary class="small fw-semibold">View ranked contributors</summary>
+                                                <summary class="small fw-semibold">@L["MonthlySummary_ViewRankedContributors"]</summary>
                                                 <div class="table-responsive mt-2">
                                                     <table class="table table-sm align-middle mb-0">
                                                         <thead>
                                                             <tr>
-                                                                <th>Contributor</th>
-                                                                <th class="text-end">Amount</th>
-                                                                <th class="text-end">Share</th>
+                                                                <th>@L["Reports_Contributor"]</th>
+                                                                <th class="text-end">@L["Reports_Amount"]</th>
+                                                                <th class="text-end">@L["Reports_Share"]</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
@@ -348,31 +350,31 @@
 
                                 <div class="border rounded p-3 mt-3">
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <h6 class="mb-1">Monthly Expense Anomalies</h6>
+                                        <h6 class="mb-1">@L["MonthlySummary_MonthlyExpenseAnomalies"]</h6>
                                         <span class="badge bg-secondary-subtle text-secondary">@focusedMonthLabel</span>
                                     </div>
                                     <div class="small text-muted mb-2">
-                                        @_anomalyInsights.ThresholdRule
-                                        Minimum active history months: @_anomalyInsights.RequiredHistoryMonths.
+                                        @L["MonthlySummary_AnomalyRule"]
+                                        @L["MonthlySummary_MinimumHistoryMonths", _anomalyInsights.RequiredHistoryMonths]
                                     </div>
                                     @if (_anomalyInsights.Contributors.Count == 0)
                                     {
-                                        <div class="text-muted">No contributors available for anomaly evaluation.</div>
+                                        <div class="text-muted">@L["MonthlySummary_NoContributorsForAnomaly"]</div>
                                     }
                                     else
                                     {
                                         <details>
-                                            <summary class="small fw-semibold">View anomaly breakdown</summary>
+                                            <summary class="small fw-semibold">@L["MonthlySummary_ViewAnomalyBreakdown"]</summary>
                                             <div class="table-responsive mt-2">
                                                 <table class="table table-sm align-middle mb-0">
                                                     <thead>
                                                         <tr>
-                                                            <th>Contributor</th>
-                                                            <th class="text-end">Current</th>
-                                                            <th class="text-end">Baseline</th>
-                                                            <th class="text-end">Threshold</th>
-                                                            <th>Status</th>
-                                                            <th>Explanation</th>
+                                                            <th>@L["Reports_Contributor"]</th>
+                                                            <th class="text-end">@L["Reports_Current"]</th>
+                                                            <th class="text-end">@L["Reports_Baseline"]</th>
+                                                            <th class="text-end">@L["Reports_Threshold"]</th>
+                                                            <th>@L["Reports_Status"]</th>
+                                                            <th>@L["Reports_Explanation"]</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -386,19 +388,19 @@
                                                                 <td>
                                                                     @if (contributor.IsInsufficientHistory)
                                                                     {
-                                                                        <span class="badge bg-secondary">Insufficient history</span>
+                                                                        <span class="badge bg-secondary">@L["MonthlySummary_Status_InsufficientHistory"]</span>
                                                                     }
                                                                     else if (contributor.IsAnomaly)
                                                                     {
-                                                                        <span class="badge bg-danger">Anomaly</span>
+                                                                        <span class="badge bg-danger">@L["MonthlySummary_Status_Anomaly"]</span>
                                                                     }
                                                                     else
                                                                     {
-                                                                        <span class="badge bg-success">Normal</span>
+                                                                        <span class="badge bg-success">@L["MonthlySummary_Status_Normal"]</span>
                                                                     }
                                                                 </td>
                                                                 <td class="small text-muted">
-                                                                    @contributor.Explanation
+                                                                    @BuildAnomalyExplanation(contributor, _anomalyInsights.RequiredHistoryMonths)
                                                                     @if (contributor.ZScore is not null)
                                                                     {
                                                                         <span class="ms-1">z=@($"{contributor.ZScore:F2}")</span>
@@ -424,8 +426,8 @@
             <div class="card shadow-sm">
                 <div class="card-body text-center py-5">
                     <i class="bi bi-graph-up display-1 text-muted mb-3"></i>
-                    <h5 class="text-muted">Ready to generate report</h5>
-                    <p class="text-muted">Select filters above and click "Load Report" to see your monthly summary.</p>
+                    <h5 class="text-muted">@L["Reports_ReadyToGenerate"]</h5>
+                    <p class="text-muted">@L["MonthlySummary_ReadyHint"]</p>
                 </div>
             </div>
         }
@@ -434,7 +436,7 @@
     <NotAuthorized>
         <div class="alert alert-warning">
             <i class="bi bi-exclamation-triangle me-2"></i>
-            Please log in to view reports.
+            @L["Reports_LoginRequired"]
         </div>
     </NotAuthorized>
 </AuthorizeView>
@@ -481,7 +483,7 @@
         }
         catch (Exception ex)
         {
-            _error = $"Failed to load filter data: {ex.Message}";
+            _error = L["Reports_Error_LoadFailed", ex.Message];
         }
     }
 
@@ -511,7 +513,7 @@
         {
             if (_fromDate is null || _toDate is null)
             {
-                _error = "Please select both From and To dates";
+                _error = L["MonthlySummary_Error_SelectDates"];
                 return;
             }
 
@@ -523,11 +525,11 @@
         }
         catch (UnauthorizedAccessException)
         {
-            _error = "You are not authorized to view this report. Please log in again.";
+            _error = L["Reports_Error_Unauthorized"];
         }
         catch (Exception ex)
         {
-            _error = $"Failed to load report: {ex.Message}";
+            _error = L["Reports_Error_LoadFailed", ex.Message];
         }
         finally
         {
@@ -551,7 +553,7 @@
         catch (Exception ex)
         {
             _accountMonthlyChart = null;
-            _accountChartError = $"Failed to load account monthly chart: {ex.Message}";
+            _accountChartError = L["MonthlySummary_Error_LoadAccountChart", ex.Message];
         }
     }
 
@@ -593,7 +595,7 @@
         }
         catch (Exception ex)
         {
-            _insightsError = $"Failed to load insights: {ex.Message}";
+            _insightsError = L["MonthlySummary_Error_LoadInsights", ex.Message];
         }
         finally
         {
@@ -620,10 +622,10 @@
     private string GetSelectedAccountName()
     {
         if (_selectedAccountGuid is null || _accounts is null)
-            return "Selected account";
+            return L["MonthlySummary_SelectedAccount"];
 
         return _accounts.FirstOrDefault(account => account.Id == _selectedAccountGuid.Value)?.Name
-            ?? "Selected account";
+            ?? L["MonthlySummary_SelectedAccount"];
     }
 
     private IReadOnlyList<MonthlyChartSeries> BuildSelectedAccountMonthlyChartSeries()
@@ -635,6 +637,18 @@
             _accountMonthlyChart,
             key: "selected-account",
             label: GetSelectedAccountName());
+    }
+
+    private string BuildAnomalyExplanation(AnomalyContributorDto contributor, int requiredHistoryMonths)
+    {
+        if (contributor.IsInsufficientHistory)
+        {
+            return L["MonthlySummary_Explanation_InsufficientHistory", contributor.HistoryMonthsCount, requiredHistoryMonths];
+        }
+
+        return contributor.IsAnomaly
+            ? L["MonthlySummary_Explanation_Anomaly"]
+            : L["MonthlySummary_Explanation_Normal"];
     }
 
     private static readonly HashSet<AccountNature> _flowAccountNatures =

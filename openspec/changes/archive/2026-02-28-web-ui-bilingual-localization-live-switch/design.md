@@ -7,7 +7,7 @@ The Web application currently renders with mixed localization patterns:
 - Other pages rely on `CultureInfo.CurrentCulture`.
 - Report/format helper utilities use `CultureInfo.InvariantCulture`, producing non-user-locale output.
 - There is no localization middleware/configuration in `src/FamilyFinances.Web/Program.cs`.
-- There is no language selector in the shared shell, and users cannot switch language at runtime.
+- There is no Settings-page language selector, and users cannot switch language at runtime.
 
 Stakeholders:
 
@@ -38,7 +38,7 @@ Constraints:
 
 **Goals:**
 
-- Provide runtime UI language selector in shared navigation.
+- Provide runtime UI language selector in Settings.
 - Support `es-ES` and `en-US` consistently.
 - Apply language change immediately in the current screen.
 - Persist chosen language so refreshed/new sessions reuse it.
@@ -59,7 +59,7 @@ Constraints:
 - Decision: Configure `AddLocalization()` and `UseRequestLocalization()` in `src/FamilyFinances.Web/Program.cs` with supported cultures `es-ES` and `en-US`.
 - Rationale: Standard .NET localization flow integrates naturally with Blazor server rendering and `CultureInfo.CurrentCulture`.
 - Alternative considered: Keep ad-hoc formatting + manual dictionary in C# classes.
-- Rejected because: It does not scale and keeps today’s inconsistency.
+- Rejected because: It does not scale and keeps todayâ€™s inconsistency.
 
 ### Decision 2: Use CookieRequestCultureProvider + localStorage to persist and apply language
 
@@ -68,12 +68,12 @@ Constraints:
 - Alternative considered: Query-string-only culture handling.
 - Rejected because: It pollutes URLs and complicates internal navigation.
 
-### Decision 3: Place language selector in existing NavMenu top row
+### Decision 3: Place language selector in Settings page
 
-- Decision: Extend `src/FamilyFinances.Web/Components/Layout/NavMenu.razor` top controls (theme toggle zone) with language dropdown.
-- Rationale: Selector is globally available in one consistent place, no per-page duplication.
-- Alternative considered: Dedicated settings page.
-- Rejected because: Requires extra navigation for a high-frequency preference.
+- Decision: Add the language selector to `src/FamilyFinances.Web/Components/Pages/Settings/SettingsPage.razor` alongside appearance and backup options.
+- Rationale: Consolidates preferences in one dedicated place and keeps navigation chrome simple.
+- Alternative considered: NavMenu top-row selector.
+- Rejected because: Adds persistent header complexity and duplicates preferences controls.
 
 ### Decision 4: Localize UI strings via resource files and localizers in touched components
 
@@ -103,19 +103,19 @@ Constraints:
 1. User opens any Web route.
 2. `UseRequestLocalization()` resolves culture using provider chain; no culture cookie found.
 3. Default culture `es-ES` is applied.
-4. `NavMenu` renders language selector showing Spanish selected.
+4. Settings page renders language selector showing Spanish selected.
 5. All touched pages render labels and formatting in Spanish.
 
 Component reuse:
 
-- Reuse existing `NavMenu` top row controls; append selector beside theme toggle.
+- Reuse existing Settings page card layout for preferences controls.
 - Reuse existing page components; replace text bindings and formatting paths only.
 
 ### Flow 2: User switches language from Spanish to English
 
-1. User clicks language selector in `NavMenu`.
+1. User opens `/settings` and changes language selector.
 2. Selector invokes JS helper to set culture cookie + localStorage value (`en-US`).
-3. `NavMenu` calls `NavigationManager.NavigateTo(currentUri, forceLoad: true)`.
+3. Settings page calls `NavigationManager.NavigateTo(currentUri, forceLoad: true)`.
 4. Browser reloads same URL.
 5. Middleware reads cookie and applies `en-US`.
 6. Same page re-renders immediately in English.
@@ -156,7 +156,7 @@ Component reuse:
 
 ```text
 +-------------------------------------------------------------+
-| FamilyFinances                               [Theme] [Lang?]|
+| FamilyFinances                                       [Theme]|
 +-------------------------------------------------------------+
 | Nav items...                                                 |
 | - Home                                                       |
@@ -168,7 +168,7 @@ Component reuse:
 +-------------------------------------------------------------+
 ```
 
-### Language selector menu
+### Settings language selector
 
 ```text
 +---------------------+
@@ -197,7 +197,7 @@ Component reuse:
 | Area | Existing Component/File | Action | Notes |
 |---|---|---|---|
 | App shell language metadata | `src/FamilyFinances.Web/Components/App.razor` | Modify | Bind `lang` behavior to selected culture rather than static `en` |
-| Global nav controls | `src/FamilyFinances.Web/Components/Layout/NavMenu.razor` | Modify | Add language selector UI + event handling |
+| Settings preferences | `src/FamilyFinances.Web/Components/Pages/Settings/SettingsPage.razor` | Modify | Add language selector UI + event handling |
 | Theme helper pattern | `src/FamilyFinances.Web/wwwroot/js/theme.js` | Reuse pattern | Create analogous culture helper script |
 | Transactions list page | `src/FamilyFinances.Web/Components/Pages/Transactions/TransactionsListPage.razor` | Modify | Localize labels and culture-based formatting |
 | Transaction detail page | `src/FamilyFinances.Web/Components/Pages/Transactions/TransactionDetailPage.razor` | Modify | Localize labels; remove hardcoded `es-ES` date formatting |
@@ -265,7 +265,7 @@ app.UseRequestLocalization(localizationOptions);
 })();
 ```
 
-### Example 3: NavMenu selector behavior
+### Example 3: Settings selector behavior
 
 ```razor
 <select class="form-select form-select-sm"
@@ -308,7 +308,7 @@ private static string FormatShortDate(DateOnly date)
 
 ## CRITICAL UX BEHAVIORS
 
-- Language switch must be immediate and visible in current screen after selector change.
+- Language switch must be immediate and visible in current screen after selector change in Settings.
 - Selected language must persist across refresh and browser restart.
 - Selector must always show active language accurately.
 - Date and currency output must align with selected language/culture.
@@ -324,7 +324,7 @@ private static string FormatShortDate(DateOnly date)
   -> Mitigation: Prioritize all main navigation destinations in this change and track residual keys in tasks checklist.
 
 - [Risk] Force reload after language change interrupts unsaved forms.
-  -> Mitigation: Keep selector in shell and document current behavior; avoid auto-switch without explicit user action.
+  -> Mitigation: Keep switch explicit in Settings and document current behavior; avoid auto-switch without explicit user action.
 
 - [Risk] Culture cookie and localStorage can diverge.
   -> Mitigation: `cultureHelper.setCulture()` writes both in a single path.
@@ -336,7 +336,7 @@ private static string FormatShortDate(DateOnly date)
 
 1. Add localization service and middleware in Web startup.
 2. Add `culture.js` helper and include script in `App.razor`.
-3. Add language selector UI in `NavMenu` and hook to helper + force reload.
+3. Add language selector UI in `SettingsPage` and hook to helper + force reload.
 4. Introduce resource files for shell/shared/components in scope.
 5. Replace hardcoded UI strings and hardcoded culture formatting in targeted pages/helpers.
 6. Add/adjust Web tests for localized formatting and selector behavior.
@@ -364,17 +364,17 @@ Rollback strategy:
 - ? No localization service registration added to API project.
 - ? No backend DTO/API contract changes introduced.
 
-### B) Shell and selector behavior
+### B) Settings and selector behavior
 
-- ? Selector is placed in `NavMenu` top controls, not per-page.
+- ? Selector is placed in `SettingsPage` language section.
 - ? Selector displays both languages with clear labels.
 - ? Selector initial value reflects active culture.
 - ? Changing selector updates culture cookie.
 - ? Changing selector updates localStorage key.
 - ? Changing selector reloads current route with `forceLoad: true`.
-- ? Theme toggle still works after language selector integration.
-- ? No visual overlap/regression in desktop sidebar top row.
-- ? No visual overlap/regression in collapsed/mobile nav.
+- ? Theme controls still work after language selector integration.
+- ? No visual overlap/regression in Settings cards layout (desktop).
+- ? No visual overlap/regression in Settings cards layout (mobile).
 - ? `App.razor` language metadata reflects active culture strategy.
 
 ### C) Resource coverage

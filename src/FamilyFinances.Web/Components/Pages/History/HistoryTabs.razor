@@ -1,26 +1,30 @@
+@using FamilyFinances.Web
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<SharedResource> L
+
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
         <h3 class="mb-1">
-            <i class="bi bi-clock-history me-2"></i>History
+            <i class="bi bi-clock-history me-2"></i>@L["History_Title"]
         </h3>
-        <p class="text-muted mb-0">Read-only historical browsing and fiscal-year governance.</p>
+        <p class="text-muted mb-0">@L["History_Subtitle"]</p>
     </div>
 </div>
 
 <ul class="nav nav-tabs mb-4">
     <li class="nav-item">
         <NavLink class="nav-link" href="/history/transactions" Match="NavLinkMatch.Prefix">
-            <i class="bi bi-receipt me-1"></i>Transactions
+            <i class="bi bi-receipt me-1"></i>@L["History_Tab_Transactions"]
         </NavLink>
     </li>
     <li class="nav-item">
         <NavLink class="nav-link" href="/history/movements" Match="NavLinkMatch.Prefix">
-            <i class="bi bi-list-ul me-1"></i>Movements
+            <i class="bi bi-list-ul me-1"></i>@L["History_Tab_Movements"]
         </NavLink>
     </li>
     <li class="nav-item">
         <NavLink class="nav-link" href="/history/years" Match="NavLinkMatch.Prefix">
-            <i class="bi bi-calendar-check me-1"></i>Year Governance
+            <i class="bi bi-calendar-check me-1"></i>@L["History_Tab_Years"]
         </NavLink>
     </li>
 </ul>

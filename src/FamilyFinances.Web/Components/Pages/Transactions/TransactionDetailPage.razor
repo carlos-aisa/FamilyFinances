@@ -1,13 +1,15 @@
-﻿@page "/transactions/{Id:guid}"
+@page "/transactions/{Id:guid}"
 @inherits ApiPageBase
 @using System.Globalization
 @using FamilyFinances.Application.Ledger.Accounts.Dtos
 @using FamilyFinances.Application.Ledger.Transactions.Dtos
-@using FamilyFinances.Domain.Common
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web
+@using Microsoft.Extensions.Localization
 @inject TransactionsApi TransactionsApi
 @inject IAccountsApi AccountsApi
+@inject IStringLocalizer<SharedResource> L
 
 @if (!string.IsNullOrWhiteSpace(_error))
 {
@@ -17,8 +19,8 @@
 @if (_result == "updated")
 {
     <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="bi bi-check-circle me-2"></i>Transaction updated successfully.
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <i class="bi bi-check-circle me-2"></i>@L["TransactionDetail_UpdatedSuccess"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="@L["Common_Close"]"></button>
     </div>
 }
 
@@ -26,49 +28,48 @@
 {
     <div class="d-flex justify-content-center align-items-center" style="min-height: 300px;">
         <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
+            <span class="visually-hidden">@L["Common_Loading"]</span>
         </div>
     </div>
 }
 else
 {
-    <!-- Header -->
     <div class="d-flex align-items-center justify-content-between mb-4">
         <div>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-1">
                     @if (IsReadOnlyHistory)
                     {
-                        <li class="breadcrumb-item"><a href="/history">History</a></li>
+                        <li class="breadcrumb-item"><a href="/history">@L["TransactionDetail_BreadcrumbHistory"]</a></li>
                     }
                     else
                     {
-                        <li class="breadcrumb-item"><a href="/transactions">Transactions</a></li>
+                        <li class="breadcrumb-item"><a href="/transactions">@L["TransactionDetail_BreadcrumbTransactions"]</a></li>
                     }
-                    <li class="breadcrumb-item active" aria-current="page">Details</li>
+                    <li class="breadcrumb-item active" aria-current="page">@L["TransactionDetail_BreadcrumbDetails"]</li>
                 </ol>
             </nav>
-            <h3 class="mb-0">Transaction Details</h3>
+            <h3 class="mb-0">@L["TransactionDetail_Title"]</h3>
         </div>
 
         <div class="d-flex gap-2">
             @if (IsReadOnlyHistory)
             {
                 <button class="btn btn-outline-secondary" type="button" @onclick="NavigateBackToHistory">
-                    <i class="bi bi-arrow-left me-1"></i>Back to History
+                    <i class="bi bi-arrow-left me-1"></i>@L["TransactionDetail_BackToHistory"]
                 </button>
             }
             else if (!_confirmDelete)
             {
                 <a class="btn btn-outline-secondary" href="/transactions">
-                    <i class="bi bi-arrow-left me-1"></i>Back
+                    <i class="bi bi-arrow-left me-1"></i>@L["TransactionDetail_Back"]
                 </a>
                 <a class="btn btn-primary" href="@($"/transactions/{Id}/edit")">
-                    <i class="bi bi-pencil me-1"></i>Edit
+                    <i class="bi bi-pencil me-1"></i>@L["TransactionDetail_Edit"]
                 </a>
                 <button class="btn btn-outline-danger" type="button"
                         @onclick="() => _confirmDelete = true">
-                    <i class="bi bi-trash me-1"></i>Delete
+                    <i class="bi bi-trash me-1"></i>@L["TransactionDetail_Delete"]
                 </button>
             }
             else
@@ -76,7 +77,7 @@ else
                 <button class="btn btn-secondary" type="button"
                         @onclick="() => _confirmDelete = false"
                         disabled="@_isDeleting">
-                    Cancel
+                    @L["TransactionDetail_Cancel"]
                 </button>
 
                 <button class="btn btn-danger" type="button"
@@ -86,39 +87,37 @@ else
                     {
                         <span class="spinner-border spinner-border-sm me-1" role="status"></span>
                     }
-                    Confirm Delete
+                    @L["TransactionDetail_ConfirmDelete"]
                 </button>
             }
         </div>
     </div>
 
-    <!-- Main Content -->
     <div class="row g-4">
-        <!-- Left Column: Transaction Info -->
         <div class="col-lg-6">
             <div class="card shadow-sm">
                 <div class="card-header bg-primary text-white">
                     <h5 class="card-title mb-0">
-                        <i class="bi bi-info-circle me-2"></i>Information
+                        <i class="bi bi-info-circle me-2"></i>@L["TransactionDetail_Information"]
                     </h5>
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
-                        <label class="form-label text-muted small mb-1">Date</label>
-                        <div class="fw-semibold">@_tx.BookedOn.ToString("dddd, dd MMMM yyyy", new CultureInfo("es-ES"))</div>
+                        <label class="form-label text-muted small mb-1">@L["TransactionDetail_Date"]</label>
+                        <div class="fw-semibold">@_tx.BookedOn.ToString("dddd, dd MMMM yyyy", CultureInfo.CurrentCulture)</div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-muted small mb-1">Description</label>
+                        <label class="form-label text-muted small mb-1">@L["TransactionDetail_Description"]</label>
                         <div class="fw-semibold">@_tx.Description</div>
                     </div>
 
                     <div>
-                        <label class="form-label text-muted small mb-1">Payee</label>
+                        <label class="form-label text-muted small mb-1">@L["TransactionDetail_Payee"]</label>
                         <div class="fw-semibold">
                             @if (string.IsNullOrWhiteSpace(_tx.PayeeName))
                             {
-                                <span class="text-muted fst-italic">No payee</span>
+                                <span class="text-muted fst-italic">@L["TransactionDetail_NoPayee"]</span>
                             }
                             else
                             {
@@ -130,12 +129,11 @@ else
             </div>
         </div>
 
-        <!-- Right Column: Splits -->
         <div class="col-lg-6">
             <div class="card shadow-sm">
                 <div class="card-header bg-success text-white">
                     <h5 class="card-title mb-0">
-                        <i class="bi bi-arrow-left-right me-2"></i>Splits
+                        <i class="bi bi-arrow-left-right me-2"></i>@L["TransactionDetail_Splits"]
                     </h5>
                 </div>
                 <div class="card-body p-0">
@@ -143,8 +141,8 @@ else
                         <table class="table table-hover mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th class="border-0">Account</th>
-                                    <th class="border-0 text-end" style="width: 160px;">Amount</th>
+                                    <th class="border-0">@L["TransactionDetail_Account"]</th>
+                                    <th class="border-0 text-end" style="width: 160px;">@L["TransactionDetail_Amount"]</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -171,7 +169,7 @@ else
                             </tbody>
                             <tfoot class="table-light">
                                 <tr>
-                                    <td class="fw-bold">Total</td>
+                                    <td class="fw-bold">@L["TransactionDetail_Total"]</td>
                                     <td class="text-end fw-bold">
                                         @FormatMoney(_tx.Splits.Sum(s => s.Amount))
                                     </td>
@@ -184,10 +182,9 @@ else
         </div>
     </div>
 
-    <!-- Transaction ID (for technical reference) -->
     <div class="mt-4">
         <small class="text-muted">
-            <i class="bi bi-key me-1"></i>ID: <code>@Id</code>
+            <i class="bi bi-key me-1"></i>@L["TransactionDetail_Id"]: <code>@Id</code>
         </small>
     </div>
 }
@@ -221,7 +218,6 @@ else
         {
             await ExecuteApiAsync(async ct =>
             {
-                // Load accounts first (for mapping split.AccountId -> name)
                 _accounts = await AccountsApi.ListAsync(ct);
                 _accountNames = _accounts.ToDictionary(a => a.Id, a => a.Name);
 
@@ -247,7 +243,7 @@ else
     }
 
     private string GetAccountName(Guid accountId)
-        => _accountNames.TryGetValue(accountId, out var name) ? name : "(unknown account)";
+        => _accountNames.TryGetValue(accountId, out var name) ? name : L["TransactionDetail_UnknownAccount"];
 
     private string GetAmountBadgeClass(decimal amount)
         => amount < 0 ? "bg-danger-subtle text-danger" : "bg-success-subtle text-success";

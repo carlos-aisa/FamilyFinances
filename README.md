@@ -162,6 +162,38 @@ dotnet run --project src/FamilyFinances.Web
 Frontend URL:
 - `http://localhost:5019`
 
+### Windows ZIP Distribution (Shared Runtime Layout)
+
+Build the portable Windows package:
+
+```bash
+powershell -ExecutionPolicy Bypass -File .\build-windows-dist.ps1 -Version 0.6.7 -Configuration Release
+```
+
+The generated ZIP keeps a single shared runtime root for API and Web binaries:
+
+```text
+dist/FamilyFinances-v<version>-win-x64/
+  Start FamilyFinances.bat
+  Stop FamilyFinances.bat
+  FamilyFinances.Api.exe
+  FamilyFinances.Web.exe
+  *.dll / *.deps.json / *.runtimeconfig.json
+  config/api/appsettings*.json + web.config
+  config/web/appsettings*.json + web.config
+  wwwroot/
+  data/
+  logs/
+```
+
+Operational flow:
+- Start with `Start FamilyFinances.bat` (API first, Web second).
+- Stop with `Stop FamilyFinances.bat`.
+- Web endpoint remains `http://localhost:5019`; API remains `http://localhost:5084`.
+
+Maintainer rollback note:
+- To roll back to the legacy package layout, restore packaging scripts/workflow that publish separate full `api/` and `web/` runtime trees.
+
 6. Testing Setup
 
 Backend and web test projects are included in the solution and run with `dotnet test`.

@@ -1,7 +1,10 @@
 @using System.ComponentModel.DataAnnotations
 @using FamilyFinances.Application.Ledger.Accounts.Dtos
 @using FamilyFinances.Application.Ledger.Payees.Dtos
+@using FamilyFinances.Web
 @using FamilyFinances.Web.Features.Reports
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<SharedResource> L
 
 <EditForm Model="_formModel" OnValidSubmit="@(() => Task.CompletedTask)">
     <DataAnnotationsValidator />
@@ -9,28 +12,28 @@
     <div class="row g-3 mb-4">
         <div class="col-md-3">
             <label class="form-label">
-                <i class="bi bi-calendar-event me-1"></i>Date *
+                <i class="bi bi-calendar-event me-1"></i>@L["MultiSplitEditor_DateRequired"]
             </label>
             <InputDate class="form-control" @bind-Value="_formModel.BookedOn" @bind-Value:after="ValidateForm" />
         </div>
 
         <div class="col-md-9">
             <label class="form-label">
-                <i class="bi bi-pencil me-1"></i>Description *
+                <i class="bi bi-pencil me-1"></i>@L["MultiSplitEditor_DescriptionRequired"]
             </label>
-            <InputText class="form-control" 
-                       @bind-Value="_formModel.Description" 
-                       @bind-Value:after="ValidateForm" 
-                       placeholder="Enter transaction description"
+            <InputText class="form-control"
+                       @bind-Value="_formModel.Description"
+                       @bind-Value:after="ValidateForm"
+                       placeholder="@L["MultiSplitEditor_DescriptionPlaceholder"]"
                        autocomplete="off" />
         </div>
 
         <div class="col-md-6">
             <label class="form-label">
-                <i class="bi bi-person me-1"></i>Payee (optional)
+                <i class="bi bi-person me-1"></i>@L["MultiSplitEditor_PayeeOptional"]
             </label>
             <InputSelect class="form-select" @bind-Value="_formModel.PayeeId">
-                <option value="">&mdash; none &mdash;</option>
+                <option value="">@L["MultiSplitEditor_NoneOption"]</option>
                 @foreach (var p in Payees)
                 {
                     <option value="@p.Id">@p.Name</option>
@@ -39,65 +42,62 @@
         </div>
     </div>
 
-    <!-- Splits Section -->
     <div class="card">
         <div class="card-header bg-primary text-white">
             <h5 class="mb-0">
-                <i class="bi bi-distribute-vertical me-2"></i>Transaction Splits
+                <i class="bi bi-distribute-vertical me-2"></i>@L["MultiSplitEditor_SplitsTitle"]
             </h5>
             <small class="d-block mt-2">
                 <i class="bi bi-info-circle me-1"></i>
-                Use <strong>negative</strong> amounts for money leaving accounts (payments, expenses).
-                Use <strong>positive</strong> amounts for money entering accounts (income, asset increases).
-                Total must equal zero to balance.
+                @L["MultiSplitEditor_SplitsHint"]
             </small>
         </div>
         <div class="card-body">
-            @for (int i = 0; i < _splits.Count; i++)
+            @for (var i = 0; i < _splits.Count; i++)
             {
                 var index = i;
                 var split = _splits[index];
-                
+
                 <div class="row g-3 mb-3 pb-3 @(index < _splits.Count - 1 ? "border-bottom" : "")">
                     <div class="col-md-5">
-                        <label class="form-label small">Account *</label>
+                        <label class="form-label small">@L["MultiSplitEditor_AccountRequired"]</label>
                         <select class="form-select" @bind="split.AccountId" @bind:after="ValidateForm">
-                            <option value="">&mdash; select account &mdash;</option>
+                            <option value="">@L["MultiSplitEditor_SelectAccountOption"]</option>
                             @foreach (var account in Accounts)
                             {
-                                <option value="@account.Id">@account.Name (@account.Nature)</option>
+                                <option value="@account.Id">@account.Name (@GetNatureLabel(account.Nature))</option>
                             }
                         </select>
                     </div>
 
                     <div class="col-md-4">
-                        <label class="form-label small">Amount (&euro;) *</label>
-                        <input type="text" 
-                               class="form-control" 
-                               @bind="split.AmountText" 
+                        <label class="form-label small">@L["MultiSplitEditor_AmountRequired"]</label>
+                        <input type="text"
+                               class="form-control"
+                               @bind="split.AmountText"
                                @bind:event="oninput"
                                @bind:after="() => OnAmountChanged(split)"
-                               placeholder="0.00" />
+                               placeholder="@L["MultiSplitEditor_AmountPlaceholder"]" />
                     </div>
 
                     <div class="col-md-2">
-                        <label class="form-label small">Actions</label>
-                        <button type="button" 
-                                class="btn btn-outline-danger btn-sm w-100" 
+                        <label class="form-label small">@L["MultiSplitEditor_Actions"]</label>
+                        <button type="button"
+                                class="btn btn-outline-danger btn-sm w-100"
                                 @onclick="() => RemoveSplit(index)"
                                 disabled="@(_splits.Count <= 2)">
-                            <i class="bi bi-trash me-1"></i>Remove
+                            <i class="bi bi-trash me-1"></i>@L["MultiSplitEditor_Remove"]
                         </button>
                     </div>
 
                     <div class="col-12">
                         <label class="form-label small">
-                            <i class="bi bi-sticky me-1"></i>Memo (optional note for this split)
+                            <i class="bi bi-sticky me-1"></i>@L["MultiSplitEditor_MemoOptional"]
                         </label>
-                        <input type="text" 
-                               class="form-control form-control-sm" 
+                        <input type="text"
+                               class="form-control form-control-sm"
                                @bind="split.Memo"
-                               placeholder="e.g., 'Principal payment', 'Interest', 'Tax portion'" />
+                               placeholder="@L["MultiSplitEditor_MemoPlaceholder"]" />
                     </div>
                 </div>
             }
@@ -105,20 +105,19 @@
             @if (_splits.Count < MaxSplits)
             {
                 <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddSplit">
-                    <i class="bi bi-plus-circle me-1"></i>Add Split
+                    <i class="bi bi-plus-circle me-1"></i>@L["MultiSplitEditor_AddSplit"]
                 </button>
             }
             else
             {
                 <div class="alert alert-warning small mt-2 mb-0">
                     <i class="bi bi-exclamation-triangle me-1"></i>
-                    Maximum of @MaxSplits splits reached.
+                    @L["MultiSplitEditor_MaxSplitsReached", MaxSplits]
                 </div>
             }
         </div>
     </div>
 
-    <!-- Balance Indicator -->
     <div class="card mt-3 @GetBalanceCardClass()">
         <div class="card-body py-2">
             <div class="d-flex justify-content-between align-items-center">
@@ -126,12 +125,12 @@
                     @if (_balance == 0)
                     {
                         <i class="bi bi-check-circle text-success me-1"></i>
-                        <span class="text-success">Balanced</span>
+                        <span class="text-success">@L["MultiSplitEditor_Balanced"]</span>
                     }
                     else
                     {
                         <i class="bi bi-exclamation-circle text-warning me-1"></i>
-                        <span class="text-warning">Remaining to balance:</span>
+                        <span class="text-warning">@L["MultiSplitEditor_RemainingToBalance"]</span>
                     }
                 </span>
                 <span class="fs-5 fw-bold @(_balance == 0 ? "text-success" : "text-warning")">
@@ -152,45 +151,44 @@
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<AccountDto> Accounts { get; set; } = Array.Empty<AccountDto>();
     [Parameter, EditorRequired] public IReadOnlyList<PayeeDto> Payees { get; set; } = Array.Empty<PayeeDto>();
-    
+
     [Parameter] public DateOnly? InitialDate { get; set; }
     [Parameter] public string? InitialDescription { get; set; }
     [Parameter] public Guid? InitialPayeeId { get; set; }
     [Parameter] public List<SplitModel>? InitialSplits { get; set; }
-    
+
     [Parameter] public EventCallback<TransactionEditorModel> OnValidStateChanged { get; set; }
-    
+
     private const int MaxSplits = 10;
-    
-    private FormModel _formModel = new();
+
+    private readonly FormModel _formModel = new();
     private List<SplitModel> _splits = new();
-    private decimal _balance = 0m;
+    private decimal _balance;
     private string? _validationError;
-    
+
     protected override void OnInitialized()
     {
         _formModel.BookedOn = InitialDate ?? DateOnly.FromDateTime(DateTime.Today);
-        _formModel.Description = InitialDescription ?? "";
+        _formModel.Description = InitialDescription ?? string.Empty;
         _formModel.PayeeId = InitialPayeeId;
-        
-        if (InitialSplits != null && InitialSplits.Any())
+
+        if (InitialSplits is not null && InitialSplits.Any())
         {
             _splits = InitialSplits;
         }
         else
         {
-            // Start with 3 empty splits for new transactions
-            _splits = new List<SplitModel>
-            {
+            _splits =
+            [
                 new SplitModel(),
                 new SplitModel(),
                 new SplitModel()
-            };
+            ];
         }
-        
+
         ValidateForm();
     }
-    
+
     private void AddSplit()
     {
         if (_splits.Count < MaxSplits)
@@ -199,7 +197,7 @@
             ValidateForm();
         }
     }
-    
+
     private void RemoveSplit(int index)
     {
         if (_splits.Count > 2)
@@ -208,16 +206,16 @@
             ValidateForm();
         }
     }
-    
+
     private void OnAmountChanged(SplitModel split)
     {
-        // Replace comma with dot and try parsing
         var normalizedText = split.AmountText?.Replace(',', '.');
-        
-        if (decimal.TryParse(normalizedText, 
-                            System.Globalization.NumberStyles.AllowDecimalPoint | System.Globalization.NumberStyles.AllowLeadingSign,
-                            System.Globalization.CultureInfo.InvariantCulture, 
-                            out var amount))
+
+        if (decimal.TryParse(
+            normalizedText,
+            System.Globalization.NumberStyles.AllowDecimalPoint | System.Globalization.NumberStyles.AllowLeadingSign,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out var amount))
         {
             split.Amount = amount;
         }
@@ -225,37 +223,32 @@
         {
             split.Amount = 0m;
         }
-        
+
         ValidateForm();
     }
-    
+
     private void ValidateForm()
     {
         _validationError = null;
-        
-        // Validate description
+
         if (string.IsNullOrWhiteSpace(_formModel.Description))
         {
-            _validationError = "Description is required.";
+            _validationError = L["MultiSplitEditor_Error_DescriptionRequired"];
         }
-        
-        // Validate splits
+
         var splitsWithAccount = _splits.Where(s => s.AccountId != Guid.Empty).ToList();
-        
+
         if (splitsWithAccount.Count < 2)
         {
-            _validationError = "At least 2 splits with accounts selected are required.";
+            _validationError = L["MultiSplitEditor_Error_MinSplits"];
         }
-        
-        // Calculate balance
+
         _balance = _splits.Sum(s => s.Amount);
-        
-        // Check if balanced
-        bool isBalanced = Math.Abs(_balance) < 0.01m; // Allow small rounding errors
-        
+
+        var isBalanced = Math.Abs(_balance) < 0.01m;
+
         if (isBalanced && splitsWithAccount.Count >= 2 && !string.IsNullOrWhiteSpace(_formModel.Description))
         {
-            // Valid state - notify parent
             var model = new TransactionEditorModel
             {
                 BookedOn = _formModel.BookedOn,
@@ -263,53 +256,65 @@
                 PayeeId = _formModel.PayeeId == Guid.Empty ? null : _formModel.PayeeId,
                 Splits = _splits
                     .Where(s => s.AccountId != Guid.Empty)
-                    .Select(s => new SplitModel 
-                    { 
-                        AccountId = s.AccountId, 
-                        Amount = s.Amount, 
+                    .Select(s => new SplitModel
+                    {
+                        AccountId = s.AccountId,
+                        Amount = s.Amount,
                         Memo = string.IsNullOrWhiteSpace(s.Memo) ? null : s.Memo.Trim(),
                         AmountText = s.AmountText
                     })
                     .ToList()
             };
-            
+
             OnValidStateChanged.InvokeAsync(model);
         }
         else
         {
-            // Invalid state
             OnValidStateChanged.InvokeAsync(null!);
         }
     }
-    
+
     private string GetBalanceCardClass()
     {
         return Math.Abs(_balance) < 0.01m ? "border-success" : "border-warning";
     }
-    
+
+    private string GetNatureLabel(FamilyFinances.Domain.Ledger.Accounts.AccountNature nature)
+    {
+        return nature switch
+        {
+            FamilyFinances.Domain.Ledger.Accounts.AccountNature.Asset => L["Dashboard_Nature_Asset"],
+            FamilyFinances.Domain.Ledger.Accounts.AccountNature.Liability => L["Dashboard_Nature_Liability"],
+            FamilyFinances.Domain.Ledger.Accounts.AccountNature.Expense => L["Dashboard_Nature_Expense"],
+            FamilyFinances.Domain.Ledger.Accounts.AccountNature.Income => L["Dashboard_Nature_Income"],
+            FamilyFinances.Domain.Ledger.Accounts.AccountNature.Equity => L["Accounts_Nature_Equity"],
+            _ => nature.ToString()
+        };
+    }
+
     public sealed class FormModel
     {
         [Required]
         public DateOnly BookedOn { get; set; }
-        
+
         [Required, StringLength(200)]
-        public string Description { get; set; } = "";
-        
+        public string Description { get; set; } = string.Empty;
+
         public Guid? PayeeId { get; set; }
     }
-    
+
     public sealed class SplitModel
     {
         public Guid AccountId { get; set; }
         public decimal Amount { get; set; }
         public string? Memo { get; set; }
-        public string AmountText { get; set; } = "";
+        public string AmountText { get; set; } = string.Empty;
     }
-    
+
     public sealed class TransactionEditorModel
     {
         public DateOnly BookedOn { get; set; }
-        public string Description { get; set; } = "";
+        public string Description { get; set; } = string.Empty;
         public Guid? PayeeId { get; set; }
         public List<SplitModel> Splits { get; set; } = new();
     }

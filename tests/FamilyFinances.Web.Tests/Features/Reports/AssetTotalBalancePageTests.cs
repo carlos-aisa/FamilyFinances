@@ -13,11 +13,13 @@ using Moq.Protected;
 
 namespace FamilyFinances.Web.Tests.Features.Reports;
 
-public sealed class AssetTotalBalancePageTests : TestContext
+public sealed class AssetTotalBalancePageTests : WebTestContext
 {
     [Fact]
     public void LoadReport_Displays_Total_And_AccountsCount()
     {
+        using var _ = UseCulture("en-US");
+
         var httpMessageHandlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
         var httpClient = new HttpClient(httpMessageHandlerMock.Object)
         {
@@ -59,15 +61,17 @@ public sealed class AssetTotalBalancePageTests : TestContext
 
         cut.WaitForAssertion(() =>
         {
-            cut.Markup.Should().Contain("Asset Accounts Included");
+            cut.Markup.Should().Contain("Accounts Included");
             cut.Markup.Should().Contain("As of 2026-01-31");
-            cut.Markup.Should().Contain("1.234,56\u20AC");
+            cut.Markup.Should().Contain("+\u20AC1,234.56");
         });
     }
 
     [Fact]
     public void Unauthenticated_User_Sees_Login_Message()
     {
+        using var _ = UseCulture("en-US");
+
         var httpMessageHandlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
         var httpClient = new HttpClient(httpMessageHandlerMock.Object)
         {
@@ -90,7 +94,7 @@ public sealed class AssetTotalBalancePageTests : TestContext
 
         var cut = RenderComponent<AssetTotalBalancePage>();
 
-        cut.Markup.Should().Contain("Please log in to view reports.");
+        cut.Markup.Should().Contain("Please sign in to access reports.");
     }
 
     private sealed class TestTokenStore : IApiTokenStore

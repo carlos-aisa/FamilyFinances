@@ -1,16 +1,19 @@
 @using System.Globalization
 @using System.Text.Json
+@using FamilyFinances.Web
 @using FamilyFinances.Web.Features.Reports.Export
 @using FamilyFinances.Web.Features.Reports.Charts
+@using Microsoft.Extensions.Localization
 @using Microsoft.JSInterop
 @implements IAsyncDisposable
 @inject IJSRuntime JS
+@inject IStringLocalizer<SharedResource> L
 
 @if (Series.Count == 0 || !HasData)
 {
     <ReportingChartEmptyState
         Title="@Title"
-        Description="No chart points are available for the selected month." />
+        Description="@L["ReportingChart_Empty_NoPointsForMonth"]" />
 }
 else
 {
@@ -31,8 +34,8 @@ else
                                 class="btn btn-sm btn-outline-secondary report-export-button"
                                 @onclick="ExportChartAsync"
                                 data-testid="@($"{TestId}-export-image")"
-                                aria-label="@($"Export {Title} chart as PNG")">
-                            <i class="bi bi-download me-1"></i>Export
+                                aria-label="@L["ReportingChart_AriaExportPng", Title]">
+                            <i class="bi bi-download me-1"></i>@L["Reports_Export"]
                         </button>
                     }
                     <span class="badge bg-secondary-subtle text-secondary">@($"{Year}-{Month:00}")</span>
@@ -174,7 +177,7 @@ else
         }
         catch (Exception ex)
         {
-            _exportError = $"Chart export failed: {ex.Message}";
+            _exportError = L["ReportingChart_Error_ExportFailed", ex.Message];
         }
     }
 }

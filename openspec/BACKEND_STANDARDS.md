@@ -201,6 +201,7 @@ All error responses must follow this format:
   "errorCode": "ERROR_CODE",
   "message": "Human-readable description"
 }
+```
 
 ### 6.4 CQRS Usage Rules
 

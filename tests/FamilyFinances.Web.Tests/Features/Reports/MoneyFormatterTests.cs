@@ -1,3 +1,4 @@
+﻿using System.Globalization;
 using FamilyFinances.Web.Features.Reports;
 using FluentAssertions;
 
@@ -6,64 +7,63 @@ namespace FamilyFinances.Web.Tests.Features.Reports;
 public sealed class MoneyFormatterTests
 {
     [Theory]
-    [InlineData(0, "0,00\u20AC")]
-    [InlineData(100, "1,00\u20AC")]
-    [InlineData(1234, "12,34\u20AC")]
-    [InlineData(123456, "1.234,56\u20AC")]
-    [InlineData(100000000, "1.000.000,00\u20AC")]
-    [InlineData(-100, "-1,00\u20AC")]
-    [InlineData(-123456, "-1.234,56\u20AC")]
-    public void FormatCents_WithCurrency_ReturnsFormattedString(long cents, string expected)
+    [InlineData(123456, "es-ES", "1.234,56 \u20AC")]
+    [InlineData(123456, "en-US", "\u20AC1,234.56")]
+    [InlineData(-123456, "es-ES", "-1.234,56 \u20AC")]
+    [InlineData(-123456, "en-US", "-\u20AC1,234.56")]
+    [InlineData(0, "es-ES", "0,00 \u20AC")]
+    [InlineData(0, "en-US", "\u20AC0.00")]
+    public void FormatCents_WithCurrency_UsesRequestedCulture(long cents, string cultureName, string expected)
     {
-        var result = MoneyFormatter.FormatCents(cents, showCurrency: true);
+        var culture = CultureInfo.GetCultureInfo(cultureName);
+
+        var result = MoneyFormatter.FormatCents(cents, showCurrency: true, culture);
+
+        NormalizeSpaces(result).Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData(123456, "es-ES", "1.234,56")]
+    [InlineData(123456, "en-US", "1,234.56")]
+    [InlineData(-100, "es-ES", "-1,00")]
+    [InlineData(-100, "en-US", "-1.00")]
+    public void FormatCents_WithoutCurrency_UsesRequestedCulture(long cents, string cultureName, string expected)
+    {
+        var culture = CultureInfo.GetCultureInfo(cultureName);
+
+        var result = MoneyFormatter.FormatCents(cents, showCurrency: false, culture);
 
         result.Should().Be(expected);
     }
 
     [Theory]
-    [InlineData(0, "0,00")]
-    [InlineData(100, "1,00")]
-    [InlineData(123456, "1.234,56")]
-    [InlineData(-100, "-1,00")]
-    public void FormatCents_WithoutCurrency_ReturnsFormattedString(long cents, string expected)
+    [InlineData(100, "es-ES", "+1,00 \u20AC")]
+    [InlineData(100, "en-US", "+\u20AC1.00")]
+    [InlineData(0, "es-ES", "0,00 \u20AC")]
+    [InlineData(0, "en-US", "\u20AC0.00")]
+    [InlineData(-100, "es-ES", "-1,00 \u20AC")]
+    [InlineData(-100, "en-US", "-\u20AC1.00")]
+    public void FormatCentsWithSign_UsesRequestedCulture(long cents, string cultureName, string expected)
     {
-        var result = MoneyFormatter.FormatCents(cents, showCurrency: false);
+        var culture = CultureInfo.GetCultureInfo(cultureName);
 
-        result.Should().Be(expected);
+        var result = MoneyFormatter.FormatCentsWithSign(cents, showCurrency: true, culture);
+
+        NormalizeSpaces(result).Should().Be(expected);
     }
 
     [Theory]
-    [InlineData(100, "+1,00\u20AC")]
-    [InlineData(123456, "+1.234,56\u20AC")]
-    [InlineData(0, "0,00\u20AC")]
-    [InlineData(-100, "-1,00\u20AC")]
-    [InlineData(-123456, "-1.234,56\u20AC")]
-    public void FormatCentsWithSign_WithCurrency_ReturnsFormattedStringWithSign(long cents, string expected)
+    [InlineData(1234.56, "es-ES", "1.234,56 \u20AC")]
+    [InlineData(1234.56, "en-US", "\u20AC1,234.56")]
+    [InlineData(-1234.56, "es-ES", "-1.234,56 \u20AC")]
+    [InlineData(-1234.56, "en-US", "-\u20AC1,234.56")]
+    public void FormatEuros_UsesRequestedCulture(decimal euros, string cultureName, string expected)
     {
-        var result = MoneyFormatter.FormatCentsWithSign(cents, showCurrency: true);
+        var culture = CultureInfo.GetCultureInfo(cultureName);
 
-        result.Should().Be(expected);
-    }
+        var result = MoneyFormatter.FormatEuros(euros, showCurrency: true, culture);
 
-    [Theory]
-    [InlineData(100, "+1,00")]
-    [InlineData(0, "0,00")]
-    [InlineData(-100, "-1,00")]
-    public void FormatCentsWithSign_WithoutCurrency_ReturnsFormattedStringWithSign(long cents, string expected)
-    {
-        var result = MoneyFormatter.FormatCentsWithSign(cents, showCurrency: false);
-
-        result.Should().Be(expected);
-    }
-
-    [Theory]
-    [InlineData(1234.56, "1.234,56\u20AC")]
-    [InlineData(-1234.56, "-1.234,56\u20AC")]
-    public void FormatEuros_ReturnsLocalizedString(decimal euros, string expected)
-    {
-        var result = MoneyFormatter.FormatEuros(euros);
-
-        result.Should().Be(expected);
+        NormalizeSpaces(result).Should().Be(expected);
     }
 
     [Theory]
@@ -78,4 +78,8 @@ public sealed class MoneyFormatterTests
 
         result.Should().Be(expected);
     }
+
+    private static string NormalizeSpaces(string value)
+        => value.Replace('\u00A0', ' ');
 }
+

@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using AngleSharp.Dom;
 using Bunit;
 using Bunit.TestDoubles;
 using FamilyFinances.Application.Ledger.Accounts.Dtos;
@@ -16,8 +17,16 @@ using Moq.Protected;
 
 namespace FamilyFinances.Web.Tests.Features.Reports;
 
-public sealed class MonthlySummaryPageTests : TestContext
+public sealed class MonthlySummaryPageTests : WebTestContext
 {
+    private static IElement GetLoadReportButton(IRenderedComponent<MonthlySummaryPage> cut)
+    {
+        return cut.FindAll("button")
+            .First(button =>
+                button.TextContent.Contains("load", StringComparison.OrdinalIgnoreCase) &&
+                button.TextContent.Contains("report", StringComparison.OrdinalIgnoreCase));
+    }
+
     [Fact]
     public async Task LoadReport_WithSelectedAccount_LoadsMonthlySummary_And_AccountMonthlyChart()
     {
@@ -119,7 +128,7 @@ public sealed class MonthlySummaryPageTests : TestContext
         await cut.InvokeAsync(() => cut.FindAll("input[type='date']")[0].Change("2026-02-01"));
         await cut.InvokeAsync(() => cut.FindAll("input[type='date']")[1].Change("2026-03-01"));
         await cut.InvokeAsync(() => cut.FindAll("select.form-select")[0].Change(accountId.ToString()));
-        await cut.InvokeAsync(() => cut.FindAll("button").First(button => button.TextContent.Contains("Load Report")).Click());
+        await cut.InvokeAsync(() => GetLoadReportButton(cut).Click());
 
         cut.WaitForAssertion(() =>
         {
@@ -234,7 +243,7 @@ public sealed class MonthlySummaryPageTests : TestContext
         await cut.InvokeAsync(() => cut.FindAll("input[type='date']")[1].Change("2026-03-01"));
         await cut.InvokeAsync(() => cut.FindAll("select.form-select")[0].Change(accountId.ToString()));
         await cut.InvokeAsync(() => cut.FindAll("select.form-select")[1].Change(payeeId.ToString()));
-        await cut.InvokeAsync(() => cut.FindAll("button").First(button => button.TextContent.Contains("Load Report")).Click());
+        await cut.InvokeAsync(() => GetLoadReportButton(cut).Click());
 
         cut.WaitForAssertion(() =>
         {
@@ -330,7 +339,7 @@ public sealed class MonthlySummaryPageTests : TestContext
 
         await cut.InvokeAsync(() => cut.FindAll("input[type='date']")[0].Change("2026-02-01"));
         await cut.InvokeAsync(() => cut.FindAll("input[type='date']")[1].Change("2026-03-01"));
-        await cut.InvokeAsync(() => cut.FindAll("button").First(button => button.TextContent.Contains("Load Report")).Click());
+        await cut.InvokeAsync(() => GetLoadReportButton(cut).Click());
 
         cut.WaitForAssertion(() =>
         {
@@ -340,7 +349,7 @@ public sealed class MonthlySummaryPageTests : TestContext
             requestedUris.Should().NotContain(uri =>
                 uri.Contains("api/v1/reports/monthly-charts/balance", StringComparison.OrdinalIgnoreCase));
 
-            cut.Markup.Should().Contain("Select an account to see the day-by-day evolution");
+            cut.FindAll("[data-testid='monthly-summary-account-monthly-chart']").Should().BeEmpty();
         });
     }
 
@@ -429,15 +438,20 @@ public sealed class MonthlySummaryPageTests : TestContext
 
         await cut.InvokeAsync(() => cut.FindAll("input[type='date']")[0].Change("2026-02-01"));
         await cut.InvokeAsync(() => cut.FindAll("input[type='date']")[1].Change("2026-03-01"));
-        await cut.InvokeAsync(() => cut.FindAll("button").First(button => button.TextContent.Contains("Load Report")).Click());
+        await cut.InvokeAsync(() => GetLoadReportButton(cut).Click());
 
         cut.WaitForAssertion(() =>
         {
             cut.Find("[data-testid='monthly-summary-insights-panel']");
-            cut.Markup.Should().Contain("Denominator:");
+            cut.Markup.Should().Contain("Food");
         });
 
-        await cut.InvokeAsync(() => cut.FindAll("button").First(button => button.TextContent.Contains("Payees")).Click());
+        await cut.InvokeAsync(() =>
+        {
+            var insightButtons = cut.Find("[data-testid='monthly-summary-insights-panel']")
+                .QuerySelectorAll(".btn-group .btn");
+            insightButtons[1].Click();
+        });
 
         cut.WaitForAssertion(() =>
         {

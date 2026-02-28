@@ -5,15 +5,21 @@ using FamilyFinances.Web.Api;
 using FamilyFinances.Web.Auth;
 using FamilyFinances.Web.Components;
 using FamilyFinances.Web.Endpoints;
+using FamilyFinances.Web.Features.Localization;
+using FamilyFinances.Web.Features.Packaging;
 using FamilyFinances.Web.State;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Options;
 using System.Net.Http.Headers;
 
 var builder = WebApplication.CreateBuilder(args);
 
+PackagedConfiguration.Apply(builder.Configuration, builder.Environment.EnvironmentName);
+
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+builder.Services.AddLocalization();
 
 builder.Services.Configure<ApiClientOptions>(builder.Configuration.GetSection("Api"));
 
@@ -49,6 +55,22 @@ builder.Services.AddHttpClient("FamilyFinancesApi", (sp, client) =>
 // Note: do NOT register application/infrastructure handlers or repositories that depend on DbContext here.
 
 var app = builder.Build();
+
+var localizationOptions = new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new RequestCulture(WebLocalizationOptions.DefaultCulture),
+    SupportedCultures = WebLocalizationOptions.SupportedCultures.ToList(),
+    SupportedUICultures = WebLocalizationOptions.SupportedCultures.ToList(),
+    RequestCultureProviders =
+    [
+        new CookieRequestCultureProvider
+        {
+            CookieName = CookieRequestCultureProvider.DefaultCookieName
+        }
+    ]
+};
+
+app.UseRequestLocalization(localizationOptions);
 
 // Only use HTTPS redirection in Development (when we have proper HTTPS setup)
 // Skip in Production (ZIP distribution uses HTTP-only for local access)

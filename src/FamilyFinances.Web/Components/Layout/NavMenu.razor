@@ -1,13 +1,17 @@
-﻿@using Microsoft.AspNetCore.Components.Authorization
+@using System.Globalization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.Extensions.Localization
 @using FamilyFinances.Web.Components.Auth
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Auth
 @using FamilyFinances.Web.Features.Reports
+@using FamilyFinances.Web
 @inject NavigationManager Navigation
 @inject ReportsApi ReportsApi
 @inject IApiTokenStore TokenStore
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ILogger<NavMenu> Logger
+@inject IStringLocalizer<SharedResource> L
 
 @rendermode InteractiveServer
 @implements IDisposable
@@ -15,15 +19,18 @@
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">FamilyFinances</a>
-        <AuthorizeView>
-            <Authorized>
-                <a class="btn btn-sm btn-outline-light" href="settings" title="Settings">
-                    <i class="bi bi-gear" aria-hidden="true"></i>
-                </a>
-            </Authorized>
-        </AuthorizeView>
+
+        <div class="d-flex align-items-center gap-2">
+            <AuthorizeView>
+                <Authorized>
+                    <a class="btn btn-sm btn-outline-light" href="settings" title="@L["Nav_Settings"]">
+                        <i class="bi bi-gear" aria-hidden="true"></i>
+                    </a>
+                </Authorized>
+            </AuthorizeView>
+        </div>
     </div>
-</div>  
+</div>
 
 <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
 
@@ -34,55 +41,55 @@
             <Authorized>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                        <span class="bi bi-house-door me-2 align-middle" aria-hidden="true"></span>Home
+                        <span class="bi bi-house-door me-2 align-middle" aria-hidden="true"></span>@L["Nav_Home"]
                     </NavLink>
                 </div>
 
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="accounts">
-                        <span class="bi bi-wallet2 me-2 align-middle" aria-hidden="true"></span>Accounts
+                        <span class="bi bi-wallet2 me-2 align-middle" aria-hidden="true"></span>@L["Nav_Accounts"]
                     </NavLink>
                 </div>
 
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="account-groups">
-                        <span class="bi bi-collection me-2 align-middle" aria-hidden="true"></span>Account Groups
+                        <span class="bi bi-collection me-2 align-middle" aria-hidden="true"></span>@L["Nav_AccountGroups"]
                     </NavLink>
                 </div>
 
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="payees">
-                        <span class="bi bi-person me-2 align-middle" aria-hidden="true"></span>Payees
+                        <span class="bi bi-person me-2 align-middle" aria-hidden="true"></span>@L["Nav_Payees"]
                     </NavLink>
                 </div>
 
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="transactions">
-                        <span class="bi bi-receipt me-2 align-middle" aria-hidden="true"></span>Transactions
+                        <span class="bi bi-receipt me-2 align-middle" aria-hidden="true"></span>@L["Nav_Transactions"]
                     </NavLink>
                 </div>
 
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="history">
-                        <span class="bi bi-clock-history me-2 align-middle" aria-hidden="true"></span>History
+                        <span class="bi bi-clock-history me-2 align-middle" aria-hidden="true"></span>@L["Nav_History"]
                     </NavLink>
                 </div>
 
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="reports">
-                        <span class="bi bi-graph-up me-2 align-middle" aria-hidden="true"></span>Reports
+                        <span class="bi bi-graph-up me-2 align-middle" aria-hidden="true"></span>@L["Nav_Reports"]
                     </NavLink>
                 </div>
 
                 <div class="nav-item px-3 nav-economic-state">
                     <NavLink class="nav-link" href="reports/economic-state">
-                        <span class="bi bi-piggy-bank me-2 align-middle" aria-hidden="true"></span>Economic State
+                        <span class="bi bi-piggy-bank me-2 align-middle" aria-hidden="true"></span>@L["Nav_EconomicState"]
                     </NavLink>
                     <div class="nav-economic-state-preview">
-                        <small class="text-muted d-block">Asset Balance</small>
+                        <small class="text-muted d-block">@L["Nav_AssetBalance"]</small>
                         @if (_isAssetStateLoading && _assetBalanceCents is null)
                         {
-                            <small class="text-muted">Loading...</small>
+                            <small class="text-muted">@L["Common_Loading"]</small>
                         }
                         else if (_assetBalanceCents is not null)
                         {
@@ -91,12 +98,12 @@
                             </strong>
                             @if (_assetAsOf is not null)
                             {
-                                <small class="text-muted d-block">As of @_assetAsOf.Value.ToString("yyyy-MM-dd")</small>
+                                <small class="text-muted d-block">@L["Nav_AsOf", _assetAsOf.Value.ToString("d", CultureInfo.CurrentCulture)]</small>
                             }
                         }
                         else
                         {
-                            <small class="text-muted">Unavailable</small>
+                            <small class="text-muted">@L["Nav_Unavailable"]</small>
                         }
                     </div>
                 </div>
@@ -109,7 +116,7 @@
             <NotAuthorized>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="login">
-                        <span class="bi bi-box-arrow-in-right me-2 align-middle" aria-hidden="true"></span>Login
+                        <span class="bi bi-box-arrow-in-right me-2 align-middle" aria-hidden="true"></span>@L["Common_Login"]
                     </NavLink>
                 </div>
             </NotAuthorized>

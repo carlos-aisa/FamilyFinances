@@ -1,20 +1,23 @@
 @using FamilyFinances.Web.Auth
+@using FamilyFinances.Web
+@using Microsoft.Extensions.Localization
 @using Microsoft.JSInterop
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager Nav
 @inject IApiTokenStore TokenStore
 @inject JwtAuthStateProvider AuthProvider
 @inject IJSRuntime JS
+@inject IStringLocalizer<SharedResource> L
 
 <button class="btn btn-link nav-link" @onclick="LogoutAsync">
-    <span class="bi bi-box-arrow-right me-2 align-middle" aria-hidden="true"></span>Logout
+    <span class="bi bi-box-arrow-right me-2 align-middle" aria-hidden="true"></span>@L["Common_Logout"]
 </button>
 
 @code {
     private async Task LogoutAsync()
     {
         await JS.InvokeVoidAsync("sessionHelper.clearSessionActive");
-        
+
         var http = HttpClientFactory.CreateClient();
         var url = new Uri(new Uri(Nav.BaseUri), "auth/session");
         await http.DeleteAsync(url);

@@ -256,6 +256,8 @@ Generated_Code/
 # because we have git ;-)
 _UpgradeReport_Files/
 Backup*/
+!src/FamilyFinances.Application/Operations/BackupRestore/
+!src/FamilyFinances.Application/Operations/BackupRestore/**
 UpgradeLog*.XML
 UpgradeLog*.htm
 ServiceFabricBackup/
@@ -405,5 +407,8 @@ FodyWeavers.xsd
 
 # Windows distribution artifacts
 publish-temp/
+publish_compare*/
 dist/FamilyFinances-v*/
+dist/legacy-layout-*/
+dist/smoke-extract-*/
 dist/*.zip

@@ -3,38 +3,40 @@
 @using FamilyFinances.Application.Ledger.Accounts.Dtos
 @using FamilyFinances.Application.Ledger.Payees.Dtos
 @using FamilyFinances.Application.Ledger.Transactions.Requests
+@using FamilyFinances.Web
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
 @using FamilyFinances.Web.Components.Shared
+@using Microsoft.Extensions.Localization
 @inject TransactionsApi TransactionsApi
 @inject IAccountsApi AccountsApi
 @inject PayeesApi PayeesApi
+@inject IStringLocalizer<SharedResource> L
 
 <div class="d-flex align-items-center justify-content-between mb-3">
     <div>
         <h3 class="mb-1">
-            <i class="bi bi-distribute-vertical me-2"></i>New Multi-Split Transaction
+            <i class="bi bi-distribute-vertical me-2"></i>@L["MultiSplitCreate_Title"]
         </h3>
-        <p class="text-muted mb-0">Create a transaction with multiple splits (3 or more)</p>
+        <p class="text-muted mb-0">@L["MultiSplitCreate_Subtitle"]</p>
     </div>
     <a class="btn btn-sm btn-outline-secondary" href="/transactions">
-        <i class="bi bi-arrow-left me-1"></i>Back
+        <i class="bi bi-arrow-left me-1"></i>@L["Common_Back"]
     </a>
 </div>
 
-<!-- Preset Selector -->
 <div class="mb-4">
     <div class="btn-group" role="group">
-        <input type="radio" class="btn-check" name="presetMode" id="presetManual" 
+        <input type="radio" class="btn-check" name="presetMode" id="presetManual"
                checked="@(!_useMortgagePreset)" @onchange="@(() => SetPresetMode(false))">
         <label class="btn btn-outline-primary" for="presetManual">
-            <i class="bi bi-pencil me-1"></i>Manual Entry
+            <i class="bi bi-pencil me-1"></i>@L["MultiSplitCreate_ModeManual"]
         </label>
 
-        <input type="radio" class="btn-check" name="presetMode" id="presetMortgage" 
+        <input type="radio" class="btn-check" name="presetMode" id="presetMortgage"
                checked="@_useMortgagePreset" @onchange="@(() => SetPresetMode(true))">
         <label class="btn btn-outline-primary" for="presetMortgage">
-            <i class="bi bi-house me-1"></i>Mortgage Payment
+            <i class="bi bi-house me-1"></i>@L["MultiSplitCreate_ModeMortgage"]
         </label>
     </div>
 </div>
@@ -42,12 +44,12 @@
 @if (_useMortgagePreset)
 {
     <MortgagePaymentPreset Accounts="_accounts" OnPresetApplied="ApplyMortgagePreset" />
-    
+
     @if (_mortgagePresetApplied)
     {
         <div class="alert alert-success mt-3" role="alert">
             <i class="bi bi-check-circle me-2"></i>
-            Mortgage preset applied successfully. Review the transaction details below and create when ready.
+            @L["MultiSplitCreate_MortgagePresetApplied"]
         </div>
     }
 }
@@ -63,7 +65,7 @@
 {
     <div class="text-center py-5">
         <div class="spinner-border" role="status">
-            <span class="visually-hidden">Loading...</span>
+            <span class="visually-hidden">@L["Common_Loading"]</span>
         </div>
     </div>
 }
@@ -77,8 +79,8 @@ else
                                  OnValidStateChanged="OnEditorStateChanged" />
 
     <div class="mt-4 d-flex gap-2">
-        <button class="btn btn-primary" 
-                @onclick="CreateAsync" 
+        <button class="btn btn-primary"
+                @onclick="CreateAsync"
                 disabled="@(!_canSave || _isSaving)">
             @if (_isSaving)
             {
@@ -88,11 +90,11 @@ else
             {
                 <i class="bi bi-check-circle me-1"></i>
             }
-            Create Transaction
+            @L["MultiSplitCreate_CreateTransaction"]
         </button>
-        
+
         <a class="btn btn-secondary" href="/transactions">
-            <i class="bi bi-x-circle me-1"></i>Cancel
+            <i class="bi bi-x-circle me-1"></i>@L["MultiSplitCreate_Cancel"]
         </a>
     </div>
 }
@@ -102,17 +104,17 @@ else
     private bool _isSaving;
     private bool _canSave;
     private string? _error;
-    
+
     private bool _useMortgagePreset;
     private bool _mortgagePresetApplied;
     private MortgagePaymentPreset.MortgagePresetModel? _appliedPreset;
-    private int _editorKey = 0;
-    
+    private int _editorKey;
+
     private IReadOnlyList<AccountDto> _accounts = Array.Empty<AccountDto>();
     private IReadOnlyList<PayeeDto> _payees = Array.Empty<PayeeDto>();
-    
+
     private MultiSplitTransactionEditor.TransactionEditorModel? _editorModel;
-    
+
     protected override async Task OnInitializedAsync()
     {
         await ExecuteApiAsync(async ct =>
@@ -120,43 +122,41 @@ else
             _accounts = await AccountsApi.ListAsync(ct);
             _payees = await PayeesApi.ListAsync(ct);
         });
-        
+
         _loading = false;
     }
-    
+
     private void SetPresetMode(bool useMortgage)
     {
         _useMortgagePreset = useMortgage;
         _mortgagePresetApplied = false;
         _appliedPreset = null;
     }
-    
+
     private void ApplyMortgagePreset(MortgagePaymentPreset.MortgagePresetModel preset)
     {
         _appliedPreset = preset;
         _mortgagePresetApplied = true;
-        _editorKey++; // Force component re-creation
-        
-        // We'll initialize the editor via parameters - need to trigger a re-render
+        _editorKey++;
         StateHasChanged();
     }
-    
+
     private void OnEditorStateChanged(MultiSplitTransactionEditor.TransactionEditorModel? model)
     {
         _editorModel = model;
-        _canSave = model != null;
+        _canSave = model is not null;
         StateHasChanged();
     }
-    
+
     private async Task CreateAsync()
     {
         if (_editorModel == null || _isSaving)
             return;
-        
+
         _isSaving = true;
         _error = null;
         StateHasChanged();
-        
+
         try
         {
             await ExecuteApiAsync(async ct =>
@@ -166,24 +166,23 @@ else
                     ToCents(s.Amount),
                     s.Memo
                 )).ToList();
-                
+
                 var request = new CreateTransactionRequest(
                     _editorModel.BookedOn,
                     _editorModel.Description,
                     splits,
                     _editorModel.PayeeId,
-                    null // No related transaction for multi-split
+                    null
                 );
-                
+
                 await TransactionsApi.CreateAsync(request, ct);
             });
-            
-            // Success - navigate to transactions list
+
             Nav.NavigateTo("/transactions");
         }
         catch (Exception ex)
         {
-            _error = $"Failed to create transaction: {ex.Message}";
+            _error = L["MultiSplitCreate_Error_CreateFailed", ex.Message];
         }
         finally
         {
@@ -191,48 +190,48 @@ else
             StateHasChanged();
         }
     }
-    
+
     private static long ToCents(decimal amount)
         => (long)Math.Round(amount * 100m, MidpointRounding.AwayFromZero);
-    
+
     private List<MultiSplitTransactionEditor.SplitModel>? GetInitialSplits()
     {
         if (!_mortgagePresetApplied || _appliedPreset == null)
             return null;
-        
+
         var totalPayment = _appliedPreset.PrincipalAmount + _appliedPreset.InterestAmount;
-        
-        return new List<MultiSplitTransactionEditor.SplitModel>
-        {
+
+        return
+        [
             new MultiSplitTransactionEditor.SplitModel
             {
                 AccountId = _appliedPreset.PaymentAccountId,
                 Amount = -totalPayment,
                 AmountText = (-totalPayment).ToString("F2"),
-                Memo = "Payment"
+                Memo = L["MultiSplitCreate_SplitMemo_Payment"]
             },
             new MultiSplitTransactionEditor.SplitModel
             {
                 AccountId = _appliedPreset.MortgagePrincipalAccountId,
                 Amount = _appliedPreset.PrincipalAmount,
                 AmountText = _appliedPreset.PrincipalAmount.ToString("F2"),
-                Memo = "Principal"
+                Memo = L["MultiSplitCreate_SplitMemo_Principal"]
             },
             new MultiSplitTransactionEditor.SplitModel
             {
                 AccountId = _appliedPreset.InterestExpenseAccountId,
                 Amount = _appliedPreset.InterestAmount,
                 AmountText = _appliedPreset.InterestAmount.ToString("F2"),
-                Memo = "Interest"
+                Memo = L["MultiSplitCreate_SplitMemo_Interest"]
             }
-        };
+        ];
     }
-    
+
     private string GetInitialDescription()
     {
         if (_mortgagePresetApplied)
-            return $"Mortgage Payment - {DateOnly.FromDateTime(DateTime.Today):MMM yyyy}";
-        
-        return "";
+            return L["MultiSplitCreate_DefaultDescription", DateOnly.FromDateTime(DateTime.Today).ToString("MMM yyyy")];
+
+        return string.Empty;
     }
 }

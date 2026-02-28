@@ -5,11 +5,14 @@
 @using Microsoft.AspNetCore.WebUtilities
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.JSInterop
+@using Microsoft.Extensions.Localization
+@using FamilyFinances.Web
 @inject JwtAuthStateProvider JwtAuthStateProvider
 @inject NavigationManager Nav
 @inject IApiTokenStore TokenStore
 @inject ILogger<LoginPage> Logger
 @inject IJSRuntime JS
+@inject IStringLocalizer<SharedResource> L
 
 <script>
     window.loginHelper = {
@@ -54,13 +57,13 @@
                     }
 
                     <div class="mb-3">
-                        <label class="form-label">Email</label>
+                        <label class="form-label">@L["Login_EmailLabel"]</label>
                         <input type="email" class="form-control" @bind="_email" placeholder="admin@familyfinances.local" />
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Password</label>
-                        <input type="password" class="form-control" @bind="_password" @onkeypress="HandleKeyPress" placeholder="Enter password" />
+                        <label class="form-label">@L["Login_PasswordLabel"]</label>
+                        <input type="password" class="form-control" @bind="_password" @onkeypress="HandleKeyPress" placeholder="@L["Login_PasswordPlaceholder"]" />
                     </div>
 
                     <button type="button" class="btn btn-primary w-100" @onclick="OnLoginAsync" disabled="@(_isBusy || !_jsLoaded)">
@@ -68,12 +71,12 @@
                         {
                             <span class="spinner-border spinner-border-sm me-2"></span>
                         }
-                        <i class="bi bi-box-arrow-in-right me-2"></i>Login
+                        <i class="bi bi-box-arrow-in-right me-2"></i>@L["Login_Submit"]
                     </button>
 
                     <div class="text-center mt-3">
                         <small class="text-muted">
-                            Default: admin@familyfinances.local / Admin123!
+                            @L["Login_DefaultCredentials"]
                         </small>
                     </div>
                 </div>
@@ -101,7 +104,7 @@
 
         if (query.TryGetValue("reason", out var reason) && reason == "expired")
         {
-            _error = "Your session has expired. Please log in again.";
+            _error = L["Login_Error_SessionExpired"];
         }
     }
 
@@ -127,7 +130,7 @@
     {
         if (!_jsLoaded)
         {
-            _error = "Please wait, loading...";
+            _error = L["Login_Error_Loading"];
             return;
         }
 
@@ -140,13 +143,15 @@
 
             if (!result.Success)
             {
-                _error = result.Error ?? "Invalid email or password";
+                _error = string.IsNullOrWhiteSpace(result.Error) || string.Equals(result.Error, "Login failed", StringComparison.OrdinalIgnoreCase)
+                    ? L["Login_Error_InvalidCredentials"]
+                    : result.Error;
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(result.AccessToken))
             {
-                _error = "Missing access token.";
+                _error = L["Login_Error_MissingAccessToken"];
                 return;
             }
 
@@ -162,7 +167,7 @@
         catch (JSException jsEx)
         {
             Logger.LogError(jsEx, "JavaScript error during login");
-            _error = "Login system error. Please refresh the page and try again.";
+            _error = L["Login_Error_System"];
         }
         catch (Exception ex)
         {

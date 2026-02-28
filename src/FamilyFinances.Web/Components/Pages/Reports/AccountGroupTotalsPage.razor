@@ -4,17 +4,20 @@
 @using FamilyFinances.Application.Ledger.AccountGroups.Dtos
 @using FamilyFinances.Application.Reporting.Dtos
 @using FamilyFinances.Domain.Ledger.Accounts
+@using FamilyFinances.Web
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
 @using FamilyFinances.Web.Components.Shared
 @using FamilyFinances.Web.Features.Reports
 @using FamilyFinances.Web.Features.Reports.Export
+@using Microsoft.Extensions.Localization
 @using Microsoft.JSInterop
 @using Microsoft.AspNetCore.Components.Authorization
 @inject AccountGroupsApi AccountGroupsApi
 @inject ReportsApi ReportsApi
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
+@inject IStringLocalizer<SharedResource> L
 
 <AuthorizeView>
     <Authorized>
@@ -23,17 +26,17 @@
             <div>
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb mb-2">
-                        <li class="breadcrumb-item"><a href="/reports">Reports</a></li>
-                        <li class="breadcrumb-item active" aria-current="page">Account Group Totals</li>
+                        <li class="breadcrumb-item"><a href="/reports">@L["ReportsIndex_Title"]</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">@L["AccountGroupTotals_Title"]</li>
                     </ol>
                 </nav>
                 <h3 class="mb-0">
-                    <i class="bi bi-collection me-2 text-warning"></i>Account Group Totals
+                    <i class="bi bi-collection me-2 text-warning"></i>@L["AccountGroupTotals_Title"]
                 </h3>
             </div>
 
             <button class="btn btn-outline-secondary" @onclick="GoBack">
-                <i class="bi bi-arrow-left me-1"></i>Back to Reports
+                <i class="bi bi-arrow-left me-1"></i>@L["Reports_BackToReports"]
             </button>
         </div>
 
@@ -43,7 +46,7 @@
                         class="nav-link @GetTabClass(AccountGroupReportTab.PeriodTotals)"
                         @onclick="() => SetActiveTabAsync(AccountGroupReportTab.PeriodTotals)"
                         disabled="@(_isBusy)">
-                    Period Totals
+                    @L["AccountGroupTotals_Tab_PeriodTotals"]
                 </button>
             </li>
             <li class="nav-item">
@@ -51,7 +54,7 @@
                         class="nav-link @GetTabClass(AccountGroupReportTab.StateEvolution)"
                         @onclick="() => SetActiveTabAsync(AccountGroupReportTab.StateEvolution)"
                         disabled="@(_isBusy)">
-                    State Evolution
+                    @L["AccountGroupTotals_Tab_StateEvolution"]
                 </button>
             </li>
         </ul>
@@ -61,8 +64,8 @@
         <!-- Filters Card -->
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-light">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-funnel me-2"></i>Filters
+                    <h5 class="card-title mb-0">
+                    <i class="bi bi-funnel me-2"></i>@L["Reports_Filters"]
                 </h5>
             </div>
             <div class="card-body">
@@ -70,7 +73,7 @@
                     <!-- Quick Date Presets -->
                     <div class="col-12">
                         <label class="form-label fw-semibold">
-                            <i class="bi bi-calendar-range me-1"></i>Quick Select
+                            <i class="bi bi-calendar-range me-1"></i>@L["Reports_QuickSelect"]
                         </label>
                         <div>
                             <DateRangePresets OnPresetSelected="HandlePresetSelected" ActivePreset="@_activePreset" />
@@ -79,10 +82,10 @@
 
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">
-                            <i class="bi bi-collection me-1"></i>Account Group
+                            <i class="bi bi-collection me-1"></i>@L["AccountGroupTotals_AccountGroup"]
                         </label>
-                        <select class="form-select" aria-label="Account Group" @bind="_selectedGroupId">
-                            <option value="">-- Select Group --</option>
+                        <select class="form-select" aria-label="@L["AccountGroupTotals_AccountGroup"]" @bind="_selectedGroupId">
+                            <option value="">@L["AccountGroupTotals_SelectGroupOption"]</option>
                             @if (_groups is not null)
                             {
                                 @foreach (var group in _groups)
@@ -95,26 +98,26 @@
 
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">
-                            <i class="bi bi-calendar3 me-1"></i>From Date
+                            <i class="bi bi-calendar3 me-1"></i>@L["Reports_FromDate"]
                         </label>
-                        <input type="date" class="form-control" aria-label="From Date" @bind="_fromDate" @bind:event="oninput" @bind:after="OnDateChanged" />
+                        <input type="date" class="form-control" aria-label="@L["Reports_FromDate"]" @bind="_fromDate" @bind:event="oninput" @bind:after="OnDateChanged" />
                     </div>
 
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">
-                            <i class="bi bi-calendar3 me-1"></i>To Date
+                            <i class="bi bi-calendar3 me-1"></i>@L["Reports_ToDateExclusive"]
                         </label>
-                        <input type="date" class="form-control" aria-label="To Date (exclusive)" @bind="_toDate" @bind:event="oninput" @bind:after="OnDateChanged" />
+                        <input type="date" class="form-control" aria-label="@L["Reports_ToDateExclusive"]" @bind="_toDate" @bind:event="oninput" @bind:after="OnDateChanged" />
                     </div>
 
                     <div class="col-md-2">
                         <label class="form-label fw-semibold">
-                            <i class="bi bi-tag me-1"></i>Nature
+                            <i class="bi bi-tag me-1"></i>@L["AccountGroupTotals_Nature"]
                         </label>
-                        <select class="form-select" aria-label="Account Nature" @bind="_nature">
-                            <option value="">All</option>
-                            <option value="@AccountNature.Expense">Expense</option>
-                            <option value="@AccountNature.Income">Income</option>
+                        <select class="form-select" aria-label="@L["AccountGroupTotals_Nature"]" @bind="_nature">
+                            <option value="">@L["AccountGroupTotals_Nature_All"]</option>
+                            <option value="@AccountNature.Expense">@L["Dashboard_Nature_Expense"]</option>
+                            <option value="@AccountNature.Income">@L["Dashboard_Nature_Income"]</option>
                         </select>
                     </div>
 
@@ -128,7 +131,7 @@
                             {
                                 <i class="bi bi-bar-chart me-1"></i>
                             }
-                            Generate Report
+                            @L["Reports_GenerateReport"]
                         </button>
                     </div>
                 </div>
@@ -158,16 +161,16 @@
                                     class="btn btn-sm btn-outline-secondary report-export-button"
                                     @onclick="ExportCsvAsync"
                                     data-testid="account-group-totals-export-csv"
-                                    aria-label="Export account group totals as CSV">
-                                <i class="bi bi-download me-1"></i>Export
+                                    aria-label="@L["Reports_AriaExportCsv"]">
+                                <i class="bi bi-download me-1"></i>@L["Reports_Export"]
                             </button>
                             <span class="badge bg-secondary">
-                                @_report.FromInclusive.ToString("MMM dd, yyyy") - @_report.ToExclusive.AddDays(-1).ToString("MMM dd, yyyy")
+                                @DateHelper.FormatShortDate(_report.FromInclusive) - @DateHelper.FormatShortDate(_report.ToExclusive.AddDays(-1))
                             </span>
                             @if (_report.Nature != 0)
                             {
                                 <span class="badge @(_report.Nature == AccountNature.Expense ? "bg-danger" : "bg-success")">
-                                    @_report.Nature
+                                    @GetNatureLabel(_report.Nature)
                                 </span>
                             }
                         </div>
@@ -179,7 +182,7 @@
                         <div class="col-md-4">
                             <div class="card bg-light h-100">
                                 <div class="card-body">
-                                    <h6 class="text-muted mb-2">Total Amount</h6>
+                                    <h6 class="text-muted mb-2">@L["AccountGroupTotals_TotalAmount"]</h6>
                                     <h4 class="mb-0 @(_report.TotalCents < 0 ? "text-danger" : "text-success")">
                                         @MoneyFormatter.FormatCents(_report.TotalCents)
                                     </h4>
@@ -190,7 +193,7 @@
                         <div class="col-md-4">
                             <div class="card bg-light h-100">
                                 <div class="card-body">
-                                    <h6 class="text-muted mb-2">Transactions</h6>
+                                    <h6 class="text-muted mb-2">@L["AccountGroupTotals_Transactions"]</h6>
                                     <h4 class="mb-0">@_report.TransactionsCount</h4>
                                 </div>
                             </div>
@@ -199,7 +202,7 @@
                         <div class="col-md-4">
                             <div class="card bg-light h-100">
                                 <div class="card-body">
-                                    <h6 class="text-muted mb-2">Accounts</h6>
+                                    <h6 class="text-muted mb-2">@L["AccountGroupTotals_Accounts"]</h6>
                                     <h4 class="mb-0">@_report.AccountsCount</h4>
                                 </div>
                             </div>
@@ -210,17 +213,17 @@
                     @if (_report.Items.Count > 0)
                     {
                         <h6 class="mb-3">
-                            <i class="bi bi-wallet2 me-2"></i>Account Breakdown
+                            <i class="bi bi-wallet2 me-2"></i>@L["AccountGroupTotals_AccountBreakdown"]
                         </h6>
 
                         <div class="table-responsive">
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
-                                        <th>Account</th>
-                                        <th class="text-end">Amount</th>
-                                        <th class="text-center">Transactions</th>
-                                        <th class="text-end">% of Total</th>
+                                        <th>@L["AccountGroupTotals_Table_Account"]</th>
+                                        <th class="text-end">@L["AccountGroupTotals_Table_Amount"]</th>
+                                        <th class="text-center">@L["AccountGroupTotals_Table_Transactions"]</th>
+                                        <th class="text-end">@L["AccountGroupTotals_Table_Percentage"]</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -259,7 +262,7 @@
                     {
                         <div class="text-center py-4">
                             <i class="bi bi-inbox display-4 text-muted"></i>
-                            <p class="text-muted mt-2 mb-0">No transactions found for the selected period.</p>
+                            <p class="text-muted mt-2 mb-0">@L["AccountGroupTotals_NoTransactionsForPeriod"]</p>
                         </div>
                     }
                 </div>
@@ -270,8 +273,8 @@
             <div class="card shadow-sm">
                 <div class="card-body text-center py-5">
                     <i class="bi bi-bar-chart display-1 text-muted mb-3"></i>
-                    <h5 class="text-muted">Select a Group to Begin</h5>
-                    <p class="text-muted">Choose an account group and date range, then click "Generate Report" to view totals.</p>
+                    <h5 class="text-muted">@L["AccountGroupTotals_Ready_Title"]</h5>
+                    <p class="text-muted">@L["AccountGroupTotals_Ready_Hint"]</p>
                 </div>
             </div>
         }
@@ -287,10 +290,10 @@
         <div class="card shadow-sm">
             <div class="card-body text-center py-5">
                 <i class="bi bi-shield-lock display-1 text-muted mb-3"></i>
-                <h5 class="text-muted">Authentication Required</h5>
-                <p class="text-muted">You must be logged in to view reports.</p>
+                <h5 class="text-muted">@L["AccountGroups_AuthRequired_Title"]</h5>
+                <p class="text-muted">@L["Reports_LoginRequired"]</p>
                 <a class="btn btn-primary mt-3" href="/login">
-                    <i class="bi bi-box-arrow-in-right me-1"></i>Login
+                    <i class="bi bi-box-arrow-in-right me-1"></i>@L["Common_Login"]
                 </a>
             </div>
         </div>
@@ -422,15 +425,17 @@
         ]);
 
         var csv = ReportCsvBuilder.Build(
-            reportName: "Account Group Totals",
+            reportName: L["AccountGroupTotals_Title"],
             context: new Dictionary<string, string?>
             {
-                ["Account Group"] = _report.GroupName,
-                ["From Date"] = _fromDate.ToString("yyyy-MM-dd"),
-                ["To Date (exclusive)"] = _toDate.ToString("yyyy-MM-dd"),
-                ["Nature"] = string.IsNullOrWhiteSpace(_nature) ? "All" : _nature
+                [L["AccountGroupTotals_AccountGroup"]] = _report.GroupName,
+                [L["Reports_FromDate"]] = _fromDate.ToString("yyyy-MM-dd"),
+                [L["Reports_ToDateExclusive"]] = _toDate.ToString("yyyy-MM-dd"),
+                [L["Reports_Nature"]] = string.IsNullOrWhiteSpace(_nature)
+                    ? "-"
+                    : GetNatureLabel(Enum.Parse<AccountNature>(_nature))
             },
-            headers: ["Account", "Amount", "Transactions", "% of Total"],
+            headers: [L["AccountGroupTotals_Table_Account"], L["AccountGroupTotals_Table_Amount"], L["AccountGroupTotals_Table_Transactions"], L["Reports_Share"]],
             rows: rows);
 
         try
@@ -444,7 +449,7 @@
         }
         catch (Exception ex)
         {
-            _error = $"Failed to export CSV: {ex.Message}";
+            _error = L["Reports_Error_ExportCsvFailed", ex.Message];
         }
     }
 
@@ -452,6 +457,19 @@
     {
         PeriodTotals,
         StateEvolution
+    }
+
+    private string GetNatureLabel(AccountNature nature)
+    {
+        return nature switch
+        {
+            AccountNature.Asset => L["Dashboard_Nature_Asset"],
+            AccountNature.Liability => L["Dashboard_Nature_Liability"],
+            AccountNature.Expense => L["Dashboard_Nature_Expense"],
+            AccountNature.Income => L["Dashboard_Nature_Income"],
+            AccountNature.Equity => L["Accounts_Nature_Equity"],
+            _ => nature.ToString()
+        };
     }
 
 }

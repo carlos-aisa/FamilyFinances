@@ -1,12 +1,38 @@
 window.familyFinancesCharts = window.familyFinancesCharts || (function () {
     const chartByCanvasId = new Map();
+    const formatterCache = new Map();
 
-    const euroFormatter = new Intl.NumberFormat("es-ES", {
-        style: "currency",
-        currency: "EUR",
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    });
+    function resolveCulture() {
+        const docCulture = document?.documentElement?.lang;
+        const fallback = "es-ES";
+
+        try {
+            if (window.cultureHelper && typeof window.cultureHelper.getCulture === "function") {
+                const selected = window.cultureHelper.getCulture();
+                if (selected && typeof selected === "string") {
+                    return selected;
+                }
+            }
+        } catch {
+            // Ignore helper errors and fallback to metadata/default culture.
+        }
+
+        return docCulture && typeof docCulture === "string" ? docCulture : fallback;
+    }
+
+    function formatEuro(value) {
+        const culture = resolveCulture();
+        if (!formatterCache.has(culture)) {
+            formatterCache.set(culture, new Intl.NumberFormat(culture, {
+                style: "currency",
+                currency: "EUR",
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }));
+        }
+
+        return formatterCache.get(culture).format(value);
+    }
 
     function toDataset(dataset) {
         return {
@@ -121,7 +147,7 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
                 ticks: {
                     color: "#adb5bd",
                     maxTicksLimit: yTickMaxTicks,
-                    callback: (value) => euroFormatter.format(value)
+                    callback: (value) => formatEuro(value)
                 },
                 grid: {
                     drawOnChartArea: false,
@@ -135,7 +161,7 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
                 ticks: {
                     color: "#adb5bd",
                     maxTicksLimit: yTickMaxTicks,
-                    callback: (value) => euroFormatter.format(value)
+                    callback: (value) => formatEuro(value)
                 },
                 grid: {
                     color: "rgba(173, 181, 189, 0.15)"
@@ -153,7 +179,7 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
                 ticks: {
                     color: "#adb5bd",
                     maxTicksLimit: yTickMaxTicks,
-                    callback: (value) => euroFormatter.format(value)
+                    callback: (value) => formatEuro(value)
                 },
                 grid: {
                     color: "rgba(173, 181, 189, 0.15)"
@@ -181,7 +207,7 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
                     },
                     tooltip: {
                         callbacks: {
-                            label: (context) => `${context.dataset.label}: ${euroFormatter.format(context.parsed.y)}`
+                            label: (context) => `${context.dataset.label}: ${formatEuro(context.parsed.y)}`
                         }
                     }
                 },

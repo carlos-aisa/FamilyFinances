@@ -15,7 +15,7 @@ using Moq.Protected;
 
 namespace FamilyFinances.Web.Tests.Features.Settings;
 
-public sealed class BackupRestorePageTests : TestContext
+public sealed class BackupRestorePageTests : WebTestContext
 {
     [Fact]
     public void Render_ShowsBackupAndRestoreSections_ForAdmin()

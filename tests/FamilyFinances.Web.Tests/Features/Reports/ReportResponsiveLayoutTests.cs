@@ -16,7 +16,7 @@ using Moq.Protected;
 
 namespace FamilyFinances.Web.Tests.Features.Reports;
 
-public sealed class ReportResponsiveLayoutTests : TestContext
+public sealed class ReportResponsiveLayoutTests : WebTestContext
 {
     [Fact]
     public void EconomicState_Snapshot_Uses_Responsive_Grid_And_Accessible_Date_Label()
@@ -72,7 +72,7 @@ public sealed class ReportResponsiveLayoutTests : TestContext
         cut.WaitForAssertion(() =>
         {
             cut.Markup.Should().Contain("col-12 col-md-6 col-xl-4");
-            cut.Markup.Should().Contain("aria-label=\"As-of Date\"");
+            cut.Markup.Should().Contain("aria-label=\"As of date\"");
         });
     }
 
@@ -135,7 +135,7 @@ public sealed class ReportResponsiveLayoutTests : TestContext
             ]);
 
         var cut = RenderComponent<AccountTotalsPage>();
-        cut.FindAll("button.nav-link").First(button => button.TextContent.Contains("State Evolution")).Click();
+        cut.FindAll("button.nav-link").First(button => button.TextContent.Contains("state", StringComparison.OrdinalIgnoreCase)).Click();
 
         cut.WaitForAssertion(() =>
         {

@@ -2,86 +2,83 @@
 @rendermode InteractiveServer
 @using System.ComponentModel.DataAnnotations
 @using System.Globalization
-@using Microsoft.AspNetCore.Components.Forms
 @using FamilyFinances.Application.Reporting.Dtos
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
 @using FamilyFinances.Web.Components.Shared
 @using FamilyFinances.Web.Features.Reports
+@using FamilyFinances.Web
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.Extensions.Localization
 @inherits ApiPageBase
 
 @inject IAccountsApi AccountsApi
+@inject IStringLocalizer<SharedResource> L
 
 <AuthorizeView>
     <Authorized Context="auth">
-        <!-- Header -->
         <div class="d-flex align-items-center justify-content-between mb-4">
             <div>
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb mb-2">
-                        <li class="breadcrumb-item"><a href="/accounts">Accounts</a></li>
-                        <li class="breadcrumb-item active" aria-current="page">Movements</li>
+                        <li class="breadcrumb-item"><a href="/accounts">@L["AccountMovements_BreadcrumbAccounts"]</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">@L["AccountMovements_BreadcrumbMovements"]</li>
                     </ol>
                 </nav>
                 <h3 class="mb-0">
-                    <i class="bi bi-list-ul me-2"></i>@(_movements?.AccountName ?? "Account Movements")
+                    <i class="bi bi-list-ul me-2"></i>@(_movements?.AccountName ?? L["AccountMovements_DefaultTitle"])
                 </h3>
             </div>
 
             <div class="d-flex gap-2">
                 <button class="btn btn-warning" @onclick="OpenReconcileModal" disabled="@_isBusy">
-                    <i class="bi bi-check2-square me-1"></i>Reconcile
+                    <i class="bi bi-check2-square me-1"></i>@L["AccountMovements_Reconcile"]
                 </button>
                 <button class="btn btn-outline-secondary" @onclick="GoBack">
-                    <i class="bi bi-arrow-left me-1"></i>Back to Accounts
+                    <i class="bi bi-arrow-left me-1"></i>@L["AccountMovements_BackToAccounts"]
                 </button>
             </div>
         </div>
 
-        <!-- Filters -->
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-light">
                 <h5 class="card-title mb-0">
-                    <i class="bi bi-funnel me-2"></i>Filters
+                    <i class="bi bi-funnel me-2"></i>@L["AccountMovements_Filters"]
                 </h5>
             </div>
             <div class="card-body">
                 <div class="row g-3">
-                    <!-- Quick Date Presets -->
                     <div class="col-12">
                         <label class="form-label fw-semibold">
-                            <i class="bi bi-calendar-range me-1"></i>Quick Select
+                            <i class="bi bi-calendar-range me-1"></i>@L["AccountMovements_QuickSelect"]
                         </label>
                         <div>
                             <DateRangePresets OnPresetSelected="HandlePresetSelected" ActivePreset="@_activePreset" />
                         </div>
                     </div>
 
-                    <!-- Date Range -->
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">
-                            <i class="bi bi-calendar3 me-1"></i>From Date
+                            <i class="bi bi-calendar3 me-1"></i>@L["AccountMovements_FromDate"]
                         </label>
                         <input type="date" class="form-control" @bind="_fromDate" @bind:event="oninput" @bind:after="OnDateChanged" />
                     </div>
 
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">
-                            <i class="bi bi-calendar3 me-1"></i>To Date
+                            <i class="bi bi-calendar3 me-1"></i>@L["AccountMovements_ToDate"]
                         </label>
                         <input type="date" class="form-control" @bind="_toDate" @bind:event="oninput" @bind:after="OnDateChanged" />
                     </div>
 
-                    <!-- Search -->
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">
-                            <i class="bi bi-search me-1"></i>Search
+                            <i class="bi bi-search me-1"></i>@L["AccountMovements_Search"]
                         </label>
-                        <input type="text" class="form-control" placeholder="Search by description or payee..." @bind="_searchQuery" @bind:event="oninput" />
+                        <input type="text" class="form-control" placeholder="@L["AccountMovements_SearchPlaceholder"]" @bind="_searchQuery" @bind:event="oninput" />
                     </div>
 
-                    <!-- Actions -->
                     <div class="col-md-2">
                         <label class="form-label">&nbsp;</label>
                         <button class="btn btn-primary w-100" @onclick="LoadMovementsAsync" disabled="@_isBusy">
@@ -93,14 +90,13 @@
                             {
                                 <i class="bi bi-search me-1"></i>
                             }
-                            Search
+                            @L["AccountMovements_SearchButton"]
                         </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Alerts -->
         @if (!string.IsNullOrWhiteSpace(_success))
         {
             <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -117,15 +113,14 @@
             </div>
         }
 
-        <!-- Content -->
         @if (_movements is null)
         {
             <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
                 <div class="text-center">
                     <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                        <span class="visually-hidden">Loading...</span>
+                        <span class="visually-hidden">@L["Common_Loading"]</span>
                     </div>
-                    <p class="text-muted">Loading movements...</p>
+                    <p class="text-muted">@L["AccountMovements_LoadingMovements"]</p>
                 </div>
             </div>
         }
@@ -134,17 +129,8 @@
             <div class="card shadow-sm">
                 <div class="card-body text-center py-5">
                     <i class="bi bi-inbox display-1 text-muted mb-3"></i>
-                    <h5 class="text-muted">No movements found</h5>
-                    <p class="text-muted">
-                        @if (string.IsNullOrWhiteSpace(_searchQuery))
-                        {
-                            <span>No transactions for this account in the selected date range.</span>
-                        }
-                        else
-                        {
-                            <span>No transactions match your search criteria. Try adjusting your filters.</span>
-                        }
-                    </p>
+                    <h5 class="text-muted">@L["AccountMovements_EmptyTitle"]</h5>
+                    <p class="text-muted">@GetEmptyDescription()</p>
                 </div>
             </div>
         }
@@ -154,10 +140,10 @@
                 <div class="card-header bg-light">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">
-                            <i class="bi bi-list-ul me-2"></i>Movements
+                            <i class="bi bi-list-ul me-2"></i>@L["AccountMovements_Movements"]
                         </h5>
                         <span class="badge bg-primary">
-                            @_movements.Items.Count of @_movements.TotalCount total
+                            @L["AccountMovements_ShowingOfTotal", _movements.Items.Count, _movements.TotalCount]
                         </span>
                     </div>
                 </div>
@@ -167,22 +153,22 @@
                             <thead class="table-light">
                                 <tr>
                                     <th class="border-0 ps-3" style="width: 120px;">
-                                        <i class="bi bi-calendar3 me-1"></i>Date
+                                        <i class="bi bi-calendar3 me-1"></i>@L["AccountMovements_TableDate"]
                                     </th>
                                     <th class="border-0">
-                                        <i class="bi bi-file-text me-1"></i>Description
+                                        <i class="bi bi-file-text me-1"></i>@L["AccountMovements_TableDescription"]
                                     </th>
                                     <th class="border-0" style="width: 200px;">
-                                        <i class="bi bi-person me-1"></i>Payee
+                                        <i class="bi bi-person me-1"></i>@L["AccountMovements_TablePayee"]
                                     </th>
                                     <th class="border-0" style="width: 200px;">
-                                        <i class="bi bi-arrow-left-right me-1"></i>Counterparty
+                                        <i class="bi bi-arrow-left-right me-1"></i>@L["AccountMovements_TableCounterparty"]
                                     </th>
                                     <th class="border-0 text-end pe-3" style="width: 160px;">
-                                        <i class="bi bi-currency-euro me-1"></i>Amount
+                                        <i class="bi bi-currency-euro me-1"></i>@L["AccountMovements_TableAmount"]
                                     </th>
                                     <th class="border-0 text-end pe-3" style="width: 180px;">
-                                        <i class="bi bi-graph-up-arrow me-1"></i>Running Balance
+                                        <i class="bi bi-graph-up-arrow me-1"></i>@L["AccountMovements_TableRunningBalance"]
                                     </th>
                                 </tr>
                             </thead>
@@ -192,7 +178,7 @@
                                     <tr class="movement-row" style="cursor: pointer;" @onclick="@(() => NavigateToTransaction(movement.TransactionId))">
                                         <td class="ps-3">
                                             <div class="d-flex flex-column">
-                                                <span class="fw-semibold">@movement.BookedOn.ToString("dd MMM", new CultureInfo("es-ES"))</span>
+                                                <span class="fw-semibold">@movement.BookedOn.ToString("dd MMM", CultureInfo.CurrentCulture)</span>
                                                 <small class="text-muted">@movement.BookedOn.Year</small>
                                             </div>
                                         </td>
@@ -208,7 +194,7 @@
                                             }
                                             else
                                             {
-                                                <span class="text-muted">—</span>
+                                                <span class="text-muted">-</span>
                                             }
                                         </td>
                                         <td>
@@ -220,7 +206,7 @@
                                             }
                                             else
                                             {
-                                                <span class="text-muted">—</span>
+                                                <span class="text-muted">-</span>
                                             }
                                         </td>
                                         <td class="text-end pe-3">
@@ -240,14 +226,13 @@
                     </div>
                 </div>
 
-                <!-- Footer with pagination info -->
                 <div class="card-footer bg-light">
                     <div class="d-flex justify-content-between align-items-center">
                         <small class="text-muted">
-                            Showing @_movements.Items.Count of @_movements.TotalCount movements
+                            @L["AccountMovements_FooterShowing", _movements.Items.Count, _movements.TotalCount]
                         </small>
                         <small class="text-muted">
-                            <i class="bi bi-info-circle me-1"></i>Click on a movement to view transaction details
+                            <i class="bi bi-info-circle me-1"></i>@L["AccountMovements_ClickMovementHint"]
                         </small>
                     </div>
                 </div>
@@ -259,17 +244,16 @@
         <div class="card shadow-sm">
             <div class="card-body text-center py-5">
                 <i class="bi bi-shield-lock display-1 text-muted mb-3"></i>
-                <h5 class="text-muted">Authentication Required</h5>
-                <p class="text-muted">You must be logged in to view account movements.</p>
+                <h5 class="text-muted">@L["AccountMovements_AuthenticationRequired"]</h5>
+                <p class="text-muted">@L["AccountMovements_MustLogin"]</p>
                 <a class="btn btn-primary mt-3" href="/login">
-                    <i class="bi bi-box-arrow-in-right me-1"></i>Login
+                    <i class="bi bi-box-arrow-in-right me-1"></i>@L["Common_Login"]
                 </a>
             </div>
         </div>
     </NotAuthorized>
 </AuthorizeView>
 
-<!-- Reconciliation Modal -->
 @if (_showReconcileModal)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
@@ -277,7 +261,7 @@
             <div class="modal-content">
                 <div class="modal-header bg-warning">
                     <h5 class="modal-title">
-                        <i class="bi bi-check2-square me-2"></i>Reconcile Account
+                        <i class="bi bi-check2-square me-2"></i>@L["AccountMovements_ReconcileTitle"]
                     </h5>
                     <button type="button" class="btn-close" @onclick="CloseReconcileModal" disabled="@_isReconciling"></button>
                 </div>
@@ -292,7 +276,7 @@
                         }
 
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Actual Balance</label>
+                            <label class="form-label fw-semibold">@L["AccountMovements_ActualBalance"]</label>
                             <div class="input-group">
                                 <span class="input-group-text">
                                     <i class="bi bi-currency-euro"></i>
@@ -300,40 +284,38 @@
                                 <InputNumber @bind-Value="_reconcileModel.ActualBalance" class="form-control" step="0.01" />
                             </div>
                             <ValidationMessage For="@(() => _reconcileModel.ActualBalance)" class="text-danger small" />
-                            <small class="text-muted">Enter the real balance as shown in your bank statement or wallet.</small>
+                            <small class="text-muted">@L["AccountMovements_ActualBalanceHint"]</small>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">As of Date</label>
+                            <label class="form-label fw-semibold">@L["AccountMovements_AsOfDate"]</label>
                             <InputDate @bind-Value="_reconcileModel.AsOfDate" class="form-control" />
                             <ValidationMessage For="@(() => _reconcileModel.AsOfDate)" class="text-danger small" />
-                            <small class="text-muted">The date when this balance was accurate.</small>
+                            <small class="text-muted">@L["AccountMovements_AsOfDateHint"]</small>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Note (Optional)</label>
-                            <InputText @bind-Value="_reconcileModel.Note" class="form-control" placeholder="e.g., Bank statement reconciliation" />
+                            <label class="form-label fw-semibold">@L["AccountMovements_NoteOptional"]</label>
+                            <InputText @bind-Value="_reconcileModel.Note" class="form-control" placeholder="@L["AccountMovements_NotePlaceholder"]" />
                             <ValidationMessage For="@(() => _reconcileModel.Note)" class="text-danger small" />
-                            <small class="text-muted">Optional note to explain this adjustment.</small>
+                            <small class="text-muted">@L["AccountMovements_NoteHint"]</small>
                         </div>
 
                         <div class="alert alert-info mb-0">
                             <i class="bi bi-info-circle me-2"></i>
-                            <small>
-                                This will create an adjustment transaction if needed. Historical transactions will NOT be modified.
-                            </small>
+                            <small>@L["AccountMovements_ReconcileInfo"]</small>
                         </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" @onclick="CloseReconcileModal" disabled="@_isReconciling">
-                            <i class="bi bi-x-circle me-1"></i>Cancel
+                            <i class="bi bi-x-circle me-1"></i>@L["TransactionEdit_Cancel"]
                         </button>
                         <button type="submit" class="btn btn-warning" disabled="@_isReconciling">
                             @if (_isReconciling)
                             {
                                 <span class="spinner-border spinner-border-sm me-1" role="status"></span>
                             }
-                            <i class="bi bi-check2-square me-1"></i>Reconcile
+                            <i class="bi bi-check2-square me-1"></i>@L["AccountMovements_Reconcile"]
                         </button>
                     </div>
                 </EditForm>
@@ -347,30 +329,29 @@
         transition: background-color 0.2s ease-in-out;
     }
 
-        .movement-row:hover {
-            background-color: rgba(13, 110, 253, 0.05) !important;
-        }
+    .movement-row:hover {
+        background-color: rgba(13, 110, 253, 0.05) !important;
+    }
 </style>
 
 @code {
-[Parameter]
-public Guid Id { get; set; }
+    [Parameter]
+    public Guid Id { get; set; }
 
-private AccountMovementsDto? _movements;
-private string? _error;
-private string? _success;
-private bool _isBusy;
+    private AccountMovementsDto? _movements;
+    private string? _error;
+    private string? _success;
+    private bool _isBusy;
 
-private DateOnly _fromDate = DateHelper.GetCurrentMonthStart();
-private DateOnly _toDate = DateHelper.GetCurrentMonthEnd();
-private string _searchQuery = string.Empty;
-private string? _activePreset = "this-month";
+    private DateOnly _fromDate = DateHelper.GetCurrentMonthStart();
+    private DateOnly _toDate = DateHelper.GetCurrentMonthEnd();
+    private string _searchQuery = string.Empty;
+    private string? _activePreset = "this-month";
 
-// Reconciliation
-private bool _showReconcileModal;
-private bool _isReconciling;
-private string? _reconcileError;
-private readonly ReconcileModel _reconcileModel = new();
+    private bool _showReconcileModal;
+    private bool _isReconciling;
+    private string? _reconcileError;
+    private readonly ReconcileModel _reconcileModel = new();
 
     private async Task HandlePresetSelected(DateRangePresets.DateRangePreset preset)
     {
@@ -378,14 +359,13 @@ private readonly ReconcileModel _reconcileModel = new();
         _fromDate = from;
         _toDate = to;
         _activePreset = preset.Type.ToString().ToLowerInvariant().Replace("_", "-");
-        
-        // Auto-load movements when preset selected
+
         await LoadMovementsAsync();
     }
 
     private void OnDateChanged()
     {
-        _activePreset = null; // Clear preset when manually changing dates
+        _activePreset = null;
     }
 
     protected override async Task OnInitializedAsync()
@@ -413,11 +393,11 @@ private readonly ReconcileModel _reconcileModel = new();
         }
         catch (KeyNotFoundException)
         {
-            _error = "Account not found.";
+            _error = L["AccountMovements_AccountNotFound"];
         }
         catch (Exception ex)
         {
-            _error = $"Error loading movements: {ex.Message}";
+            _error = L["AccountMovements_LoadError", ex.Message];
         }
         finally
         {
@@ -443,6 +423,13 @@ private readonly ReconcileModel _reconcileModel = new();
     private string GetRunningBalanceClass(decimal runningBalance)
     {
         return MoneyFormatter.GetColorClass(runningBalance);
+    }
+
+    private string GetEmptyDescription()
+    {
+        return string.IsNullOrWhiteSpace(_searchQuery)
+            ? L["AccountMovements_EmptyDescriptionNoSearch"]
+            : L["AccountMovements_EmptyDescriptionWithSearch"];
     }
 
     private void OpenReconcileModal()
@@ -485,18 +472,19 @@ private readonly ReconcileModel _reconcileModel = new();
 
                 if (result.AdjustmentCreated)
                 {
-                    _success =
-                        $"Reconciliation complete! {result.Message} " +
-                        $"(Computed: {MoneyFormatter.FormatEuros(result.ComputedBalance)}, " +
-                        $"Actual: {MoneyFormatter.FormatEuros(result.ActualBalance)}, " +
-                        $"Difference: {MoneyFormatter.FormatEuros(result.Difference)})";
+                    _success = L[
+                        "AccountMovements_ReconcileSuccessWithAmounts",
+                        result.Message,
+                        MoneyFormatter.FormatEuros(result.ComputedBalance),
+                        MoneyFormatter.FormatEuros(result.ActualBalance),
+                        MoneyFormatter.FormatEuros(result.Difference)
+                    ];
                 }
                 else
                 {
                     _success = result.Message;
                 }
 
-                // Reload movements to show the new adjustment transaction
                 await LoadMovementsAsync();
             });
         }
@@ -511,7 +499,7 @@ private readonly ReconcileModel _reconcileModel = new();
         }
         catch (Exception ex)
         {
-            _reconcileError = $"Unexpected error: {ex.Message}";
+            _reconcileError = L["AccountMovements_ReconcileUnexpectedError", ex.Message];
         }
         finally
         {

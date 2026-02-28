@@ -2,29 +2,32 @@
 @rendermode InteractiveServer
 @using FamilyFinances.Application.Reporting.Dtos
 @using FamilyFinances.Domain.Ledger.Accounts
+@using FamilyFinances.Web
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
 @using FamilyFinances.Web.Components.Shared
 @using FamilyFinances.Web.Features.Reports
 @using FamilyFinances.Web.Features.Reports.Export
+@using Microsoft.Extensions.Localization
 @using Microsoft.JSInterop
 @using Microsoft.AspNetCore.Components.Authorization
 @inherits ApiPageBase
 
 @inject ReportsApi ReportsApi
 @inject IJSRuntime JS
+@inject IStringLocalizer<SharedResource> L
 
 <AuthorizeView>
     <Authorized>
         <div class="d-flex align-items-center justify-content-between mb-4">
             <div>
                 <h3 class="mb-1">
-                    <i class="bi bi-wallet2 me-2"></i>Account Totals
+                    <i class="bi bi-wallet2 me-2"></i>@L["AccountTotals_Title"]
                 </h3>
-                <p class="text-muted mb-0">Period net changes and monthly state evolution by account</p>
+                <p class="text-muted mb-0">@L["AccountTotals_Subtitle"]</p>
             </div>
             <a class="btn btn-outline-secondary" href="/reports">
-                <i class="bi bi-arrow-left me-1"></i>Back to Reports
+                <i class="bi bi-arrow-left me-1"></i>@L["Reports_BackToReports"]
             </a>
         </div>
 
@@ -34,7 +37,7 @@
                         class="nav-link @GetTabClass(AccountTotalsReportTab.PeriodTotals)"
                         @onclick="() => SetActiveTab(AccountTotalsReportTab.PeriodTotals)"
                         disabled="@_isLoading">
-                    Period Totals
+                    @L["AccountTotals_Tab_PeriodTotals"]
                 </button>
             </li>
             <li class="nav-item">
@@ -42,7 +45,7 @@
                         class="nav-link @GetTabClass(AccountTotalsReportTab.StateEvolution)"
                         @onclick="() => SetActiveTab(AccountTotalsReportTab.StateEvolution)"
                         disabled="@_isLoading">
-                    State Evolution
+                    @L["AccountTotals_Tab_StateEvolution"]
                 </button>
             </li>
         </ul>
@@ -55,9 +58,9 @@
                     <div class="row g-3">
                         <!-- Quick Date Presets -->
                         <div class="col-12">
-                            <label class="form-label fw-semibold">
-                                <i class="bi bi-calendar-range me-1"></i>Quick Select
-                            </label>
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar-range me-1"></i>@L["Reports_QuickSelect"]
+                        </label>
                             <div>
                                 <DateRangePresets OnPresetSelected="HandlePresetSelected" ActivePreset="@_activePreset" />
                             </div>
@@ -65,28 +68,28 @@
 
                         <!-- Date Range -->
                         <div class="col-12 col-md-4">
-                            <label class="form-label fw-semibold">
-                                <i class="bi bi-calendar3 me-1"></i>From Date
-                            </label>
-                            <input type="date" class="form-control" aria-label="From Date" @bind="_fromDate" @bind:event="oninput" @bind:after="OnDateChanged" />
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar3 me-1"></i>@L["Reports_FromDate"]
+                        </label>
+                            <input type="date" class="form-control" aria-label="@L["Reports_FromDate"]" @bind="_fromDate" @bind:event="oninput" @bind:after="OnDateChanged" />
                         </div>
 
                         <div class="col-12 col-md-4">
                             <label class="form-label fw-semibold">
-                                <i class="bi bi-calendar3 me-1"></i>To Date (exclusive)
+                                <i class="bi bi-calendar3 me-1"></i>@L["Reports_ToDateExclusive"]
                             </label>
-                            <input type="date" class="form-control" aria-label="To Date (exclusive)" @bind="_toDate" @bind:event="oninput" @bind:after="OnDateChanged" />
+                            <input type="date" class="form-control" aria-label="@L["Reports_ToDateExclusive"]" @bind="_toDate" @bind:event="oninput" @bind:after="OnDateChanged" />
                         </div>
 
                         <!-- Include Zero Accounts -->
                         <div class="col-12 col-md-4">
                             <label class="form-label fw-semibold">
-                                <i class="bi bi-filter me-1"></i>Display Options
+                                <i class="bi bi-filter me-1"></i>@L["AccountTotals_DisplayOptions"]
                             </label>
                             <div class="form-check form-switch mt-2">
                                 <input class="form-check-input" type="checkbox" id="includeZero" @bind="_includeZeroAccounts" />
                                 <label class="form-check-label" for="includeZero">
-                                    Include accounts with no activity
+                                    @L["AccountTotals_IncludeNoActivity"]
                                 </label>
                             </div>
                         </div>
@@ -102,10 +105,10 @@
                             {
                                 <i class="bi bi-search me-1"></i>
                             }
-                            Load Report
+                            @L["Reports_LoadReport"]
                         </button>
                         <button class="btn btn-outline-secondary ms-2" @onclick="ResetFilters">
-                            <i class="bi bi-x-circle me-1"></i>Reset to Current Month
+                            <i class="bi bi-x-circle me-1"></i>@L["Reports_ResetToCurrentMonth"]
                         </button>
                     </div>
                 </div>
@@ -126,9 +129,9 @@
                 <div class="card shadow-sm">
                     <div class="card-body text-center py-5">
                         <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                            <span class="visually-hidden">Loading...</span>
+                            <span class="visually-hidden">@L["Common_Loading"]</span>
                         </div>
-                        <p class="text-muted">Loading report data...</p>
+                        <p class="text-muted">@L["Reports_LoadingData"]</p>
                     </div>
                 </div>
             }
@@ -140,8 +143,8 @@
                     <div class="card shadow-sm">
                         <div class="card-body text-center py-5">
                             <i class="bi bi-inbox display-4 text-muted mb-3"></i>
-                            <h5 class="text-muted">No data for this period</h5>
-                            <p class="text-muted">Try adjusting your filters, date range, or enable "Include accounts with no activity".</p>
+                            <h5 class="text-muted">@L["Reports_NoDataForPeriod"]</h5>
+                            <p class="text-muted">@L["AccountTotals_NoDataHint"]</p>
                         </div>
                     </div>
                 }
@@ -152,8 +155,8 @@
                                 class="btn btn-sm btn-outline-secondary report-export-button"
                                 @onclick="ExportCsvAsync"
                                 data-testid="account-totals-export-csv"
-                                aria-label="Export account totals as CSV">
-                            <i class="bi bi-download me-1"></i>Export
+                                aria-label="@L["Reports_AriaExportCsv"]">
+                            <i class="bi bi-download me-1"></i>@L["Reports_Export"]
                         </button>
                     </div>
 
@@ -167,7 +170,7 @@
                                 <div class="d-flex justify-content-between align-items-center">
                                     <h5 class="mb-0">
                                         <i class="bi @GetNatureIcon(natureGroup.Key) me-2"></i>
-                                        @natureGroup.Key Accounts
+                                        @L["AccountTotals_NatureAccounts", GetNatureLabel(natureGroup.Key)]
                                     </h5>
                                     <span class="badge @GetNatureBadgeClass(natureGroup.Key) fs-6">
                                         @MoneyFormatter.FormatCentsWithSign(total)
@@ -180,16 +183,16 @@
                                         <thead class="table-light">
                                             <tr>
                                                 <th class="border-0 ps-3" style="width: 40%;">
-                                                    <i class="bi bi-tag me-1"></i>Account Name
+                                                    <i class="bi bi-tag me-1"></i>@L["AccountTotals_Table_AccountName"]
                                                 </th>
                                                 <th class="border-0" style="width: 20%;">
-                                                    <i class="bi bi-folder me-1"></i>Kind
+                                                    <i class="bi bi-folder me-1"></i>@L["AccountTotals_Table_Kind"]
                                                 </th>
                                                 <th class="border-0 text-end" style="width: 25%;">
-                                                    <i class="bi bi-currency-euro me-1"></i>Net Change
+                                                    <i class="bi bi-currency-euro me-1"></i>@L["AccountTotals_Table_NetChange"]
                                                 </th>
                                                 <th class="border-0 text-end pe-3" style="width: 15%;">
-                                                    <i class="bi bi-receipt me-1"></i>Txs
+                                                    <i class="bi bi-receipt me-1"></i>@L["AccountTotals_Table_Transactions"]
                                                 </th>
                                             </tr>
                                         </thead>
@@ -203,7 +206,7 @@
                                                     <td>
                                                         <!-- Use same badge classes as Accounts list to match contrast behavior -->
                                                         <span class="badge bg-secondary-subtle text-secondary">
-                                                            @item.AccountKind
+                                                            @GetKindLabel(item.AccountKind)
                                                         </span>
                                                     </td>
                                                     <td class="text-end">
@@ -228,17 +231,17 @@
                         <div class="card-body">
                             <div class="row text-center">
                                 <div class="col-12 col-md-4">
-                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Period</h6>
+                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@L["AccountTotals_Summary_Period"]</h6>
                                     <p class="mb-0 fw-semibold">
-                                        @_report.FromInclusive.ToString("MMM dd, yyyy") - @_report.ToExclusive.ToString("MMM dd, yyyy")
+                                        @DateHelper.FormatShortDate(_report.FromInclusive) - @DateHelper.FormatShortDate(_report.ToExclusive)
                                     </p>
                                 </div>
                                 <div class="col-12 col-md-4">
-                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Total Accounts</h6>
+                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@L["AccountTotals_Summary_TotalAccounts"]</h6>
                                     <p class="mb-0 fw-semibold">@_report.Items.Count</p>
                                 </div>
                                 <div class="col-12 col-md-4">
-                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Total Transactions</h6>
+                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@L["AccountTotals_Summary_TotalTransactions"]</h6>
                                     <p class="mb-0 fw-semibold">@_report.Items.Sum(i => i.TransactionsCount)</p>
                                 </div>
                             </div>
@@ -252,8 +255,8 @@
                 <div class="card shadow-sm">
                     <div class="card-body text-center py-5">
                         <i class="bi bi-wallet2 display-1 text-muted mb-3"></i>
-                        <h5 class="text-muted">Ready to generate report</h5>
-                        <p class="text-muted">Select filters above and click "Load Report" to see account totals.</p>
+                        <h5 class="text-muted">@L["Reports_ReadyToGenerate"]</h5>
+                        <p class="text-muted">@L["AccountTotals_ReadyHint"]</p>
                     </div>
                 </div>
             }
@@ -267,7 +270,7 @@
     <NotAuthorized>
         <div class="alert alert-warning">
             <i class="bi bi-exclamation-triangle me-2"></i>
-            Please log in to view reports.
+            @L["Reports_LoginRequired"]
         </div>
     </NotAuthorized>
 </AuthorizeView>
@@ -304,7 +307,7 @@
         // Validate date range
         if (_fromDate >= _toDate)
         {
-            _error = "From date must be before To date.";
+            _error = L["Reports_Error_FromBeforeTo"];
             return;
         }
 
@@ -319,11 +322,11 @@
         }
         catch (UnauthorizedAccessException)
         {
-            _error = "You are not authorized to view this report. Please log in again.";
+            _error = L["Reports_Error_Unauthorized"];
         }
         catch (Exception ex)
         {
-            _error = $"Failed to load report: {ex.Message}";
+            _error = L["Reports_Error_LoadFailed", ex.Message];
         }
         finally
         {
@@ -367,6 +370,37 @@
         };
     }
 
+    private string GetNatureLabel(AccountNature nature)
+    {
+        return nature switch
+        {
+            AccountNature.Asset => L["Dashboard_Nature_Asset"],
+            AccountNature.Liability => L["Dashboard_Nature_Liability"],
+            AccountNature.Expense => L["Dashboard_Nature_Expense"],
+            AccountNature.Income => L["Dashboard_Nature_Income"],
+            AccountNature.Equity => L["Accounts_Nature_Equity"],
+            _ => nature.ToString()
+        };
+    }
+
+    private string GetKindLabel(AccountKind kind)
+    {
+        return kind switch
+        {
+            AccountKind.Cash => L["Accounts_Kind_Cash"],
+            AccountKind.Checking => L["Accounts_Kind_Checking"],
+            AccountKind.Savings => L["Accounts_Kind_Savings"],
+            AccountKind.Investment => L["Accounts_Kind_Investment"],
+            AccountKind.CreditCard => L["Accounts_Kind_CreditCard"],
+            AccountKind.Loan => L["Accounts_Kind_Loan"],
+            AccountKind.Mortgage => L["Accounts_Kind_Mortgage"],
+            AccountKind.ExpenseCategory => L["Accounts_Kind_ExpenseCategory"],
+            AccountKind.IncomeSource => L["Accounts_Kind_IncomeSource"],
+            AccountKind.Other => L["Accounts_Kind_Other"],
+            _ => kind.ToString()
+        };
+    }
+
     private void SetActiveTab(AccountTotalsReportTab tab)
     {
         _activeTab = tab;
@@ -393,9 +427,9 @@
             .ThenBy(item => item.AccountName, StringComparer.OrdinalIgnoreCase)
             .Select(item => (IReadOnlyList<string?>)
             [
-                item.AccountNature.ToString(),
+                GetNatureLabel(item.AccountNature),
                 item.AccountName,
-                item.AccountKind.ToString(),
+                GetKindLabel(item.AccountKind),
                 MoneyFormatter.FormatCentsWithSign(item.NetChange),
                 item.TransactionsCount.ToString()
             ])
@@ -403,7 +437,7 @@
 
         rows.Add(
         [
-            "Total",
+            L["CategoryTotals_Total"],
             null,
             null,
             MoneyFormatter.FormatCentsWithSign(_report.Items.Sum(i => i.NetChange)),
@@ -411,14 +445,14 @@
         ]);
 
         var csv = ReportCsvBuilder.Build(
-            reportName: "Account Totals",
+            reportName: L["AccountTotals_Title"],
             context: new Dictionary<string, string?>
             {
-                ["From Date"] = _fromDate.ToString("yyyy-MM-dd"),
-                ["To Date (exclusive)"] = _toDate.ToString("yyyy-MM-dd"),
-                ["Include Zero Accounts"] = _includeZeroAccounts ? "Yes" : "No"
+                [L["Reports_FromDate"]] = _fromDate.ToString("yyyy-MM-dd"),
+                [L["Reports_ToDateExclusive"]] = _toDate.ToString("yyyy-MM-dd"),
+                [L["AccountTotals_IncludeNoActivity"]] = _includeZeroAccounts ? "Yes" : "No"
             },
-            headers: ["Nature", "Account Name", "Kind", "Net Change", "Transactions"],
+            headers: [L["Reports_Nature"], L["AccountTotals_Table_AccountName"], L["AccountTotals_Table_Kind"], L["AccountTotals_Table_NetChange"], L["AccountTotals_Table_Transactions"]],
             rows: rows);
 
         try
@@ -431,7 +465,7 @@
         }
         catch (Exception ex)
         {
-            _error = $"Failed to export CSV: {ex.Message}";
+            _error = L["Reports_Error_ExportCsvFailed", ex.Message];
         }
     }
 }

@@ -3,7 +3,7 @@
 - ? Do not localize API/domain error payloads; this change applies only to the Blazor Web UI.
 - ? Do not hardcode new page-level cultures (for example, additional `new CultureInfo("es-ES")` usage).
 - ? Do not introduce client-side frameworks or architecture changes outside current Blazor Interactive Server patterns.
-- ? Add runtime language selection in the existing Web shell and make language switching immediate.
+- ? Add runtime language selection in the Settings page and make language switching immediate.
 - ? Support exactly two cultures in scope: `es-ES` and `en-US`.
 - ? Persist the user language choice in the web client and apply it on subsequent visits.
 - ? Keep existing business behavior unchanged; only presentation text/formatting should vary by selected language.
@@ -15,7 +15,7 @@ The Web UI currently mixes hardcoded English text, hardcoded Spanish formatting,
 ## What Changes
 
 - Add Web UI runtime localization infrastructure for `es-ES` and `en-US`.
-- Add a language selector in the existing navigation shell and persist preference client-side.
+- Add a language selector in the Settings page and persist preference client-side.
 - Apply language selection immediately by reloading the current route after switching culture.
 - Replace hardcoded UI strings with localized resource entries for shared layout and core transaction/account/report screens.
 - Standardize date/currency formatting to selected UI culture instead of mixed hardcoded culture usage.
@@ -45,7 +45,7 @@ The Web UI currently mixes hardcoded English text, hardcoded Spanish formatting,
 
 ## Impact
 
-- Affected UI shell and navigation: `src/FamilyFinances.Web/Components/App.razor`, `src/FamilyFinances.Web/Components/Layout/NavMenu.razor`.
+- Affected UI shell and settings entry points: `src/FamilyFinances.Web/Components/App.razor`, `src/FamilyFinances.Web/Components/Pages/Settings/SettingsPage.razor`.
 - Affected UI pages/components with mixed hardcoded culture/text (transactions, accounts, reports, dashboard widgets, shared presets/components).
 - Affected helper utilities: report/date/money formatting helpers in Web layer.
 - Affected tests: `tests/FamilyFinances.Web.Tests` for culture and formatting coverage.

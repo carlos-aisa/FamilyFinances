@@ -47,11 +47,21 @@ public static class DateHelper
     }
 
     /// <summary>
-    /// Gets the month name from a month number (in English).
+    /// Gets the month name from a month number using active culture.
     /// </summary>
-    public static string GetMonthName(int month)
+    public static string GetMonthName(int month, CultureInfo? culture = null)
     {
-        return new DateTime(2000, month, 1).ToString("MMMM", CultureInfo.InvariantCulture);
+        var targetCulture = culture ?? CultureInfo.CurrentUICulture ?? CultureInfo.CurrentCulture;
+        return new DateTime(2000, month, 1).ToString("MMMM", targetCulture);
+    }
+
+    /// <summary>
+    /// Formats a DateOnly with short month name in active culture.
+    /// </summary>
+    public static string FormatShortDate(DateOnly date, CultureInfo? culture = null)
+    {
+        var targetCulture = culture ?? CultureInfo.CurrentUICulture ?? CultureInfo.CurrentCulture;
+        return date.ToDateTime(TimeOnly.MinValue).ToString("d", targetCulture);
     }
 
     /// <summary>

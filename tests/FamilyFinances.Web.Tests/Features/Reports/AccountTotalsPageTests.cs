@@ -17,7 +17,7 @@ using Moq.Protected;
 
 namespace FamilyFinances.Web.Tests.Features.Reports;
 
-public sealed class AccountTotalsPageTests : TestContext
+public sealed class AccountTotalsPageTests : WebTestContext
 {
     [Fact]
     public void Default_View_Shows_Period_Totals_Tab_And_Filters()
@@ -87,13 +87,13 @@ public sealed class AccountTotalsPageTests : TestContext
 
         var cut = RenderComponent<AccountTotalsPage>();
         var stateTab = cut.FindAll("button.nav-link")
-            .First(button => button.TextContent.Contains("State Evolution"));
+            .First(button => button.TextContent.Contains("state", StringComparison.OrdinalIgnoreCase));
         stateTab.Click();
 
         cut.WaitForAssertion(() =>
         {
             requestedUris.Should().Contain(uri => uri.Contains("scope=accounts"));
-            cut.Markup.Should().Contain("Accounts Overview");
+            cut.Markup.Should().Contain("Account State Overview");
             cut.Find("[data-testid='annual-accounts-evolution-chart']");
         });
     }
@@ -166,7 +166,7 @@ public sealed class AccountTotalsPageTests : TestContext
 
         var cut = RenderComponent<AccountTotalsPage>();
         var stateTab = cut.FindAll("button.nav-link")
-            .First(button => button.TextContent.Contains("State Evolution"));
+            .First(button => button.TextContent.Contains("state", StringComparison.OrdinalIgnoreCase));
         stateTab.Click();
 
         cut.WaitForAssertion(() =>
@@ -176,7 +176,7 @@ public sealed class AccountTotalsPageTests : TestContext
         });
 
         var compositionModeButton = cut.FindAll("button")
-            .First(button => button.TextContent.Trim() == "Composition");
+            .First(button => button.TextContent.Trim().Contains("composition", StringComparison.OrdinalIgnoreCase));
         compositionModeButton.Click();
 
         cut.WaitForAssertion(() =>
@@ -227,7 +227,9 @@ public sealed class AccountTotalsPageTests : TestContext
         var cut = RenderComponent<AccountTotalsPage>();
 
         cut.FindAll("button")
-            .First(button => button.TextContent.Contains("Load Report"))
+            .First(button =>
+                button.TextContent.Contains("load", StringComparison.OrdinalIgnoreCase) &&
+                button.TextContent.Contains("report", StringComparison.OrdinalIgnoreCase))
             .Click();
 
         cut.WaitForAssertion(() =>

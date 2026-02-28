@@ -5,9 +5,12 @@
 @using FamilyFinances.Domain.Ledger.Accounts
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
+@using Microsoft.Extensions.Localization
+@using FamilyFinances.Web
 @inject AccountsApi AccountsApi
+@inject IStringLocalizer<SharedResource> L
 
-<h3>New account</h3>
+<h3>@L["Accounts_NewAccount_CardTitle"]</h3>
 
 @if (!string.IsNullOrWhiteSpace(_error))
 {
@@ -19,33 +22,33 @@
     <ValidationSummary />
 
     <div class="mb-3">
-        <label class="form-label">Name</label>
+        <label class="form-label">@L["Accounts_Field_Name"]</label>
         <InputText class="form-control" @bind-Value="_model.Name" />
     </div>
 
     <div class="mb-3">
-        <label class="form-label">Nature</label>
+        <label class="form-label">@L["Accounts_Field_Nature"]</label>
         <InputSelect class="form-select" @bind-Value="_model.Nature">
             @foreach (var n in Enum.GetValues<AccountNature>())
             {
-                <option value="@n">@n</option>
+                <option value="@n">@GetNatureLabel(n)</option>
             }
         </InputSelect>
     </div>
 
     <div class="mb-3">
-        <label class="form-label">Kind</label>
+        <label class="form-label">@L["Accounts_Field_Kind"]</label>
         <InputSelect class="form-select" @bind-Value="_model.Kind">
             @foreach (var k in Enum.GetValues<AccountKind>())
             {
-                <option value="@k">@k</option>
+                <option value="@k">@GetKindLabel(k)</option>
             }
         </InputSelect>
     </div>
 
     <div class="d-flex gap-2">
-        <button class="btn btn-primary" disabled="@_isBusy">Create</button>
-        <button type="button" class="btn btn-secondary" @onclick="Cancel" disabled="@_isBusy">Cancel</button>
+        <button class="btn btn-primary" disabled="@_isBusy">@L["Accounts_Create"]</button>
+        <button type="button" class="btn btn-secondary" @onclick="Cancel" disabled="@_isBusy">@L["Accounts_Cancel"]</button>
     </div>
 </EditForm>
 
@@ -81,6 +84,31 @@
     }
 
     private void Cancel() => Nav.NavigateTo("/accounts");
+
+    private string GetNatureLabel(AccountNature nature) => nature switch
+    {
+        AccountNature.Asset => L["Dashboard_Nature_Asset"],
+        AccountNature.Liability => L["Dashboard_Nature_Liability"],
+        AccountNature.Expense => L["Dashboard_Nature_Expense"],
+        AccountNature.Income => L["Dashboard_Nature_Income"],
+        AccountNature.Equity => L["Accounts_Nature_Equity"],
+        _ => nature.ToString()
+    };
+
+    private string GetKindLabel(AccountKind kind) => kind switch
+    {
+        AccountKind.Cash => L["Accounts_Kind_Cash"],
+        AccountKind.Checking => L["Accounts_Kind_Checking"],
+        AccountKind.Savings => L["Accounts_Kind_Savings"],
+        AccountKind.Investment => L["Accounts_Kind_Investment"],
+        AccountKind.CreditCard => L["Accounts_Kind_CreditCard"],
+        AccountKind.Loan => L["Accounts_Kind_Loan"],
+        AccountKind.Mortgage => L["Accounts_Kind_Mortgage"],
+        AccountKind.ExpenseCategory => L["Accounts_Kind_ExpenseCategory"],
+        AccountKind.IncomeSource => L["Accounts_Kind_IncomeSource"],
+        AccountKind.Other => L["Accounts_Kind_Other"],
+        _ => kind.ToString()
+    };
 
     private sealed class CreateAccountFormModel
     {

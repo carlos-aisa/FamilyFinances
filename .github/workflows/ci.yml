@@ -104,64 +104,46 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
 
-      - name: Publish API (win-x64)
-        run: |
-          dotnet publish src/FamilyFinances.Api/FamilyFinances.Api.csproj `
-            --configuration Release `
-            --runtime win-x64 `
-            --self-contained true `
-            --output publish-temp/api `
-            /p:PublishTrimmed=false `
-            /p:PublishSingleFile=false
-
-      - name: Publish Web (win-x64)
-        run: |
-          dotnet publish src/FamilyFinances.Web/FamilyFinances.Web.csproj `
-            --configuration Release `
-            --runtime win-x64 `
-            --self-contained true `
-            --output publish-temp/web `
-            /p:PublishTrimmed=false `
-            /p:PublishSingleFile=false
-
-      - name: Create distribution folder
+      - name: Build distribution (shared runtime layout)
+        id: build_dist
         shell: pwsh
         run: |
           $version = "${{ steps.get_version.outputs.VERSION }}"
+          ./build-windows-dist.ps1 -Version $version -Configuration Release
           $distDir = "dist/FamilyFinances-v$version-win-x64"
-          
-          # Create folder structure
-          New-Item -ItemType Directory -Path "$distDir/api" -Force | Out-Null
-          New-Item -ItemType Directory -Path "$distDir/web" -Force | Out-Null
-          New-Item -ItemType Directory -Path "$distDir/data" -Force | Out-Null
-          New-Item -ItemType Directory -Path "$distDir/logs" -Force | Out-Null
-          
-          # Copy published files
-          Copy-Item -Path "publish-temp/api/*" -Destination "$distDir/api" -Recurse -Force
-          Copy-Item -Path "publish-temp/web/*" -Destination "$distDir/web" -Recurse -Force
-          
-          # Copy scripts and documentation
-          Copy-Item -Path "dist/Start FamilyFinances.bat" -Destination $distDir -Force
-          Copy-Item -Path "dist/Stop FamilyFinances.bat" -Destination $distDir -Force
-          Copy-Item -Path "dist/README.txt" -Destination $distDir -Force
-          
+          $zipPath = "dist/FamilyFinances-v$version-win-x64.zip"
           echo "DIST_DIR=$distDir" >> $env:GITHUB_OUTPUT
+          echo "ZIP_PATH=$zipPath" >> $env:GITHUB_OUTPUT
 
       - name: Verify distribution contents
         shell: pwsh
         run: |
-          $version = "${{ steps.get_version.outputs.VERSION }}"
-          $distDir = "dist/FamilyFinances-v$version-win-x64"
+          $distDir = "${{ steps.build_dist.outputs.DIST_DIR }}"
           
           # Check required files exist
           $requiredFiles = @(
             "$distDir/Start FamilyFinances.bat",
             "$distDir/Stop FamilyFinances.bat",
             "$distDir/README.txt",
-            "$distDir/api/FamilyFinances.Api.exe",
-            "$distDir/web/FamilyFinances.Web.exe",
-            "$distDir/api/appsettings.Production.json",
-            "$distDir/web/appsettings.Production.json"
+            "$distDir/FamilyFinances.Api.exe",
+            "$distDir/FamilyFinances.Web.exe",
+            "$distDir/FamilyFinances.Api.deps.json",
+            "$distDir/FamilyFinances.Web.deps.json",
+            "$distDir/FamilyFinances.Api.runtimeconfig.json",
+            "$distDir/FamilyFinances.Web.runtimeconfig.json",
+            "$distDir/config/api/appsettings.json",
+            "$distDir/config/api/appsettings.Production.json",
+            "$distDir/config/web/appsettings.json",
+            "$distDir/config/web/appsettings.Production.json"
+          )
+
+          $requiredDirs = @(
+            "$distDir/data",
+            "$distDir/logs",
+            "$distDir/config",
+            "$distDir/config/api",
+            "$distDir/config/web",
+            "$distDir/wwwroot"
           )
           
           $missing = @()
@@ -170,38 +152,39 @@ jobs:
               $missing += $file
             }
           }
+
+          foreach ($dir in $requiredDirs) {
+            if (-not (Test-Path $dir)) {
+              $missing += $dir
+            }
+          }
           
           if ($missing.Count -gt 0) {
-            Write-Host "ERROR: Missing required files:" -ForegroundColor Red
+            Write-Host "ERROR: Missing required distribution entries:" -ForegroundColor Red
             $missing | ForEach-Object { Write-Host "  - $_" -ForegroundColor Red }
             exit 1
           }
           
           Write-Host "All required files present!" -ForegroundColor Green
 
-      - name: Create ZIP archive
+      - name: Smoke test Start/Stop scripts from ZIP
         shell: pwsh
         run: |
-          $version = "${{ steps.get_version.outputs.VERSION }}"
-          $distDir = "dist/FamilyFinances-v$version-win-x64"
-          $zipPath = "FamilyFinances-v$version-win-x64.zip"
-          
-          Compress-Archive -Path $distDir -DestinationPath $zipPath -Force
-          
-          echo "ZIP_PATH=$zipPath" >> $env:GITHUB_OUTPUT
+          $zipPath = "${{ steps.build_dist.outputs.ZIP_PATH }}"
+          ./tools/dist/smoke-windows-dist.ps1 -ZipPath $zipPath
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: FamilyFinances-v${{ steps.get_version.outputs.VERSION }}-win-x64
-          path: FamilyFinances-v${{ steps.get_version.outputs.VERSION }}-win-x64.zip
-          retention-days: 90
+          path: ${{ steps.build_dist.outputs.ZIP_PATH }}
+          retention-days: 5
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v1
         with:
-          files: FamilyFinances-v${{ steps.get_version.outputs.VERSION }}-win-x64.zip
+          files: ${{ steps.build_dist.outputs.ZIP_PATH }}
           draft: false
           prerelease: false
           generate_release_notes: true

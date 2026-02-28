@@ -14,7 +14,7 @@ using Moq.Protected;
 
 namespace FamilyFinances.Web.Tests.Features.Reports;
 
-public sealed class EconomicStatePageTests : TestContext
+public sealed class EconomicStatePageTests : WebTestContext
 {
     [Fact]
     public void EconomicStatePage_Loads_With_Current_Date_By_Default()
@@ -60,15 +60,15 @@ public sealed class EconomicStatePageTests : TestContext
 
         cut.WaitForAssertion(() =>
         {
-            cut.Markup.Should().Contain("Asset Balance");
-            cut.Markup.Should().Contain("Liability Balance");
-            cut.Markup.Should().Contain("Net Worth");
+            cut.Markup.Should().Contain("Asset balance");
+            cut.Markup.Should().Contain("Liability balance");
+            cut.Markup.Should().Contain("Net worth");
             cut.Markup.Should().Contain("Income");
             cut.Markup.Should().Contain("Expense");
-            cut.Markup.Should().Contain("Period Net Result");
+            cut.Markup.Should().Contain("Period net result");
             cut.Markup.Should().Contain("Stock metrics");
             cut.Markup.Should().Contain("Flow metrics");
-            cut.Markup.Should().Contain("Month-focused Income vs Expense");
+            cut.Markup.Should().Contain("Month-focused income vs expense");
         });
     }
 
@@ -190,14 +190,14 @@ public sealed class EconomicStatePageTests : TestContext
 
         var cut = RenderComponent<EconomicStatePage>();
         var assetTab = cut.FindAll("button.nav-link")
-            .First(button => button.TextContent.Contains("Asset Evolution"));
+            .First(button => button.TextContent.Contains("asset", StringComparison.OrdinalIgnoreCase));
         assetTab.Click();
 
         cut.WaitForAssertion(() =>
         {
             requestedUris.Should().Contain(uri => uri.Contains("scope=asset-total"));
             requestedUris.Should().Contain(uri => uri.Contains("monthly-charts/balance"));
-            cut.Markup.Should().Contain("Asset Total (Monthly Overview)");
+            cut.Markup.Should().Contain("Monthly Overview");
             cut.Find("[data-testid='economic-state-asset-evolution-chart']");
             cut.Find("[data-testid='economic-state-asset-monthly-chart']");
             cut.Find("[data-testid='economic-state-asset-focused-month']");
@@ -331,14 +331,14 @@ public sealed class EconomicStatePageTests : TestContext
 
         var cut = RenderComponent<EconomicStatePage>();
         var incomeTab = cut.FindAll("button.nav-link")
-            .First(button => button.TextContent.Contains("Income Evolution"));
+            .First(button => button.TextContent.Contains("income", StringComparison.OrdinalIgnoreCase));
         incomeTab.Click();
 
         cut.WaitForAssertion(() =>
         {
             requestedUris.Should().Contain(uri => uri.Contains("scope=income-total"));
             requestedUris.Should().Contain(uri => uri.Contains("monthly-charts/balance") && uri.Contains("nature=Income"));
-            cut.Markup.Should().Contain("Income Total (Monthly Overview)");
+            cut.Markup.Should().Contain("Monthly Overview");
             cut.Find("[data-testid='economic-state-income-evolution-chart']");
             cut.Find("[data-testid='economic-state-income-monthly-chart']");
             cut.Find("[data-testid='economic-state-income-focused-month']");
@@ -361,7 +361,7 @@ public sealed class EconomicStatePageTests : TestContext
 
         var cut = RenderComponent<EconomicStatePage>();
 
-        cut.Markup.Should().Contain("Please log in to view reports.");
+        cut.Markup.Should().Contain("Please sign in to access reports.");
     }
 
     private static (Mock<IHttpClientFactory> Factory, Mock<HttpMessageHandler> Handler) BuildHttpClientFactoryForEconomicState(

@@ -1,7 +1,10 @@
 @page "/history"
+@using FamilyFinances.Web
+@using Microsoft.Extensions.Localization
 @inject NavigationManager Navigation
+@inject IStringLocalizer<SharedResource> L
 
-<div class="text-muted">Redirecting...</div>
+<div class="text-muted">@L["History_Redirecting"]</div>
 
 @code {
     protected override void OnInitialized()

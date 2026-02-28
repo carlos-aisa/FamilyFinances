@@ -1,11 +1,14 @@
 // src/FamilyFinances.Api/Program.cs
 using Asp.Versioning;
+using FamilyFinances.Api.Features.Packaging;
 using FamilyFinances.Infrastructure;
 using FamilyFinances.Infrastructure.Persistence;
 using Serilog;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
+
+PackagedConfiguration.Apply(builder.Configuration, builder.Environment.EnvironmentName);
 
 // Serilog (read from configuration)
 builder.Host.UseSerilog((context, services, loggerConfiguration) =>
