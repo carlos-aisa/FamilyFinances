@@ -256,6 +256,8 @@ Generated_Code/
 # because we have git ;-)
 _UpgradeReport_Files/
 Backup*/
+!src/FamilyFinances.Application/Operations/BackupRestore/
+!src/FamilyFinances.Application/Operations/BackupRestore/**
 UpgradeLog*.XML
 UpgradeLog*.htm
 ServiceFabricBackup/
