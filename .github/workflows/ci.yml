@@ -167,6 +167,12 @@ jobs:
           
           Write-Host "All required files present!" -ForegroundColor Green
 
+      - name: Smoke test Start/Stop scripts from ZIP
+        shell: pwsh
+        run: |
+          $zipPath = "${{ steps.build_dist.outputs.ZIP_PATH }}"
+          ./tools/dist/smoke-windows-dist.ps1 -ZipPath $zipPath
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
