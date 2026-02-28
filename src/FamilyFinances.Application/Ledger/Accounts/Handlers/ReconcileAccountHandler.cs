@@ -23,8 +23,9 @@ public sealed class ReconcileAccountHandler
     private readonly ILedgerUnitOfWork _uow;
 
     // Standard names for adjustment accounts
-    private const string IncomeAdjustmentAccountName = "Balance Adjustments";
-    private const string ExpenseAdjustmentAccountName = "Balance Adjustments";
+    private const string IncomeAdjustmentAccountName = "Balance Adjustments (Income)";
+    private const string ExpenseAdjustmentAccountName = "Balance Adjustments (Expense)";
+    private const string LegacyAdjustmentAccountName = "Balance Adjustments";
 
     public ReconcileAccountHandler(
         IAccountRepository accounts,
@@ -199,7 +200,10 @@ public sealed class ReconcileAccountHandler
         var allAccounts = await _accounts.ListAsync(ct);
         var existing = allAccounts.FirstOrDefault(a =>
             a.Nature == nature &&
-            a.Name.Equals(accountName, StringComparison.OrdinalIgnoreCase));
+            (
+                a.Name.Equals(accountName, StringComparison.OrdinalIgnoreCase) ||
+                a.Name.Equals(LegacyAdjustmentAccountName, StringComparison.OrdinalIgnoreCase)
+            ));
 
         if (existing is not null)
             return existing;
