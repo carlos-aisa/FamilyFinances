@@ -69,6 +69,8 @@ public sealed class EconomicStatePageTests : WebTestContext
             cut.Markup.Should().Contain("Stock metrics");
             cut.Markup.Should().Contain("Flow metrics");
             cut.Markup.Should().Contain("Month-focused income vs expense");
+            cut.Markup.Should().Contain("ff-premium-tabs");
+            cut.Markup.Should().Contain("ff-kpi-card");
         });
     }
 

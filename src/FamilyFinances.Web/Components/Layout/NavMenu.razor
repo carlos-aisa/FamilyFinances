@@ -16,14 +16,17 @@
 @rendermode InteractiveServer
 @implements IDisposable
 
-<div class="top-row ps-3 navbar navbar-dark">
+<div class="top-row ps-3 navbar navbar-dark ff-nav-top">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">FamilyFinances</a>
+        <a class="navbar-brand ff-nav-brand" href="">FamilyFinances</a>
 
         <div class="d-flex align-items-center gap-2">
             <AuthorizeView>
                 <Authorized>
-                    <a class="btn btn-sm btn-outline-light" href="settings" title="@L["Nav_Settings"]">
+                    <a class="btn btn-sm btn-outline-light ff-nav-settings-button"
+                       href="settings"
+                       title="@L["Nav_Settings"]"
+                       data-testid="nav-settings-link">
                         <i class="bi bi-gear" aria-hidden="true"></i>
                     </a>
                 </Authorized>
@@ -34,55 +37,55 @@
 
 <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+<div class="nav-scrollable ff-nav-scroll" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="nav flex-column">
 
         <AuthorizeView>
             <Authorized>
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                    <NavLink class="nav-link ff-nav-link" href="" Match="NavLinkMatch.All">
                         <span class="bi bi-house-door me-2 align-middle" aria-hidden="true"></span>@L["Nav_Home"]
                     </NavLink>
                 </div>
 
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="accounts">
+                    <NavLink class="nav-link ff-nav-link" href="accounts">
                         <span class="bi bi-wallet2 me-2 align-middle" aria-hidden="true"></span>@L["Nav_Accounts"]
                     </NavLink>
                 </div>
 
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="account-groups">
+                    <NavLink class="nav-link ff-nav-link" href="account-groups">
                         <span class="bi bi-collection me-2 align-middle" aria-hidden="true"></span>@L["Nav_AccountGroups"]
                     </NavLink>
                 </div>
 
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="payees">
+                    <NavLink class="nav-link ff-nav-link" href="payees">
                         <span class="bi bi-person me-2 align-middle" aria-hidden="true"></span>@L["Nav_Payees"]
                     </NavLink>
                 </div>
 
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="transactions">
+                    <NavLink class="nav-link ff-nav-link" href="transactions">
                         <span class="bi bi-receipt me-2 align-middle" aria-hidden="true"></span>@L["Nav_Transactions"]
                     </NavLink>
                 </div>
 
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="history">
+                    <NavLink class="nav-link ff-nav-link" href="history">
                         <span class="bi bi-clock-history me-2 align-middle" aria-hidden="true"></span>@L["Nav_History"]
                     </NavLink>
                 </div>
 
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="reports">
+                    <NavLink class="nav-link ff-nav-link" href="reports">
                         <span class="bi bi-graph-up me-2 align-middle" aria-hidden="true"></span>@L["Nav_Reports"]
                     </NavLink>
                 </div>
 
                 <div class="nav-item px-3 nav-economic-state">
-                    <NavLink class="nav-link" href="reports/economic-state">
+                    <NavLink class="nav-link ff-nav-link" href="reports/economic-state">
                         <span class="bi bi-piggy-bank me-2 align-middle" aria-hidden="true"></span>@L["Nav_EconomicState"]
                     </NavLink>
                     <div class="nav-economic-state-preview">
@@ -115,7 +118,7 @@
 
             <NotAuthorized>
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="login">
+                    <NavLink class="nav-link ff-nav-link" href="login">
                         <span class="bi bi-box-arrow-in-right me-2 align-middle" aria-hidden="true"></span>@L["Common_Login"]
                     </NavLink>
                 </div>

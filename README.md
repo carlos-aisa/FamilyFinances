@@ -55,6 +55,22 @@ Main architectural characteristics:
 - Razor Components
 - Bootstrap (static assets)
 
+### Frontend Design Governance (Premium, Dark-First)
+- The UI uses a shared premium token layer for Dashboard and Reports:
+  - color surfaces and semantic accents,
+  - typography hierarchy,
+  - spacing/radius/elevation primitives,
+  - chart theme tokens (axis/grid/tooltip).
+- Dark mode is the default startup baseline when no theme preference exists.
+- Language selection remains scoped to `Settings` (`/settings`), not main navigation.
+- Canonical shared stylesheet is `src/FamilyFinances.Web/wwwroot/css/app.css`.
+- Premium token file is `src/FamilyFinances.Web/wwwroot/css/premium-theme.css`.
+
+Rollback guidance for visual regressions:
+1. Remove premium shell marker class (`ff-premium`) from `MainLayout.razor`.
+2. Disable premium token stylesheet include (`css/premium-theme.css`) in `Components/App.razor`.
+3. Re-run Web and reporting test suites before releasing rollback build.
+
 ### DevOps & Testing
 - xUnit
 - FluentAssertions

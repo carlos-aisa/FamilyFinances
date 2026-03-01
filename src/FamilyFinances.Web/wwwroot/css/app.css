@@ -627,3 +627,94 @@
     border-color: #495057;
     color: #adb5bd;
 }
+
+/* Premium dashboard and reports extensions */
+.ff-page-header {
+    margin-top: 0.2rem;
+}
+
+.ff-dashboard-grid .card,
+.ff-reports-grid .card,
+.ff-report-filter-panel,
+.ff-settings-grid .card {
+    border-radius: var(--ff-radius-md, 14px);
+    overflow: hidden;
+}
+
+.ff-dashboard-nature-card {
+    overflow: hidden;
+}
+
+.ff-dashboard-nature-card .card-body {
+    padding: 0.35rem 0.35rem 0.45rem;
+}
+
+.ff-dashboard-nature-card .card-body > .p-2.border-bottom {
+    padding: 0 0 0.4rem !important;
+    margin-bottom: 0.35rem;
+}
+
+.ff-dashboard-account-item {
+    border-radius: 0.55rem !important;
+    margin: 0.2rem 0;
+    border: 1px solid transparent !important;
+}
+
+[data-bs-theme="dark"] .ff-dashboard-account-item:hover {
+    border-color: rgba(79, 164, 255, 0.35) !important;
+}
+
+[data-bs-theme="dark"] .ff-dashboard-account-item.active {
+    border-color: rgba(79, 164, 255, 0.72) !important;
+}
+
+.ff-report-filter-panel .form-label {
+    letter-spacing: 0.01em;
+}
+
+.ff-report-filter-panel .form-control,
+.ff-report-filter-panel .form-select {
+    border-radius: 0.65rem;
+}
+
+.ff-report-insights-grid .ff-insight-block {
+    border-color: var(--ff-border-soft, #2c3e59) !important;
+}
+
+.ff-report-insights-grid details > summary {
+    cursor: pointer;
+}
+
+.ff-data-table {
+    font-size: 0.9rem;
+}
+
+.ff-data-table > :not(caption) > * > * {
+    padding-top: 0.46rem;
+    padding-bottom: 0.46rem;
+}
+
+.ff-chart-panel .card-body {
+    border-radius: inherit;
+}
+
+.ff-chart-export-button {
+    border-radius: 999px;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+}
+
+[data-bs-theme="dark"] .ff-chart-export-button {
+    border-color: rgba(166, 182, 207, 0.45);
+    color: #d7e4f7;
+}
+
+[data-bs-theme="dark"] .ff-chart-export-button:hover {
+    border-color: rgba(79, 164, 255, 0.72);
+    background-color: rgba(79, 164, 255, 0.16);
+    color: #ffffff;
+}
+
+.ff-report-about-card .card-title {
+    font-family: var(--ff-font-heading, "Segoe UI", sans-serif);
+}

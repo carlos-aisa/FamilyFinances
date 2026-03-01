@@ -34,17 +34,43 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
         return formatterCache.get(culture).format(value);
     }
 
+    function resolveChartTheme() {
+        const style = window.getComputedStyle
+            ? window.getComputedStyle(document.documentElement)
+            : null;
+
+        const pick = (tokenName, fallback) => {
+            if (!style) {
+                return fallback;
+            }
+
+            const tokenValue = style.getPropertyValue(tokenName);
+            return tokenValue && tokenValue.trim().length > 0 ? tokenValue.trim() : fallback;
+        };
+
+        return {
+            tickColor: pick("--ff-chart-tick-color", "#adb5bd"),
+            gridColor: pick("--ff-chart-grid-color", "rgba(173, 181, 189, 0.15)"),
+            tooltipBackground: pick("--ff-chart-tooltip-bg", "#223149"),
+            tooltipText: pick("--ff-chart-tooltip-text", "#e8efff"),
+            surfaceBorder: pick("--ff-border-soft", "#1f252d")
+        };
+    }
+
     function toDataset(dataset) {
         return {
             label: dataset.label,
             data: dataset.values,
             borderColor: dataset.colorHex,
             backgroundColor: dataset.colorHex,
-            borderWidth: 2,
-            pointRadius: 3,
-            pointHoverRadius: 5,
-            tension: 0.25,
+            borderWidth: 2.6,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            pointHitRadius: 12,
+            tension: 0.33,
+            cubicInterpolationMode: "monotone",
             spanGaps: true,
+            fill: false,
             yAxisID: dataset.yAxisId || "y"
         };
     }
@@ -126,16 +152,18 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
         const xTickMaxTicks = Number.isFinite(payload.xTickMaxTicks) ? payload.xTickMaxTicks : undefined;
         const yTickMaxTicks = Number.isFinite(payload.yTickMaxTicks) ? payload.yTickMaxTicks : undefined;
 
+        const theme = resolveChartTheme();
         const scales = {
             x: {
                 ticks: {
-                    color: "#adb5bd",
+                    color: theme.tickColor,
                     maxRotation: 0,
                     autoSkip: xTickAutoSkip,
                     maxTicksLimit: xTickMaxTicks
                 },
                 grid: {
-                    color: "rgba(173, 181, 189, 0.15)"
+                    color: theme.gridColor,
+                    borderDash: [4, 4]
                 }
             }
         };
@@ -145,13 +173,14 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
                 type: "linear",
                 position: "right",
                 ticks: {
-                    color: "#adb5bd",
+                    color: theme.tickColor,
                     maxTicksLimit: yTickMaxTicks,
                     callback: (value) => formatEuro(value)
                 },
                 grid: {
                     drawOnChartArea: false,
-                    color: "rgba(173, 181, 189, 0.15)"
+                    color: theme.gridColor,
+                    borderDash: [4, 4]
                 }
             };
 
@@ -159,12 +188,13 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
                 type: "linear",
                 position: "left",
                 ticks: {
-                    color: "#adb5bd",
+                    color: theme.tickColor,
                     maxTicksLimit: yTickMaxTicks,
                     callback: (value) => formatEuro(value)
                 },
                 grid: {
-                    color: "rgba(173, 181, 189, 0.15)"
+                    color: theme.gridColor,
+                    borderDash: [4, 4]
                 }
             };
         } else {
@@ -177,12 +207,13 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
                 type: "linear",
                 position: "left",
                 ticks: {
-                    color: "#adb5bd",
+                    color: theme.tickColor,
                     maxTicksLimit: yTickMaxTicks,
                     callback: (value) => formatEuro(value)
                 },
                 grid: {
-                    color: "rgba(173, 181, 189, 0.15)"
+                    color: theme.gridColor,
+                    borderDash: [4, 4]
                 }
             };
         }
@@ -206,6 +237,13 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
                         display: false
                     },
                     tooltip: {
+                        backgroundColor: theme.tooltipBackground,
+                        titleColor: theme.tooltipText,
+                        bodyColor: theme.tooltipText,
+                        borderColor: theme.gridColor,
+                        borderWidth: 1,
+                        cornerRadius: 10,
+                        padding: 10,
                         callbacks: {
                             label: (context) => `${context.dataset.label}: ${formatEuro(context.parsed.y)}`
                         }
@@ -244,6 +282,7 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
             chartByCanvasId.delete(canvasId);
         }
 
+        const theme = resolveChartTheme();
         const chart = new window.Chart(canvas, {
             type: "pie",
             data: {
@@ -252,8 +291,10 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
                     {
                         data: payload.values || [],
                         backgroundColor: payload.colors || [],
-                        borderColor: "#1f252d",
-                        borderWidth: 1.5
+                        borderColor: theme.surfaceBorder,
+                        borderWidth: 2,
+                        hoverOffset: 8,
+                        spacing: 2
                     }
                 ]
             },
@@ -266,6 +307,13 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
                         display: false
                     },
                     tooltip: {
+                        backgroundColor: theme.tooltipBackground,
+                        titleColor: theme.tooltipText,
+                        bodyColor: theme.tooltipText,
+                        borderColor: theme.gridColor,
+                        borderWidth: 1,
+                        cornerRadius: 10,
+                        padding: 10,
                         callbacks: {
                             label: (context) => `${context.label}: ${Number(context.parsed || 0).toFixed(2)}%`
                         }

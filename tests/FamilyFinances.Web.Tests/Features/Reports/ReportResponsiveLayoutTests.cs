@@ -73,6 +73,8 @@ public sealed class ReportResponsiveLayoutTests : WebTestContext
         {
             cut.Markup.Should().Contain("col-12 col-md-6 col-xl-4");
             cut.Markup.Should().Contain("aria-label=\"As of date\"");
+            cut.Markup.Should().Contain("ff-report-filter-panel");
+            cut.Markup.Should().Contain("ff-premium-tabs");
         });
     }
 
@@ -143,6 +145,8 @@ public sealed class ReportResponsiveLayoutTests : WebTestContext
             cut.Markup.Should().Contain("col-12 col-xxl-8");
             cut.Markup.Should().Contain("col-12 col-xxl-4");
             cut.Markup.Should().Contain("aria-label=\"Year\"");
+            cut.Markup.Should().Contain("ff-data-table");
+            cut.Markup.Should().Contain("ff-chart-panel");
         });
     }
 

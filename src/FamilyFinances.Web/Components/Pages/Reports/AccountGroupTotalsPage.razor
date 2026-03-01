@@ -22,7 +22,7 @@
 <AuthorizeView>
     <Authorized>
         <!-- Header -->
-        <div class="d-flex align-items-center justify-content-between mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-4 ff-page-header">
             <div>
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb mb-2">
@@ -30,7 +30,7 @@
                         <li class="breadcrumb-item active" aria-current="page">@L["AccountGroupTotals_Title"]</li>
                     </ol>
                 </nav>
-                <h3 class="mb-0">
+                <h3 class="mb-0 ff-page-title">
                     <i class="bi bi-collection me-2 text-warning"></i>@L["AccountGroupTotals_Title"]
                 </h3>
             </div>
@@ -40,7 +40,7 @@
             </button>
         </div>
 
-        <ul class="nav nav-tabs mb-4">
+        <ul class="nav nav-tabs mb-4 ff-premium-tabs">
             <li class="nav-item">
                 <button type="button"
                         class="nav-link @GetTabClass(AccountGroupReportTab.PeriodTotals)"
@@ -62,8 +62,8 @@
         @if (_activeTab == AccountGroupReportTab.PeriodTotals)
         {
         <!-- Filters Card -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-light">
+        <div class="card shadow-sm mb-4 ff-panel ff-report-filter-panel">
+            <div class="card-header bg-light ff-panel-header">
                     <h5 class="card-title mb-0">
                     <i class="bi bi-funnel me-2"></i>@L["Reports_Filters"]
                 </h5>
@@ -150,8 +150,8 @@
         <!-- Report Results -->
         @if (_report is not null)
         {
-            <div class="card shadow-sm">
-                <div class="card-header bg-light">
+            <div class="card shadow-sm ff-panel">
+                <div class="card-header bg-light ff-panel-header">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">
                             <i class="bi bi-collection me-2"></i>@_report.GroupName
@@ -180,7 +180,7 @@
                     <!-- Summary -->
                     <div class="row g-3 mb-4">
                         <div class="col-md-4">
-                            <div class="card bg-light h-100">
+                            <div class="card bg-light h-100 ff-panel">
                                 <div class="card-body">
                                     <h6 class="text-muted mb-2">@L["AccountGroupTotals_TotalAmount"]</h6>
                                     <h4 class="mb-0 @(_report.TotalCents < 0 ? "text-danger" : "text-success")">
@@ -191,7 +191,7 @@
                         </div>
 
                         <div class="col-md-4">
-                            <div class="card bg-light h-100">
+                            <div class="card bg-light h-100 ff-panel">
                                 <div class="card-body">
                                     <h6 class="text-muted mb-2">@L["AccountGroupTotals_Transactions"]</h6>
                                     <h4 class="mb-0">@_report.TransactionsCount</h4>
@@ -200,7 +200,7 @@
                         </div>
 
                         <div class="col-md-4">
-                            <div class="card bg-light h-100">
+                            <div class="card bg-light h-100 ff-panel">
                                 <div class="card-body">
                                     <h6 class="text-muted mb-2">@L["AccountGroupTotals_Accounts"]</h6>
                                     <h4 class="mb-0">@_report.AccountsCount</h4>
@@ -217,7 +217,7 @@
                         </h6>
 
                         <div class="table-responsive">
-                            <table class="table table-hover">
+                            <table class="table table-hover ff-data-table">
                                 <thead>
                                     <tr>
                                         <th>@L["AccountGroupTotals_Table_Account"]</th>
@@ -270,7 +270,7 @@
         }
         else if (!_isBusy)
         {
-            <div class="card shadow-sm">
+            <div class="card shadow-sm ff-panel">
                 <div class="card-body text-center py-5">
                     <i class="bi bi-bar-chart display-1 text-muted mb-3"></i>
                     <h5 class="text-muted">@L["AccountGroupTotals_Ready_Title"]</h5>
@@ -287,7 +287,7 @@
     </Authorized>
 
     <NotAuthorized>
-        <div class="card shadow-sm">
+        <div class="card shadow-sm ff-panel">
             <div class="card-body text-center py-5">
                 <i class="bi bi-shield-lock display-1 text-muted mb-3"></i>
                 <h5 class="text-muted">@L["AccountGroups_AuthRequired_Title"]</h5>

@@ -23,12 +23,12 @@
 
 <AuthorizeView>
     <Authorized>
-        <div class="d-flex align-items-center justify-content-between mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-4 ff-page-header">
             <div>
-                <h3 class="mb-1">
+                <h3 class="mb-1 ff-page-title">
                     <i class="bi bi-calendar-month me-2"></i>@L["MonthlySummary_Title"]
                 </h3>
-                <p class="text-muted mb-0">@L["MonthlySummary_Subtitle"]</p>
+                <p class="text-muted mb-0 ff-page-subtitle">@L["MonthlySummary_Subtitle"]</p>
             </div>
             <a class="btn btn-outline-secondary" href="/reports">
                 <i class="bi bi-arrow-left me-1"></i>@L["Reports_BackToReports"]
@@ -36,7 +36,7 @@
         </div>
 
         <!-- Filters Card -->
-        <div class="card shadow-sm mb-4">
+        <div class="card shadow-sm mb-4 ff-panel ff-report-filter-panel">
             <div class="card-body">
                 <!-- Quick Date Presets -->
                 <div class="mb-3">
@@ -133,11 +133,11 @@
             <div class="row g-4">
                 <!-- Summary Cards -->
                 <div class="col-12 col-md-6 col-lg-3">
-                    <div class="card shadow-sm border-start border-success border-4">
+                    <div class="card shadow-sm border-start border-success border-4 ff-kpi-card ff-panel">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@ReportingMetricLocalizer.GetLabel(L, _incomeMetric)</h6>
+                                    <h6 class="text-muted text-uppercase mb-2 ff-kpi-label">@ReportingMetricLocalizer.GetLabel(L, _incomeMetric)</h6>
                                     <h4 class="mb-0 text-success">@MoneyFormatter.FormatCentsWithSign(_report.IncomeTotal)</h4>
                                 </div>
                                 <i class="bi bi-arrow-down-circle text-success fs-2 opacity-50"></i>
@@ -147,11 +147,11 @@
                 </div>
 
                 <div class="col-12 col-md-6 col-lg-3">
-                    <div class="card shadow-sm border-start border-danger border-4">
+                    <div class="card shadow-sm border-start border-danger border-4 ff-kpi-card ff-panel">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@ReportingMetricLocalizer.GetLabel(L, _expenseMetric)</h6>
+                                    <h6 class="text-muted text-uppercase mb-2 ff-kpi-label">@ReportingMetricLocalizer.GetLabel(L, _expenseMetric)</h6>
                                     <h4 class="mb-0 text-danger">@MoneyFormatter.FormatCentsWithSign(_report.ExpenseTotal)</h4>
                                 </div>
                                 <i class="bi bi-arrow-up-circle text-danger fs-2 opacity-50"></i>
@@ -161,11 +161,11 @@
                 </div>
 
                 <div class="col-12 col-md-6 col-lg-3">
-                    <div class="card shadow-sm border-start border-primary border-4">
+                    <div class="card shadow-sm border-start border-primary border-4 ff-kpi-card ff-panel">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@ReportingMetricLocalizer.GetLabel(L, _periodNetResultMetric)</h6>
+                                    <h6 class="text-muted text-uppercase mb-2 ff-kpi-label">@ReportingMetricLocalizer.GetLabel(L, _periodNetResultMetric)</h6>
                                     <h4 class="mb-0 @MoneyFormatter.GetColorClass(_report.Net)">
                                         @MoneyFormatter.FormatCentsWithSign(_report.Net)
                                     </h4>
@@ -177,11 +177,11 @@
                 </div>
 
                 <div class="col-12 col-md-6 col-lg-3">
-                    <div class="card shadow-sm border-start border-info border-4">
+                    <div class="card shadow-sm border-start border-info border-4 ff-kpi-card ff-panel">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@ReportingMetricLocalizer.GetLabel(L, _transactionsCountMetric)</h6>
+                                    <h6 class="text-muted text-uppercase mb-2 ff-kpi-label">@ReportingMetricLocalizer.GetLabel(L, _transactionsCountMetric)</h6>
                                     <h4 class="mb-0 text-info">@_report.TransactionsCount</h4>
                                 </div>
                                 <i class="bi bi-receipt text-info fs-2 opacity-50"></i>
@@ -191,16 +191,16 @@
                 </div>
             </div>
 
-            <div class="alert alert-info mt-3 mb-0" role="alert">
+            <div class="alert alert-info mt-3 mb-0 ff-info-note" role="alert">
                 <i class="bi bi-info-circle me-2"></i>
                 <strong>@ReportingMetricLocalizer.GetLabel(L, _periodNetResultMetric)</strong> @L["MonthlySummary_FlowMetricInfo"]
             </div>
 
-            <div class="row g-4 mt-1 period-summary-detail-grid">
+            <div class="row g-4 mt-1 period-summary-detail-grid ff-report-insights-grid">
                 <div class="col-12 col-xxl-5">
                     @if (_selectedAccountGuid is null)
                     {
-                        <div class="card shadow-sm">
+                        <div class="card shadow-sm ff-panel">
                             <div class="card-body text-center py-5">
                                 <i class="bi bi-graph-up display-4 text-muted mb-3"></i>
                                 <h5 class="text-muted">@L["MonthlySummary_MonthFocusedEvolution"]</h5>
@@ -230,8 +230,8 @@
                     }
                 </div>
                 <div class="col-12 col-xxl-7">
-                    <div class="card shadow-sm" data-testid="monthly-summary-insights-panel">
-                        <div class="card-header bg-light d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+                    <div class="card shadow-sm ff-panel" data-testid="monthly-summary-insights-panel">
+                        <div class="card-header bg-light ff-panel-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
                             <div>
                                 <h5 class="mb-1">
                                     <i class="bi bi-lightbulb me-2"></i>@L["MonthlySummary_PeriodInsights"]
@@ -277,7 +277,7 @@
 
                                 <div class="row g-3">
                                     <div class="col-12 col-xxl-6">
-                                        <div class="border rounded p-3 h-100">
+                                        <div class="border rounded p-3 h-100 ff-panel ff-insight-block">
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <h6 class="mb-1">@L["MonthlySummary_ExpensePareto"]</h6>
                                                 <span class="badge bg-danger-subtle text-danger">@($"{_paretoInsights.Expense.TopNCoveragePercentage:F2}% Top-{_paretoInsights.Expense.TopN}")</span>
@@ -288,7 +288,7 @@
                                             <details>
                                                 <summary class="small fw-semibold">@L["MonthlySummary_ViewRankedContributors"]</summary>
                                                 <div class="table-responsive mt-2">
-                                                    <table class="table table-sm align-middle mb-0">
+                                                    <table class="table table-sm align-middle mb-0 ff-data-table">
                                                         <thead>
                                                             <tr>
                                                                 <th>@L["Reports_Contributor"]</th>
@@ -312,7 +312,7 @@
                                         </div>
                                     </div>
                                     <div class="col-12 col-xxl-6">
-                                        <div class="border rounded p-3 h-100">
+                                        <div class="border rounded p-3 h-100 ff-panel ff-insight-block">
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <h6 class="mb-1">@L["MonthlySummary_IncomePareto"]</h6>
                                                 <span class="badge bg-success-subtle text-success">@($"{_paretoInsights.Income.TopNCoveragePercentage:F2}% Top-{_paretoInsights.Income.TopN}")</span>
@@ -323,7 +323,7 @@
                                             <details>
                                                 <summary class="small fw-semibold">@L["MonthlySummary_ViewRankedContributors"]</summary>
                                                 <div class="table-responsive mt-2">
-                                                    <table class="table table-sm align-middle mb-0">
+                                                    <table class="table table-sm align-middle mb-0 ff-data-table">
                                                         <thead>
                                                             <tr>
                                                                 <th>@L["Reports_Contributor"]</th>
@@ -348,7 +348,7 @@
                                     </div>
                                 </div>
 
-                                <div class="border rounded p-3 mt-3">
+                                <div class="border rounded p-3 mt-3 ff-panel ff-insight-block">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <h6 class="mb-1">@L["MonthlySummary_MonthlyExpenseAnomalies"]</h6>
                                         <span class="badge bg-secondary-subtle text-secondary">@focusedMonthLabel</span>
@@ -366,7 +366,7 @@
                                         <details>
                                             <summary class="small fw-semibold">@L["MonthlySummary_ViewAnomalyBreakdown"]</summary>
                                             <div class="table-responsive mt-2">
-                                                <table class="table table-sm align-middle mb-0">
+                                                <table class="table table-sm align-middle mb-0 ff-data-table">
                                                     <thead>
                                                         <tr>
                                                             <th>@L["Reports_Contributor"]</th>

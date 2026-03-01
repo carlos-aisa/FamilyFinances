@@ -1,0 +1,13 @@
+.ff-settings-grid .ff-settings-card {
+    border-radius: var(--ff-radius-md, 14px);
+}
+
+.ff-settings-grid .card-title {
+    font-family: var(--ff-font-heading, "Segoe UI", sans-serif);
+    letter-spacing: 0.01em;
+    font-weight: 620;
+}
+
+.ff-settings-grid .btn-group .btn {
+    min-width: 7rem;
+}

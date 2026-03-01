@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "skills": {
+    "brainstorming": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "computedHash": "5cafa1558b0b6bd4d4c71f23d5567b7fcbbcdb4b0a50b0c5f69a80a3cebaf9b8"
+    },
+    "frontend-design": {
+      "source": "am-will/codex-skills",
+      "sourceType": "github",
+      "computedHash": "d3334661de9ed476cdd2d4ebef8da6a1f0f0432915b2de035f5f2e989216dd94"
+    }
+  }
+}
