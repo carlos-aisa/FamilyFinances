@@ -79,6 +79,9 @@ public sealed class NavMenuEconomicStateTests : WebTestContext
             cut.Markup.Should().Contain("As of");
             cut.Markup.Should().Contain(payload.AsOf.ToString("d", CultureInfo.CurrentCulture));
             cut.Markup.Should().Contain(MoneyFormatter.FormatCents(payload.AssetsTotalCents));
+            cut.Markup.Should().Contain("ff-nav-link");
+            cut.Markup.Should().Contain("data-testid=\"nav-settings-link\"");
+            cut.Markup.Should().NotContain("settings-language-selector");
         });
     }
 

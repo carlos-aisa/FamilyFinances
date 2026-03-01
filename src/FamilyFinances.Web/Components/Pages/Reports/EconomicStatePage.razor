@@ -18,19 +18,19 @@
 
 <AuthorizeView>
     <Authorized>
-        <div class="d-flex align-items-center justify-content-between mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-4 ff-page-header">
             <div>
-                <h3 class="mb-1">
+                <h3 class="mb-1 ff-page-title">
                     <i class="bi bi-piggy-bank me-2"></i>@L["EconomicState_Title"]
                 </h3>
-                <p class="text-muted mb-0">@L["EconomicState_Subtitle"]</p>
+                <p class="text-muted mb-0 ff-page-subtitle">@L["EconomicState_Subtitle"]</p>
             </div>
             <a class="btn btn-outline-secondary" href="/reports">
                 <i class="bi bi-arrow-left me-1"></i>@L["Reports_BackToReports"]
             </a>
         </div>
 
-        <ul class="nav nav-tabs mb-4">
+        <ul class="nav nav-tabs mb-4 ff-premium-tabs">
             <li class="nav-item">
                 <button type="button"
                         class="nav-link @GetTabClass(EconomicStateTab.Snapshot)"
@@ -59,7 +59,7 @@
 
         @if (_activeTab == EconomicStateTab.Snapshot)
         {
-            <div class="card shadow-sm mb-4">
+            <div class="card shadow-sm mb-4 ff-panel ff-report-filter-panel">
                 <div class="card-body">
                     <div class="row g-3 align-items-end">
                         <div class="col-12 col-md-4">
@@ -120,9 +120,9 @@
 
                 <div class="row g-3 mb-3">
                     <div class="col-12 col-md-6 col-xl-4">
-                        <div class="card shadow-sm border-start border-primary border-4 h-100">
+                        <div class="card shadow-sm border-start border-primary border-4 h-100 ff-kpi-card ff-panel">
                             <div class="card-body">
-                                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@ReportingMetricLocalizer.GetLabel(L, _assetMetric)</h6>
+                                <h6 class="text-muted text-uppercase mb-2 ff-kpi-label">@ReportingMetricLocalizer.GetLabel(L, _assetMetric)</h6>
                                 <h4 class="mb-0 @MoneyFormatter.GetColorClass(_report.AssetsTotalCents)">
                                     @MoneyFormatter.FormatCentsWithSign(_report.AssetsTotalCents)
                                 </h4>
@@ -130,9 +130,9 @@
                         </div>
                     </div>
                     <div class="col-12 col-md-6 col-xl-4">
-                        <div class="card shadow-sm border-start border-warning border-4 h-100">
+                        <div class="card shadow-sm border-start border-warning border-4 h-100 ff-kpi-card ff-panel">
                             <div class="card-body">
-                                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@ReportingMetricLocalizer.GetLabel(L, _liabilityMetric)</h6>
+                                <h6 class="text-muted text-uppercase mb-2 ff-kpi-label">@ReportingMetricLocalizer.GetLabel(L, _liabilityMetric)</h6>
                                 <h4 class="mb-0 text-danger">
                                     @MoneyFormatter.FormatCents(_report.LiabilitiesTotalCents)
                                 </h4>
@@ -140,9 +140,9 @@
                         </div>
                     </div>
                     <div class="col-12 col-md-6 col-xl-4">
-                        <div class="card shadow-sm border-start border-info border-4 h-100">
+                        <div class="card shadow-sm border-start border-info border-4 h-100 ff-kpi-card ff-panel">
                             <div class="card-body">
-                                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@ReportingMetricLocalizer.GetLabel(L, _netWorthMetric)</h6>
+                                <h6 class="text-muted text-uppercase mb-2 ff-kpi-label">@ReportingMetricLocalizer.GetLabel(L, _netWorthMetric)</h6>
                                 <h4 class="mb-0 @MoneyFormatter.GetColorClass(_report.NetWorthCents)">
                                     @MoneyFormatter.FormatCentsWithSign(_report.NetWorthCents)
                                 </h4>
@@ -153,9 +153,9 @@
 
                 <div class="row g-3 mb-3">
                     <div class="col-12 col-md-6 col-xl-4">
-                        <div class="card shadow-sm border-start border-success border-4 h-100">
+                        <div class="card shadow-sm border-start border-success border-4 h-100 ff-kpi-card ff-panel">
                             <div class="card-body">
-                                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@ReportingMetricLocalizer.GetLabel(L, _incomeMetric)</h6>
+                                <h6 class="text-muted text-uppercase mb-2 ff-kpi-label">@ReportingMetricLocalizer.GetLabel(L, _incomeMetric)</h6>
                                 <h4 class="mb-0 text-success">
                                     @MoneyFormatter.FormatCentsWithSign(_report.IncomeTotalCents)
                                 </h4>
@@ -163,9 +163,9 @@
                         </div>
                     </div>
                     <div class="col-12 col-md-6 col-xl-4">
-                        <div class="card shadow-sm border-start border-danger border-4 h-100">
+                        <div class="card shadow-sm border-start border-danger border-4 h-100 ff-kpi-card ff-panel">
                             <div class="card-body">
-                                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@ReportingMetricLocalizer.GetLabel(L, _expenseMetric)</h6>
+                                <h6 class="text-muted text-uppercase mb-2 ff-kpi-label">@ReportingMetricLocalizer.GetLabel(L, _expenseMetric)</h6>
                                 <h4 class="mb-0 text-danger">
                                     @MoneyFormatter.FormatCentsWithSign(_report.ExpenseTotalCents)
                                 </h4>
@@ -173,9 +173,9 @@
                         </div>
                     </div>
                     <div class="col-12 col-md-6 col-xl-4">
-                        <div class="card shadow-sm border-start border-secondary border-4 h-100">
+                        <div class="card shadow-sm border-start border-secondary border-4 h-100 ff-kpi-card ff-panel">
                             <div class="card-body">
-                                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@ReportingMetricLocalizer.GetLabel(L, _periodNetMetric)</h6>
+                                <h6 class="text-muted text-uppercase mb-2 ff-kpi-label">@ReportingMetricLocalizer.GetLabel(L, _periodNetMetric)</h6>
                                 <h4 class="mb-0 @MoneyFormatter.GetColorClass(_report.PeriodNetResultCents)">
                                     @MoneyFormatter.FormatCentsWithSign(_report.PeriodNetResultCents)
                                 </h4>
@@ -184,7 +184,7 @@
                     </div>
                 </div>
 
-                <div class="alert alert-info mb-0" role="alert">
+                <div class="alert alert-info mb-0 ff-info-note" role="alert">
                     <i class="bi bi-info-circle me-2"></i>
                     <span>
                         <strong>@L["Reports_StockMetrics"]</strong> (@ReportingMetricLocalizer.GetLabel(L, _assetMetric), @ReportingMetricLocalizer.GetLabel(L, _liabilityMetric), @ReportingMetricLocalizer.GetLabel(L, _netWorthMetric))

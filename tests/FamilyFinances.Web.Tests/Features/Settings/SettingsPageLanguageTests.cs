@@ -31,6 +31,7 @@ public sealed class SettingsPageLanguageTests : WebTestContext
 
             optionValues.Should().Equal("es-ES", "en-US");
             selector.GetAttribute("value").Should().Be("en-US");
+            cut.Markup.Should().Contain("ff-settings-card");
         });
     }
 

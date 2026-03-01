@@ -9,18 +9,18 @@
 
 <AuthorizeView>
     <Authorized>
-        <div class="d-flex align-items-center justify-content-between mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-4 ff-page-header">
             <div>
-                <h3 class="mb-1">
+                <h3 class="mb-1 ff-page-title">
                     <i class="bi bi-graph-up me-2"></i>@L["ReportsIndex_Title"]
                 </h3>
-                <p class="text-muted mb-0">@L["ReportsIndex_Subtitle"]</p>
+                <p class="text-muted mb-0 ff-page-subtitle">@L["ReportsIndex_Subtitle"]</p>
             </div>
         </div>
 
-        <div class="row g-4">
+        <div class="row g-4 ff-reports-grid">
             <div class="col-12 col-md-6 col-lg-4">
-                <div class="card shadow-sm h-100 report-card" style="cursor: pointer;" @onclick="@(() => NavigateToReport("economic-state"))">
+                <div class="card shadow-sm h-100 report-card ff-panel ff-report-card ff-reveal" @onclick="@(() => NavigateToReport("economic-state"))">
                     <div class="card-body">
                         <div class="d-flex align-items-center mb-3">
                             <div class="report-icon bg-dark bg-opacity-10 text-body rounded-3 p-3 me-3">
@@ -41,7 +41,7 @@
             </div>
 
             <div class="col-12 col-md-6 col-lg-4">
-                <div class="card shadow-sm h-100 report-card" style="cursor: pointer;" @onclick="@(() => NavigateToReport("monthly-summary"))">
+                <div class="card shadow-sm h-100 report-card ff-panel ff-report-card ff-reveal" @onclick="@(() => NavigateToReport("monthly-summary"))">
                     <div class="card-body">
                         <div class="d-flex align-items-center mb-3">
                             <div class="report-icon bg-primary bg-opacity-10 text-primary rounded-3 p-3 me-3">
@@ -62,7 +62,7 @@
             </div>
 
             <div class="col-12 col-md-6 col-lg-4">
-                <div class="card shadow-sm h-100 report-card" style="cursor: pointer;" @onclick="@(() => NavigateToReport("category-totals"))">
+                <div class="card shadow-sm h-100 report-card ff-panel ff-report-card ff-reveal" @onclick="@(() => NavigateToReport("category-totals"))">
                     <div class="card-body">
                         <div class="d-flex align-items-center mb-3">
                             <div class="report-icon bg-success bg-opacity-10 text-success rounded-3 p-3 me-3">
@@ -83,7 +83,7 @@
             </div>
 
             <div class="col-12 col-md-6 col-lg-4">
-                <div class="card shadow-sm h-100 report-card" style="cursor: pointer;" @onclick="@(() => NavigateToReport("account-totals"))">
+                <div class="card shadow-sm h-100 report-card ff-panel ff-report-card ff-reveal" @onclick="@(() => NavigateToReport("account-totals"))">
                     <div class="card-body">
                         <div class="d-flex align-items-center mb-3">
                             <div class="report-icon bg-info bg-opacity-10 text-info rounded-3 p-3 me-3">
@@ -104,7 +104,7 @@
             </div>
 
             <div class="col-12 col-md-6 col-lg-4">
-                <div class="card shadow-sm h-100 report-card" style="cursor: pointer;" @onclick="@(() => NavigateToReport("account-group-totals"))">
+                <div class="card shadow-sm h-100 report-card ff-panel ff-report-card ff-reveal" @onclick="@(() => NavigateToReport("account-group-totals"))">
                     <div class="card-body">
                         <div class="d-flex align-items-center mb-3">
                             <div class="report-icon bg-warning bg-opacity-10 text-warning rounded-3 p-3 me-3">
@@ -125,7 +125,7 @@
             </div>
         </div>
 
-        <div class="card shadow-sm mt-4">
+        <div class="card shadow-sm mt-4 ff-panel ff-report-about-card">
             <div class="card-body">
                 <h6 class="card-title">
                     <i class="bi bi-info-circle me-2"></i>@L["ReportsIndex_AboutTitle"]

@@ -18,7 +18,7 @@
 }
 else
 {
-    <div class="card shadow-sm annual-composition-chart"
+    <div class="card shadow-sm annual-composition-chart ff-panel ff-chart-panel"
          data-testid="@TestId"
          data-year="@Year"
          data-total-percentage="@TotalPercentage.ToString("0.####", CultureInfo.InvariantCulture)">
@@ -35,7 +35,7 @@ else
                     @if (EnableImageExport)
                     {
                         <button type="button"
-                                class="btn btn-sm btn-outline-secondary report-export-button"
+                                class="btn btn-sm btn-outline-secondary report-export-button ff-chart-export-button"
                                 @onclick="ExportChartAsync"
                                 data-testid="@($"{TestId}-export-image")"
                                 aria-label="@L["ReportingChart_AriaExportPng", Title]">

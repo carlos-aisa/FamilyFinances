@@ -24,6 +24,8 @@ public sealed class AnnualLineChartTests : WebTestContext
                     [new AnnualChartPoint(1, 1_000_000)])
             ]));
 
+        cut.Markup.Should().Contain("ff-chart-panel");
+        cut.Markup.Should().Contain("ff-chart-export-button");
         cut.Find("[data-testid='annual-line-chart-export-image']").Click();
 
         exportCall.Invocations.Should().ContainSingle();

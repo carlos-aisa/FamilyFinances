@@ -30,6 +30,7 @@ public sealed class ReportsIndexPageTests : WebTestContext
             .First(card => card.TextContent.Contains("Account Group Totals"));
 
         accountGroupCard.TextContent.Should().Contain("Account Group Totals");
+        accountGroupCard.ClassList.Should().Contain("ff-report-card");
 
         accountGroupCard.Click();
 
@@ -74,6 +75,7 @@ public sealed class ReportsIndexPageTests : WebTestContext
             .FindAll(".report-card")
             .First(card => card.TextContent.Contains("Economic State"));
 
+        economicStateCard.ClassList.Should().Contain("ff-report-card");
         economicStateCard.Click();
 
         nav.Uri.Should().EndWith("/reports/economic-state");

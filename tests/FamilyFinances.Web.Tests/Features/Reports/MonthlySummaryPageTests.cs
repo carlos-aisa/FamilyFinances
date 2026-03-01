@@ -140,6 +140,8 @@ public sealed class MonthlySummaryPageTests : WebTestContext
                 uri.Contains($"accountId={accountId}", StringComparison.OrdinalIgnoreCase));
 
             cut.Find("[data-testid='monthly-summary-account-monthly-chart']");
+            cut.Markup.Should().Contain("ff-report-filter-panel");
+            cut.Markup.Should().Contain("ff-data-table");
         });
     }
 
@@ -444,6 +446,7 @@ public sealed class MonthlySummaryPageTests : WebTestContext
         {
             cut.Find("[data-testid='monthly-summary-insights-panel']");
             cut.Markup.Should().Contain("Food");
+            cut.Markup.Should().Contain("ff-insight-block");
         });
 
         await cut.InvokeAsync(() =>

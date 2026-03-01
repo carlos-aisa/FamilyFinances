@@ -18,12 +18,12 @@
 
 <AuthorizeView>
     <Authorized Context="auth">
-        <div class="d-flex align-items-center justify-content-between mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-4 ff-page-header">
             <div>
-                <h3 class="mb-1">
+                <h3 class="mb-1 ff-page-title">
                     <i class="bi bi-speedometer2 me-2"></i>@L["Dashboard_Title"]
                 </h3>
-                <p class="text-muted mb-0">@L["Dashboard_Subtitle"]</p>
+                <p class="text-muted mb-0 ff-page-subtitle">@L["Dashboard_Subtitle"]</p>
             </div>
         </div>
 
@@ -53,8 +53,8 @@
         }
         else
         {
-            <div class="row g-4">
-                <div class="col-12 col-lg-7">
+            <div class="row g-4 ff-dashboard-grid">
+                <div class="col-12 col-lg-7 ff-dashboard-primary">
                     <QuickEntryCard Title="@Specs[QuickEntryType.Expense].Title"
                                     Subtitle="@Specs[QuickEntryType.Expense].Hint"
                                     Type="@QuickEntryType.Expense"
@@ -138,7 +138,7 @@
                                       OnTransactionCreated="OnWidgetTransactionCreatedAsync" />
                 </div>
 
-                <div class="col-12 col-lg-5">
+                <div class="col-12 col-lg-5 ff-dashboard-secondary">
                     @foreach (var nature in _natureOrder)
                     {
                         var items = GetAccounts(nature);
@@ -146,8 +146,8 @@
                         if (items.Count == 0)
                             continue;
 
-                        <div class="card shadow-sm mb-3 border-start border-4 @GetNatureBorderClass(nature)">
-                            <div class="card-header @GetNatureHeaderClass(nature)">
+                        <div class="card shadow-sm mb-3 border-start border-4 ff-panel ff-dashboard-nature-card @GetNatureBorderClass(nature)">
+                            <div class="card-header ff-panel-header @GetNatureHeaderClass(nature)">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <h6 class="mb-0 @GetNatureTextClass(nature)">
                                         <i class="@GetNatureIcon(nature) me-2"></i>@GetNatureLabel(nature)
@@ -175,7 +175,7 @@
                                         var isSelected = isSelectedFrom || isSelectedTo;
 
                                         <button type="button"
-                                                class="list-group-item list-group-item-action d-flex justify-content-between align-items-center @(isSelected ? "active" : "")"
+                                                class="list-group-item list-group-item-action ff-dashboard-account-item d-flex justify-content-between align-items-center @(isSelected ? "active" : "")"
                                                 @onclick="@(() => OnAccountClicked(a))">
                                             <span>
                                                 <i class="bi bi-wallet2 me-2"></i>@a.Name
