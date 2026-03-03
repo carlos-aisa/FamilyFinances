@@ -18,7 +18,7 @@ QUICK START
    Double-click:  Start FamilyFinances.bat
 
    This script will:
-   - Create required folders (data, logs)
+   - Create required folders (logs and local data path)
    - Start API and Web services
    - Open your browser automatically
 
@@ -27,7 +27,7 @@ QUICK START
 2. USE THE APPLICATION
 
    - Create your account on first use
-   - Data is stored locally in the data folder
+   - Data is stored in: %LOCALAPPDATA%\FamilyFinances\data\
    - Services run locally and are not exposed externally by default
 
 3. STOP THE APPLICATION
@@ -66,7 +66,7 @@ FamilyFinances-v0.6.7-win-x64/
   |-- es-ES/                    (Web resources)
   |
   |-- data/
-  |   `-- familyfinances.db     (created on first run)
+  |   `-- (optional fallback path if LOCALAPPDATA is unavailable)
   |
   `-- logs/
       |-- api*.log              (API rolling logs)
@@ -96,9 +96,9 @@ PROBLEM: "Cannot access API/Web"
 
 PROBLEM: "Data missing"
 
-  Data is persisted in data/. To back up:
+  Data is persisted in %LOCALAPPDATA%\FamilyFinances\data\. To back up:
   1. Run Stop FamilyFinances.bat
-  2. Copy the entire data/ folder to a safe location
+  2. Copy the entire %LOCALAPPDATA%\FamilyFinances\data\ folder to a safe location
   3. Restart with Start FamilyFinances.bat
 
 ================================================================================
@@ -113,7 +113,7 @@ SECURITY NOTES
 ================================================================================
 
 - This package is intended for local machine usage.
-- Data remains in the local data/ folder.
+- Data remains in %LOCALAPPDATA%\FamilyFinances\data\ by default.
 - Logs contain operational details and should be protected.
 
 ================================================================================
