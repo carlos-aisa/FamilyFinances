@@ -13,7 +13,7 @@ FamilyFinances-v0.6.7-win-x64/
   ├── Start FamilyFinances.bat     # Launcher script
   ├── Stop FamilyFinances.bat      # Shutdown script
   ├── README.txt                   # End-user documentation
-  ├── data/                        # SQLite database (created on first run)
+  ├── data/                        # Optional fallback DB path
   ├── logs/                        # Application logs
   ├── api/                         # API binaries
   │   ├── FamilyFinances.Api.exe
@@ -117,7 +117,7 @@ To create a GitHub Release:
 ### Production Settings
 
 **API (`src/FamilyFinances.Api/appsettings.Production.json`):**
-- Database: `../data/familyfinances.db` (portable)
+- Database fallback: `data/familyfinances.db` (overridden by start script)
 - Logs: `../logs/api-YYYYMMDD.log` (daily rotation)
 - Port: `5084` (HTTP only)
 - JWT: Uses default key (should be changed for production deployments)
@@ -129,12 +129,13 @@ To create a GitHub Release:
 ### Startup Behavior
 
 `Start FamilyFinances.bat`:
-1. Creates `data/` and `logs/` folders
-2. Starts API in minimized window
-3. Polls API health endpoint (30 second timeout)
-4. Starts Web in minimized window
-5. Opens browser to `http://localhost:5019`
-6. Saves PIDs to `.pid` files for shutdown
+1. Creates `logs/` and `%LOCALAPPDATA%\FamilyFinances\data\` folders
+2. Sets `ConnectionStrings__Default` to `%LOCALAPPDATA%\FamilyFinances\data\familyfinances.db`
+3. Starts API in minimized window
+4. Polls API health endpoint (30 second timeout)
+5. Starts Web in minimized window
+6. Opens browser to `http://localhost:5019`
+7. Saves PIDs to `.pid` files for shutdown
 
 ### Shutdown Behavior
 
@@ -164,8 +165,8 @@ Both projects use:
 
 ### Database issues
 - Database is created automatically on first run
-- Located at `data/familyfinances.db`
-- Backup by copying the entire `data/` folder
+- Located at `%LOCALAPPDATA%\FamilyFinances\data\familyfinances.db`
+- Backup by copying `%LOCALAPPDATA%\FamilyFinances\data\`
 
 ## Future Improvements
 

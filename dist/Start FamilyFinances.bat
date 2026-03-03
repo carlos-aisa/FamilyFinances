@@ -16,8 +16,13 @@ cd /d "%ROOT_DIR%"
 REM Create required directories
 if not exist "data" mkdir data
 if not exist "logs" mkdir logs
+set "FF_HOME=%LOCALAPPDATA%\FamilyFinances"
+if not defined LOCALAPPDATA set "FF_HOME=%ROOT_DIR%data"
+if not exist "%FF_HOME%" mkdir "%FF_HOME%"
+if not exist "%FF_HOME%\data" mkdir "%FF_HOME%\data"
 
-echo [1/5] Folders ready (data, logs)
+echo [1/5] Folders ready (logs, database storage)
+echo      Database path: %FF_HOME%\data\familyfinances.db
 
 REM Check if API is already running
 tasklist /FI "IMAGENAME eq FamilyFinances.Api.exe" 2>NUL | find /I /N "FamilyFinances.Api.exe">NUL
@@ -29,6 +34,7 @@ if "%ERRORLEVEL%"=="0" (
 REM Start API in background (minimized)
 echo [2/5] Starting API on http://localhost:5084...
 set "FF_CONFIG_ROOT=%ROOT_DIR%config\api"
+set "ConnectionStrings__Default=Data Source=%FF_HOME%\data\familyfinances.db"
 start /D "%ROOT_DIR%" /min "FamilyFinances API" "%ROOT_DIR%FamilyFinances.Api.exe"
 
 REM Save API PID for later shutdown
