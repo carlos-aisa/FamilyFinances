@@ -31,8 +31,8 @@ Current scope was split across two drafts: one for Dashboard/Quick Entry informa
   - month-focused `Income vs Expense` line chart,
   - annual `Income vs Expense` month-result bar chart,
   - monthly net-balance line chart (`Income - Expense`) replacing growing month tables,
-  - current account-group state chart,
-  - account-group composition chart,
+  - asset total evolution chart,
+  - annual account-group evolution chart,
   - expense composition pie chart with `Top N` contributors (`N=8..10`) plus aggregated `Others`.
 - Add explicit data-sufficiency states for limited history and future-ready hooks for same-month last-year comparison.
 - Update the Accounts list view to show both accumulated balance and selected-period balance (current month for this iteration).

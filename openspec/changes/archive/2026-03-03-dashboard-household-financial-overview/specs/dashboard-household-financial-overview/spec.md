@@ -9,8 +9,8 @@ The Dashboard MUST render an analytics-first household overview that prioritizes
   - month-focused `Income vs Expense` line chart,
   - annual `Income vs Expense` month-result bar chart,
   - monthly net-balance line chart (`Income - Expense`),
-  - account-group current-state chart,
-  - account-group composition chart,
+  - asset total evolution chart,
+  - annual account-group evolution chart,
   - expense composition pie chart using `Top N + Others`
 - **AND** each block MUST be visible without requiring tab interaction
 

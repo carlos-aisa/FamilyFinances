@@ -80,8 +80,8 @@ Primary users:
    - month-focused Income vs Expense line chart,
    - annual Income vs Expense month-result bar chart (absolute values for comparability),
    - monthly net-balance line chart (`Income - Expense`),
-   - account-group current-state chart,
-   - account-group composition chart,
+   - asset total evolution chart,
+   - annual account-group evolution chart,
    - expense composition pie chart (Top-N + Others, where N=8..10).
 5. If history is insufficient, dashboard displays explicit state text and still preserves block layout footprint.
 
@@ -152,20 +152,15 @@ Expected:
 +--------------------------------------------------------------------------------------------------------------+
 | KPI Strip: [Income] [Expense] [Net Result] [Net Worth] (each with delta vs previous month)                 |
 +--------------------------------------------------------------------------------------------------------------+
-| Left (50%)                                           | Right (50%)                                    |
-|------------------------------------------------------+-----------------------------------------------|
-| Month-focused Income vs Expense (line)               | Annual Income vs Expense (month-result bars)   |
-| fixed-height chart                                    | fixed-height chart (absolute values)          |
+| Column 1                               | Column 2                                   | Column 3                                |
+|----------------------------------------+--------------------------------------------+-----------------------------------------|
+| Month-focused Income vs Expense (line) | Annual Income vs Expense (month-result bars)| Monthly Net Balance Trend (line)        |
+| fixed-height chart                     | fixed-height chart (absolute values)        | fixed-height chart                      |
 +--------------------------------------------------------------------------------------------------------------+
-| Left (50%)                                           | Right (50%)                                    |
-|------------------------------------------------------+-----------------------------------------------|
-| Monthly Net Balance Trend (Income - Expense, line)   | Account Group Current State (bars)             |
-| fixed-height chart                                    | fixed-height chart                            |
-+--------------------------------------------------------------------------------------------------------------+
-| Left (50%)                                           | Right (50%)                                    |
-|------------------------------------------------------+-----------------------------------------------|
-| Expense composition (pie: Top-N + Others)            | Account Group Composition (pie/donut)          |
-| fixed-height chart                                    | fixed-height chart                            |
+| Column 1                               | Column 2                                   | Column 3                                |
+|----------------------------------------+--------------------------------------------+-----------------------------------------|
+| Asset total evolution (line)           | Annual account-group evolution (bars)       | Expense composition (Top-N + Others)    |
+| fixed-height chart                     | fixed-height chart                          | fixed-height chart with side legend     |
 +--------------------------------------------------------------------------------------------------------------+
 ```
 
@@ -270,6 +265,12 @@ Expected:
 - **Alternative:** strict no-scroll for all breakpoints.
 - **Rejected because:** infeasible and harmful on small screens.
 
+### Decision 11: Dashboard Group Blocks Finalized As Annual Evolution + Expense Composition
+- **Choice:** Keep dashboard group-focused analysis as annual account-group evolution bars plus expense composition Top-N+Others.
+- **Rationale:** Reduces visual clutter while preserving at-a-glance trend and concentration insight.
+- **Alternative:** Keep account-group current-state and account-group composition blocks on dashboard.
+- **Rejected because:** Lower signal density for limited dashboard space and overlap with report deep-dive views.
+
 ## CODE EXAMPLES FOR CRITICAL COMPONENTS
 
 ### Example 1: Dashboard structure contract (no tabs)
@@ -279,29 +280,26 @@ Expected:
   <DashboardKpiStrip Metrics="_kpis" />
 
   <div class="row g-3 ff-dashboard-row-2">
-    <div class="col-12 col-xxl-6">
+    <div class="col-12 col-xxl-4">
       <MonthlyIncomeExpenseChart ... />
     </div>
-    <div class="col-12 col-xxl-6">
+    <div class="col-12 col-xxl-4">
       <AnnualIncomeExpenseBarsChart ... />
+    </div>
+    <div class="col-12 col-xxl-4">
+      <MonthlyNetBalanceLineChart ... />
     </div>
   </div>
 
   <div class="row g-3 ff-dashboard-row-3">
-    <div class="col-12 col-xxl-6">
-      <MonthlyNetBalanceLineChart ... />
+    <div class="col-12 col-xxl-4">
+      <AssetTotalEvolutionChart ... />
     </div>
-    <div class="col-12 col-xxl-6">
-      <AccountGroupStateChart ... />
+    <div class="col-12 col-xxl-4">
+      <AnnualAccountGroupEvolutionChart ... />
     </div>
-  </div>
-
-  <div class="row g-3 ff-dashboard-row-4">
-    <div class="col-12 col-xxl-6">
+    <div class="col-12 col-xxl-4">
       <ExpenseCompositionChartTopNWithOthers ... />
-    </div>
-    <div class="col-12 col-xxl-6">
-      <AccountGroupCompositionChart ... />
     </div>
   </div>
 </div>
@@ -407,7 +405,7 @@ var state = hasSameMonthLastYear
 
 ### Phase 2: Dashboard analytics composition
 4. Implement dashboard KPI strip and fixed block layout (no tabs, no shortcut cards).
-5. Integrate Option 1 blocks: month-focused line, annual bars, monthly net trend, group state, group composition, expense Top-N+Others.
+5. Integrate Option 1 blocks: month-focused line, annual Income vs Expense bars, monthly net trend, asset total evolution, annual account-group evolution, and expense Top-N+Others.
 6. Implement data-sufficiency UI states.
 
 ### Phase 3: Accounts + Reports presentation deltas
@@ -472,8 +470,8 @@ var state = hasSameMonthLastYear
 - [ ] Monthly Income vs Expense chart renders.
 - [ ] Annual Income vs Expense bars render with month buckets Jan-Dec.
 - [ ] Monthly net-balance trend chart renders as `Income - Expense`.
-- [ ] Account-group state chart renders.
-- [ ] Account-group composition chart renders.
+- [ ] Asset total evolution chart renders.
+- [ ] Annual account-group evolution chart renders.
 - [ ] Expense composition chart renders Top-N + Others.
 - [ ] Block titles and subtitles are localized.
 

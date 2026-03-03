@@ -22,8 +22,8 @@
 - [x] 3.2 Implement the month-focused `Income vs Expense` line chart block in Dashboard by reusing existing chart contracts/components (`src/FamilyFinances.Web/Components/Pages/Reports/Charts/*`).
 - [x] 3.3 Implement the annual `Income vs Expense` month-result bars block in Dashboard using absolute magnitudes for both series.
 - [x] 3.4 Implement the monthly net-balance trend line block (`Income - Expense`) in Dashboard, replacing any growing monthly table.
-- [x] 3.5 Implement account-group current-state chart block in Dashboard (bars) with deterministic ordering.
-- [x] 3.6 Implement account-group composition chart block in Dashboard.
+- [x] 3.5 Implement asset total evolution chart block in Dashboard.
+- [x] 3.6 Implement annual account-group evolution chart block in Dashboard.
 - [x] 3.7 Implement expense composition chart block with `Top N` contributors (`N=8..10`) plus aggregated `Others`.
 - [x] 3.8 Add explicit dashboard data-sufficiency UI states (`Complete`, `Partial`, `InsufficientHistory`) and localized fallback messages.
 - [x] 3.9 Update shared styles in `src/FamilyFinances.Web/wwwroot/css/app.css` and/or `src/FamilyFinances.Web/wwwroot/css/premium-theme.css` to enforce fixed-height desktop analytical rows and no-scroll baseline behavior at 2560x1440.
@@ -101,4 +101,4 @@
 - [x] 12.3 Run `dotnet test tests/FamilyFinances.Application.Tests/FamilyFinances.Application.Tests.csproj -c Release --filter "FullyQualifiedName~Reporting"` and resolve regressions.
 - [x] 12.4 Run `dotnet test tests/FamilyFinances.Api.IntegrationTests/FamilyFinances.Api.IntegrationTests.csproj -c Release --filter "FullyQualifiedName~Reporting"` and resolve regressions.
 - [x] 12.5 Run `openspec validate dashboard-household-financial-overview` and confirm no artifact/schema validation errors.
-- [ ] 12.6 Execute manual smoke checks (desktop + mobile): Dashboard Option 1 layout at 2560x1440 (no vertical scroll), `/quick-entry` capture flows, Accounts dual-balance view, Economic State expense tab, and Account Totals sorting interactions.
+- [x] 12.6 Execute manual smoke checks (desktop + mobile): Dashboard Option 1 layout at 2560x1440 (no vertical scroll), `/quick-entry` capture flows, Accounts dual-balance view, Economic State expense tab, and Account Totals sorting interactions.
