@@ -196,18 +196,22 @@
                                             <i class="bi bi-bookmark me-1"></i>@L["Accounts_Table_Kind"]
                                         </th>
                                         <th class="border-0 text-end" style="width: 15%;">
-                                            <i class="bi bi-currency-euro me-1"></i>@L["Accounts_Table_Balance"]
+                                            <i class="bi bi-calendar-month me-1"></i>@L["Accounts_Table_CurrentMonthBalance"]
+                                        </th>
+                                        <th class="border-0 text-end" style="width: 15%;">
+                                            <i class="bi bi-currency-euro me-1"></i>@L["Accounts_Table_AccumulatedBalance"]
                                         </th>
                                         <th class="border-0" style="width: 10%;">
                                             <i class="bi bi-info-circle me-1"></i>@L["Accounts_Table_Status"]
                                         </th>
-                                        <th class="border-0 text-end pe-3" style="width: 25%;">@L["Accounts_Table_Actions"]</th>
+                                        <th class="border-0 text-end pe-3" style="width: 10%;">@L["Accounts_Table_Actions"]</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach (var a in items)
                                     {
-                                        var balanceText = GetAccountBalanceText(a.Id);
+                                        var accumulatedBalanceText = GetAccumulatedBalanceText(a.Id);
+                                        var currentMonthBalanceText = GetCurrentMonthBalanceText(a.Id);
                                         <tr class="account-row">
                                             <td class="ps-3">
                                                 <div class="d-flex align-items-center">
@@ -219,13 +223,23 @@
                                                 <span class="badge bg-secondary-subtle text-secondary">@GetKindLabel(a.Kind)</span>
                                             </td>
                                             <td class="text-end">
-                                                @if (balanceText is null)
+                                                @if (currentMonthBalanceText is null)
                                                 {
                                                     <span class="text-muted">&mdash;</span>
                                                 }
                                                 else
                                                 {
-                                                    <span class="fw-semibold">@balanceText</span>
+                                                    <span class="fw-semibold">@currentMonthBalanceText</span>
+                                                }
+                                            </td>
+                                            <td class="text-end">
+                                                @if (accumulatedBalanceText is null)
+                                                {
+                                                    <span class="text-muted">&mdash;</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="fw-semibold">@accumulatedBalanceText</span>
                                                 }
                                             </td>
                                             <td>
@@ -300,6 +314,11 @@
                                 </tbody>
                             </table>
                         </div>
+                        <div class="px-3 pb-2">
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle me-1"></i>@L["Accounts_CurrentMonth_Basis", DateTime.Today.ToString("Y")]
+                            </small>
+                        </div>
                     </div>
                 </div>
             }
@@ -344,8 +363,8 @@
 
     private readonly CreateAccountModel _createModel = new();
 
-    // balances loaded from the API: accountId -> balance (euros)
-    private Dictionary<Guid, decimal> _balances = new();
+    // balances loaded from the API: accountId -> dual balance perspectives (euros)
+    private Dictionary<Guid, AccountBalanceDto> _balances = new();
 
     private static readonly AccountNature[] _natureOrder =
     [
@@ -374,7 +393,7 @@
             try
             {
                 var balances = await AccountsApi.GetBalancesAsync(ct);
-                _balances = balances.ToDictionary(b => b.AccountId, b => b.Balance);
+                _balances = balances.ToDictionary(b => b.AccountId, b => b);
             }
             catch
             {
@@ -721,10 +740,18 @@
         return await JS.InvokeAsync<bool>("confirm", message);
     }
 
-    private string? GetAccountBalanceText(Guid accountId)
+    private string? GetAccumulatedBalanceText(Guid accountId)
     {
-        if (_balances.TryGetValue(accountId, out var bal))
-            return MoneyFormatter.FormatEuros(bal);
+        if (_balances.TryGetValue(accountId, out var balance))
+            return MoneyFormatter.FormatEuros(balance.Balance);
+
+        return null;
+    }
+
+    private string? GetCurrentMonthBalanceText(Guid accountId)
+    {
+        if (_balances.TryGetValue(accountId, out var balance))
+            return MoneyFormatter.FormatEuros(balance.CurrentMonthBalance);
 
         return null;
     }

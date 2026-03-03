@@ -243,6 +243,82 @@ public sealed class AccountTotalsPageTests : WebTestContext
         exportCall.Invocations.Should().ContainSingle();
     }
 
+    [Fact]
+    public void Period_Totals_Default_Sort_Is_NetChange_Descending_And_Header_Click_Toggles_Direction()
+    {
+        var dto = new AccountTotalsDto(
+            new DateOnly(2026, 2, 1),
+            new DateOnly(2026, 3, 1),
+            [
+                new AccountTotalItemDto(
+                    Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+                    "Groceries",
+                    AccountNature.Expense,
+                    AccountKind.ExpenseCategory,
+                    1_000,
+                    3),
+                new AccountTotalItemDto(
+                    Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
+                    "Rent",
+                    AccountNature.Expense,
+                    AccountKind.ExpenseCategory,
+                    2_000,
+                    2),
+                new AccountTotalItemDto(
+                    Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc"),
+                    "Transport",
+                    AccountNature.Expense,
+                    AccountKind.ExpenseCategory,
+                    -500,
+                    1)
+            ]);
+
+        var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(dto)
+            });
+
+        RegisterAuthorizedServices(
+            new HttpClient(handlerMock.Object) { BaseAddress = new Uri("http://localhost:5000") },
+            Array.Empty<AccountDto>());
+
+        var cut = RenderComponent<AccountTotalsPage>();
+        cut.FindAll("button")
+            .First(button =>
+                button.TextContent.Contains("load", StringComparison.OrdinalIgnoreCase) &&
+                button.TextContent.Contains("report", StringComparison.OrdinalIgnoreCase))
+            .Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            var orderedNames = cut.FindAll("tbody tr td:first-child")
+                .Select(cell => cell.TextContent.Trim())
+                .ToList();
+
+            orderedNames.Should().ContainInOrder("Rent", "Groceries", "Transport");
+        });
+
+        var netChangeHeader = cut.FindAll("button.ff-sort-header")
+            .First(button => button.GetAttribute("aria-label") == "Net change");
+        netChangeHeader.Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            var orderedNames = cut.FindAll("tbody tr td:first-child")
+                .Select(cell => cell.TextContent.Trim())
+                .ToList();
+
+            orderedNames.Should().ContainInOrder("Transport", "Groceries", "Rent");
+        });
+    }
+
     private void RegisterAuthorizedServices(HttpClient httpClient, IReadOnlyList<AccountDto> accounts)
     {
         var factoryMock = new Mock<IHttpClientFactory>(MockBehavior.Strict);

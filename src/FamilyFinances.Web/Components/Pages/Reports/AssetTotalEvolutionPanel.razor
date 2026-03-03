@@ -15,39 +15,42 @@
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResource> L
 
-<div class="card shadow-sm mb-4 ff-panel ff-report-filter-panel">
-    <div class="card-body">
-        <div class="row g-3 align-items-end">
-            <div class="col-12 col-md-4">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-calendar3 me-1"></i>@L["Reports_Year"]
-                </label>
-                <select class="form-select" aria-label="@L["Reports_Year"]" value="@_selectedYear" @onchange="OnYearChangedAsync" disabled="@_isLoading">
-                    @foreach (var year in _yearOptions)
-                    {
-                        <option value="@year">@year</option>
-                    }
-                </select>
-            </div>
-            <div class="col-12 col-md-4">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-calendar-month me-1"></i>@L["Reports_FocusedMonth"]
-                </label>
-                <select class="form-select asset-focused-month-select"
-                        aria-label="@L["Reports_FocusedMonth"]"
-                        data-testid="economic-state-asset-focused-month"
-                        value="@_focusedMonth"
-                        @onchange="OnFocusedMonthChangedAsync"
-                        disabled="@(_isLoading || _isMonthlyChartLoading || _focusedMonthOptions.Count == 0)">
-                    @foreach (var month in _focusedMonthOptions)
-                    {
-                        <option value="@month">@DateHelper.GetMonthName(month)</option>
-                    }
-                </select>
+@if (!UseExternalFilters)
+{
+    <div class="card shadow-sm mb-4 ff-panel ff-report-filter-panel">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-md-4">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-calendar3 me-1"></i>@L["Reports_Year"]
+                    </label>
+                    <select class="form-select" aria-label="@L["Reports_Year"]" value="@_selectedYear" @onchange="OnYearChangedAsync" disabled="@_isLoading">
+                        @foreach (var year in _yearOptions)
+                        {
+                            <option value="@year">@year</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-calendar-month me-1"></i>@L["Reports_FocusedMonth"]
+                    </label>
+                    <select class="form-select asset-focused-month-select"
+                            aria-label="@L["Reports_FocusedMonth"]"
+                            data-testid="economic-state-asset-focused-month"
+                            value="@_focusedMonth"
+                            @onchange="OnFocusedMonthChangedAsync"
+                            disabled="@(_isLoading || _isMonthlyChartLoading || _focusedMonthOptions.Count == 0)">
+                        @foreach (var month in _focusedMonthOptions)
+                        {
+                            <option value="@month">@DateHelper.GetMonthName(month)</option>
+                        }
+                    </select>
+                </div>
             </div>
         </div>
     </div>
-</div>
+}
 
 @if (!string.IsNullOrWhiteSpace(_error))
 {
@@ -252,6 +255,10 @@ else
 }
 
 @code {
+    [Parameter] public bool UseExternalFilters { get; set; }
+    [Parameter] public int? SelectedYear { get; set; }
+    [Parameter] public int? FocusedMonth { get; set; }
+
     private MonthlyEvolutionReportDto? _report;
     private MonthlyBalanceChartDto? _monthlyBalanceChart;
     private string? _error;
@@ -262,6 +269,8 @@ else
     private IReadOnlyList<int> _yearOptions = Array.Empty<int>();
     private IReadOnlyList<int> _focusedMonthOptions = Array.Empty<int>();
     private int _focusedMonth = DateHelper.GetCurrentMonth();
+    private int? _lastExternalYear;
+    private int? _lastExternalMonth;
 
     private static readonly ReportingMetricDefinition _assetBalanceMetric =
         ReportingMetricSemantics.ResolveMetric("monthly-evolution-latest-asset-end-balance");
@@ -277,6 +286,23 @@ else
             .OrderByDescending(x => x)
             .ToList();
 
+        if (!UseExternalFilters)
+            await LoadReportAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!UseExternalFilters)
+            return;
+
+        _selectedYear = SelectedYear ?? DateHelper.GetCurrentYear();
+        SyncFocusedMonth();
+
+        if (_report is not null && _lastExternalYear == _selectedYear && _lastExternalMonth == _focusedMonth)
+            return;
+
+        _lastExternalYear = _selectedYear;
+        _lastExternalMonth = _focusedMonth;
         await LoadReportAsync();
     }
 
@@ -367,6 +393,13 @@ else
         if (_focusedMonthOptions.Count == 0)
         {
             _focusedMonth = 1;
+            return;
+        }
+
+        if (UseExternalFilters)
+        {
+            var externalFocusedMonth = FocusedMonth ?? _focusedMonthOptions.Max();
+            _focusedMonth = Math.Clamp(externalFocusedMonth, 1, _focusedMonthOptions.Max());
             return;
         }
 

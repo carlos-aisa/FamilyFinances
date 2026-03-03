@@ -30,6 +30,59 @@
             </a>
         </div>
 
+        <div class="card shadow-sm mb-4 ff-panel ff-report-filter-panel" data-testid="economic-state-global-filters">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-12 col-md-4">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar3 me-1"></i>@L["Reports_Year"]
+                        </label>
+                        <select class="form-select"
+                                data-testid="economic-state-global-year"
+                                value="@_filterYear"
+                                @onchange="OnGlobalYearChangedAsync"
+                                disabled="@_isLoading">
+                            @foreach (var year in _yearOptions)
+                            {
+                                <option value="@year">@year</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar-month me-1"></i>@L["Reports_FocusedMonth"]
+                        </label>
+                        <select class="form-select"
+                                data-testid="economic-state-global-focused-month"
+                                value="@_filterFocusedMonth"
+                                @onchange="OnGlobalFocusedMonthChangedAsync"
+                                disabled="@(_isLoading || _focusedMonthOptions.Count == 0)">
+                            @foreach (var month in _focusedMonthOptions)
+                            {
+                                <option value="@month">@DateHelper.GetMonthName(month)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-auto">
+                        <button class="btn btn-primary"
+                                data-testid="economic-state-global-load"
+                                @onclick="LoadReportAsync"
+                                disabled="@_isLoading">
+                            @if (_isLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-search me-1"></i>
+                            }
+                            @L["Reports_LoadReport"]
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <ul class="nav nav-tabs mb-4 ff-premium-tabs">
             <li class="nav-item">
                 <button type="button"
@@ -55,36 +108,18 @@
                     @L["EconomicState_Tab_IncomeEvolution"]
                 </button>
             </li>
+            <li class="nav-item">
+                <button type="button"
+                        class="nav-link @GetTabClass(EconomicStateTab.ExpenseEvolution)"
+                        @onclick="() => SetActiveTab(EconomicStateTab.ExpenseEvolution)"
+                        disabled="@_isLoading">
+                    @L["EconomicState_Tab_ExpenseEvolution"]
+                </button>
+            </li>
         </ul>
 
         @if (_activeTab == EconomicStateTab.Snapshot)
         {
-            <div class="card shadow-sm mb-4 ff-panel ff-report-filter-panel">
-                <div class="card-body">
-                    <div class="row g-3 align-items-end">
-                        <div class="col-12 col-md-4">
-                                <label class="form-label fw-semibold">
-                                <i class="bi bi-calendar3 me-1"></i>@L["EconomicState_AsOfDate"]
-                            </label>
-                            <input type="date" class="form-control" aria-label="@L["EconomicState_AsOfDate"]" @bind="_asOfDate" />
-                        </div>
-                        <div class="col-12 col-md-auto">
-                            <button class="btn btn-primary" @onclick="LoadReportAsync" disabled="@_isLoading">
-                                @if (_isLoading)
-                                {
-                                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                }
-                                else
-                                {
-                                    <i class="bi bi-search me-1"></i>
-                                }
-                                @L["Reports_LoadReport"]
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             @if (!string.IsNullOrWhiteSpace(_error))
             {
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -184,66 +219,127 @@
                     </div>
                 </div>
 
-                <div class="alert alert-info mb-0 ff-info-note" role="alert">
-                    <i class="bi bi-info-circle me-2"></i>
-                    <span>
-                        <strong>@L["Reports_StockMetrics"]</strong> (@ReportingMetricLocalizer.GetLabel(L, _assetMetric), @ReportingMetricLocalizer.GetLabel(L, _liabilityMetric), @ReportingMetricLocalizer.GetLabel(L, _netWorthMetric))
-                        @L["EconomicState_StockMetricsInfo"]
-                    </span>
-                    <br />
-                    <span>
-                        <strong>@L["Reports_FlowMetrics"]</strong> (@ReportingMetricLocalizer.GetLabel(L, _incomeMetric), @ReportingMetricLocalizer.GetLabel(L, _expenseMetric), @ReportingMetricLocalizer.GetLabel(L, _periodNetMetric))
-                        @L["EconomicState_FlowMetricsInfo"]
-                    </span>
-                </div>
-
                 var snapshotSeries = BuildSnapshotIncomeVsExpenseSeries();
                 var snapshotMonthLabel = DateHelper.GetMonthName(_report.AsOf.Month);
+                var monthlyNetRows = BuildSnapshotMonthlyNetRows();
+                var annualIncomeVsExpenseSeries = BuildSnapshotAnnualIncomeExpenseBarSeries();
 
-                @if (_isSnapshotChartLoading)
-                {
-                    <div class="mt-4 economic-state-snapshot-chart">
-                        <ReportingChartLoadingState
-                            Title="@L["EconomicState_LoadingMonthFocusedChart"]"
-                            Description="@L["Reports_LoadingDailyPoints"]" />
+                <div class="row g-3 mt-1 period-summary-detail-grid">
+                    <div class="col-12 col-xl-4">
+                        <div class="card shadow-sm h-100 ff-panel" data-testid="economic-state-monthly-net-list">
+                            <div class="card-header bg-transparent ff-panel-header">
+                                <h6 class="mb-1">@L["EconomicState_MonthlyNetList_Title"]</h6>
+                                <small class="text-muted">@L["EconomicState_MonthlyNetList_Subtitle"]</small>
+                            </div>
+                            <div class="card-body p-0">
+                                @if (monthlyNetRows.Count == 0)
+                                {
+                                    <div class="p-3 text-muted">@L["Reports_NoDataForPeriod"]</div>
+                                }
+                                else
+                                {
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-hover align-middle mb-0 ff-data-table">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th class="border-0 ps-3">@L["Reports_Month"]</th>
+                                                    <th class="border-0 text-end">@L["Dashboard_Kpi_Income"]</th>
+                                                    <th class="border-0 text-end">@L["Dashboard_Kpi_Expense"]</th>
+                                                    <th class="border-0 text-end pe-3">@L["EconomicState_MonthlyNetList_Net"]</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var row in monthlyNetRows)
+                                                {
+                                                    <tr>
+                                                        <td class="ps-3">@DateHelper.GetMonthName(row.Month)</td>
+                                                        <td class="text-end text-success">@MoneyFormatter.FormatCents(row.IncomeCents)</td>
+                                                        <td class="text-end text-danger">@MoneyFormatter.FormatCents(row.ExpenseCents)</td>
+                                                        <td class="text-end pe-3 @MoneyFormatter.GetColorClass(row.NetCents)">
+                                                            @MoneyFormatter.FormatCentsWithSign(row.NetCents)
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                }
+                            </div>
+                        </div>
                     </div>
-                }
-                else if (!string.IsNullOrWhiteSpace(_snapshotChartError))
-                {
-                    <div class="mt-4 economic-state-snapshot-chart">
-                        <ReportingChartErrorState Message="@_snapshotChartError" />
+
+                    <div class="col-12 col-xl-4 economic-state-snapshot-chart">
+                        @if (_isSnapshotChartLoading)
+                        {
+                            <ReportingChartLoadingState
+                                Title="@L["EconomicState_LoadingMonthFocusedChart"]"
+                                Description="@L["Reports_LoadingDailyPoints"]" />
+                        }
+                        else if (!string.IsNullOrWhiteSpace(_snapshotChartError))
+                        {
+                            <ReportingChartErrorState Message="@_snapshotChartError" />
+                        }
+                        else if (snapshotSeries.Count == 0)
+                        {
+                            <ReportingChartEmptyState
+                                Title="@L["EconomicState_MonthFocusedChartTitle"]"
+                                Description="@L["EconomicState_NoDailyPoints"]" />
+                        }
+                        else
+                        {
+                            <MonthlyLineChart
+                                Title="@L["EconomicState_MonthFocusedChartTitle"]"
+                                Subtitle="@L["EconomicState_MonthFocusedSubtitle", snapshotMonthLabel, _report.AsOf.Year, _report.AsOf.Day]"
+                                Year="@_report.AsOf.Year"
+                                Month="@_report.AsOf.Month"
+                                YTickMaxTicks="5"
+                                Series="@snapshotSeries"
+                                TestId="economic-state-snapshot-income-expense-chart" />
+                        }
                     </div>
-                }
-                else if (snapshotSeries.Count == 0)
-                {
-                    <div class="mt-4 economic-state-snapshot-chart">
-                        <ReportingChartEmptyState
-                            Title="@L["EconomicState_MonthFocusedChartTitle"]"
-                            Description="@L["EconomicState_NoDailyPoints"]" />
+
+                    <div class="col-12 col-xl-4">
+                        @if (annualIncomeVsExpenseSeries.Count == 0)
+                        {
+                            <ReportingChartEmptyState
+                                Title="@L["EconomicState_AnnualIncomeExpense_Title"]"
+                                Description="@L["Reports_NoChartPointsForFilters"]" />
+                        }
+                        else
+                        {
+                            <AnnualBarChart
+                                Title="@L["EconomicState_AnnualIncomeExpense_Title"]"
+                                Subtitle="@L["EconomicState_AnnualIncomeExpense_Subtitle"]"
+                                Year="@_report.AsOf.Year"
+                                Series="@annualIncomeVsExpenseSeries"
+                                DataUntilMonth="@_report.AsOf.Month"
+                                YTickMaxTicks="5"
+                                TestId="economic-state-annual-income-expense-bars" />
+                        }
                     </div>
-                }
-                else
-                {
-                    <div class="mt-4 economic-state-snapshot-chart">
-                        <MonthlyLineChart
-                            Title="@L["EconomicState_MonthFocusedChartTitle"]"
-                            Subtitle="@L["EconomicState_MonthFocusedSubtitle", snapshotMonthLabel, _report.AsOf.Year, _report.AsOf.Day]"
-                            Year="@_report.AsOf.Year"
-                            Month="@_report.AsOf.Month"
-                            YTickMaxTicks="5"
-                            Series="@snapshotSeries"
-                            TestId="economic-state-snapshot-income-expense-chart" />
-                    </div>
-                }
+                </div>
             }
         }
         else if (_activeTab == EconomicStateTab.AssetEvolution)
         {
-            <AssetTotalEvolutionPanel />
+            <AssetTotalEvolutionPanel
+                UseExternalFilters="true"
+                SelectedYear="@_appliedYear"
+                FocusedMonth="@_appliedFocusedMonth" />
+        }
+        else if (_activeTab == EconomicStateTab.IncomeEvolution)
+        {
+            <IncomeEvolutionPanel
+                UseExternalFilters="true"
+                SelectedYear="@_appliedYear"
+                FocusedMonth="@_appliedFocusedMonth" />
         }
         else
         {
-            <IncomeEvolutionPanel />
+            <ExpenseEvolutionPanel
+                UseExternalFilters="true"
+                SelectedYear="@_appliedYear"
+                FocusedMonth="@_appliedFocusedMonth" />
         }
     </Authorized>
     <NotAuthorized>
@@ -258,11 +354,18 @@
     private EconomicStateDto? _report;
     private MonthlyBalanceChartDto? _snapshotIncomeMonthlyChart;
     private MonthlyBalanceChartDto? _snapshotExpenseMonthlyChart;
+    private MonthlyEvolutionReportDto? _snapshotIncomeEvolution;
+    private MonthlyEvolutionReportDto? _snapshotExpenseEvolution;
     private string? _error;
     private string? _snapshotChartError;
     private bool _isLoading;
     private bool _isSnapshotChartLoading;
-    private DateOnly _asOfDate = DateOnly.FromDateTime(DateTime.Today);
+    private int _filterYear = DateHelper.GetCurrentYear();
+    private int _filterFocusedMonth = DateHelper.GetCurrentMonth();
+    private int _appliedYear = DateHelper.GetCurrentYear();
+    private int _appliedFocusedMonth = DateHelper.GetCurrentMonth();
+    private IReadOnlyList<int> _yearOptions = Array.Empty<int>();
+    private IReadOnlyList<int> _focusedMonthOptions = Array.Empty<int>();
     private EconomicStateTab _activeTab = EconomicStateTab.Snapshot;
 
     private static readonly ReportingMetricDefinition _assetMetric = ReportingMetricSemantics.Get(ReportingMetricKey.AssetBalance);
@@ -274,6 +377,11 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _yearOptions = Enumerable
+            .Range(2000, DateHelper.GetCurrentYear() - 2000 + 1)
+            .OrderByDescending(x => x)
+            .ToList();
+        SyncGlobalFocusedMonthOptions();
         await LoadReportAsync();
     }
 
@@ -287,6 +395,51 @@
         return _activeTab == tab ? "active" : string.Empty;
     }
 
+    private Task OnGlobalYearChangedAsync(ChangeEventArgs e)
+    {
+        if (!int.TryParse(e.Value?.ToString(), out var year))
+            return Task.CompletedTask;
+
+        _filterYear = year;
+        SyncGlobalFocusedMonthOptions();
+        return Task.CompletedTask;
+    }
+
+    private Task OnGlobalFocusedMonthChangedAsync(ChangeEventArgs e)
+    {
+        if (!int.TryParse(e.Value?.ToString(), out var month))
+            return Task.CompletedTask;
+
+        _filterFocusedMonth = month;
+        return Task.CompletedTask;
+    }
+
+    private void SyncGlobalFocusedMonthOptions()
+    {
+        var maxMonth = _filterYear == DateHelper.GetCurrentYear()
+            ? DateHelper.GetCurrentMonth()
+            : 12;
+
+        _focusedMonthOptions = Enumerable.Range(1, maxMonth).ToList();
+        if (_focusedMonthOptions.Count == 0)
+        {
+            _filterFocusedMonth = 1;
+            return;
+        }
+
+        if (!_focusedMonthOptions.Contains(_filterFocusedMonth))
+            _filterFocusedMonth = _focusedMonthOptions.Max();
+    }
+
+    private DateOnly ResolveAppliedAsOfDate()
+    {
+        if (_appliedYear == DateHelper.GetCurrentYear() && _appliedFocusedMonth == DateHelper.GetCurrentMonth())
+            return DateOnly.FromDateTime(DateTime.Today);
+
+        var day = DateTime.DaysInMonth(_appliedYear, _appliedFocusedMonth);
+        return new DateOnly(_appliedYear, _appliedFocusedMonth, day);
+    }
+
     private async Task LoadReportAsync()
     {
         _isLoading = true;
@@ -295,11 +448,16 @@
         _report = null;
         _snapshotIncomeMonthlyChart = null;
         _snapshotExpenseMonthlyChart = null;
+        _snapshotIncomeEvolution = null;
+        _snapshotExpenseEvolution = null;
         StateHasChanged();
 
         try
         {
-            _report = await ReportsApi.GetEconomicStateAsync(_asOfDate);
+            _appliedYear = _filterYear;
+            _appliedFocusedMonth = _filterFocusedMonth;
+            var asOf = ResolveAppliedAsOfDate();
+            _report = await ReportsApi.GetEconomicStateAsync(asOf);
             await LoadSnapshotMonthlyComparisonChartAsync();
         }
         catch (UnauthorizedAccessException)
@@ -325,6 +483,8 @@
         _snapshotChartError = null;
         _snapshotIncomeMonthlyChart = null;
         _snapshotExpenseMonthlyChart = null;
+        _snapshotIncomeEvolution = null;
+        _snapshotExpenseEvolution = null;
         StateHasChanged();
 
         try
@@ -338,6 +498,15 @@
                 _report.AsOf.Year,
                 _report.AsOf.Month,
                 nature: AccountNature.Expense);
+
+            _snapshotIncomeEvolution = await ReportsApi.GetStateEvolutionAsync(
+                _report.AsOf.Year,
+                MonthlyEvolutionScope.IncomeTotal);
+
+            _snapshotExpenseEvolution = await ReportsApi.GetStateEvolutionAsync(
+                _report.AsOf.Year,
+                MonthlyEvolutionScope.ExpenseTotal);
+
         }
         catch (UnauthorizedAccessException)
         {
@@ -404,10 +573,75 @@
             : new MonthlyChartSeries(key, label, colorHex, points);
     }
 
+    private IReadOnlyList<SnapshotMonthlyNetRow> BuildSnapshotMonthlyNetRows()
+    {
+        if (_report is null || _snapshotIncomeEvolution is null || _snapshotExpenseEvolution is null)
+            return Array.Empty<SnapshotMonthlyNetRow>();
+
+        var incomeSeries = _snapshotIncomeEvolution.Series.FirstOrDefault();
+        var expenseSeries = _snapshotExpenseEvolution.Series.FirstOrDefault();
+        if (incomeSeries is null || expenseSeries is null)
+            return Array.Empty<SnapshotMonthlyNetRow>();
+
+        var maxMonth = Math.Clamp(_report.AsOf.Month, 1, 12);
+        var rows = new List<SnapshotMonthlyNetRow>(maxMonth);
+        for (var month = 1; month <= maxMonth; month++)
+        {
+            var income = incomeSeries.Points.FirstOrDefault(p => p.Month == month)?.DeltaVsPreviousMonthCents ?? 0L;
+            var expenseRaw = expenseSeries.Points.FirstOrDefault(p => p.Month == month)?.DeltaVsPreviousMonthCents ?? 0L;
+            var expense = Math.Abs(expenseRaw);
+            rows.Add(new SnapshotMonthlyNetRow(
+                Month: month,
+                IncomeCents: income,
+                ExpenseCents: expense,
+                NetCents: income - expense));
+        }
+
+        return rows;
+    }
+
+    private IReadOnlyList<AnnualChartSeries> BuildSnapshotAnnualIncomeExpenseBarSeries()
+    {
+        if (_report is null || _snapshotIncomeEvolution is null || _snapshotExpenseEvolution is null)
+            return Array.Empty<AnnualChartSeries>();
+
+        var incomeSeries = _snapshotIncomeEvolution.Series.FirstOrDefault();
+        var expenseSeries = _snapshotExpenseEvolution.Series.FirstOrDefault();
+        if (incomeSeries is null || expenseSeries is null)
+            return Array.Empty<AnnualChartSeries>();
+
+        var points = Enumerable.Range(1, 12).ToList();
+        var income = new AnnualChartSeries(
+            Key: "income-month-result",
+            Label: L["Dashboard_Kpi_Income"],
+            ColorHex: "#2dd67d",
+            Points: points.Select(month => new AnnualChartPoint(
+                month,
+                Math.Abs(incomeSeries.Points.FirstOrDefault(point => point.Month == month)?.DeltaVsPreviousMonthCents ?? 0L))).ToList());
+
+        var expense = new AnnualChartSeries(
+            Key: "expense-month-result",
+            Label: L["Dashboard_Kpi_Expense"],
+            ColorHex: "#ff5f75",
+            Points: points.Select(month => new AnnualChartPoint(
+                month,
+                Math.Abs(expenseSeries.Points.FirstOrDefault(point => point.Month == month)?.DeltaVsPreviousMonthCents ?? 0L))).ToList());
+
+        return [income, expense];
+    }
+
     private enum EconomicStateTab
     {
         Snapshot,
         AssetEvolution,
-        IncomeEvolution
+        IncomeEvolution,
+        ExpenseEvolution
     }
+
+    private sealed record SnapshotMonthlyNetRow(
+        int Month,
+        long IncomeCents,
+        long ExpenseCents,
+        long NetCents
+    );
 }

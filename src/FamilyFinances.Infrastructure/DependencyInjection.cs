@@ -96,6 +96,7 @@ public static class DependencyInjection
         services.AddScoped<GetAccountTotalsHandler>();
         services.AddScoped<GetAssetTotalBalanceHandler>();
         services.AddScoped<GetEconomicStateHandler>();
+        services.AddScoped<GetDashboardOverviewHandler>();
         services.AddScoped<GetMonthlyEvolutionHandler>();
         services.AddScoped<GetMonthlyBalanceChartHandler>();
         services.AddScoped<GetMonthlyBalanceVsGroupsChartHandler>();

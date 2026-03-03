@@ -238,17 +238,20 @@
 }
 
 .economic-state-stacked-charts .annual-line-chart,
+.economic-state-stacked-charts .annual-bar-chart,
 .economic-state-stacked-charts [data-testid="reporting-chart-empty"],
 .economic-state-stacked-charts [data-testid="reporting-chart-error"],
 .economic-state-stacked-charts [data-testid="reporting-chart-loading"] {
     margin-bottom: 0 !important;
 }
 
-.economic-state-stacked-charts .annual-line-chart .card-body {
+.economic-state-stacked-charts .annual-line-chart .card-body,
+.economic-state-stacked-charts .annual-bar-chart .card-body {
     padding: 0.7rem 0.8rem;
 }
 
-.economic-state-stacked-charts .annual-line-chart .annual-line-canvas-wrap {
+.economic-state-stacked-charts .annual-line-chart .annual-line-canvas-wrap,
+.economic-state-stacked-charts .annual-bar-chart .annual-line-canvas-wrap {
     height: 130px !important;
     min-height: 120px !important;
 }
@@ -360,7 +363,8 @@
 }
 
 @media (max-width: 1199.98px) {
-    .economic-state-stacked-charts .annual-line-chart .annual-line-canvas-wrap {
+    .economic-state-stacked-charts .annual-line-chart .annual-line-canvas-wrap,
+    .economic-state-stacked-charts .annual-bar-chart .annual-line-canvas-wrap {
         height: 170px !important;
         min-height: 150px !important;
     }
@@ -387,14 +391,16 @@
 }
 
 @media (min-width: 1200px) {
-    .economic-state-stacked-charts .annual-line-chart .annual-line-canvas-wrap {
+    .economic-state-stacked-charts .annual-line-chart .annual-line-canvas-wrap,
+    .economic-state-stacked-charts .annual-bar-chart .annual-line-canvas-wrap {
         height: 120px !important;
         min-height: 110px !important;
     }
 }
 
 @media (max-width: 1199.98px) {
-    .economic-state-stacked-charts .annual-line-chart .annual-line-canvas-wrap {
+    .economic-state-stacked-charts .annual-line-chart .annual-line-canvas-wrap,
+    .economic-state-stacked-charts .annual-bar-chart .annual-line-canvas-wrap {
         height: 145px !important;
         min-height: 130px !important;
     }
@@ -717,4 +723,75 @@
 
 .ff-report-about-card .card-title {
     font-family: var(--ff-font-heading, "Segoe UI", sans-serif);
+}
+
+.ff-sort-header {
+    color: inherit;
+    font-weight: 600;
+}
+
+.ff-sort-header:hover,
+.ff-sort-header:focus-visible {
+    color: var(--ff-accent-primary, #4fa4ff);
+}
+
+.ff-dashboard-analytics-row .annual-line-chart,
+.ff-dashboard-analytics-row .annual-bar-chart,
+.ff-dashboard-analytics-row [data-testid="reporting-chart-empty"],
+.ff-dashboard-analytics-row [data-testid="reporting-chart-error"],
+.ff-dashboard-analytics-row [data-testid="reporting-chart-loading"] {
+    margin-bottom: 0 !important;
+}
+
+.ff-dashboard-group-bar-row {
+    margin-bottom: 0.7rem;
+}
+
+.ff-dashboard-group-bar-track {
+    width: 100%;
+    height: 0.36rem;
+    border-radius: 999px;
+    background: rgba(166, 182, 207, 0.25);
+    overflow: hidden;
+    margin-bottom: 0.25rem;
+}
+
+.ff-dashboard-group-bar-fill {
+    height: 100%;
+    border-radius: inherit;
+}
+
+.ff-dashboard-group-bar-fill.is-positive {
+    background: linear-gradient(90deg, #2dd67d, #56e09a);
+}
+
+.ff-dashboard-group-bar-fill.is-negative {
+    background: linear-gradient(90deg, #ff5f75, #ff7f95);
+}
+
+.ff-dashboard-mini-trend {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    overflow: auto;
+    max-height: 220px;
+}
+
+.ff-dashboard-mini-trend-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.88rem;
+}
+
+.ff-dashboard-mini-label {
+    color: var(--ff-text-muted, #a6b6cf);
+}
+
+@media (min-width: 1400px) {
+    .ff-dashboard-analytics-row-2 > div,
+    .ff-dashboard-analytics-row-3 > div {
+        min-height: 320px;
+    }
 }

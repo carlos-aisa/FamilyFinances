@@ -331,6 +331,165 @@ public sealed class ReportingReadRepository : IReportingReadRepository
         );
     }
 
+    public async Task<DashboardOverviewCoreDto> GetDashboardOverviewCoreAsync(
+        DateOnly asOf,
+        CancellationToken ct)
+    {
+        var selectedMonthStart = new DateOnly(asOf.Year, asOf.Month, 1);
+        var selectedMonthEnd = asOf;
+        var selectedMonthToExclusive = selectedMonthEnd.AddDays(1);
+
+        var previousMonthDate = selectedMonthStart.AddDays(-1);
+        var previousMonthStart = new DateOnly(previousMonthDate.Year, previousMonthDate.Month, 1);
+        var previousMonthEnd = new DateOnly(
+            previousMonthDate.Year,
+            previousMonthDate.Month,
+            DateTime.DaysInMonth(previousMonthDate.Year, previousMonthDate.Month));
+        var previousMonthToExclusive = previousMonthEnd.AddDays(1);
+
+        var currentState = await GetEconomicStateAsync(
+            asOf,
+            selectedMonthStart,
+            selectedMonthToExclusive,
+            ct);
+
+        var previousState = await GetEconomicStateAsync(
+            previousMonthEnd,
+            previousMonthStart,
+            previousMonthToExclusive,
+            ct);
+
+        var incomeMonthlyChart = await GetMonthlyBalanceChartAsync(
+            asOf.Year,
+            asOf.Month,
+            accountId: null,
+            payeeId: null,
+            nature: AccountNature.Income,
+            ct);
+
+        var expenseMonthlyChart = await GetMonthlyBalanceChartAsync(
+            asOf.Year,
+            asOf.Month,
+            accountId: null,
+            payeeId: null,
+            nature: AccountNature.Expense,
+            ct);
+
+        var groupEvolution = await GetMonthlyEvolutionAsync(
+            asOf.Year,
+            MonthlyEvolutionScope.AccountGroups,
+            ct);
+
+        var groupStates = groupEvolution.Series
+            .Select(series =>
+            {
+                var selectedPoint = series.Points
+                    .Where(point => point.Month <= asOf.Month)
+                    .OrderByDescending(point => point.Month)
+                    .FirstOrDefault();
+
+                if (selectedPoint is null)
+                    return null;
+
+                return new DashboardGroupStatePointDto(
+                    SeriesKey: series.SeriesKey,
+                    DisplayName: series.DisplayName,
+                    SelectedMonthBalanceCents: selectedPoint.EndBalanceCents,
+                    DeltaVsPreviousMonthCents: selectedPoint.DeltaVsPreviousMonthCents);
+            })
+            .Where(point => point is not null)
+            .Select(point => point!)
+            .OrderByDescending(point => Math.Abs(point.SelectedMonthBalanceCents))
+            .ThenBy(point => point.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var monthlyNetPoints = new List<DashboardMonthlyNetPointDto>(asOf.Month);
+        var runningAccumulatedNet = 0L;
+        for (var month = 1; month <= asOf.Month; month++)
+        {
+            var monthStart = new DateOnly(asOf.Year, month, 1);
+            var monthToExclusive = month == asOf.Month
+                ? selectedMonthToExclusive
+                : monthStart.AddMonths(1);
+
+            var monthSummary = await GetMonthlySummaryAsync(
+                monthStart,
+                monthToExclusive,
+                accountId: null,
+                payeeId: null,
+                ct);
+
+            var incomeCents = monthSummary.IncomeTotal;
+            var expenseCents = Math.Abs(monthSummary.ExpenseTotal);
+            var netCents = incomeCents + monthSummary.ExpenseTotal;
+            runningAccumulatedNet += netCents;
+
+            monthlyNetPoints.Add(new DashboardMonthlyNetPointDto(
+                Month: month,
+                IncomeCents: incomeCents,
+                ExpenseCents: expenseCents,
+                NetCents: netCents,
+                AccumulatedNetCents: runningAccumulatedNet));
+        }
+
+        var hasPreviousMonthData = await _db.Transactions
+            .AsNoTracking()
+            .AnyAsync(
+                transaction => transaction.BookedOn >= previousMonthStart && transaction.BookedOn < previousMonthToExclusive,
+                ct);
+
+        long? sameMonthLastYearNet = null;
+        var hasSameMonthLastYearData = false;
+        if (asOf.Year > 2000)
+        {
+            var lastYear = asOf.Year - 1;
+            var sameMonthLastYearStart = new DateOnly(lastYear, asOf.Month, 1);
+            var comparableDay = Math.Min(asOf.Day, DateTime.DaysInMonth(lastYear, asOf.Month));
+            var sameMonthLastYearAsOf = new DateOnly(lastYear, asOf.Month, comparableDay);
+            var sameMonthLastYearToExclusive = sameMonthLastYearAsOf.AddDays(1);
+
+            hasSameMonthLastYearData = await _db.Transactions
+                .AsNoTracking()
+                .AnyAsync(
+                    transaction => transaction.BookedOn >= sameMonthLastYearStart && transaction.BookedOn < sameMonthLastYearToExclusive,
+                    ct);
+
+            if (hasSameMonthLastYearData)
+            {
+                var sameMonthLastYearSummary = await GetMonthlySummaryAsync(
+                    sameMonthLastYearStart,
+                    sameMonthLastYearToExclusive,
+                    accountId: null,
+                    payeeId: null,
+                    ct);
+
+                sameMonthLastYearNet = sameMonthLastYearSummary.Net;
+            }
+        }
+
+        return new DashboardOverviewCoreDto(
+            AsOf: asOf,
+            SelectedMonthStart: selectedMonthStart,
+            SelectedMonthEnd: selectedMonthEnd,
+            PreviousMonthStart: previousMonthStart,
+            PreviousMonthEnd: previousMonthEnd,
+            CurrentState: currentState,
+            PreviousState: previousState,
+            IncomeDailyPoints: incomeMonthlyChart.Points
+                .Where(point => point.Day <= asOf.Day)
+                .OrderBy(point => point.Day)
+                .ToList(),
+            ExpenseDailyPoints: expenseMonthlyChart.Points
+                .Where(point => point.Day <= asOf.Day)
+                .OrderBy(point => point.Day)
+                .ToList(),
+            MonthlyNetPoints: monthlyNetPoints,
+            GroupStates: groupStates,
+            HasPreviousMonthData: hasPreviousMonthData,
+            HasSameMonthLastYearData: hasSameMonthLastYearData,
+            SameMonthLastYearNetCents: sameMonthLastYearNet);
+    }
+
     public async Task<MonthlyEvolutionReportDto> GetMonthlyEvolutionAsync(
         int year,
         MonthlyEvolutionScope scope,
@@ -467,6 +626,12 @@ public sealed class ReportingReadRepository : IReportingReadRepository
                 year,
                 monthLimit),
             MonthlyEvolutionScope.IncomeTotal => BuildIncomeTotalSeries(
+                accounts,
+                baselineByAccount,
+                accountPointsById,
+                year,
+                monthLimit),
+            MonthlyEvolutionScope.ExpenseTotal => BuildExpenseTotalSeries(
                 accounts,
                 baselineByAccount,
                 accountPointsById,
@@ -892,6 +1057,49 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             new MonthlyEvolutionSeriesDto(
                 SeriesKey: "income-total",
                 DisplayName: "Income Total",
+                EntityId: null,
+                EntityType: "scope",
+                Points: mirroredPoints)
+        };
+    }
+
+    private static IReadOnlyList<MonthlyEvolutionSeriesDto> BuildExpenseTotalSeries(
+        IReadOnlyList<AccountEvolutionSeed> accounts,
+        IReadOnlyDictionary<AccountId, long> baselineByAccount,
+        IReadOnlyDictionary<AccountId, IReadOnlyList<MonthlyEvolutionPointDto>> accountPointsById,
+        int year,
+        int monthLimit)
+    {
+        var expenseAccountIds = accounts
+            .Where(a => a.Nature == AccountNature.Expense)
+            .Select(a => a.Id)
+            .ToList();
+
+        var baseline = expenseAccountIds.Sum(id => baselineByAccount.GetValueOrDefault(id, 0L));
+
+        var signedPoints = BuildAggregatedPoints(
+            year,
+            monthLimit,
+            baseline,
+            expenseAccountIds
+                .Where(accountPointsById.ContainsKey)
+                .Select(id => accountPointsById[id])
+                .ToList());
+
+        var mirroredPoints = signedPoints
+            .Select(point => point with
+            {
+                EndBalanceCents = -point.EndBalanceCents,
+                DeltaVsPreviousMonthCents = -point.DeltaVsPreviousMonthCents,
+                DeltaVsYearStartCents = -point.DeltaVsYearStartCents
+            })
+            .ToList();
+
+        return new[]
+        {
+            new MonthlyEvolutionSeriesDto(
+                SeriesKey: "expense-total",
+                DisplayName: "Expense Total",
                 EntityId: null,
                 EntityType: "scope",
                 Points: mirroredPoints)
@@ -1405,6 +1613,10 @@ public sealed class ReportingReadRepository : IReportingReadRepository
     /// </summary>
     public async Task<IReadOnlyList<AccountBalanceDto>> GetAccountBalancesAsync(CancellationToken ct = default)
     {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var currentMonthStart = new DateOnly(today.Year, today.Month, 1);
+        var currentMonthEndExclusive = currentMonthStart.AddMonths(1);
+
         // Materialize all splits first to avoid EF translation issues with Money value object
         var allSplits = await _db.TransactionSplits
             .AsNoTracking()
@@ -1415,12 +1627,27 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             })
             .ToListAsync(ct);
 
+        var currentMonthSplitRows = await (
+            from split in _db.TransactionSplits.AsNoTracking()
+            join transaction in _db.Transactions.AsNoTracking()
+                on EF.Property<TransactionId>(split, "TransactionId") equals transaction.Id
+            where transaction.BookedOn >= currentMonthStart && transaction.BookedOn < currentMonthEndExclusive
+            select new
+            {
+                split.AccountId,
+                AmountCents = split.Amount.Cents
+            })
+            .ToListAsync(ct);
+
         // Group and sum in memory
         var balances = allSplits
             .GroupBy(s => s.AccountId)
             .Select(g => new AccountBalanceDto(
                 g.Key.Value,
-                g.Sum(x => x.AmountCents) / 100m // Convert cents to euros
+                g.Sum(x => x.AmountCents) / 100m,
+                CurrentMonthBalance: currentMonthSplitRows
+                    .Where(row => row.AccountId == g.Key)
+                    .Sum(row => row.AmountCents) / 100m
             ))
             .ToList();
 

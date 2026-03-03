@@ -212,6 +212,65 @@ public sealed class ReportsApiTests
     }
 
     [Fact]
+    public async Task GetDashboardOverviewAsync_ReturnsPayload_And_SendsExpectedRequest()
+    {
+        var payload = new DashboardOverviewDto(
+            AsOf: new DateOnly(2026, 3, 31),
+            SelectedMonthStart: new DateOnly(2026, 3, 1),
+            SelectedMonthEnd: new DateOnly(2026, 3, 31),
+            PreviousMonthStart: new DateOnly(2026, 2, 1),
+            PreviousMonthEnd: new DateOnly(2026, 2, 28),
+            Income: new DashboardKpiDto(200_000, 10_000),
+            Expense: new DashboardKpiDto(100_000, 5_000),
+            NetResult: new DashboardKpiDto(100_000, 5_000),
+            NetWorth: new DashboardKpiDto(900_000, 20_000),
+            NetResultDeltaVsSameMonthLastYearCents: 15_000,
+            DataSufficiencyState: DashboardDataSufficiencyState.Partial,
+            DailyIncomeVsExpense:
+            [
+                new DashboardDailyIncomeExpensePointDto(1, 120_000, 40_000, 80_000)
+            ],
+            GroupStates:
+            [
+                new DashboardGroupStatePointDto("group:1", "Household", 40_000, 10_000)
+            ],
+            YtdSummary: new DashboardYtdSummaryDto(
+                100_000,
+                [
+                    new DashboardMonthlyNetPointDto(1, 100_000, 20_000, 80_000, 80_000)
+                ]),
+            CompactInsights:
+            [
+                new DashboardCompactInsightRowDto("row-1", "top-expense", "Groceries", 20_000, 40m, "top-contributor")
+            ]);
+
+        HttpRequestMessage? capturedRequest = null;
+
+        _httpMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>((req, _) => capturedRequest = req)
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(payload)
+            });
+
+        var result = await _sut.GetDashboardOverviewAsync(2026, 3, CancellationToken.None);
+
+        result.Should().BeEquivalentTo(payload);
+        capturedRequest.Should().NotBeNull();
+        capturedRequest!.Method.Should().Be(HttpMethod.Get);
+        capturedRequest.RequestUri!.ToString()
+            .Should().Contain("api/v1/reports/dashboard-overview?year=2026&month=3");
+        capturedRequest.Headers.Authorization.Should().NotBeNull();
+        capturedRequest.Headers.Authorization!.Scheme.Should().Be("Bearer");
+        capturedRequest.Headers.Authorization.Parameter.Should().Be("valid-token");
+    }
+
+    [Fact]
     public async Task GetMonthlyEvolutionAsync_ReturnsPayload_And_SendsExpectedRequest()
     {
         var payload = new MonthlyEvolutionReportDto(
@@ -307,6 +366,47 @@ public sealed class ReportsApiTests
 
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("Failed to deserialize monthly evolution response.");
+    }
+
+    [Fact]
+    public async Task GetStateEvolutionAsync_Maps_ExpenseTotal_To_ExpenseTotal_Scope_Query()
+    {
+        var payload = new MonthlyEvolutionReportDto(
+            2026,
+            MonthlyEvolutionScope.ExpenseTotal,
+            new[]
+            {
+                new MonthlyEvolutionSeriesDto(
+                    "expense-total",
+                    "Expense Total",
+                    null,
+                    "scope",
+                    new[]
+                    {
+                        new MonthlyEvolutionPointDto(1, new DateOnly(2026, 1, 31), 20_000, 20_000, 20_000)
+                    })
+            });
+
+        HttpRequestMessage? capturedRequest = null;
+
+        _httpMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>((req, _) => capturedRequest = req)
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(payload)
+            });
+
+        var result = await _sut.GetStateEvolutionAsync(2026, MonthlyEvolutionScope.ExpenseTotal, CancellationToken.None);
+
+        result.Should().BeEquivalentTo(payload);
+        capturedRequest.Should().NotBeNull();
+        capturedRequest!.RequestUri!.ToString()
+            .Should().Contain("api/v1/reports/state-evolution?year=2026&scope=expense-total");
     }
 
     [Fact]

@@ -1812,6 +1812,9 @@
   <data name="Reports_EndBalance" xml:space="preserve">
     <value>End Balance</value>
   </data>
+  <data name="Reports_MonthBalance" xml:space="preserve">
+    <value>Month balance</value>
+  </data>
   <data name="Reports_Error_BuildAnnualChartDataset" xml:space="preserve">
     <value>Could not build annual chart dataset: {0}</value>
   </data>
@@ -2396,5 +2399,155 @@
   </data>
   <data name="ReportingChart_AriaExportPng" xml:space="preserve">
     <value>Export chart "{0}" as PNG</value>
+  </data>
+  <data name="EconomicState_MonthlyNetList_Subtitle" xml:space="preserve">
+    <value>Month-by-month operational balance for the selected year.</value>
+  </data>
+  <data name="ExpenseEvolution_AnnualTitle" xml:space="preserve">
+    <value>Annual expense evolution</value>
+  </data>
+  <data name="Dashboard_MonthlyIncomeExpense_Subtitle" xml:space="preserve">
+    <value>{0} {1} (up to day {2})</value>
+  </data>
+  <data name="Nav_QuickEntry" xml:space="preserve">
+    <value>Quick Entry</value>
+  </data>
+  <data name="EconomicState_MonthlyNetList_Title" xml:space="preserve">
+    <value>Monthly net list (Income - Expense)</value>
+  </data>
+  <data name="Accounts_Table_CurrentMonthBalance" xml:space="preserve">
+    <value>Current month balance</value>
+  </data>
+  <data name="Dashboard_CompactInsights_Column_Amount" xml:space="preserve">
+    <value>Amount</value>
+  </data>
+  <data name="EconomicState_MonthlyNetList_Net" xml:space="preserve">
+    <value>Net</value>
+  </data>
+  <data name="Dashboard_GroupState_Title" xml:space="preserve">
+    <value>Current account-group state</value>
+  </data>
+  <data name="ExpenseEvolution_ExpenseBalance" xml:space="preserve">
+    <value>Expense balance</value>
+  </data>
+  <data name="ExpenseEvolution_MonthlyOverview" xml:space="preserve">
+    <value>Monthly expense overview</value>
+  </data>
+  <data name="Dashboard_Analytics_Subtitle" xml:space="preserve">
+    <value>Household financial overview for the selected month.</value>
+  </data>
+  <data name="Dashboard_Ytd_Title" xml:space="preserve">
+    <value>Year-to-date accumulation</value>
+  </data>
+  <data name="Dashboard_CompactInsights_Status_TopContributor" xml:space="preserve">
+    <value>Top contributor</value>
+  </data>
+  <data name="EconomicState_AnnualIncomeExpense_Title" xml:space="preserve">
+    <value>Annual Income vs Expense (month result)</value>
+  </data>
+  <data name="Dashboard_Kpi_Expense" xml:space="preserve">
+    <value>Expense</value>
+  </data>
+  <data name="ExpenseEvolution_AnnualSubtitle" xml:space="preserve">
+    <value>Month-to-month expense results (non-cumulative).</value>
+  </data>
+  <data name="Dashboard_Ytd_Subtitle" xml:space="preserve">
+    <value>Monthly net trend (Income - Expense).</value>
+  </data>
+  <data name="ExpenseEvolution_SelectYearHint" xml:space="preserve">
+    <value>Select a year to load expense evolution.</value>
+  </data>
+  <data name="Dashboard_DeltaVsPreviousMonth" xml:space="preserve">
+    <value>vs previous month:</value>
+  </data>
+  <data name="Dashboard_DataState_Complete" xml:space="preserve">
+    <value>History is complete for month-over-month and year-over-year comparisons.</value>
+  </data>
+  <data name="Dashboard_DataState_InsufficientHistory" xml:space="preserve">
+    <value>Insufficient history for reliable comparison blocks.</value>
+  </data>
+  <data name="ExpenseEvolution_LatestExpenseBalance" xml:space="preserve">
+    <value>Latest expense balance</value>
+  </data>
+  <data name="Dashboard_CompactInsights_Empty" xml:space="preserve">
+    <value>No compact insights available.</value>
+  </data>
+  <data name="EconomicState_AnnualIncomeExpense_Subtitle" xml:space="preserve">
+    <value>Monthly bars for each month of the selected year.</value>
+  </data>
+  <data name="ExpenseEvolution_StockMetricsHint" xml:space="preserve">
+    <value>Expense flow metrics are month-focused values.</value>
+  </data>
+  <data name="Dashboard_Kpi_Income" xml:space="preserve">
+    <value>Income</value>
+  </data>
+  <data name="Dashboard_CompactInsights_Column_Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Dashboard_GroupState_Subtitle" xml:space="preserve">
+    <value>Selected month balance and delta by group.</value>
+  </data>
+  <data name="Dashboard_Ytd_AccumulatedNet" xml:space="preserve">
+    <value>Accumulated net (YTD)</value>
+  </data>
+  <data name="Dashboard_CompactInsights_Title" xml:space="preserve">
+    <value>Compact insights</value>
+  </data>
+  <data name="ExpenseEvolution_MonthFocusedSubtitle" xml:space="preserve">
+    <value>{0} {1}</value>
+  </data>
+  <data name="Dashboard_CompactInsights_Subtitle" xml:space="preserve">
+    <value>Top contributors and anomaly signals.</value>
+  </data>
+  <data name="Dashboard_Kpi_NetResult" xml:space="preserve">
+    <value>Net result</value>
+  </data>
+  <data name="ExpenseEvolution_LoadingMonthFocusedExpense" xml:space="preserve">
+    <value>Loading month-focused expense chart...</value>
+  </data>
+  <data name="EconomicState_Tab_ExpenseEvolution" xml:space="preserve">
+    <value>Expense Evolution</value>
+  </data>
+  <data name="Dashboard_CompactInsights_Column_Label" xml:space="preserve">
+    <value>Contributor</value>
+  </data>
+  <data name="Dashboard_LoadingAnalytics" xml:space="preserve">
+    <value>Loading dashboard overview...</value>
+  </data>
+  <data name="Dashboard_DataState_Partial" xml:space="preserve">
+    <value>Partial comparison history is available; some references are missing.</value>
+  </data>
+  <data name="Dashboard_MonthlyIncomeExpense_Title" xml:space="preserve">
+    <value>Month-focused income vs expense</value>
+  </data>
+  <data name="Accounts_Table_AccumulatedBalance" xml:space="preserve">
+    <value>Accumulated balance</value>
+  </data>
+  <data name="ExpenseEvolution_LoadingTitle" xml:space="preserve">
+    <value>Loading expense evolution...</value>
+  </data>
+  <data name="Dashboard_Kpi_NetWorth" xml:space="preserve">
+    <value>Net worth</value>
+  </data>
+  <data name="Dashboard_CompactInsights_Status_Anomaly" xml:space="preserve">
+    <value>Anomaly</value>
+  </data>
+  <data name="QuickEntry_Page_Subtitle" xml:space="preserve">
+    <value>Capture expenses, income, transfers and refunds without leaving the workflow.</value>
+  </data>
+  <data name="Dashboard_CompactInsights_Status_InsufficientHistory" xml:space="preserve">
+    <value>Insufficient history</value>
+  </data>
+  <data name="Dashboard_GroupState_Empty" xml:space="preserve">
+    <value>No group data available for this month.</value>
+  </data>
+  <data name="AccountGroupState_AnnualEvolutionMonthResultSubtitle" xml:space="preserve">
+    <value>Monthly result bars (non-cumulative).</value>
+  </data>
+  <data name="Accounts_CurrentMonth_Basis" xml:space="preserve">
+    <value>Current month: {0}</value>
+  </data>
+  <data name="ExpenseEvolution_MonthFocusedTitle" xml:space="preserve">
+    <value>Month-focused expense chart</value>
   </data>
 </root>

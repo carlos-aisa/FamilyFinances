@@ -1,0 +1,176 @@
+@using System.Globalization
+@using System.Text.Json
+@using FamilyFinances.Web.Features.Reports
+@using FamilyFinances.Web.Features.Reports.Export
+@using FamilyFinances.Web.Features.Reports.Charts
+@using FamilyFinances.Web
+@using Microsoft.Extensions.Localization
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject IStringLocalizer<SharedResource> L
+
+@if (Series.Count == 0 || !HasData)
+{
+    <ReportingChartEmptyState
+        Title="@Title"
+        Description="@L["ReportingChart_Empty_NoPointsForFilters"]" />
+}
+else
+{
+    <div class="card shadow-sm mb-4 annual-bar-chart ff-panel ff-chart-panel" data-testid="@TestId" data-year="@Year">
+        <div class="card-body">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 mb-3">
+                <div>
+                    <h6 class="mb-1">@Title</h6>
+                    @if (!string.IsNullOrWhiteSpace(Subtitle))
+                    {
+                        <small class="text-muted">@Subtitle</small>
+                    }
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    @if (EnableImageExport)
+                    {
+                        <button type="button"
+                                class="btn btn-sm btn-outline-secondary report-export-button ff-chart-export-button"
+                                @onclick="ExportChartAsync"
+                                data-testid="@($"{TestId}-export-image")"
+                                aria-label="@L["ReportingChart_AriaExportPng", Title]">
+                            <i class="bi bi-download me-1"></i>@L["Reports_Export"]
+                        </button>
+                    }
+                    <span class="badge bg-secondary-subtle text-secondary">@Year</span>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_exportError))
+            {
+                <div class="text-danger small mb-2">@_exportError</div>
+            }
+
+            <div class="annual-line-canvas-wrap">
+                <canvas id="@_canvasId" class="annual-line-canvas" role="img" tabindex="0" aria-label="@Title"></canvas>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter, EditorRequired] public int Year { get; set; }
+    [Parameter, EditorRequired] public IReadOnlyList<AnnualChartSeries> Series { get; set; } = Array.Empty<AnnualChartSeries>();
+    [Parameter] public string TestId { get; set; } = "annual-bar-chart";
+    [Parameter] public int? DataUntilMonth { get; set; }
+    [Parameter] public int? YTickMaxTicks { get; set; }
+    [Parameter] public bool EnableImageExport { get; set; } = true;
+
+    private readonly string _canvasId = $"annual-bar-{Guid.NewGuid():N}";
+    private string? _lastRenderedSignature;
+    private string? _exportError;
+    private bool HasData => Series.Any(s => s.Points.Count > 0);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Series.Count == 0 || !HasData)
+            return;
+
+        var payload = BuildChartPayload();
+        var signature = JsonSerializer.Serialize(payload);
+        if (string.Equals(_lastRenderedSignature, signature, StringComparison.Ordinal))
+            return;
+
+        try
+        {
+            await JS.InvokeVoidAsync(
+                "familyFinancesCharts.renderAnnualBarChart",
+                _canvasId,
+                payload);
+            _lastRenderedSignature = signature;
+        }
+        catch
+        {
+            // Ignore JS errors on non-interactive renderers.
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("familyFinancesCharts.disposeAnnualLineChart", _canvasId);
+            _lastRenderedSignature = null;
+        }
+        catch
+        {
+            // Ignore dispose failures for disconnected/non-interactive renderers.
+        }
+    }
+
+    private object BuildChartPayload()
+    {
+        var orderedMonths = Series
+            .SelectMany(s => s.Points.Select(p => p.Month))
+            .Distinct()
+            .OrderBy(m => m)
+            .ToList();
+
+        var labels = orderedMonths
+            .Select(GetShortMonthLabel)
+            .ToList();
+
+        var datasets = Series
+            .Select(series =>
+            {
+                var pointsByMonth = series.Points.ToDictionary(x => x.Month, x => x.Value);
+                var values = orderedMonths
+                    .Select(month =>
+                    {
+                        if (DataUntilMonth is not null && month > DataUntilMonth.Value)
+                            return (double?)null;
+
+                        return pointsByMonth.TryGetValue(month, out var value)
+                            ? Convert.ToDouble(value / 100m, CultureInfo.InvariantCulture)
+                            : (double?)null;
+                    })
+                    .ToList();
+
+                return new
+                {
+                    key = series.Key,
+                    label = series.Label,
+                    colorHex = series.ColorHex,
+                    values
+                };
+            })
+            .ToList();
+
+        return new
+        {
+            labels,
+            datasets,
+            yTickMaxTicks = YTickMaxTicks
+        };
+    }
+
+    private async Task ExportChartAsync()
+    {
+        _exportError = null;
+
+        try
+        {
+            var fileName = $"{ReportExportInterop.BuildFileName("report-chart", Title, Year)}.png";
+            await JS.DownloadChartImageAsync(_canvasId, fileName);
+        }
+        catch (Exception ex)
+        {
+            _exportError = L["ReportingChart_Error_ExportFailed", ex.Message];
+        }
+    }
+
+    private static string GetShortMonthLabel(int month)
+    {
+        var full = DateHelper.GetMonthName(month);
+        return full.Length <= 3 ? full : full[..3];
+    }
+}

@@ -256,6 +256,96 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
         chartByCanvasId.set(canvasId, chart);
     }
 
+    function renderAnnualBarChart(canvasId, payload) {
+        if (!canvasId || !payload || !window.Chart) {
+            return;
+        }
+
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) {
+            return;
+        }
+
+        const previous = chartByCanvasId.get(canvasId);
+        if (previous) {
+            previous.destroy();
+            chartByCanvasId.delete(canvasId);
+        }
+
+        const theme = resolveChartTheme();
+        const yTickMaxTicks = Number.isFinite(payload.yTickMaxTicks) ? payload.yTickMaxTicks : undefined;
+        const datasets = (payload.datasets || []).map((dataset) => ({
+            label: dataset.label,
+            data: dataset.values,
+            borderColor: dataset.colorHex,
+            backgroundColor: `${dataset.colorHex}B3`,
+            borderWidth: 1.4,
+            borderRadius: 4,
+            maxBarThickness: 28
+        }));
+
+        const chart = new window.Chart(canvas, {
+            type: "bar",
+            data: {
+                labels: payload.labels || [],
+                datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                interaction: {
+                    mode: "index",
+                    intersect: false
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: theme.tooltipBackground,
+                        titleColor: theme.tooltipText,
+                        bodyColor: theme.tooltipText,
+                        borderColor: theme.gridColor,
+                        borderWidth: 1,
+                        cornerRadius: 10,
+                        padding: 10,
+                        callbacks: {
+                            label: (context) => `${context.dataset.label}: ${formatEuro(context.parsed.y)}`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            color: theme.tickColor,
+                            maxRotation: 0
+                        },
+                        grid: {
+                            color: theme.gridColor,
+                            borderDash: [4, 4]
+                        }
+                    },
+                    y: {
+                        type: "linear",
+                        position: "left",
+                        ticks: {
+                            color: theme.tickColor,
+                            maxTicksLimit: yTickMaxTicks,
+                            callback: (value) => formatEuro(value)
+                        },
+                        grid: {
+                            color: theme.gridColor,
+                            borderDash: [4, 4]
+                        }
+                    }
+                }
+            }
+        });
+
+        chartByCanvasId.set(canvasId, chart);
+    }
+
     function disposeAnnualLineChart(canvasId) {
         const existing = chartByCanvasId.get(canvasId);
         if (!existing) {
@@ -337,6 +427,7 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
 
     return {
         renderAnnualLineChart,
+        renderAnnualBarChart,
         disposeAnnualLineChart,
         renderAnnualCompositionChart,
         disposeAnnualCompositionChart,

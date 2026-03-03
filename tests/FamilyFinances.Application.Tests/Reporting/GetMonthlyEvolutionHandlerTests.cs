@@ -45,6 +45,40 @@ public sealed class GetMonthlyEvolutionHandlerTests
     }
 
     [Fact]
+    public async Task HandleAsync_Delegates_To_Repository_For_ExpenseTotal_Scope()
+    {
+        var repo = new Mock<IReportingReadRepository>(MockBehavior.Strict);
+        const int year = 2026;
+        const MonthlyEvolutionScope scope = MonthlyEvolutionScope.ExpenseTotal;
+        var expected = new MonthlyEvolutionReportDto(
+            year,
+            scope,
+            new[]
+            {
+                new MonthlyEvolutionSeriesDto(
+                    "expense-total",
+                    "Expense Total",
+                    null,
+                    "scope",
+                    new[]
+                    {
+                        new MonthlyEvolutionPointDto(1, new DateOnly(2026, 1, 31), 20_000, 20_000, 20_000)
+                    })
+            });
+
+        repo.Setup(r => r.GetMonthlyEvolutionAsync(year, scope, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
+
+        var handler = new GetMonthlyEvolutionHandler(repo.Object);
+
+        var result = await handler.HandleAsync(new GetMonthlyEvolutionQuery(year, scope), CancellationToken.None);
+
+        result.Should().Be(expected);
+        repo.Verify(r => r.GetMonthlyEvolutionAsync(year, scope, It.IsAny<CancellationToken>()), Times.Once);
+        repo.VerifyNoOtherCalls();
+    }
+
+    [Fact]
     public async Task HandleAsync_Throws_When_Year_Is_Before_2000()
     {
         var repo = new Mock<IReportingReadRepository>(MockBehavior.Strict);
