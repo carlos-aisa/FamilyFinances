@@ -11,7 +11,7 @@ namespace FamilyFinances.Application.Tests.Reporting;
 public sealed class GetDashboardOverviewHandlerTests
 {
     [Fact]
-    public async Task HandleAsync_Maps_Overview_And_Enforces_AnomalyFirst_RowCap()
+    public async Task HandleAsync_Maps_Overview_And_Builds_ExpenseTopNPlusOthers_Composition()
     {
         var asOf = new DateOnly(2026, 3, 15);
         var repo = new Mock<IReportingReadRepository>(MockBehavior.Strict);
@@ -32,18 +32,6 @@ public sealed class GetDashboardOverviewHandlerTests
             [
                 new InsightContributorAggregateDto(Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"), "Groceries", 80_000)
             ]);
-        repo.Setup(r => r.GetMonthlyInsightContributorTotalsAsync(
-                It.IsAny<DateOnly>(),
-                It.IsAny<DateOnly>(),
-                AccountNature.Expense,
-                ReportingInsightDimension.Group,
-                null,
-                null,
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(
-            [
-                new InsightMonthlyContributorAggregateDto(Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"), "Utilities", 2026, 3, 40_000)
-            ]);
 
         calculator
             .Setup(c => c.BuildParetoInsights(
@@ -59,7 +47,7 @@ public sealed class GetDashboardOverviewHandlerTests
                 Dimension: ReportingInsightDimension.Group,
                 Expense: new ParetoInsightSectionDto(
                     Nature: AccountNature.Expense,
-                    TotalAmountCents: 300_000,
+                    TotalAmountCents: 350_000,
                     TopN: 8,
                     TopNAmountCents: 280_000,
                     TopNCoveragePercentage: 93.33m,
@@ -79,48 +67,6 @@ public sealed class GetDashboardOverviewHandlerTests
                     TopNCoveragePercentage: 0m,
                     Contributors: Array.Empty<ParetoContributorDto>())));
 
-        calculator
-            .Setup(c => c.BuildMonthlyAnomalyInsights(
-                2026,
-                3,
-                AccountNature.Expense,
-                ReportingInsightDimension.Group,
-                It.IsAny<int>(),
-                It.IsAny<int>(),
-                It.IsAny<IReadOnlyList<InsightMonthlyContributorAggregateDto>>()))
-            .Returns(new ReportingAnomalyInsightsDto(
-                Year: 2026,
-                Month: 3,
-                Nature: AccountNature.Expense,
-                Dimension: ReportingInsightDimension.Group,
-                RequiredHistoryMonths: 3,
-                ThresholdRule: "mean + 2sigma",
-                Contributors:
-                [
-                    new AnomalyContributorDto(
-                        Guid.Parse("11111111-1111-1111-1111-111111111111"),
-                        "Groceries",
-                        80_000,
-                        30_000,
-                        50_000,
-                        2.5m,
-                        true,
-                        false,
-                        6,
-                        "threshold exceeded"),
-                    new AnomalyContributorDto(
-                        Guid.Parse("22222222-2222-2222-2222-222222222222"),
-                        "Utilities",
-                        30_000,
-                        10_000,
-                        20_000,
-                        null,
-                        true,
-                        true,
-                        2,
-                        "insufficient history")
-                ]));
-
         var handler = new GetDashboardOverviewHandler(repo.Object, calculator.Object);
 
         var result = await handler.HandleAsync(new GetDashboardOverviewQuery(asOf), CancellationToken.None);
@@ -131,8 +77,9 @@ public sealed class GetDashboardOverviewHandlerTests
         result.GroupStates.Should().HaveCount(2);
 
         result.CompactInsights.Should().HaveCount(6);
-        result.CompactInsights.Take(2).Select(r => r.Kind).Should().OnlyContain(kind => kind == "anomaly");
-        result.CompactInsights.Skip(2).Select(r => r.Kind).Should().OnlyContain(kind => kind == "top-expense");
+        result.CompactInsights.Take(5).Select(r => r.Kind).Should().OnlyContain(kind => kind == "top-expense");
+        result.CompactInsights.Last().StatusCode.Should().Be("others");
+        result.CompactInsights.Last().AmountCents.Should().Be(50_000);
 
         repo.VerifyAll();
         calculator.VerifyAll();
@@ -162,15 +109,6 @@ public sealed class GetDashboardOverviewHandlerTests
                 null,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<InsightContributorAggregateDto>());
-        repo.Setup(r => r.GetMonthlyInsightContributorTotalsAsync(
-                It.IsAny<DateOnly>(),
-                It.IsAny<DateOnly>(),
-                AccountNature.Expense,
-                ReportingInsightDimension.Group,
-                null,
-                null,
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Array.Empty<InsightMonthlyContributorAggregateDto>());
 
         calculator
             .Setup(c => c.BuildParetoInsights(
@@ -186,24 +124,6 @@ public sealed class GetDashboardOverviewHandlerTests
                 Dimension: ReportingInsightDimension.Group,
                 Expense: new ParetoInsightSectionDto(AccountNature.Expense, 0, 8, 0, 0, Array.Empty<ParetoContributorDto>()),
                 Income: new ParetoInsightSectionDto(AccountNature.Income, 0, 8, 0, 0, Array.Empty<ParetoContributorDto>())));
-
-        calculator
-            .Setup(c => c.BuildMonthlyAnomalyInsights(
-                2026,
-                3,
-                AccountNature.Expense,
-                ReportingInsightDimension.Group,
-                It.IsAny<int>(),
-                It.IsAny<int>(),
-                It.IsAny<IReadOnlyList<InsightMonthlyContributorAggregateDto>>()))
-            .Returns(new ReportingAnomalyInsightsDto(
-                Year: 2026,
-                Month: 3,
-                Nature: AccountNature.Expense,
-                Dimension: ReportingInsightDimension.Group,
-                RequiredHistoryMonths: 3,
-                ThresholdRule: "mean + 2sigma",
-                Contributors: Array.Empty<AnomalyContributorDto>()));
 
         var handler = new GetDashboardOverviewHandler(repo.Object, calculator.Object);
 

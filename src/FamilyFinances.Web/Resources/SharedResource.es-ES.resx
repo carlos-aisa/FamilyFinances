@@ -2550,4 +2550,52 @@
   <data name="ExpenseEvolution_MonthFocusedTitle" xml:space="preserve">
     <value>Grafico mensual de gastos</value>
   </data>
+  <data name="Dashboard_AnnualIncomeExpense_Title" xml:space="preserve">
+    <value>Ingresos vs gastos anual (resultado mensual)</value>
+  </data>
+  <data name="Dashboard_AnnualIncomeExpense_Subtitle" xml:space="preserve">
+    <value>Barras mensuales para cada mes del ano seleccionado.</value>
+  </data>
+  <data name="Dashboard_MonthlyNetTrend_Title" xml:space="preserve">
+    <value>Tendencia mensual de saldo (Ingresos - Gastos)</value>
+  </data>
+  <data name="Dashboard_MonthlyNetTrend_Subtitle" xml:space="preserve">
+    <value>Balance operativo mensual del ano seleccionado.</value>
+  </data>
+  <data name="Dashboard_MonthlyNetTrend_Legend" xml:space="preserve">
+    <value>Saldo</value>
+  </data>
+  <data name="Dashboard_ExpenseComposition_Title" xml:space="preserve">
+    <value>Composicion de gastos</value>
+  </data>
+  <data name="Dashboard_ExpenseComposition_Subtitle" xml:space="preserve">
+    <value>Top de gastos en {0} mas Otros.</value>
+  </data>
+  <data name="Dashboard_ExpenseComposition_Others" xml:space="preserve">
+    <value>Otros</value>
+  </data>
+  <data name="Dashboard_GroupComposition_Title" xml:space="preserve">
+    <value>Composicion por grupos</value>
+  </data>
+  <data name="Dashboard_GroupComposition_Subtitle" xml:space="preserve">
+    <value>Distribucion por grupos de cuentas en {0}.</value>
+  </data>
+  <data name="Dashboard_GroupComposition_Others" xml:space="preserve">
+    <value>Otros</value>
+  </data>
+  <data name="Dashboard_AssetEvolution_Title" xml:space="preserve">
+    <value>Evolución total de activos</value>
+  </data>
+  <data name="Dashboard_AssetEvolution_Subtitle" xml:space="preserve">
+    <value>Saldo final por mes del ano seleccionado.</value>
+  </data>
+  <data name="Dashboard_AssetEvolution_Legend" xml:space="preserve">
+    <value>Saldo de activos</value>
+  </data>
+  <data name="Dashboard_GroupAnnualEvolution_Title" xml:space="preserve">
+    <value>Evolucion anual por grupos</value>
+  </data>
+  <data name="Dashboard_GroupAnnualEvolution_Subtitle" xml:space="preserve">
+    <value>Barras de resultado mensual por grupo de cuentas.</value>
+  </data>
 </root>

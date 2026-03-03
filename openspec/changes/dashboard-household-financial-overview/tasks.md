@@ -8,23 +8,25 @@
 
 ## 2. Dashboard Overview Read Model And API Contract
 
-- [x] 2.1 Add dashboard overview DTOs in `src/FamilyFinances.Application/Reporting/Dtos/` (for KPI values, deltas, group chart points, compact list rows, and data-sufficiency state enum).
+- [x] 2.1 Reuse dashboard overview DTO contract in `src/FamilyFinances.Application/Reporting/Dtos/` (`YtdSummary.MonthlyNetPoints`, `GroupStates`, `CompactInsights`) to feed Option 1 chart blocks without introducing a new endpoint schema.
 - [x] 2.2 Add `GetDashboardOverviewQuery` in `src/FamilyFinances.Application/Reporting/Queries/` with selected/current month context inputs.
 - [x] 2.3 Implement `GetDashboardOverviewHandler` in `src/FamilyFinances.Application/Reporting/Handlers/` reusing reporting semantics (`Net = Income - Expense`) and previous-month comparison rules.
 - [x] 2.4 Extend `src/FamilyFinances.Application/Reporting/Abstractions/IReportingReadRepository.cs` with dashboard overview read methods required by the new handler.
-- [x] 2.5 Implement repository methods in `src/FamilyFinances.Infrastructure/Persistence/Repositories/ReportingReadRepository.cs` for current-month/previous-month KPIs, YTD aggregate, group-state dataset, and compact list source data.
+- [x] 2.5 Reuse repository datasets in `src/FamilyFinances.Infrastructure/Persistence/Repositories/ReportingReadRepository.cs` for current/previous KPI comparison, monthly net points, group-state data, and insight contributor totals consumed by Top-N+Others composition mapping.
 - [x] 2.6 Add/extend API endpoint in `src/FamilyFinances.Api/Controllers/V1/ReportsController.cs` (for example `GET /api/v1/reports/dashboard-overview`) with strict input validation.
 - [x] 2.7 Update Web API client in `src/FamilyFinances.Web/Api/ReportsApi.cs` with strongly typed `GetDashboardOverviewAsync` method mapping to the new endpoint.
 
-## 3. Dashboard Analytical Composition (No Tabs)
+## 3. Dashboard Analytical Composition (No Tabs, Option 1)
 
 - [x] 3.1 Implement dashboard KPI strip block in `src/FamilyFinances.Web/Components/Pages/Dashboard/DashboardPage.razor` showing Income, Expense, Net Result, and Net Worth with previous-month deltas.
-- [x] 3.2 Implement the primary monthly `Income vs Expense` chart block in Dashboard by reusing existing chart contracts/components (`src/FamilyFinances.Web/Components/Pages/Reports/Charts/*`).
-- [x] 3.3 Implement account-group current-state chart block in Dashboard (horizontal-bars style contract) with deterministic ordering.
-- [x] 3.4 Implement annual YTD accumulation card/block in Dashboard with compact trend rendering.
-- [x] 3.5 Implement one compact analytical list block in Dashboard (Top expenses and/or anomalies) with strict row cap (`max 5-8`).
-- [x] 3.6 Add explicit dashboard data-sufficiency UI states (`Complete`, `Partial`, `InsufficientHistory`) and localized fallback messages.
-- [x] 3.7 Update shared styles in `src/FamilyFinances.Web/wwwroot/css/app.css` and/or `src/FamilyFinances.Web/wwwroot/css/premium-theme.css` to enforce fixed-height desktop analytical rows and minimized-scroll behavior.
+- [x] 3.2 Implement the month-focused `Income vs Expense` line chart block in Dashboard by reusing existing chart contracts/components (`src/FamilyFinances.Web/Components/Pages/Reports/Charts/*`).
+- [x] 3.3 Implement the annual `Income vs Expense` month-result bars block in Dashboard using absolute magnitudes for both series.
+- [x] 3.4 Implement the monthly net-balance trend line block (`Income - Expense`) in Dashboard, replacing any growing monthly table.
+- [x] 3.5 Implement account-group current-state chart block in Dashboard (bars) with deterministic ordering.
+- [x] 3.6 Implement account-group composition chart block in Dashboard.
+- [x] 3.7 Implement expense composition chart block with `Top N` contributors (`N=8..10`) plus aggregated `Others`.
+- [x] 3.8 Add explicit dashboard data-sufficiency UI states (`Complete`, `Partial`, `InsufficientHistory`) and localized fallback messages.
+- [x] 3.9 Update shared styles in `src/FamilyFinances.Web/wwwroot/css/app.css` and/or `src/FamilyFinances.Web/wwwroot/css/premium-theme.css` to enforce fixed-height desktop analytical rows and no-scroll baseline behavior at 2560x1440.
 
 ## 4. Quick Entry Workspace Migration
 
@@ -66,11 +68,11 @@
 - [x] 8.3 Add visual sort indicators and keyboard-accessible sortable header markup.
 - [x] 8.4 Ensure existing export behavior still works with active sorting.
 
-## 9. Dashboard Compact Insights Integration
+## 9. Dashboard Composition Aggregation Integration
 
-- [x] 9.1 Define deterministic compact-list prioritization rules (top contributors vs anomalies) in application-level dashboard overview assembly.
-- [x] 9.2 Implement dashboard compact list mapping in the new overview handler to reuse existing reporting insight semantics from `src/FamilyFinances.Application/Reporting/Internal/ReportingInsightsCalculator.cs` where possible.
-- [x] 9.3 Enforce row cap in dashboard rendering and keep key numeric columns readable under constrained layout.
+- [x] 9.1 Define deterministic `Top N + Others` bucketing rules for dashboard expense composition in application-level dashboard overview assembly.
+- [x] 9.2 Implement dashboard expense composition mapping in the overview handler to reuse reporting insight semantics from `src/FamilyFinances.Application/Reporting/Internal/ReportingInsightsCalculator.cs` where possible.
+- [x] 9.3 Ensure dashboard chart datasets preserve deterministic ordering and stable legend labels under constrained layout.
 
 ## 10. Localization And Documentation
 
@@ -82,13 +84,13 @@
 
 ## 11. Automated Test Updates
 
-- [x] 11.1 Add dashboard page behavior tests under `tests/FamilyFinances.Web.Tests/Features/Dashboard/` covering: no tabs, no report shortcut cards, KPI strip presence, and block rendering.
+- [x] 11.1 Add/extend dashboard page behavior tests under `tests/FamilyFinances.Web.Tests/Features/Dashboard/` covering: no tabs, no report shortcut cards, KPI strip presence, Option 1 chart blocks, and 2560x1440 no-scroll contract.
 - [x] 11.2 Add/extend navigation tests in `tests/FamilyFinances.Web.Tests/Features/Layout/` to verify `Quick Entry` link presence and language selector absence in nav.
 - [x] 11.3 Add/extend accounts page tests for dual-balance columns in `tests/FamilyFinances.Web.Tests/Features/` (Accounts area).
 - [x] 11.4 Update `tests/FamilyFinances.Web.Tests/Features/Reports/EconomicStatePageTests.cs` for expense tab, monthly net list, and annual Income vs Expense bar block expectations.
 - [x] 11.5 Update report evolution tests (including `AccountGroupTotalsPageTests.cs` / `ReportResponsiveLayoutTests.cs`) for selected-month balance semantics and bar-based annual evolution.
 - [x] 11.6 Update `tests/FamilyFinances.Web.Tests/Features/Reports/AccountTotalsPageTests.cs` for default net-change ordering and header-driven sorting behavior.
-- [x] 11.7 Add/extend application tests in `tests/FamilyFinances.Application.Tests/Reporting/` for expense-total scope, dashboard overview assembly, and data-sufficiency states.
+- [x] 11.7 Add/extend application tests in `tests/FamilyFinances.Application.Tests/Reporting/` for dashboard overview assembly (annual bars absolute semantics, monthly net trend semantics, Top-N+Others composition, and data-sufficiency states).
 - [x] 11.8 Add/extend API integration tests in `tests/FamilyFinances.Api.IntegrationTests/Reporting/` for dashboard-overview contract and `expense-total` monthly-evolution scope.
 - [x] 11.9 Update Web API client tests in `tests/FamilyFinances.Web.Tests/Api/ReportsApiTests.cs` for new dashboard endpoint and scope mapping.
 
@@ -99,4 +101,4 @@
 - [x] 12.3 Run `dotnet test tests/FamilyFinances.Application.Tests/FamilyFinances.Application.Tests.csproj -c Release --filter "FullyQualifiedName~Reporting"` and resolve regressions.
 - [x] 12.4 Run `dotnet test tests/FamilyFinances.Api.IntegrationTests/FamilyFinances.Api.IntegrationTests.csproj -c Release --filter "FullyQualifiedName~Reporting"` and resolve regressions.
 - [x] 12.5 Run `openspec validate dashboard-household-financial-overview` and confirm no artifact/schema validation errors.
-- [ ] 12.6 Execute manual smoke checks (desktop + mobile): Dashboard at-a-glance layout, `/quick-entry` capture flows, Accounts dual-balance view, Economic State expense tab, and Account Totals sorting interactions.
+- [ ] 12.6 Execute manual smoke checks (desktop + mobile): Dashboard Option 1 layout at 2560x1440 (no vertical scroll), `/quick-entry` capture flows, Accounts dual-balance view, Economic State expense tab, and Account Totals sorting interactions.

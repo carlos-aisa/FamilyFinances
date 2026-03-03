@@ -62,7 +62,7 @@ public sealed class DashboardOverviewTests
         daily.ValueKind.Should().Be(JsonValueKind.Array);
         groups.ValueKind.Should().Be(JsonValueKind.Array);
         ytd.GetProperty("monthlyNetPoints").ValueKind.Should().Be(JsonValueKind.Array);
-        insights.GetArrayLength().Should().BeLessThanOrEqualTo(6);
+        insights.GetArrayLength().Should().BeLessThanOrEqualTo(9);
         dataState.GetInt32().Should().BeOneOf(1, 2, 3);
     }
 

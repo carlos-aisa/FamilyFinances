@@ -1,22 +1,27 @@
 ## ADDED Requirements
 
-### Requirement: Dashboard SHALL Support Compact Insights List Derived From Reporting Insights
-The dashboard MUST expose a compact analytical list derived from existing insight semantics for at-a-glance interpretation.
+### Requirement: Dashboard SHALL Use Insight Aggregation For Expense Top-N Plus Others Composition
+Dashboard expense composition MUST be derived from reporting insight aggregation semantics and remain stable as category cardinality grows.
 
-#### Scenario: Compact list reuses existing insight semantics
-- **WHEN** dashboard compact insights are rendered
-- **THEN** items MUST use existing reporting insight semantics (for example top contributors or anomaly statuses)
-- **AND** values MUST remain aligned with source insight datasets
+#### Scenario: Expense Top-N composition is insight-driven
+- **WHEN** dashboard expense composition is rendered for the selected month
+- **THEN** slice values MUST be sourced from reporting insight-compatible aggregation datasets
+- **AND** dashboard values MUST remain consistent with report-level expense totals for the same period
 
-#### Scenario: Compact list applies deterministic row cap
-- **WHEN** more insights are available than dashboard capacity
-- **THEN** the dashboard MUST limit rendered rows to configured cap
-- **AND** row ordering MUST follow deterministic priority rules
+#### Scenario: Others slice closes the composition sum
+- **WHEN** expense contributors exceed configured Top-N capacity
+- **THEN** non-Top-N contributors MUST be aggregated into `Others`
+- **AND** the sum of `Top-N + Others` MUST equal the selected-month total expense magnitude
 
-### Requirement: Dashboard Insights SHALL Preserve Readability In Dense Viewports
-Dashboard insights list MUST remain readable in constrained analytical layout.
+### Requirement: Dashboard Insight Visualization SHALL Prioritize Chart Readability Over Dense Tables
+Dashboard insight representation MUST be chart-first in the primary cockpit layout.
 
-#### Scenario: Dense layout keeps key columns scannable
-- **WHEN** compact insights list is rendered within dashboard right-column block
-- **THEN** key columns (name, amount, percentage or status) MUST remain visually scannable
-- **AND** text overflow handling MUST avoid clipping critical numeric values
+#### Scenario: Insight consumption avoids growth-prone table blocks
+- **WHEN** dashboard renders insight blocks in desktop cockpit mode
+- **THEN** expense insight MUST be presented as composition chart(s) instead of a vertically growing insight table
+- **AND** numeric comparability MUST remain available through chart legend labels/tooltips
+
+#### Scenario: Sparse data remains explicit
+- **WHEN** selected-month expense insight data is partial or missing
+- **THEN** dashboard MUST render explicit empty/partial state messaging
+- **AND** chart block footprint MUST remain layout-stable

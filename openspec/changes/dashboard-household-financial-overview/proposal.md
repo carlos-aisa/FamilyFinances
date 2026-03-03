@@ -9,11 +9,12 @@
 
 ### Required
 - Dashboard must present household financial status at a glance, centered on the selected/current month and previous month comparison.
-- Dashboard must include both charts and compact data lists needed for quick decision-making.
+- Dashboard must be chart-first, minimizing dense/growing tables in the primary cockpit area.
 - Move quick transaction capture workflows out of Dashboard into a dedicated `Quick Entry` workspace route.
 - Keep report discovery/navigation in the main menu (`Reports`) instead of Dashboard shortcut cards.
 - Include Accounts and Reports presentation improvements requested in `reports-and-accounts-presentation-refresh`.
-- Desktop layout target is 1920x1080 with minimized vertical scroll for the main analytical blocks.
+- Desktop layout target is 2560x1440 with no vertical scroll for the primary dashboard analytical surface in current scope.
+- Keep multi-resolution adaptation (font/chart scaling across additional resolutions) out of this iteration; it will be handled by a separate pending OpenSpec change.
 - Year-over-year comparison must be prepared for future data availability with explicit data-sufficiency states.
 
 ## Why
@@ -26,11 +27,13 @@ Current scope was split across two drafts: one for Dashboard/Quick Entry informa
 - Introduce a dedicated `Quick Entry` page (`/quick-entry`) that hosts current rapid transaction capture workflows moved out of Dashboard.
 - Keep `Reports` in main navigation as the deep-dive entry path; Dashboard must not duplicate report shortcut cards.
 - Add a compact dashboard KPI strip for current month and previous month deltas, including at least: Income, Expense, Net Result (`Income - Expense`), and Net Worth.
-- Add key dashboard analytical blocks:
-  - primary monthly comparison chart (`Income vs Expense`),
+- Add key dashboard analytical blocks (Option 1 visual composition):
+  - month-focused `Income vs Expense` line chart,
+  - annual `Income vs Expense` month-result bar chart,
+  - monthly net-balance line chart (`Income - Expense`) replacing growing month tables,
   - current account-group state chart,
-  - annual accumulated total (YTD net accumulation),
-  - one compact analytical list (Top expenses and/or anomalies) with strict row cap.
+  - account-group composition chart,
+  - expense composition pie chart with `Top N` contributors (`N=8..10`) plus aggregated `Others`.
 - Add explicit data-sufficiency states for limited history and future-ready hooks for same-month last-year comparison.
 - Update the Accounts list view to show both accumulated balance and selected-period balance (current month for this iteration).
 - Update Economic State report with an `Expenses` evolution tab symmetric to existing Asset/Income evolution tabs.
@@ -46,12 +49,12 @@ Current scope was split across two drafts: one for Dashboard/Quick Entry informa
   - render annual evolution as month-result bars (non-cumulative),
   - rebalance list/chart width for chart readability,
   - remove or relocate low-value comparability info card that reduces analysis area.
-- Add/update localization and automated tests for new dashboard contracts, quick-entry route separation, sorting behavior, and revised chart/list semantics.
+- Add/update localization and automated tests for new dashboard contracts, quick-entry route separation, sorting behavior, and revised chart semantics.
 
 ## Capabilities
 
 ### New Capabilities
-- `dashboard-household-financial-overview`: Defines the dashboard analytical contract (KPI strip, key charts, compact lists, no-tabs layout, and data-sufficiency states).
+- `dashboard-household-financial-overview`: Defines the dashboard analytical contract (KPI strip, chart-first cockpit blocks, no-tabs layout, and data-sufficiency states).
 - `quick-entry-workspace`: Defines a dedicated route and UX contract for rapid transaction capture outside Dashboard.
 - `accounts-balance-presentation`: Defines dual-balance presentation (accumulated + selected period) on the Accounts view.
 
@@ -61,7 +64,7 @@ Current scope was split across two drafts: one for Dashboard/Quick Entry informa
 - `monthly-balance-evolution-reporting`: Extend scope support for expense-total evolution and enforce exact selected-month balance semantics in group evolution list context.
 - `monthly-reporting-charts`: Monthly `Income vs Expense` chart behavior is extended to dashboard usage under constrained fixed-height layout.
 - `annual-reporting-charts`: Add annual Income vs Expense comparison bars and migrate group evolution annual visualization to bar-based month results.
-- `reporting-insights`: Compact insight list usage is extended to dashboard context with strict row limits.
+- `reporting-insights`: Dashboard usage is focused on chart-oriented insight aggregation, including expense Top-N plus `Others` composition.
 - `system`: Navigation IA is updated to include `Quick Entry` destination while keeping report access in menu and language controls in Settings only.
 
 ## Impact
@@ -77,7 +80,7 @@ Current scope was split across two drafts: one for Dashboard/Quick Entry informa
   - shared reporting chart components/styles used by dashboard cards
   - dashboard-related layout CSS and responsive density rules
 - Potential backend/application impact:
-  - aggregation/query composition for current-vs-previous month dashboard snapshot and compact list datasets
+  - aggregation/query composition for current-vs-previous month dashboard snapshot, monthly net trend, and expense Top-N plus `Others` composition datasets
   - monthly evolution scope parsing/mapping for expense-total where not already covered
   - possible reuse/extension of existing reporting endpoints for dashboard datasets
 - Affected tests:
@@ -90,10 +93,10 @@ Current scope was split across two drafts: one for Dashboard/Quick Entry informa
 
 ## Non-Goals
 
-- No migration of full detailed report tables into Dashboard (only compact glance-oriented lists).
+- No migration of full detailed report tables into Dashboard (chart-first glance-oriented cockpit).
 - No advanced/professional forecasting models.
 - No replacement of existing report pages as deep-dive analysis surfaces.
-- No requirement to guarantee zero scroll on every viewport; target is minimized scroll on standard desktop (1920x1080).
+- No requirement to guarantee zero scroll on every viewport; target is no-scroll on the current baseline desktop (2560x1440).
 
 ## Rollback Plan
 

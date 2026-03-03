@@ -5,7 +5,7 @@ The Dashboard page MUST preserve analytical workflow continuity while shifting t
 
 #### Scenario: Dashboard renders analytics-first composition
 - **WHEN** an authenticated user opens `/`
-- **THEN** Dashboard MUST prioritize KPI, chart, and compact-list analytical blocks
+- **THEN** Dashboard MUST prioritize KPI and chart-first analytical blocks
 - **AND** the composition MUST avoid tabbed containers for primary dashboard analysis
 
 #### Scenario: Quick-entry workflow is no longer hosted on dashboard

@@ -80,6 +80,9 @@ else if (_report is not null)
     var compositionMonthLabel = compositionMonth is not null
         ? DateHelper.GetMonthName(compositionMonth.Value)
         : L["Reports_NotAvailable"];
+    var compositionBadgeText = compositionMonth is not null
+        ? $"{_selectedYear:D4}-{compositionMonth.Value:D2}"
+        : $"{_selectedYear:D4}";
     var monthlyComparisonSeries = BuildMonthlyComparisonChartSeries();
 
     <div class="row g-3 mb-4">
@@ -249,7 +252,10 @@ else if (_report is not null)
                         Title="@L["AccountGroupState_CompositionTitle"]"
                         Subtitle="@L["AccountGroupState_CompositionSubtitle", compositionMonthLabel]"
                         Year="@_selectedYear"
+                        BadgeText="@compositionBadgeText"
                         Slices="@charts.AccountGroupExpenseComposition"
+                        UseSideLegend="true"
+                        LegendMaxItems="10"
                         TestId="account-group-totals-stock-composition-chart" />
                 }
             </div>
@@ -306,6 +312,7 @@ else
     private int? _focusedMonth;
     private string? _expandedSeriesKey;
     private ChartMode _chartMode = ChartMode.Evolution;
+    private const int CompositionMaxSlices = 10;
     private IReadOnlyDictionary<Guid, IReadOnlySet<AccountNature>> _accountGroupNaturesById =
         new Dictionary<Guid, IReadOnlySet<AccountNature>>();
 
@@ -588,12 +595,13 @@ else
         {
             var focusedCompositionMonth = GetFocusedCompositionMonth();
             var accountGroupEvolution = AnnualChartDatasetAdapter.BuildSeriesMonthlyDelta(_report, maxSeries: 12);
-            var accountGroupExpenseComposition = focusedCompositionMonth is not null
+            var rawAccountGroupExpenseComposition = focusedCompositionMonth is not null
                 ? AnnualChartDatasetAdapter.BuildCompositionFromSeriesAtMonth(
                     _report,
                     IsExpenseOrientedGroup,
                     focusedCompositionMonth.Value)
                 : Array.Empty<AnnualCompositionSlice>();
+            var accountGroupExpenseComposition = BuildDashboardStyleComposition(rawAccountGroupExpenseComposition);
 
             return new ChartsViewModel(
                 AccountGroupEvolution: accountGroupEvolution,
@@ -607,6 +615,50 @@ else
                 AccountGroupExpenseComposition: Array.Empty<AnnualCompositionSlice>(),
                 Error: L["Reports_Error_BuildChartDataset", ex.Message]);
         }
+    }
+
+    private IReadOnlyList<AnnualCompositionSlice> BuildDashboardStyleComposition(
+        IReadOnlyList<AnnualCompositionSlice> slices)
+    {
+        if (slices.Count == 0)
+            return Array.Empty<AnnualCompositionSlice>();
+
+        var maxSlices = Math.Max(2, CompositionMaxSlices);
+        var ordered = slices
+            .OrderByDescending(slice => slice.RawValueCents)
+            .ThenBy(slice => slice.Label, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var limited = ordered.Count > maxSlices
+            ? ordered.Take(maxSlices - 1).ToList()
+            : ordered;
+
+        if (ordered.Count > maxSlices)
+        {
+            var othersRawValueCents = ordered.Skip(maxSlices - 1).Sum(slice => slice.RawValueCents);
+            if (othersRawValueCents > 0)
+            {
+                limited.Add(new AnnualCompositionSlice(
+                    Key: "others",
+                    Label: L["Dashboard_ExpenseComposition_Others"],
+                    RawValueCents: othersRawValueCents,
+                    Percentage: 0m,
+                    ColorHex: AnnualChartPalette.Resolve(limited.Count)));
+            }
+        }
+
+        var total = limited.Sum(slice => slice.RawValueCents);
+        if (total <= 0)
+            return Array.Empty<AnnualCompositionSlice>();
+
+        return limited
+            .Select((slice, idx) => new AnnualCompositionSlice(
+                Key: slice.Key,
+                Label: slice.Label,
+                RawValueCents: slice.RawValueCents,
+                Percentage: (slice.RawValueCents * 100m) / total,
+                ColorHex: AnnualChartPalette.Resolve(idx)))
+            .ToList();
     }
 
     private IReadOnlyList<MonthlyChartSeries> BuildMonthlyComparisonChartSeries()

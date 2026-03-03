@@ -26,37 +26,42 @@ public sealed class DashboardPageTests : WebTestContext
         {
             cut.Find("[data-testid='dashboard-kpi-strip']");
             cut.Find("[data-testid='dashboard-monthly-income-expense-chart']");
-            cut.Find("[data-testid='dashboard-ytd-summary']");
-            cut.Find("[data-testid='dashboard-group-state-chart']");
-            cut.Find("[data-testid='dashboard-compact-insights']");
+            cut.Find("[data-testid='dashboard-annual-income-expense-chart']");
+            cut.Find("[data-testid='dashboard-monthly-net-trend-chart']");
+            cut.Find("[data-testid='dashboard-asset-evolution-chart']");
+            cut.Find("[data-testid='dashboard-group-annual-evolution-chart']");
+            var compositionChart = cut.Find("[data-testid='dashboard-expense-composition-chart']");
             cut.Find("[data-testid='dashboard-open-quick-entry']");
+            compositionChart.TextContent.Should().Contain("2026-03");
 
             cut.Markup.Should().NotContain("ff-premium-tabs");
             cut.Markup.Should().NotContain("report-card");
+            cut.Markup.Should().NotContain("dashboard-group-state-chart");
         });
     }
 
     [Fact]
-    public void Dashboard_Compact_Insights_Is_Row_Capped_At_Eight()
+    public void Dashboard_Expense_Composition_Chart_Has_Total_Percentage_Close_To_OneHundred()
     {
-        var oversizedInsights = Enumerable.Range(1, 12)
-            .Select(index => new DashboardCompactInsightRowDto(
-                RowKey: $"row-{index}",
-                Kind: "top-expense",
-                Label: $"Item {index}",
-                AmountCents: 10_000 + index,
-                Percentage: 10m + index,
-                StatusCode: "top-contributor"))
-            .ToList();
+        var compositionRows =
+            new[]
+            {
+                new DashboardCompactInsightRowDto("row-1", "top-expense", "Housing", 60_000, 50m, "top-contributor"),
+                new DashboardCompactInsightRowDto("row-2", "top-expense", "Food", 36_000, 30m, "top-contributor"),
+                new DashboardCompactInsightRowDto("row-others", "top-expense", "Others", 24_000, 20m, "others")
+            };
 
-        RegisterAuthorizedServices(BuildHttpClientFactory(CreateOverviewPayload(compactInsights: oversizedInsights)));
+        RegisterAuthorizedServices(BuildHttpClientFactory(CreateOverviewPayload(compactInsights: compositionRows)));
 
         var cut = RenderComponent<DashboardPage>();
 
         cut.WaitForAssertion(() =>
         {
-            var rows = cut.FindAll("[data-testid='dashboard-compact-insights'] tbody tr");
-            rows.Should().HaveCount(8);
+            var chart = cut.Find("[data-testid='dashboard-expense-composition-chart']");
+            var totalRaw = chart.GetAttribute("data-total-percentage");
+            totalRaw.Should().NotBeNullOrWhiteSpace();
+            var total = decimal.Parse(totalRaw!, System.Globalization.CultureInfo.InvariantCulture);
+            total.Should().BeApproximately(100m, 0.01m);
         });
     }
 
@@ -94,17 +99,45 @@ public sealed class DashboardPageTests : WebTestContext
             BaseAddress = new Uri("http://localhost:5000")
         };
 
+        var assetEvolution = CreateAssetEvolutionPayload(payload.AsOf.Year);
+        var groupEvolution = CreateGroupEvolutionPayload(payload.AsOf.Year);
+
         handlerMock
             .Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
-                ItExpr.Is<HttpRequestMessage>(req =>
-                    req.Method == HttpMethod.Get &&
-                    req.RequestUri!.ToString().Contains("api/v1/reports/dashboard-overview", StringComparison.OrdinalIgnoreCase)),
+                ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Get),
                 ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            .Returns<HttpRequestMessage, CancellationToken>((req, _) =>
             {
-                Content = JsonContent.Create(payload)
+                var uri = req.RequestUri?.ToString() ?? string.Empty;
+                if (uri.Contains("api/v1/reports/dashboard-overview", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(payload)
+                    });
+                }
+
+                if (uri.Contains("api/v1/reports/state-evolution", StringComparison.OrdinalIgnoreCase) &&
+                    uri.Contains("scope=asset-total", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(assetEvolution)
+                    });
+                }
+
+                if (uri.Contains("api/v1/reports/state-evolution", StringComparison.OrdinalIgnoreCase) &&
+                    uri.Contains("scope=account-groups", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(groupEvolution)
+                    });
+                }
+
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
             });
 
         var factoryMock = new Mock<IHttpClientFactory>(MockBehavior.Strict);
@@ -152,8 +185,57 @@ public sealed class DashboardPageTests : WebTestContext
                 ]),
             CompactInsights: compactInsights ??
             [
-                new DashboardCompactInsightRowDto("a-1", "anomaly", "Groceries", 55_000, null, "anomaly"),
-                new DashboardCompactInsightRowDto("a-2", "top-expense", "Utilities", 40_000, 20m, "top-contributor")
+                new DashboardCompactInsightRowDto("a-1", "top-expense", "Groceries", 55_000, 55m, "top-contributor"),
+                new DashboardCompactInsightRowDto("a-2", "top-expense", "Utilities", 40_000, 40m, "top-contributor"),
+                new DashboardCompactInsightRowDto("a-others", "top-expense", "Others", 5_000, 5m, "others")
+            ]);
+    }
+
+    private static MonthlyEvolutionReportDto CreateAssetEvolutionPayload(int year)
+    {
+        return new MonthlyEvolutionReportDto(
+            year,
+            MonthlyEvolutionScope.AssetTotal,
+            [
+                new MonthlyEvolutionSeriesDto(
+                    "asset-total",
+                    "Asset Total",
+                    null,
+                    "scope",
+                    [
+                        new MonthlyEvolutionPointDto(1, new DateOnly(year, 1, 31), 2_500_000, 300_000, 300_000),
+                        new MonthlyEvolutionPointDto(2, new DateOnly(year, 2, 28), 2_750_000, 250_000, 550_000),
+                        new MonthlyEvolutionPointDto(3, new DateOnly(year, 3, 31), 2_820_000, 70_000, 620_000)
+                    ])
+            ]);
+    }
+
+    private static MonthlyEvolutionReportDto CreateGroupEvolutionPayload(int year)
+    {
+        return new MonthlyEvolutionReportDto(
+            year,
+            MonthlyEvolutionScope.AccountGroups,
+            [
+                new MonthlyEvolutionSeriesDto(
+                    "group:home",
+                    "Home",
+                    null,
+                    "account-group",
+                    [
+                        new MonthlyEvolutionPointDto(1, new DateOnly(year, 1, 31), 180_000, 180_000, 180_000),
+                        new MonthlyEvolutionPointDto(2, new DateOnly(year, 2, 28), 260_000, 80_000, 260_000),
+                        new MonthlyEvolutionPointDto(3, new DateOnly(year, 3, 31), 340_000, 80_000, 340_000)
+                    ]),
+                new MonthlyEvolutionSeriesDto(
+                    "group:utilities",
+                    "Utilities",
+                    null,
+                    "account-group",
+                    [
+                        new MonthlyEvolutionPointDto(1, new DateOnly(year, 1, 31), 40_000, 40_000, 40_000),
+                        new MonthlyEvolutionPointDto(2, new DateOnly(year, 2, 28), 70_000, 30_000, 70_000),
+                        new MonthlyEvolutionPointDto(3, new DateOnly(year, 3, 31), 95_000, 25_000, 95_000)
+                    ])
             ]);
     }
 

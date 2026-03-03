@@ -25,3 +25,16 @@ The dashboard monthly chart container MUST support constrained fixed-height rend
 - **WHEN** dashboard analytical blocks are rendered together
 - **THEN** monthly chart placement MUST not depend on tabbed grouping
 - **AND** core chart interpretation MUST remain available in the primary dashboard viewport
+
+### Requirement: Dashboard SHALL Provide Monthly Net-Balance Trend As A Line Chart
+Dashboard monthly net interpretation MUST be available as a charted month series.
+
+#### Scenario: Monthly net trend renders deterministic month ordering
+- **WHEN** monthly net trend is rendered for selected year `Y`
+- **THEN** points MUST be ordered from January through December
+- **AND** each point value MUST represent `Income - Expense` for the corresponding month
+
+#### Scenario: Monthly net trend replaces growth-prone monthly net tables
+- **WHEN** dashboard monthly net information is displayed in cockpit mode
+- **THEN** it MUST be displayed as a line chart block
+- **AND** it MUST NOT require a vertically growing month-list table as the primary dashboard representation

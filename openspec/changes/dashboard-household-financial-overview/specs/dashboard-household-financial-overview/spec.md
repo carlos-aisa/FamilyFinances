@@ -5,7 +5,13 @@ The Dashboard MUST render an analytics-first household overview that prioritizes
 
 #### Scenario: Dashboard renders required overview blocks
 - **WHEN** an authenticated user opens `/`
-- **THEN** the Dashboard MUST render a KPI strip, a monthly Income vs Expense chart, an account-group current-state chart, an annual YTD accumulation block, and one compact analytical list
+- **THEN** the Dashboard MUST render a KPI strip and the following chart blocks in the primary viewport:
+  - month-focused `Income vs Expense` line chart,
+  - annual `Income vs Expense` month-result bar chart,
+  - monthly net-balance line chart (`Income - Expense`),
+  - account-group current-state chart,
+  - account-group composition chart,
+  - expense composition pie chart using `Top N + Others`
 - **AND** each block MUST be visible without requiring tab interaction
 
 #### Scenario: Dashboard does not duplicate report navigation cards
@@ -42,12 +48,33 @@ The Dashboard MUST explicitly communicate historical sufficiency when year-over-
 ### Requirement: Dashboard Desktop Layout SHALL Minimize Scroll For Standard Viewports
 The Dashboard MUST follow a fixed analytical layout contract optimized for standard desktop usage.
 
-#### Scenario: Desktop layout targets 1920x1080 glanceability
-- **WHEN** the Dashboard is rendered at a 1920x1080 viewport in default browser zoom
-- **THEN** the KPI strip and the primary analytical rows MUST be visible with minimized vertical scroll
+#### Scenario: Desktop layout targets 2560x1440 no-scroll glanceability
+- **WHEN** the Dashboard is rendered at a 2560x1440 viewport in default browser zoom
+- **THEN** the KPI strip and the primary analytical rows MUST be visible without vertical page scroll
 - **AND** primary analytical interpretation MUST be possible without opening additional pages
 
 #### Scenario: Mobile layout preserves readability without desktop contract assumptions
 - **WHEN** the Dashboard is rendered on tablet or mobile breakpoints
 - **THEN** blocks MAY stack vertically
-- **AND** semantic ordering of KPI-first then chart/list analysis MUST remain preserved
+- **AND** semantic ordering of KPI-first then chart analysis MUST remain preserved
+
+### Requirement: Dashboard Expense Composition SHALL Aggregate Tail Categories Into Others
+Dashboard expense composition MUST remain readable as category count grows.
+
+#### Scenario: Expense composition pie applies Top-N bucketing
+- **WHEN** expense composition is rendered for the selected month
+- **THEN** only the top `N` expense contributors (`N` between 8 and 10, configurable) SHALL be rendered as individual slices
+- **AND** all remaining contributors SHALL be aggregated in a single `Others` slice
+
+#### Scenario: Top-N expense ordering is deterministic
+- **WHEN** multiple expense contributors are eligible for Top-N
+- **THEN** ordering MUST be deterministic by absolute expense amount descending
+- **AND** tie-breaking MUST be stable by contributor label/key
+
+### Requirement: Dashboard SHALL Prefer Trend Charts Over Growing Monthly Tables
+Dashboard monthly trend interpretation MUST avoid vertically growing table blocks.
+
+#### Scenario: Monthly net trend replaces monthly net list table
+- **WHEN** dashboard monthly net data is rendered
+- **THEN** it MUST be shown as a line chart across months (`Income - Expense`)
+- **AND** the dashboard MUST NOT depend on a month-by-month net table that can grow in height with historical data

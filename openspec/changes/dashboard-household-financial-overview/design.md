@@ -20,7 +20,7 @@ Current implementation baseline:
 Constraints and stakeholder expectations:
 - Financial semantics remain unchanged (`Net = Income - Expense` positive when income > expense)
 - Dashboard must avoid tabs and avoid report shortcut cards
-- Dashboard should minimize vertical scroll on 1920x1080 desktop
+- Dashboard should minimize vertical scroll on 2560x1440 desktop (current baseline target)
 - Language selector remains in Settings only
 - Current data may be sparse (for example only 2 months), but UI should be ready for year-over-year comparisons once data exists
 
@@ -77,16 +77,18 @@ Primary users:
 2. App resolves current comparison context: selected/current month plus previous month.
 3. Dashboard loads compact KPI strip (Income, Expense, Net Result, Net Worth) with delta vs previous month.
 4. Dashboard loads analytical blocks:
-   - monthly Income vs Expense chart,
+   - month-focused Income vs Expense line chart,
+   - annual Income vs Expense month-result bar chart (absolute values for comparability),
+   - monthly net-balance line chart (`Income - Expense`),
    - account-group current-state chart,
-   - annual YTD accumulation block,
-   - compact list (Top expenses or anomalies).
+   - account-group composition chart,
+   - expense composition pie chart (Top-N + Others, where N=8..10).
 5. If history is insufficient, dashboard displays explicit state text and still preserves block layout footprint.
 
 Expected:
 - No tabs.
 - No report shortcut cards.
-- Minimal scroll on 1920x1080.
+- No vertical scroll in baseline 2560x1440 desktop viewport.
 
 ### Flow 2: Quick transaction capture
 1. User navigates to `/quick-entry` from main nav.
@@ -144,22 +146,27 @@ Expected:
 
 ## DETAILED PAGE WIREFRAMES
 
-### Dashboard (desktop target 1920x1080, no tabs)
+### Dashboard (desktop target 2560x1440, no tabs)
 
 ```text
-+--------------------------------------------------------------------------------------------------+
-| KPI Strip: [Income] [Expense] [Net Result] [Net Worth] (each with delta vs previous month)     |
-+--------------------------------------------------------------------------------------------------+
-| Left (approx 66%)                                  | Right (approx 34%)                           |
-|----------------------------------------------------+-----------------------------------------------|
-| Monthly Income vs Expense (primary chart)          | YTD Net Accumulation KPI + mini trend         |
-| (fixed height)                                     | (fixed height)                                |
-+--------------------------------------------------------------------------------------------------+
-| Left (approx 66%)                                  | Right (approx 34%)                           |
-|----------------------------------------------------+-----------------------------------------------|
-| Account-group current state (horizontal bars)      | Compact analytical list (Top expenses/alerts) |
-| (fixed height)                                     | max 5-8 rows                                  |
-+--------------------------------------------------------------------------------------------------+
++--------------------------------------------------------------------------------------------------------------+
+| KPI Strip: [Income] [Expense] [Net Result] [Net Worth] (each with delta vs previous month)                 |
++--------------------------------------------------------------------------------------------------------------+
+| Left (50%)                                           | Right (50%)                                    |
+|------------------------------------------------------+-----------------------------------------------|
+| Month-focused Income vs Expense (line)               | Annual Income vs Expense (month-result bars)   |
+| fixed-height chart                                    | fixed-height chart (absolute values)          |
++--------------------------------------------------------------------------------------------------------------+
+| Left (50%)                                           | Right (50%)                                    |
+|------------------------------------------------------+-----------------------------------------------|
+| Monthly Net Balance Trend (Income - Expense, line)   | Account Group Current State (bars)             |
+| fixed-height chart                                    | fixed-height chart                            |
++--------------------------------------------------------------------------------------------------------------+
+| Left (50%)                                           | Right (50%)                                    |
+|------------------------------------------------------+-----------------------------------------------|
+| Expense composition (pie: Top-N + Others)            | Account Group Composition (pie/donut)          |
+| fixed-height chart                                    | fixed-height chart                            |
++--------------------------------------------------------------------------------------------------------------+
 ```
 
 ### Quick Entry workspace
@@ -192,8 +199,8 @@ Expected:
 | Area | Reuse | Modify | New |
 |---|---|---|---|
 | Quick-entry interaction components | Existing quick-entry cards/drawers/widgets | Rehost route and container placement | Optional `QuickEntryPage.razor` route host |
-| Dashboard layout shell | Existing dashboard page route | Replace composition with analytics-first blocks | Optional dashboard section components |
-| Reporting data endpoints | Existing reporting APIs and DTO contracts | Add/extend mappings for expense evolution + snapshot aggregates as needed | Optional aggregate DTO for dashboard snapshot |
+| Dashboard layout shell | Existing dashboard page route | Replace composition with analytics-first chart grid blocks | Optional dashboard section components |
+| Reporting data endpoints | Existing reporting APIs and DTO contracts | Add/extend mappings for month-focused, annual bars, net trend, and Top-N+Others datasets | Optional aggregate DTO for dashboard snapshot |
 | Accounts list page | Existing Accounts page and row rendering | Add period-balance column and formatting | None expected |
 | Economic State page | Existing tabs and panels | Add Expense tab and summary content blocks | Optional panel component for monthly net list |
 | Annual/monthly chart components | Existing chart wrappers and JS | Add bar variants/non-cumulative semantics where required | Optional reusable annual bar component |
@@ -258,7 +265,7 @@ Expected:
 - **Rejected because:** High integration churn for limited value.
 
 ### Decision 10: Desktop no-scroll target is constrained, not universal
-- **Choice:** Target 1920x1080 for minimized scroll.
+- **Choice:** Target 2560x1440 for no-scroll baseline dashboard glanceability.
 - **Rationale:** Realistic and testable acceptance criteria.
 - **Alternative:** strict no-scroll for all breakpoints.
 - **Rejected because:** infeasible and harmful on small screens.
@@ -272,20 +279,29 @@ Expected:
   <DashboardKpiStrip Metrics="_kpis" />
 
   <div class="row g-3 ff-dashboard-row-2">
-    <div class="col-12 col-xl-8">
+    <div class="col-12 col-xxl-6">
       <MonthlyIncomeExpenseChart ... />
     </div>
-    <div class="col-12 col-xl-4">
-      <YtdAccumulationCard ... />
+    <div class="col-12 col-xxl-6">
+      <AnnualIncomeExpenseBarsChart ... />
     </div>
   </div>
 
   <div class="row g-3 ff-dashboard-row-3">
-    <div class="col-12 col-xl-8">
+    <div class="col-12 col-xxl-6">
+      <MonthlyNetBalanceLineChart ... />
+    </div>
+    <div class="col-12 col-xxl-6">
       <AccountGroupStateChart ... />
     </div>
-    <div class="col-12 col-xl-4">
-      <CompactInsightsList Items="_topItems" MaxRows="6" />
+  </div>
+
+  <div class="row g-3 ff-dashboard-row-4">
+    <div class="col-12 col-xxl-6">
+      <ExpenseCompositionChartTopNWithOthers ... />
+    </div>
+    <div class="col-12 col-xxl-6">
+      <AccountGroupCompositionChart ... />
     </div>
   </div>
 </div>
@@ -306,8 +322,11 @@ public sealed record DashboardOverviewDto(
     long NetResultDeltaVsPreviousCents,
     long NetWorthDeltaVsPreviousCents,
     IReadOnlyList<GroupStatePointDto> GroupStates,
+    IReadOnlyList<GroupCompositionPointDto> GroupComposition,
     IReadOnlyList<MonthlyIncomeExpensePointDto> MonthlyIncomeExpense,
-    IReadOnlyList<CompactInsightRowDto> CompactInsights,
+    IReadOnlyList<MonthlyIncomeExpensePointDto> AnnualIncomeExpenseByMonth,
+    IReadOnlyList<MonthlyNetPointDto> MonthlyNetBalanceTrend,
+    IReadOnlyList<ExpenseCompositionPointDto> ExpenseTopNWithOthers,
     DataSufficiencyState DataState);
 ```
 
@@ -370,7 +389,7 @@ var state = hasSameMonthLastYear
 - [Risk] Non-cumulative bars may conflict with previous user mental model.
   -> Mitigation: clear labels/subtitles indicating month result semantics.
 
-- [Risk] 1920x1080 no-scroll target may be brittle under localization expansion.
+- [Risk] 2560x1440 no-scroll target may be brittle under localization expansion.
   -> Mitigation: concise labels and controlled card heights with overflow-safe rules.
 
 - [Trade-off] Reusing report endpoints reduces backend churn but can produce slightly coupled dashboard contracts.
@@ -388,7 +407,7 @@ var state = hasSameMonthLastYear
 
 ### Phase 2: Dashboard analytics composition
 4. Implement dashboard KPI strip and fixed block layout (no tabs, no shortcut cards).
-5. Integrate monthly comparison chart, group-state chart, YTD block, compact list.
+5. Integrate Option 1 blocks: month-focused line, annual bars, monthly net trend, group state, group composition, expense Top-N+Others.
 6. Implement data-sufficiency UI states.
 
 ### Phase 3: Accounts + Reports presentation deltas
@@ -416,7 +435,7 @@ var state = hasSameMonthLastYear
 
 ## Open Questions
 
-- Should dashboard compact list prioritize Top expenses or anomalies by default when both are available?
+- Should expense composition Top-N default to 8 or 10 when the user has no explicit preference configured?
 - Should selected month in dashboard be always current month for now, or user-selectable from dashboard header in this iteration?
 - For Accounts period balance, should period label be displayed inline (`Current month`) to avoid ambiguity?
 - For Economic State annual bars, should bars be grouped (Income/Expense side-by-side) or stacked with net overlay?
@@ -449,16 +468,17 @@ var state = hasSameMonthLastYear
 - [ ] Each KPI shows delta vs previous month.
 - [ ] Delta sign rendering is correct for positive/negative.
 
-### Dashboard chart/list blocks
+### Dashboard chart blocks
 - [ ] Monthly Income vs Expense chart renders.
+- [ ] Annual Income vs Expense bars render with month buckets Jan-Dec.
+- [ ] Monthly net-balance trend chart renders as `Income - Expense`.
 - [ ] Account-group state chart renders.
-- [ ] YTD accumulation block renders.
-- [ ] Compact list renders with capped rows.
-- [ ] Compact list never exceeds configured max rows.
+- [ ] Account-group composition chart renders.
+- [ ] Expense composition chart renders Top-N + Others.
 - [ ] Block titles and subtitles are localized.
 
 ### Dashboard layout contract
-- [ ] Desktop (1920x1080) shows KPI + row2 + row3 without disruptive overflow.
+- [ ] Desktop (2560x1440) shows KPI + primary analytical rows without vertical scroll.
 - [ ] Block heights are consistent with design contract.
 - [ ] No tabs are used to hide core dashboard blocks.
 - [ ] No report shortcut cards are introduced.

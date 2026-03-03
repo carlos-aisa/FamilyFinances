@@ -7,10 +7,7 @@ namespace FamilyFinances.Application.Reporting.Handlers;
 
 public sealed class GetDashboardOverviewHandler
 {
-    private const int CompactInsightRowCap = 6;
     private const int ParetoTopN = 8;
-    private const int AnomalyLookbackMonths = 12;
-    private const int AnomalyRequiredHistoryMonths = 3;
 
     private readonly IReportingReadRepository _repo;
     private readonly IReportingInsightsCalculator _insightsCalculator;
@@ -44,7 +41,7 @@ public sealed class GetDashboardOverviewHandler
             DeltaVsPreviousMonthCents: core.CurrentState.NetWorthCents - core.PreviousState.NetWorthCents);
 
         var dailyIncomeVsExpense = BuildDailyIncomeVsExpense(core.IncomeDailyPoints, core.ExpenseDailyPoints);
-        var compactInsights = await BuildCompactInsightsAsync(core.AsOf, ct);
+        var compactInsights = await BuildExpenseCompositionRowsAsync(core.AsOf, ct);
 
         long? sameMonthDelta = core.SameMonthLastYearNetCents is null
             ? null
@@ -108,7 +105,7 @@ public sealed class GetDashboardOverviewHandler
             .ToList();
     }
 
-    private async Task<IReadOnlyList<DashboardCompactInsightRowDto>> BuildCompactInsightsAsync(DateOnly asOf, CancellationToken ct)
+    private async Task<IReadOnlyList<DashboardCompactInsightRowDto>> BuildExpenseCompositionRowsAsync(DateOnly asOf, CancellationToken ct)
     {
         var monthStart = new DateOnly(asOf.Year, asOf.Month, 1);
         var monthEndExclusive = asOf.AddDays(1);
@@ -130,73 +127,38 @@ public sealed class GetDashboardOverviewHandler
             expenseContributors,
             incomeContributors: Array.Empty<InsightContributorAggregateDto>());
 
-        var anomalyFromInclusive = monthStart.AddMonths(-AnomalyLookbackMonths);
-        var anomalyContributors = await _repo.GetMonthlyInsightContributorTotalsAsync(
-            anomalyFromInclusive,
-            monthEndExclusive,
-            AccountNature.Expense,
-            ReportingInsightDimension.Group,
-            accountId: null,
-            payeeId: null,
-            ct);
+        var topContributors = pareto.Expense.Contributors
+            .OrderByDescending(x => x.AmountCents)
+            .ThenBy(x => x.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
-        var anomalies = _insightsCalculator.BuildMonthlyAnomalyInsights(
-            asOf.Year,
-            asOf.Month,
-            AccountNature.Expense,
-            ReportingInsightDimension.Group,
-            AnomalyLookbackMonths,
-            AnomalyRequiredHistoryMonths,
-            anomalyContributors);
+        var totalExpenseAmount = Math.Abs(pareto.Expense.TotalAmountCents);
+        if (totalExpenseAmount <= 0L || topContributors.Count == 0)
+            return Array.Empty<DashboardCompactInsightRowDto>();
 
-        var rows = new List<DashboardCompactInsightRowDto>(CompactInsightRowCap);
-        var includedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        // Priority rule: show anomaly rows first, then complete with top contributors.
-        foreach (var anomaly in anomalies.Contributors
-                     .Where(x => x.IsAnomaly)
-                     .OrderByDescending(x => x.CurrentAmountCents)
-                     .ThenBy(x => x.DisplayName, StringComparer.OrdinalIgnoreCase))
-        {
-            if (rows.Count >= CompactInsightRowCap)
-                break;
-
-            var rowKey = anomaly.EntityId is null
-                ? $"anomaly:{anomaly.DisplayName}"
-                : $"anomaly:{anomaly.EntityId.Value:D}";
-
-            rows.Add(new DashboardCompactInsightRowDto(
-                RowKey: rowKey,
-                Kind: "anomaly",
-                Label: anomaly.DisplayName,
-                AmountCents: anomaly.CurrentAmountCents,
-                Percentage: null,
-                StatusCode: anomaly.IsInsufficientHistory ? "insufficient-history" : "anomaly"));
-
-            includedKeys.Add(rowKey);
-        }
-
-        foreach (var contributor in pareto.Expense.Contributors
-                     .OrderByDescending(x => x.AmountCents)
-                     .ThenBy(x => x.DisplayName, StringComparer.OrdinalIgnoreCase))
-        {
-            if (rows.Count >= CompactInsightRowCap)
-                break;
-
-            var contributorKey = contributor.EntityId is null
-                ? $"top:{contributor.DisplayName}"
-                : $"top:{contributor.EntityId.Value:D}";
-
-            if (!includedKeys.Add(contributorKey))
-                continue;
-
-            rows.Add(new DashboardCompactInsightRowDto(
-                RowKey: contributorKey,
+        var rows = topContributors
+            .Select(contributor => new DashboardCompactInsightRowDto(
+                RowKey: contributor.EntityId is null
+                    ? $"top:{contributor.DisplayName}"
+                    : $"top:{contributor.EntityId.Value:D}",
                 Kind: "top-expense",
                 Label: contributor.DisplayName,
-                AmountCents: contributor.AmountCents,
+                AmountCents: Math.Abs(contributor.AmountCents),
                 Percentage: contributor.ContributionPercentage,
-                StatusCode: "top-contributor"));
+                StatusCode: "top-contributor"))
+            .ToList();
+
+        var topAmount = rows.Sum(row => row.AmountCents);
+        var othersAmount = Math.Max(0L, totalExpenseAmount - topAmount);
+        if (othersAmount > 0L)
+        {
+            rows.Add(new DashboardCompactInsightRowDto(
+                RowKey: "top:others",
+                Kind: "top-expense",
+                Label: "Others",
+                AmountCents: othersAmount,
+                Percentage: Math.Round((othersAmount * 100m) / totalExpenseAmount, 2, MidpointRounding.AwayFromZero),
+                StatusCode: "others"));
         }
 
         return rows;

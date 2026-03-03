@@ -1,5 +1,18 @@
 ## ADDED Requirements
 
+### Requirement: Dashboard SHALL Provide Annual Income Versus Expense Month-Result Bars
+Dashboard annual comparison MUST visualize monthly operational magnitude for Income and Expense.
+
+#### Scenario: Dashboard annual bars render all month buckets
+- **WHEN** dashboard annual Income vs Expense chart is rendered for selected year `Y`
+- **THEN** the chart MUST include month buckets January through December in deterministic order
+- **AND** each month MUST render paired Income and Expense bars for comparison
+
+#### Scenario: Dashboard annual bars preserve magnitude comparability
+- **WHEN** annual Income and Expense bars are rendered in dashboard context
+- **THEN** both series MUST use absolute magnitude values to keep bar-height comparability
+- **AND** chart subtitles/labels MUST explicitly communicate month-result semantics
+
 ### Requirement: Economic State SHALL Provide Annual Month-By-Month Income Versus Expense Bar Comparison
 Annual Income versus Expense comparison in Economic State MUST be rendered as month-by-month bars.
 
