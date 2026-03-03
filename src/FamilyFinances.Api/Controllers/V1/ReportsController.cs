@@ -192,6 +192,47 @@ public sealed class ReportsController : ControllerBase
         return GetStateEvolutionCore(year, scope, handler, ct);
     }
 
+    [Authorize(Policy = Policies.CanRead)]
+    [HttpGet("dashboard-overview")]
+    public async Task<ActionResult<DashboardOverviewDto>> GetDashboardOverview(
+        [FromQuery] int? year,
+        [FromQuery] int? month,
+        [FromServices] GetDashboardOverviewHandler handler,
+        CancellationToken ct)
+    {
+        DateOnly asOf;
+        if (year is null && month is null)
+        {
+            asOf = DateOnly.FromDateTime(DateTime.Today);
+        }
+        else
+        {
+            if (year is null || month is null)
+                return BadRequest(new { error = "Query parameters 'year' and 'month' must be provided together." });
+
+            var currentYear = DateTime.Today.Year;
+            if (year < 2000 || year > currentYear)
+                return BadRequest(new { error = $"Query parameter 'year' must be between 2000 and {currentYear}." });
+
+            if (month is < 1 or > 12)
+                return BadRequest(new { error = "Query parameter 'month' must be between 1 and 12." });
+
+            var targetYear = year.Value;
+            var targetMonth = month.Value;
+            if (targetYear == DateTime.Today.Year && targetMonth == DateTime.Today.Month)
+            {
+                asOf = DateOnly.FromDateTime(DateTime.Today);
+            }
+            else
+            {
+                asOf = new DateOnly(targetYear, targetMonth, DateTime.DaysInMonth(targetYear, targetMonth));
+            }
+        }
+
+        var dto = await handler.HandleAsync(new GetDashboardOverviewQuery(asOf), ct);
+        return Ok(dto);
+    }
+
     // Legacy alias kept for compatibility.
     [Authorize(Policy = Policies.CanRead)]
     [HttpGet("monthly-evolution")]
@@ -217,7 +258,7 @@ public sealed class ReportsController : ControllerBase
             return BadRequest(new { error = "Query parameter 'scope' is required." });
 
         if (!TryParseMonthlyEvolutionScope(scope, out var parsedScope))
-            return BadRequest(new { error = "Query parameter 'scope' must be one of: accounts, asset-total, account-groups, income-total." });
+            return BadRequest(new { error = "Query parameter 'scope' must be one of: accounts, asset-total, account-groups, income-total, expense-total." });
 
         var dto = await handler.HandleAsync(
             new GetMonthlyEvolutionQuery(year.Value, parsedScope),
@@ -327,6 +368,9 @@ public sealed class ReportsController : ControllerBase
                 return true;
             case "income-total":
                 parsed = MonthlyEvolutionScope.IncomeTotal;
+                return true;
+            case "expense-total":
+                parsed = MonthlyEvolutionScope.ExpenseTotal;
                 return true;
             default:
                 parsed = default;

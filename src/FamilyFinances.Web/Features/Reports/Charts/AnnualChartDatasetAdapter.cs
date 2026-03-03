@@ -53,6 +53,30 @@ public static class AnnualChartDatasetAdapter
             .ToList();
     }
 
+    public static IReadOnlyList<AnnualChartSeries> BuildSeriesMonthlyDelta(
+        MonthlyEvolutionReportDto report,
+        int maxSeries = 12,
+        IReadOnlySet<string>? includedSeriesKeys = null)
+    {
+        if (report.Series.Count == 0)
+            return Array.Empty<AnnualChartSeries>();
+
+        return report.Series
+            .OrderBy(s => s.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(s => s.SeriesKey, StringComparer.Ordinal)
+            .Where(s => includedSeriesKeys is null || includedSeriesKeys.Contains(s.SeriesKey))
+            .Take(Math.Max(1, maxSeries))
+            .Select((series, idx) => new AnnualChartSeries(
+                Key: series.SeriesKey,
+                Label: series.DisplayName,
+                ColorHex: AnnualChartPalette.Resolve(idx),
+                Points: series.Points
+                    .OrderBy(p => p.Month)
+                    .Select(p => new AnnualChartPoint(p.Month, p.DeltaVsPreviousMonthCents))
+                    .ToList()))
+            .ToList();
+    }
+
     public static IReadOnlyList<AnnualCompositionSlice> BuildCompositionByNature(
         MonthlyEvolutionReportDto report,
         IReadOnlyDictionary<Guid, AccountNature> accountNatureById,

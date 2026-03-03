@@ -238,17 +238,20 @@
 }
 
 .economic-state-stacked-charts .annual-line-chart,
+.economic-state-stacked-charts .annual-bar-chart,
 .economic-state-stacked-charts [data-testid="reporting-chart-empty"],
 .economic-state-stacked-charts [data-testid="reporting-chart-error"],
 .economic-state-stacked-charts [data-testid="reporting-chart-loading"] {
     margin-bottom: 0 !important;
 }
 
-.economic-state-stacked-charts .annual-line-chart .card-body {
+.economic-state-stacked-charts .annual-line-chart .card-body,
+.economic-state-stacked-charts .annual-bar-chart .card-body {
     padding: 0.7rem 0.8rem;
 }
 
-.economic-state-stacked-charts .annual-line-chart .annual-line-canvas-wrap {
+.economic-state-stacked-charts .annual-line-chart .annual-line-canvas-wrap,
+.economic-state-stacked-charts .annual-bar-chart .annual-line-canvas-wrap {
     height: 130px !important;
     min-height: 120px !important;
 }
@@ -360,9 +363,18 @@
 }
 
 @media (max-width: 1199.98px) {
-    .economic-state-stacked-charts .annual-line-chart .annual-line-canvas-wrap {
+    .economic-state-stacked-charts .annual-line-chart .annual-line-canvas-wrap,
+    .economic-state-stacked-charts .annual-bar-chart .annual-line-canvas-wrap {
         height: 170px !important;
         min-height: 150px !important;
+    }
+
+    .annual-composition-layout.is-side-legend {
+        grid-template-columns: 1fr;
+    }
+
+    .composition-legend-side {
+        max-height: 140px;
     }
 }
 
@@ -387,14 +399,16 @@
 }
 
 @media (min-width: 1200px) {
-    .economic-state-stacked-charts .annual-line-chart .annual-line-canvas-wrap {
+    .economic-state-stacked-charts .annual-line-chart .annual-line-canvas-wrap,
+    .economic-state-stacked-charts .annual-bar-chart .annual-line-canvas-wrap {
         height: 120px !important;
         min-height: 110px !important;
     }
 }
 
 @media (max-width: 1199.98px) {
-    .economic-state-stacked-charts .annual-line-chart .annual-line-canvas-wrap {
+    .economic-state-stacked-charts .annual-line-chart .annual-line-canvas-wrap,
+    .economic-state-stacked-charts .annual-bar-chart .annual-line-canvas-wrap {
         height: 145px !important;
         min-height: 130px !important;
     }
@@ -467,6 +481,18 @@
     min-height: 240px;
 }
 
+.annual-composition-layout.is-side-legend {
+    display: grid;
+    grid-template-columns: minmax(0, 46%) minmax(0, 54%);
+    gap: 0.8rem;
+    align-items: center;
+}
+
+.annual-composition-chart.is-side-legend .annual-composition-canvas-wrap {
+    height: 185px;
+    min-height: 165px;
+}
+
 .annual-composition-chart .annual-composition-canvas {
     width: 100%;
     height: 100%;
@@ -476,6 +502,12 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+}
+
+.composition-legend-side {
+    max-height: 185px;
+    overflow: auto;
+    padding-right: 0.2rem;
 }
 
 .composition-slice-row {
@@ -501,6 +533,12 @@
 .composition-percentage {
     font-variant-numeric: tabular-nums;
     font-weight: 600;
+}
+
+.annual-composition-chart .composition-legend-side .composition-slice-row {
+    grid-template-columns: auto 1fr auto;
+    gap: 0.45rem;
+    font-size: 0.84rem;
 }
 
 /* Fix for text-dark in dark mode */
@@ -717,4 +755,154 @@
 
 .ff-report-about-card .card-title {
     font-family: var(--ff-font-heading, "Segoe UI", sans-serif);
+}
+
+.ff-sort-header {
+    color: inherit;
+    font-weight: 600;
+}
+
+.ff-sort-header:hover,
+.ff-sort-header:focus-visible {
+    color: var(--ff-accent-primary, #4fa4ff);
+}
+
+.ff-dashboard-cockpit .ff-panel {
+    overflow: hidden;
+}
+
+.ff-dashboard-analytics-row > div {
+    display: flex;
+}
+
+.ff-dashboard-analytics-row > div > .card,
+.ff-dashboard-analytics-row > div > .annual-line-chart,
+.ff-dashboard-analytics-row > div > .annual-bar-chart,
+.ff-dashboard-analytics-row > div > .annual-composition-chart,
+.ff-dashboard-analytics-row > div > [data-testid="reporting-chart-empty"],
+.ff-dashboard-analytics-row > div > [data-testid="reporting-chart-error"],
+.ff-dashboard-analytics-row > div > [data-testid="reporting-chart-loading"] {
+    width: 100%;
+    margin-bottom: 0 !important;
+}
+
+.ff-dashboard-cockpit .annual-line-chart .annual-line-canvas-wrap,
+.ff-dashboard-cockpit .annual-bar-chart .annual-line-canvas-wrap {
+    height: 220px;
+    min-height: 190px;
+}
+
+.ff-dashboard-cockpit .annual-composition-chart .annual-composition-canvas-wrap {
+    height: 220px;
+    min-height: 190px;
+}
+
+[data-testid="dashboard-expense-composition-chart"].annual-composition-chart.is-side-legend .annual-composition-canvas-wrap,
+[data-testid="account-group-totals-stock-composition-chart"].annual-composition-chart.is-side-legend .annual-composition-canvas-wrap {
+    height: 208px;
+    min-height: 188px;
+}
+
+[data-testid="dashboard-expense-composition-chart"].annual-composition-chart.is-side-legend .annual-composition-layout,
+[data-testid="account-group-totals-stock-composition-chart"].annual-composition-chart.is-side-legend .annual-composition-layout {
+    grid-template-columns: minmax(0, 48%) minmax(0, 52%);
+    gap: 0.7rem;
+}
+
+[data-testid="dashboard-expense-composition-chart"].annual-composition-chart.is-side-legend .composition-legend-side,
+[data-testid="account-group-totals-stock-composition-chart"].annual-composition-chart.is-side-legend .composition-legend-side {
+    max-height: 208px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-left: 0.2rem;
+    padding-right: 0.1rem;
+    gap: 0.22rem;
+}
+
+[data-testid="dashboard-expense-composition-chart"].annual-composition-chart.is-side-legend .composition-legend-side .composition-slice-row,
+[data-testid="account-group-totals-stock-composition-chart"].annual-composition-chart.is-side-legend .composition-legend-side .composition-slice-row {
+    grid-template-columns: auto minmax(0, 1fr) minmax(64px, auto);
+    gap: 0.3rem;
+    font-size: 0.79rem;
+    line-height: 1.15;
+}
+
+[data-testid="dashboard-expense-composition-chart"].annual-composition-chart.is-side-legend .composition-label,
+[data-testid="account-group-totals-stock-composition-chart"].annual-composition-chart.is-side-legend .composition-label {
+    padding-right: 0.35rem;
+}
+
+[data-testid="dashboard-expense-composition-chart"].annual-composition-chart.is-side-legend .composition-percentage,
+[data-testid="account-group-totals-stock-composition-chart"].annual-composition-chart.is-side-legend .composition-percentage {
+    justify-self: end;
+    text-align: right;
+}
+
+[data-testid="dashboard-expense-composition-chart"].annual-composition-chart.is-side-legend .composition-dot,
+[data-testid="account-group-totals-stock-composition-chart"].annual-composition-chart.is-side-legend .composition-dot {
+    width: 0.6rem;
+    height: 0.6rem;
+}
+
+/* Account-group report composition: use more vertical space before showing legend scroll. */
+[data-testid="account-group-totals-stock-composition-chart"].annual-composition-chart.is-side-legend .annual-composition-canvas-wrap {
+    height: 230px;
+    min-height: 210px;
+}
+
+[data-testid="account-group-totals-stock-composition-chart"].annual-composition-chart.is-side-legend .composition-legend-side {
+    max-height: 230px;
+}
+
+.ff-dashboard-group-bar-row {
+    margin-bottom: 0.7rem;
+}
+
+.ff-dashboard-group-bar-track {
+    width: 100%;
+    height: 0.36rem;
+    border-radius: 999px;
+    background: rgba(166, 182, 207, 0.25);
+    overflow: hidden;
+    margin-bottom: 0.25rem;
+}
+
+.ff-dashboard-group-bar-fill {
+    height: 100%;
+    border-radius: inherit;
+}
+
+.ff-dashboard-group-bar-fill.is-positive {
+    background: linear-gradient(90deg, #2dd67d, #56e09a);
+}
+
+.ff-dashboard-group-bar-fill.is-negative {
+    background: linear-gradient(90deg, #ff5f75, #ff7f95);
+}
+
+.ff-dashboard-mini-trend {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    overflow: auto;
+    max-height: 220px;
+}
+
+.ff-dashboard-mini-trend-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.88rem;
+}
+
+.ff-dashboard-mini-label {
+    color: var(--ff-text-muted, #a6b6cf);
+}
+
+@media (min-width: 1400px) {
+    .ff-dashboard-analytics-row-2 > div,
+    .ff-dashboard-analytics-row-3 > div {
+        min-height: 285px;
+    }
 }

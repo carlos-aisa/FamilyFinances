@@ -2,5 +2,6 @@
 
 public sealed record AccountBalanceDto(
     Guid AccountId,
-    decimal Balance
+    decimal Balance,
+    decimal CurrentMonthBalance
 );

@@ -18,7 +18,7 @@
 }
 else
 {
-    <div class="card shadow-sm annual-composition-chart ff-panel ff-chart-panel"
+    <div class="card shadow-sm annual-composition-chart ff-panel ff-chart-panel @(UseSideLegend ? "is-side-legend" : string.Empty)"
          data-testid="@TestId"
          data-year="@Year"
          data-total-percentage="@TotalPercentage.ToString("0.####", CultureInfo.InvariantCulture)">
@@ -42,7 +42,7 @@ else
                             <i class="bi bi-download me-1"></i>@L["Reports_Export"]
                         </button>
                     }
-                    <span class="badge bg-secondary-subtle text-secondary">@Year</span>
+                    <span class="badge bg-secondary-subtle text-secondary">@GetBadgeText()</span>
                 </div>
             </div>
 
@@ -51,8 +51,24 @@ else
                 <div class="text-danger small mb-2">@_exportError</div>
             }
 
-            <div class="annual-composition-canvas-wrap">
-                <canvas id="@_canvasId" class="annual-composition-canvas" role="img" tabindex="0" aria-label="@Title"></canvas>
+            <div class="annual-composition-layout @(UseSideLegend ? "is-side-legend" : string.Empty)">
+                <div class="annual-composition-canvas-wrap">
+                    <canvas id="@_canvasId" class="annual-composition-canvas" role="img" tabindex="0" aria-label="@Title"></canvas>
+                </div>
+
+                @if (UseSideLegend)
+                {
+                    <div class="composition-legend composition-legend-side" data-testid="@($"{TestId}-legend")">
+                        @foreach (var slice in OrderedSlices.Take(Math.Max(1, LegendMaxItems)))
+                        {
+                            <div class="composition-slice-row">
+                                <span class="composition-dot" style="@($"background-color:{slice.ColorHex};")"></span>
+                                <span class="composition-label" title="@slice.Label">@slice.Label</span>
+                                <span class="composition-percentage">@slice.Percentage.ToString("0.##", CultureInfo.InvariantCulture)%</span>
+                            </div>
+                        }
+                    </div>
+                }
             </div>
         </div>
     </div>
@@ -62,9 +78,12 @@ else
     [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
     [Parameter] public string? Subtitle { get; set; }
     [Parameter, EditorRequired] public int Year { get; set; }
+    [Parameter] public string? BadgeText { get; set; }
     [Parameter, EditorRequired] public IReadOnlyList<AnnualCompositionSlice> Slices { get; set; } = Array.Empty<AnnualCompositionSlice>();
     [Parameter] public string TestId { get; set; } = "annual-composition-chart";
     [Parameter] public bool EnableImageExport { get; set; } = true;
+    [Parameter] public bool UseSideLegend { get; set; }
+    [Parameter] public int LegendMaxItems { get; set; } = 10;
 
     private readonly string _canvasId = $"annual-composition-{Guid.NewGuid():N}";
     private string? _lastRenderedSignature;
@@ -76,6 +95,14 @@ else
         .ToList();
 
     private decimal TotalPercentage => OrderedSlices.Sum(x => x.Percentage);
+
+    private string GetBadgeText()
+    {
+        if (!string.IsNullOrWhiteSpace(BadgeText))
+            return BadgeText;
+
+        return Year.ToString(CultureInfo.InvariantCulture);
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

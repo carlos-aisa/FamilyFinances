@@ -253,6 +253,38 @@ public sealed class ReportsApi
         return result ?? throw new InvalidOperationException("Failed to deserialize economic state response.");
     }
 
+    public async Task<DashboardOverviewDto> GetDashboardOverviewAsync(
+        int? year = null,
+        int? month = null,
+        CancellationToken ct = default)
+    {
+        var token = _tokenStore.GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("No access token available.");
+
+        var url = "api/v1/reports/dashboard-overview";
+        if (year is not null || month is not null)
+        {
+            if (year is null || month is null)
+                throw new ArgumentException("Year and month must be provided together.");
+
+            url += $"?year={year.Value}&month={month.Value}";
+        }
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _http.SendAsync(request, ct);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
+
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<DashboardOverviewDto>(cancellationToken: ct);
+        return result ?? throw new InvalidOperationException("Failed to deserialize dashboard overview response.");
+    }
+
     public async Task<MonthlyEvolutionReportDto> GetMonthlyEvolutionAsync(
         int year,
         MonthlyEvolutionScope scope,
@@ -276,6 +308,7 @@ public sealed class ReportsApi
             MonthlyEvolutionScope.AssetTotal => "asset-total",
             MonthlyEvolutionScope.AccountGroups => "account-groups",
             MonthlyEvolutionScope.IncomeTotal => "income-total",
+            MonthlyEvolutionScope.ExpenseTotal => "expense-total",
             _ => throw new ArgumentOutOfRangeException(nameof(scope), scope, "Unsupported monthly evolution scope.")
         };
 

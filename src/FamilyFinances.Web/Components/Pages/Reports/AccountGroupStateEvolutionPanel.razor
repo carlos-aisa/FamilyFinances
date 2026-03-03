@@ -80,6 +80,9 @@ else if (_report is not null)
     var compositionMonthLabel = compositionMonth is not null
         ? DateHelper.GetMonthName(compositionMonth.Value)
         : L["Reports_NotAvailable"];
+    var compositionBadgeText = compositionMonth is not null
+        ? $"{_selectedYear:D4}-{compositionMonth.Value:D2}"
+        : $"{_selectedYear:D4}";
     var monthlyComparisonSeries = BuildMonthlyComparisonChartSeries();
 
     <div class="row g-3 mb-4">
@@ -115,11 +118,6 @@ else if (_report is not null)
         </div>
     </div>
 
-    <div class="alert alert-info mb-4 ff-info-note" role="alert">
-        <i class="bi bi-info-circle me-2"></i>
-        @L["Reports_ComparabilityGeneral", L["ReportsIndex_MonthlySummary_Title"]]
-    </div>
-
     @if (!string.IsNullOrWhiteSpace(charts.Error))
     {
         <ReportingChartErrorState Message="@charts.Error" />
@@ -127,7 +125,7 @@ else if (_report is not null)
     else
     {
         <div class="row g-3 mb-4 account-groups-overview-grid">
-            <div class="col-12 col-xxl-8">
+            <div class="col-12 col-xxl-7">
                 <div class="card shadow-sm h-100 ff-panel">
                     <div class="card-header bg-transparent">
                         <div class="d-flex justify-content-between align-items-start gap-3">
@@ -148,13 +146,12 @@ else if (_report is not null)
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
-                            <table class="table table-sm table-hover align-middle mb-0 ff-data-table">
+                            <table class="table table-sm table-hover align-middle mb-0 ff-data-table" data-testid="account-group-state-summary-table">
                                 <thead class="table-light">
                                     <tr>
                                         <th class="border-0 ps-3">@L["Reports_SeriesName"]</th>
                                         <th class="border-0 text-end">@L["Reports_EndBalance"]</th>
-                                        <th class="border-0 text-end">@L["Reports_DeltaPrevMonth"]</th>
-                                        <th class="border-0 text-end">@L["Reports_DeltaYearStart"]</th>
+                                        <th class="border-0 text-end">@L["Reports_MonthBalance"]</th>
                                         <th class="border-0 text-end pe-3">@L["Reports_Details"]</th>
                                     </tr>
                                 </thead>
@@ -162,7 +159,7 @@ else if (_report is not null)
                                     @foreach (var series in _report.Series.OrderBy(s => s.DisplayName).ThenBy(s => s.SeriesKey))
                                     {
                                         var point = summaryMonth is not null
-                                            ? GetPointAtOrBeforeMonth(series, summaryMonth.Value)
+                                            ? GetPointAtMonth(series, summaryMonth.Value)
                                             : null;
                                         var isExpanded = _expandedSeriesKey == series.SeriesKey;
 
@@ -173,9 +170,6 @@ else if (_report is not null)
                                             </td>
                                             <td class="text-end @GetValueColorClass(point?.DeltaVsPreviousMonthCents ?? 0, point is not null)">
                                                 @(point is not null ? MoneyFormatter.FormatCentsWithSign(point.DeltaVsPreviousMonthCents) : "-")
-                                            </td>
-                                            <td class="text-end @GetValueColorClass(point?.DeltaVsYearStartCents ?? 0, point is not null)">
-                                                @(point is not null ? MoneyFormatter.FormatCentsWithSign(point.DeltaVsYearStartCents) : "-")
                                             </td>
                                             <td class="text-end pe-3">
                                                 <button type="button"
@@ -189,15 +183,14 @@ else if (_report is not null)
                                         if (isExpanded)
                                         {
                                             <tr class="series-detail-row">
-                                                <td colspan="5" class="bg-body-tertiary px-3 py-3">
+                                                <td colspan="4" class="bg-body-tertiary px-3 py-3">
                                                     <div class="table-responsive">
                                                         <table class="table table-sm mb-0 ff-data-table">
                                                             <thead>
                                                                 <tr>
                                                                     <th>@L["Reports_Month"]</th>
                                                                     <th class="text-end">@L["Reports_EndBalance"]</th>
-                                                                    <th class="text-end">@L["Reports_DeltaPrevMonth"]</th>
-                                                                    <th class="text-end">@L["Reports_DeltaYearStart"]</th>
+                                                                    <th class="text-end">@L["Reports_MonthBalance"]</th>
                                                                 </tr>
                                                             </thead>
                                                             <tbody>
@@ -210,9 +203,6 @@ else if (_report is not null)
                                                                         </td>
                                                                         <td class="text-end @MoneyFormatter.GetColorClass(monthPoint.DeltaVsPreviousMonthCents)">
                                                                             @MoneyFormatter.FormatCentsWithSign(monthPoint.DeltaVsPreviousMonthCents)
-                                                                        </td>
-                                                                        <td class="text-end @MoneyFormatter.GetColorClass(monthPoint.DeltaVsYearStartCents)">
-                                                                            @MoneyFormatter.FormatCentsWithSign(monthPoint.DeltaVsYearStartCents)
                                                                         </td>
                                                                     </tr>
                                                                 }
@@ -230,7 +220,7 @@ else if (_report is not null)
                 </div>
             </div>
 
-            <div class="col-12 col-xxl-4 account-groups-chart-panel">
+            <div class="col-12 col-xxl-5 account-groups-chart-panel">
                 <div class="d-flex justify-content-end mb-2">
                     <div class="btn-group btn-group-sm" role="group" aria-label="@L["AccountGroupState_ChartMode"]">
                         <button type="button"
@@ -248,9 +238,9 @@ else if (_report is not null)
 
                 @if (_chartMode == ChartMode.Evolution)
                 {
-                    <AnnualLineChart
+                    <AnnualBarChart
                         Title="@L["AccountGroupState_AnnualEvolutionTitle"]"
-                        Subtitle="@L["AccountGroupState_AnnualEvolutionSubtitle"]"
+                        Subtitle="@L["AccountGroupState_AnnualEvolutionMonthResultSubtitle"]"
                         Year="@_selectedYear"
                         Series="@charts.AccountGroupEvolution"
                         DataUntilMonth="@dataUntilMonth"
@@ -262,7 +252,10 @@ else if (_report is not null)
                         Title="@L["AccountGroupState_CompositionTitle"]"
                         Subtitle="@L["AccountGroupState_CompositionSubtitle", compositionMonthLabel]"
                         Year="@_selectedYear"
+                        BadgeText="@compositionBadgeText"
                         Slices="@charts.AccountGroupExpenseComposition"
+                        UseSideLegend="true"
+                        LegendMaxItems="10"
                         TestId="account-group-totals-stock-composition-chart" />
                 }
             </div>
@@ -319,6 +312,7 @@ else
     private int? _focusedMonth;
     private string? _expandedSeriesKey;
     private ChartMode _chartMode = ChartMode.Evolution;
+    private const int CompositionMaxSlices = 10;
     private IReadOnlyDictionary<Guid, IReadOnlySet<AccountNature>> _accountGroupNaturesById =
         new Dictionary<Guid, IReadOnlySet<AccountNature>>();
 
@@ -541,6 +535,12 @@ else
             .FirstOrDefault();
     }
 
+    private static MonthlyEvolutionPointDto? GetPointAtMonth(MonthlyEvolutionSeriesDto series, int month)
+    {
+        return series.Points
+            .FirstOrDefault(p => p.Month == month);
+    }
+
     private static IReadOnlyList<MonthlyEvolutionPointDto> GetSeriesPointsForDetails(
         MonthlyEvolutionSeriesDto series,
         int? dataUntilMonth)
@@ -594,13 +594,14 @@ else
         try
         {
             var focusedCompositionMonth = GetFocusedCompositionMonth();
-            var accountGroupEvolution = AnnualChartDatasetAdapter.BuildSeriesEvolution(_report, maxSeries: 12);
-            var accountGroupExpenseComposition = focusedCompositionMonth is not null
+            var accountGroupEvolution = AnnualChartDatasetAdapter.BuildSeriesMonthlyDelta(_report, maxSeries: 12);
+            var rawAccountGroupExpenseComposition = focusedCompositionMonth is not null
                 ? AnnualChartDatasetAdapter.BuildCompositionFromSeriesAtMonth(
                     _report,
                     IsExpenseOrientedGroup,
                     focusedCompositionMonth.Value)
                 : Array.Empty<AnnualCompositionSlice>();
+            var accountGroupExpenseComposition = BuildDashboardStyleComposition(rawAccountGroupExpenseComposition);
 
             return new ChartsViewModel(
                 AccountGroupEvolution: accountGroupEvolution,
@@ -614,6 +615,50 @@ else
                 AccountGroupExpenseComposition: Array.Empty<AnnualCompositionSlice>(),
                 Error: L["Reports_Error_BuildChartDataset", ex.Message]);
         }
+    }
+
+    private IReadOnlyList<AnnualCompositionSlice> BuildDashboardStyleComposition(
+        IReadOnlyList<AnnualCompositionSlice> slices)
+    {
+        if (slices.Count == 0)
+            return Array.Empty<AnnualCompositionSlice>();
+
+        var maxSlices = Math.Max(2, CompositionMaxSlices);
+        var ordered = slices
+            .OrderByDescending(slice => slice.RawValueCents)
+            .ThenBy(slice => slice.Label, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var limited = ordered.Count > maxSlices
+            ? ordered.Take(maxSlices - 1).ToList()
+            : ordered;
+
+        if (ordered.Count > maxSlices)
+        {
+            var othersRawValueCents = ordered.Skip(maxSlices - 1).Sum(slice => slice.RawValueCents);
+            if (othersRawValueCents > 0)
+            {
+                limited.Add(new AnnualCompositionSlice(
+                    Key: "others",
+                    Label: L["Dashboard_ExpenseComposition_Others"],
+                    RawValueCents: othersRawValueCents,
+                    Percentage: 0m,
+                    ColorHex: AnnualChartPalette.Resolve(limited.Count)));
+            }
+        }
+
+        var total = limited.Sum(slice => slice.RawValueCents);
+        if (total <= 0)
+            return Array.Empty<AnnualCompositionSlice>();
+
+        return limited
+            .Select((slice, idx) => new AnnualCompositionSlice(
+                Key: slice.Key,
+                Label: slice.Label,
+                RawValueCents: slice.RawValueCents,
+                Percentage: (slice.RawValueCents * 100m) / total,
+                ColorHex: AnnualChartPalette.Resolve(idx)))
+            .ToList();
     }
 
     private IReadOnlyList<MonthlyChartSeries> BuildMonthlyComparisonChartSeries()
@@ -640,15 +685,14 @@ else
             .Select(series =>
             {
                 var point = summaryMonth is not null
-                    ? GetPointAtOrBeforeMonth(series, summaryMonth.Value)
+                    ? GetPointAtMonth(series, summaryMonth.Value)
                     : null;
 
                 return (IReadOnlyList<string?>)
                 [
                     series.DisplayName,
                     point is not null ? MoneyFormatter.FormatCentsWithSign(point.EndBalanceCents) : "-",
-                    point is not null ? MoneyFormatter.FormatCentsWithSign(point.DeltaVsPreviousMonthCents) : "-",
-                    point is not null ? MoneyFormatter.FormatCentsWithSign(point.DeltaVsYearStartCents) : "-"
+                    point is not null ? MoneyFormatter.FormatCentsWithSign(point.DeltaVsPreviousMonthCents) : "-"
                 ];
             })
             .ToList();
@@ -660,7 +704,7 @@ else
                 [L["Reports_Year"]] = _selectedYear.ToString(),
                 [L["Reports_FocusedMonth"]] = _focusedMonth is not null ? DateHelper.GetMonthName(_focusedMonth.Value) : null
             },
-            headers: [L["Reports_SeriesName"], L["Reports_EndBalance"], L["Reports_DeltaPrevMonth"], L["Reports_DeltaYearStart"]],
+            headers: [L["Reports_SeriesName"], L["Reports_EndBalance"], L["Reports_MonthBalance"]],
             rows: rows);
 
         try

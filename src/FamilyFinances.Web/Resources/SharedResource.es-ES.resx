@@ -1812,6 +1812,9 @@
   <data name="Reports_EndBalance" xml:space="preserve">
     <value>Saldo final</value>
   </data>
+  <data name="Reports_MonthBalance" xml:space="preserve">
+    <value>Saldo del mes</value>
+  </data>
   <data name="Reports_Error_BuildAnnualChartDataset" xml:space="preserve">
     <value>No se pudo construir el dataset anual: {0}</value>
   </data>
@@ -2396,5 +2399,203 @@
   </data>
   <data name="ReportingChart_AriaExportPng" xml:space="preserve">
     <value>Exportar gráfico "{0}" como PNG</value>
+  </data>
+  <data name="EconomicState_MonthlyNetList_Subtitle" xml:space="preserve">
+    <value>Saldo operativo mes a mes para el ano seleccionado.</value>
+  </data>
+  <data name="ExpenseEvolution_AnnualTitle" xml:space="preserve">
+    <value>Evolucion anual de gastos</value>
+  </data>
+  <data name="Dashboard_MonthlyIncomeExpense_Subtitle" xml:space="preserve">
+    <value>{0} {1} (hasta el dia {2})</value>
+  </data>
+  <data name="Nav_QuickEntry" xml:space="preserve">
+    <value>Entrada rapida</value>
+  </data>
+  <data name="EconomicState_MonthlyNetList_Title" xml:space="preserve">
+    <value>Listado mensual neto (Ingresos - Gastos)</value>
+  </data>
+  <data name="Accounts_Table_CurrentMonthBalance" xml:space="preserve">
+    <value>Saldo del mes actual</value>
+  </data>
+  <data name="Dashboard_CompactInsights_Column_Amount" xml:space="preserve">
+    <value>Importe</value>
+  </data>
+  <data name="EconomicState_MonthlyNetList_Net" xml:space="preserve">
+    <value>Saldo</value>
+  </data>
+  <data name="Dashboard_GroupState_Title" xml:space="preserve">
+    <value>Estado actual por grupos de cuentas</value>
+  </data>
+  <data name="ExpenseEvolution_ExpenseBalance" xml:space="preserve">
+    <value>Saldo de gastos</value>
+  </data>
+  <data name="ExpenseEvolution_MonthlyOverview" xml:space="preserve">
+    <value>Resumen mensual de gastos</value>
+  </data>
+  <data name="Dashboard_Analytics_Subtitle" xml:space="preserve">
+    <value>Resumen financiero del hogar para el mes seleccionado.</value>
+  </data>
+  <data name="Dashboard_Ytd_Title" xml:space="preserve">
+    <value>Acumulado anual</value>
+  </data>
+  <data name="Dashboard_CompactInsights_Status_TopContributor" xml:space="preserve">
+    <value>Top contribuidor</value>
+  </data>
+  <data name="EconomicState_AnnualIncomeExpense_Title" xml:space="preserve">
+    <value>Ingresos vs Gastos anual (resultado mensual)</value>
+  </data>
+  <data name="Dashboard_Kpi_Expense" xml:space="preserve">
+    <value>Gastos</value>
+  </data>
+  <data name="ExpenseEvolution_AnnualSubtitle" xml:space="preserve">
+    <value>Resultados mensuales de gasto (no acumulados).</value>
+  </data>
+  <data name="Dashboard_Ytd_Subtitle" xml:space="preserve">
+    <value>Tendencia mensual neta (Ingresos - Gastos).</value>
+  </data>
+  <data name="ExpenseEvolution_SelectYearHint" xml:space="preserve">
+    <value>Selecciona un ano para cargar la evolucion de gastos.</value>
+  </data>
+  <data name="Dashboard_DeltaVsPreviousMonth" xml:space="preserve">
+    <value>vs mes anterior:</value>
+  </data>
+  <data name="Dashboard_DataState_Complete" xml:space="preserve">
+    <value>El historico es completo para comparativas mensual y anual.</value>
+  </data>
+  <data name="Dashboard_DataState_InsufficientHistory" xml:space="preserve">
+    <value>Historico insuficiente para bloques comparativos fiables.</value>
+  </data>
+  <data name="ExpenseEvolution_LatestExpenseBalance" xml:space="preserve">
+    <value>Ultimo saldo de gastos</value>
+  </data>
+  <data name="Dashboard_CompactInsights_Empty" xml:space="preserve">
+    <value>No hay insights compactos disponibles.</value>
+  </data>
+  <data name="EconomicState_AnnualIncomeExpense_Subtitle" xml:space="preserve">
+    <value>Barras mensuales para cada mes del ano seleccionado.</value>
+  </data>
+  <data name="ExpenseEvolution_StockMetricsHint" xml:space="preserve">
+    <value>Las metricas de gasto son valores de flujo mensuales.</value>
+  </data>
+  <data name="Dashboard_Kpi_Income" xml:space="preserve">
+    <value>Ingresos</value>
+  </data>
+  <data name="Dashboard_CompactInsights_Column_Status" xml:space="preserve">
+    <value>Estado</value>
+  </data>
+  <data name="Dashboard_GroupState_Subtitle" xml:space="preserve">
+    <value>Saldo del mes seleccionado y variacion por grupo.</value>
+  </data>
+  <data name="Dashboard_Ytd_AccumulatedNet" xml:space="preserve">
+    <value>Saldo neto acumulado (YTD)</value>
+  </data>
+  <data name="Dashboard_CompactInsights_Title" xml:space="preserve">
+    <value>Insights compactos</value>
+  </data>
+  <data name="ExpenseEvolution_MonthFocusedSubtitle" xml:space="preserve">
+    <value>{0} {1}</value>
+  </data>
+  <data name="Dashboard_CompactInsights_Subtitle" xml:space="preserve">
+    <value>Principales contribuidores y senales de anomalia.</value>
+  </data>
+  <data name="Dashboard_Kpi_NetResult" xml:space="preserve">
+    <value>Saldo neto</value>
+  </data>
+  <data name="ExpenseEvolution_LoadingMonthFocusedExpense" xml:space="preserve">
+    <value>Cargando grafico mensual de gastos...</value>
+  </data>
+  <data name="EconomicState_Tab_ExpenseEvolution" xml:space="preserve">
+    <value>Evolucion de gastos</value>
+  </data>
+  <data name="Dashboard_CompactInsights_Column_Label" xml:space="preserve">
+    <value>Contribuyente</value>
+  </data>
+  <data name="Dashboard_LoadingAnalytics" xml:space="preserve">
+    <value>Cargando resumen del dashboard...</value>
+  </data>
+  <data name="Dashboard_DataState_Partial" xml:space="preserve">
+    <value>Hay historico parcial para comparativas; faltan algunas referencias.</value>
+  </data>
+  <data name="Dashboard_MonthlyIncomeExpense_Title" xml:space="preserve">
+    <value>Evolucion mensual ingresos vs gastos</value>
+  </data>
+  <data name="Accounts_Table_AccumulatedBalance" xml:space="preserve">
+    <value>Saldo acumulado</value>
+  </data>
+  <data name="ExpenseEvolution_LoadingTitle" xml:space="preserve">
+    <value>Cargando evolucion de gastos...</value>
+  </data>
+  <data name="Dashboard_Kpi_NetWorth" xml:space="preserve">
+    <value>Patrimonio neto</value>
+  </data>
+  <data name="Dashboard_CompactInsights_Status_Anomaly" xml:space="preserve">
+    <value>Anomalia</value>
+  </data>
+  <data name="QuickEntry_Page_Subtitle" xml:space="preserve">
+    <value>Registra gastos, ingresos, transferencias y devoluciones sin salir del flujo.</value>
+  </data>
+  <data name="Dashboard_CompactInsights_Status_InsufficientHistory" xml:space="preserve">
+    <value>Historico insuficiente</value>
+  </data>
+  <data name="Dashboard_GroupState_Empty" xml:space="preserve">
+    <value>No hay datos de grupos para este mes.</value>
+  </data>
+  <data name="AccountGroupState_AnnualEvolutionMonthResultSubtitle" xml:space="preserve">
+    <value>Barras de resultado mensual (no acumuladas).</value>
+  </data>
+  <data name="Accounts_CurrentMonth_Basis" xml:space="preserve">
+    <value>Mes actual: {0}</value>
+  </data>
+  <data name="ExpenseEvolution_MonthFocusedTitle" xml:space="preserve">
+    <value>Grafico mensual de gastos</value>
+  </data>
+  <data name="Dashboard_AnnualIncomeExpense_Title" xml:space="preserve">
+    <value>Ingresos vs gastos anual (resultado mensual)</value>
+  </data>
+  <data name="Dashboard_AnnualIncomeExpense_Subtitle" xml:space="preserve">
+    <value>Barras mensuales para cada mes del ano seleccionado.</value>
+  </data>
+  <data name="Dashboard_MonthlyNetTrend_Title" xml:space="preserve">
+    <value>Tendencia mensual de saldo (Ingresos - Gastos)</value>
+  </data>
+  <data name="Dashboard_MonthlyNetTrend_Subtitle" xml:space="preserve">
+    <value>Balance operativo mensual del ano seleccionado.</value>
+  </data>
+  <data name="Dashboard_MonthlyNetTrend_Legend" xml:space="preserve">
+    <value>Saldo</value>
+  </data>
+  <data name="Dashboard_ExpenseComposition_Title" xml:space="preserve">
+    <value>Composicion de gastos</value>
+  </data>
+  <data name="Dashboard_ExpenseComposition_Subtitle" xml:space="preserve">
+    <value>Top de gastos en {0} mas Otros.</value>
+  </data>
+  <data name="Dashboard_ExpenseComposition_Others" xml:space="preserve">
+    <value>Otros</value>
+  </data>
+  <data name="Dashboard_GroupComposition_Title" xml:space="preserve">
+    <value>Composicion por grupos</value>
+  </data>
+  <data name="Dashboard_GroupComposition_Subtitle" xml:space="preserve">
+    <value>Distribucion por grupos de cuentas en {0}.</value>
+  </data>
+  <data name="Dashboard_GroupComposition_Others" xml:space="preserve">
+    <value>Otros</value>
+  </data>
+  <data name="Dashboard_AssetEvolution_Title" xml:space="preserve">
+    <value>Evolución total de activos</value>
+  </data>
+  <data name="Dashboard_AssetEvolution_Subtitle" xml:space="preserve">
+    <value>Saldo final por mes del ano seleccionado.</value>
+  </data>
+  <data name="Dashboard_AssetEvolution_Legend" xml:space="preserve">
+    <value>Saldo de activos</value>
+  </data>
+  <data name="Dashboard_GroupAnnualEvolution_Title" xml:space="preserve">
+    <value>Evolucion anual por grupos</value>
+  </data>
+  <data name="Dashboard_GroupAnnualEvolution_Subtitle" xml:space="preserve">
+    <value>Barras de resultado mensual por grupo de cuentas.</value>
   </data>
 </root>

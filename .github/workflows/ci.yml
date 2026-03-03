@@ -5,6 +5,8 @@ on:
     branches: [ "main", "develop" ]
     tags:
       - 'v*.*.*'
+  release:
+    types: [ published ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
@@ -16,7 +18,7 @@ on:
 
 jobs:
   build-and-test:
-    if: github.event_name != 'workflow_dispatch'
+    if: github.event_name != 'workflow_dispatch' && (github.event_name != 'release' || github.actor != 'github-actions[bot]')
     runs-on: ubuntu-latest
 
     steps:
@@ -38,7 +40,7 @@ jobs:
         run: dotnet test --configuration Release --no-build
 
   reporting-release-gate:
-    if: github.event_name != 'workflow_dispatch'
+    if: github.event_name != 'workflow_dispatch' && (github.event_name != 'release' || github.actor != 'github-actions[bot]')
     runs-on: ubuntu-latest
     needs: build-and-test
 
@@ -69,7 +71,7 @@ jobs:
   windows-distribution:
     runs-on: windows-latest
     needs: [build-and-test, reporting-release-gate]
-    if: github.event_name != 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/v'))
+    if: github.event_name != 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v') && github.actor != 'github-actions[bot]'))
     permissions:
       contents: write
 
@@ -86,8 +88,16 @@ jobs:
         id: get_version
         shell: pwsh
         run: |
-          if ("${{ github.ref }}" -match "^refs/tags/v(.*)$") {
+          $eventName = "${{ github.event_name }}"
+          $ref = "${{ github.ref }}"
+          $releaseTag = "${{ github.event.release.tag_name }}"
+
+          if ($eventName -eq "release" -and $releaseTag -match "^v(.*)$") {
             $version = $matches[1]
+            $tagName = $releaseTag
+          } elseif ($ref -match "^refs/tags/v(.*)$") {
+            $version = $matches[1]
+            $tagName = $ref.Substring("refs/tags/".Length)
           } else {
             git fetch --tags --force | Out-Null
             $latestTag = git tag --list "v*.*.*" --sort=-v:refname | Select-Object -First 1
@@ -97,8 +107,10 @@ jobs:
               $baseVersion = "0.0.0"
             }
             $version = "$baseVersion-dev.${{ github.run_number }}"
+            $tagName = ""
           }
           echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+          echo "TAG_NAME=$tagName" >> $env:GITHUB_OUTPUT
           echo "Building version: $version"
 
       - name: Restore dependencies
@@ -181,10 +193,12 @@ jobs:
           retention-days: 5
 
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v') && github.actor != 'github-actions[bot]')
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ steps.get_version.outputs.TAG_NAME }}
           files: ${{ steps.build_dist.outputs.ZIP_PATH }}
+          fail_on_unmatched_files: true
           draft: false
           prerelease: false
           generate_release_notes: true
@@ -192,7 +206,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cleanup old release ZIP assets (keep latest 3)
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v') && github.actor != 'github-actions[bot]')
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}

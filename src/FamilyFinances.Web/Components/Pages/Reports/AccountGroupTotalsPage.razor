@@ -7,8 +7,10 @@
 @using FamilyFinances.Web
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web.Components.Pages.Reports.Charts
 @using FamilyFinances.Web.Components.Shared
 @using FamilyFinances.Web.Features.Reports
+@using FamilyFinances.Web.Features.Reports.Charts
 @using FamilyFinances.Web.Features.Reports.Export
 @using Microsoft.Extensions.Localization
 @using Microsoft.JSInterop
@@ -69,7 +71,7 @@
                 </h5>
             </div>
             <div class="card-body">
-                <div class="row g-3">
+                <div class="row g-3 align-items-end">
                     <!-- Quick Date Presets -->
                     <div class="col-12">
                         <label class="form-label fw-semibold">
@@ -80,7 +82,7 @@
                         </div>
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-12 col-md-3">
                         <label class="form-label fw-semibold">
                             <i class="bi bi-collection me-1"></i>@L["AccountGroupTotals_AccountGroup"]
                         </label>
@@ -96,21 +98,21 @@
                         </select>
                     </div>
 
-                    <div class="col-md-3">
+                    <div class="col-12 col-md-2">
                         <label class="form-label fw-semibold">
                             <i class="bi bi-calendar3 me-1"></i>@L["Reports_FromDate"]
                         </label>
                         <input type="date" class="form-control" aria-label="@L["Reports_FromDate"]" @bind="_fromDate" @bind:event="oninput" @bind:after="OnDateChanged" />
                     </div>
 
-                    <div class="col-md-3">
+                    <div class="col-12 col-md-2">
                         <label class="form-label fw-semibold">
                             <i class="bi bi-calendar3 me-1"></i>@L["Reports_ToDateExclusive"]
                         </label>
                         <input type="date" class="form-control" aria-label="@L["Reports_ToDateExclusive"]" @bind="_toDate" @bind:event="oninput" @bind:after="OnDateChanged" />
                     </div>
 
-                    <div class="col-md-2">
+                    <div class="col-12 col-md-2">
                         <label class="form-label fw-semibold">
                             <i class="bi bi-tag me-1"></i>@L["AccountGroupTotals_Nature"]
                         </label>
@@ -121,18 +123,23 @@
                         </select>
                     </div>
 
-                    <div class="col-12">
-                        <button class="btn btn-primary" @onclick="LoadReportAsync" disabled="@(_isBusy || string.IsNullOrEmpty(_selectedGroupId))">
-                            @if (_isBusy)
-                            {
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                            }
-                            else
-                            {
-                                <i class="bi bi-bar-chart me-1"></i>
-                            }
-                            @L["Reports_GenerateReport"]
-                        </button>
+                    <div class="col-12 col-md-3">
+                        <div class="d-grid">
+                            <button class="btn btn-primary"
+                                    data-testid="account-group-totals-generate-report"
+                                    @onclick="LoadReportAsync"
+                                    disabled="@(_isBusy || string.IsNullOrEmpty(_selectedGroupId))">
+                                @if (_isBusy)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-bar-chart me-1"></i>
+                                }
+                                @L["Reports_GenerateReport"]
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -212,50 +219,130 @@
                     <!-- Account Breakdown -->
                     @if (_report.Items.Count > 0)
                     {
-                        <h6 class="mb-3">
-                            <i class="bi bi-wallet2 me-2"></i>@L["AccountGroupTotals_AccountBreakdown"]
-                        </h6>
+                        var orderedItems = _report.Items.OrderByDescending(i => Math.Abs(i.TotalCents)).ToList();
+                        var groupMonthlySeries = BuildGroupMonthlySeries();
+                        var groupChartYear = _groupChartYear;
+                        var groupChartMonth = _groupChartMonth;
+                        var groupChartMonthLabel = DateHelper.GetMonthName(groupChartMonth);
+                        int? annualDataUntilMonth = groupChartYear == DateHelper.GetCurrentYear()
+                            ? DateHelper.GetCurrentMonth()
+                            : null;
 
-                        <div class="table-responsive">
-                            <table class="table table-hover ff-data-table">
-                                <thead>
-                                    <tr>
-                                        <th>@L["AccountGroupTotals_Table_Account"]</th>
-                                        <th class="text-end">@L["AccountGroupTotals_Table_Amount"]</th>
-                                        <th class="text-center">@L["AccountGroupTotals_Table_Transactions"]</th>
-                                        <th class="text-end">@L["AccountGroupTotals_Table_Percentage"]</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var item in _report.Items.OrderByDescending(i => Math.Abs(i.TotalCents)))
+                        <div class="row g-3 account-group-period-details-grid">
+                            <div class="col-12 col-xxl-6">
+                                <h6 class="mb-3">
+                                    <i class="bi bi-wallet2 me-2"></i>@L["AccountGroupTotals_AccountBreakdown"]
+                                </h6>
+
+                                <div class="table-responsive">
+                                    <table class="table table-hover ff-data-table" data-testid="account-group-totals-period-account-breakdown">
+                                        <thead>
+                                            <tr>
+                                                <th>@L["AccountGroupTotals_Table_Account"]</th>
+                                                <th class="text-end">@L["AccountGroupTotals_Table_Amount"]</th>
+                                                <th class="text-center">@L["AccountGroupTotals_Table_Transactions"]</th>
+                                                <th class="text-end">@L["AccountGroupTotals_Table_Percentage"]</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var item in orderedItems)
+                                            {
+                                                var percentage = _report.TotalCents != 0 ? (Math.Abs(item.TotalCents) / (double)Math.Abs(_report.TotalCents)) * 100 : 0;
+
+                                                <tr data-testid="account-group-totals-period-account-row">
+                                                    <td>
+                                                        <i class="bi bi-wallet2 me-2 text-muted"></i>
+                                                        <strong>@item.AccountName</strong>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <span class="@(item.TotalCents < 0 ? "text-danger" : "text-success")">
+                                                            @MoneyFormatter.FormatCents(item.TotalCents)
+                                                        </span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-secondary">@item.TransactionsCount</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="d-flex align-items-center justify-content-end">
+                                                            <div class="progress me-2" style="width: 100px; height: 8px;">
+                                                                <div class="progress-bar" role="progressbar" style="width: @(percentage)%"></div>
+                                                            </div>
+                                                            <span class="text-muted small">@percentage.ToString("F1")%</span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-xxl-6">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-graph-up-arrow me-2"></i>@L["AccountGroupState_Title"]
+                                    </h6>
+                                    @if (!string.IsNullOrWhiteSpace(_report.GroupName))
                                     {
-                                        var percentage = _report.TotalCents != 0 ? (Math.Abs(item.TotalCents) / (double)Math.Abs(_report.TotalCents)) * 100 : 0;
-
-                                        <tr>
-                                            <td>
-                                                <i class="bi bi-wallet2 me-2 text-muted"></i>
-                                                <strong>@item.AccountName</strong>
-                                            </td>
-                                            <td class="text-end">
-                                                <span class="@(item.TotalCents < 0 ? "text-danger" : "text-success")">
-                                                    @MoneyFormatter.FormatCents(item.TotalCents)
-                                                </span>
-                                            </td>
-                                            <td class="text-center">
-                                                <span class="badge bg-secondary">@item.TransactionsCount</span>
-                                            </td>
-                                            <td class="text-end">
-                                                <div class="d-flex align-items-center justify-content-end">
-                                                    <div class="progress me-2" style="width: 100px; height: 8px;">
-                                                        <div class="progress-bar" role="progressbar" style="width: @(percentage)%"></div>
-                                                    </div>
-                                                    <span class="text-muted small">@percentage.ToString("F1")%</span>
-                                                </div>
-                                            </td>
-                                        </tr>
+                                        <span class="badge text-bg-secondary">@_report.GroupName</span>
                                     }
-                                </tbody>
-                            </table>
+                                </div>
+
+                                <div class="economic-state-stacked-charts account-group-period-stacked-charts">
+                                    @if (_isGroupChartsLoading)
+                                    {
+                                        <ReportingChartLoadingState
+                                            Title="@L["AccountGroupState_LoadingMonthFocused"]"
+                                            Description="@L["Reports_LoadingDailyPoints"]" />
+                                        <ReportingChartLoadingState
+                                            Title="@L["AccountGroupState_AnnualEvolutionTitle"]"
+                                            Description="@L["Reports_LoadingData"]" />
+                                    }
+                                    else if (!string.IsNullOrWhiteSpace(_groupChartsError))
+                                    {
+                                        <ReportingChartErrorState Message="@_groupChartsError" />
+                                        <ReportingChartErrorState Message="@_groupChartsError" />
+                                    }
+                                    else
+                                    {
+                                        @if (groupMonthlySeries.Count == 0)
+                                        {
+                                            <ReportingChartEmptyState
+                                                Title="@L["MonthlySummary_MonthFocusedEvolution"]"
+                                                Description="@L["Reports_NoDailyPointsForMonth"]" />
+                                        }
+                                        else
+                                        {
+                                            <MonthlyLineChart
+                                                Title="@L["MonthlySummary_MonthFocusedEvolution"]"
+                                                Subtitle="@L["AccountGroupState_MonthFocusedSubtitle", groupChartMonthLabel, groupChartYear]"
+                                                Year="@groupChartYear"
+                                                Month="@groupChartMonth"
+                                                YTickMaxTicks="5"
+                                                Series="@groupMonthlySeries"
+                                                TestId="account-group-totals-period-group-monthly-chart" />
+                                        }
+
+                                        @if (_groupAnnualSeries.Count == 0)
+                                        {
+                                            <ReportingChartEmptyState
+                                                Title="@L["AccountGroupState_AnnualEvolutionTitle"]"
+                                                Description="@L["Reports_NoChartPointsForFilters"]" />
+                                        }
+                                        else
+                                        {
+                                            <AnnualBarChart
+                                                Title="@L["AccountGroupState_AnnualEvolutionTitle"]"
+                                                Subtitle="@L["AccountGroupState_AnnualEvolutionMonthResultSubtitle"]"
+                                                Year="@groupChartYear"
+                                                Series="@_groupAnnualSeries"
+                                                DataUntilMonth="@annualDataUntilMonth"
+                                                YTickMaxTicks="5"
+                                                TestId="account-group-totals-period-group-annual-chart" />
+                                        }
+                                    }
+                                </div>
+                            </div>
                         </div>
                     }
                     else
@@ -313,6 +400,12 @@
     private string? _error;
     private bool _isBusy;
     private AccountGroupReportTab _activeTab = AccountGroupReportTab.PeriodTotals;
+    private IReadOnlyList<MonthlyChartSeries> _groupMonthlySeries = Array.Empty<MonthlyChartSeries>();
+    private IReadOnlyList<AnnualChartSeries> _groupAnnualSeries = Array.Empty<AnnualChartSeries>();
+    private string? _groupChartsError;
+    private bool _isGroupChartsLoading;
+    private int _groupChartYear = DateHelper.GetCurrentYear();
+    private int _groupChartMonth = DateHelper.GetCurrentMonth();
 
     protected override async Task OnInitializedAsync()
     {
@@ -325,6 +418,7 @@
         _fromDate = from;
         _toDate = to;
         _activePreset = preset.Type.ToString().ToLowerInvariant().Replace("_", "-");
+        ResetGroupCharts();
         return Task.CompletedTask;
     }
 
@@ -342,6 +436,7 @@
     private void OnDateChanged()
     {
         _activePreset = null; // Clear preset when manually changing dates
+        ResetGroupCharts();
     }
 
     private async Task LoadGroupsAsync()
@@ -362,6 +457,7 @@
         _isBusy = true;
         _error = null;
         _report = null;
+        ResetGroupCharts();
 
         try
         {
@@ -377,6 +473,7 @@
                     nature,
                     ct);
             });
+            await LoadGroupChartsAsync();
         }
         catch (Exception ex)
         {
@@ -386,6 +483,158 @@
         {
             _isBusy = false;
         }
+    }
+
+    private async Task LoadGroupChartsAsync()
+    {
+        if (_report is null)
+            return;
+
+        _isGroupChartsLoading = true;
+        _groupChartsError = null;
+        _groupMonthlySeries = Array.Empty<MonthlyChartSeries>();
+        _groupAnnualSeries = Array.Empty<AnnualChartSeries>();
+        StateHasChanged();
+
+        try
+        {
+            var (chartYear, requestedMonth) = GetGroupChartReferencePeriod();
+            var selectedGroupId = _report.GroupId;
+
+            var groupEvolution = await ReportsApi.GetStateEvolutionAsync(chartYear, MonthlyEvolutionScope.AccountGroups);
+            var selectedGroupSeries = groupEvolution.Series.FirstOrDefault(s => s.EntityId == selectedGroupId);
+            _groupAnnualSeries = BuildGroupAnnualSeries(selectedGroupSeries, _report.GroupName);
+
+            var focusedMonth = ResolveGroupFocusedMonth(chartYear, requestedMonth, selectedGroupSeries);
+            _groupChartYear = chartYear;
+            _groupChartMonth = focusedMonth;
+
+            var groupEvolutionMonthly = await ReportsApi.GetMonthlyChartGroupEvolutionAsync(
+                chartYear,
+                focusedMonth);
+
+            _groupMonthlySeries = BuildGroupMonthlySeries(groupEvolutionMonthly, selectedGroupId, _report.GroupName);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            _groupChartsError = L["Reports_Error_Unauthorized"];
+        }
+        catch (Exception ex)
+        {
+            _groupChartsError = L["Reports_Error_LoadFailed", ex.Message];
+        }
+        finally
+        {
+            _isGroupChartsLoading = false;
+        }
+    }
+
+    private void ResetGroupCharts()
+    {
+        _groupMonthlySeries = Array.Empty<MonthlyChartSeries>();
+        _groupAnnualSeries = Array.Empty<AnnualChartSeries>();
+        _groupChartsError = null;
+        _isGroupChartsLoading = false;
+
+        var (defaultYear, defaultMonth) = GetGroupChartReferencePeriod();
+        _groupChartYear = defaultYear;
+        _groupChartMonth = defaultMonth;
+    }
+
+    private IReadOnlyList<MonthlyChartSeries> BuildGroupMonthlySeries()
+    {
+        return _groupMonthlySeries;
+    }
+
+    private static IReadOnlyList<MonthlyChartSeries> BuildGroupMonthlySeries(
+        MonthlyBalanceVsGroupsChartDto chart,
+        Guid selectedGroupId,
+        string groupName)
+    {
+        var selectedSeries = chart.Series.FirstOrDefault(series => series.EntityId == selectedGroupId);
+        if (selectedSeries is null || selectedSeries.Points.Count == 0)
+            return Array.Empty<MonthlyChartSeries>();
+
+        var mapped = new MonthlyBalanceVsGroupsChartDto(
+            chart.Year,
+            chart.Month,
+            [selectedSeries]);
+
+        var label = string.IsNullOrWhiteSpace(groupName) ? selectedSeries.DisplayName : groupName;
+        return MonthlyChartDatasetAdapter.BuildSeries(mapped, maxSeries: 1)
+            .Select(series => series with { Label = label })
+            .ToList();
+    }
+
+    private static IReadOnlyList<AnnualChartSeries> BuildGroupAnnualSeries(
+        MonthlyEvolutionSeriesDto? selectedGroupSeries,
+        string label)
+    {
+        if (selectedGroupSeries is null)
+            return Array.Empty<AnnualChartSeries>();
+
+        var points = Enumerable.Range(1, 12)
+            .Select(month =>
+            {
+                var value = selectedGroupSeries.Points
+                    .FirstOrDefault(point => point.Month == month)?
+                    .DeltaVsPreviousMonthCents ?? 0L;
+                return new AnnualChartPoint(month, value);
+            })
+            .ToList();
+
+        if (points.All(point => point.Value == 0))
+            return Array.Empty<AnnualChartSeries>();
+
+        return
+        [
+            new AnnualChartSeries(
+                Key: "account-group-month-result",
+                Label: label,
+                ColorHex: "#4fa4ff",
+                Points: points)
+        ];
+    }
+
+    private (int Year, int Month) GetGroupChartReferencePeriod()
+    {
+        var referenceDate = _report is not null
+            ? _report.ToExclusive.AddDays(-1)
+            : DateOnly.FromDateTime(DateTime.Today);
+
+        return (referenceDate.Year, referenceDate.Month);
+    }
+
+    private static int ResolveGroupFocusedMonth(
+        int year,
+        int preferredMonth,
+        MonthlyEvolutionSeriesDto? selectedGroupSeries)
+    {
+        var maxMonth = year == DateHelper.GetCurrentYear()
+            ? DateHelper.GetCurrentMonth()
+            : 12;
+
+        preferredMonth = Math.Clamp(preferredMonth, 1, maxMonth);
+        if (selectedGroupSeries is null || selectedGroupSeries.Points.Count == 0)
+            return preferredMonth;
+
+        var availableMonths = selectedGroupSeries.Points
+            .Select(point => point.Month)
+            .Where(month => month is >= 1 and <= 12 && month <= maxMonth)
+            .Distinct()
+            .OrderBy(month => month)
+            .ToList();
+
+        if (availableMonths.Count == 0)
+            return preferredMonth;
+
+        if (availableMonths.Contains(preferredMonth))
+            return preferredMonth;
+
+        return availableMonths
+            .Where(month => month <= preferredMonth)
+            .DefaultIfEmpty(availableMonths.Max())
+            .Max();
     }
 
     private void GoBack()

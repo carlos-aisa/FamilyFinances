@@ -124,6 +124,9 @@ public sealed class AccountGroupTotalsPageTests : WebTestContext
             cut.Find("[data-testid='account-group-totals-stock-evolution-chart']");
             cut.Find("[data-testid='account-group-totals-monthly-comparison-chart']");
             cut.Find("[data-testid='account-group-focused-month']");
+            var summaryTable = cut.Find("[data-testid='account-group-state-summary-table']");
+            summaryTable.TextContent.Should().Contain("Month balance");
+            summaryTable.TextContent.Should().NotContain("Delta vs year start");
         });
 
         var monthSelector = cut.Find("[data-testid='account-group-focused-month']");
@@ -230,6 +233,168 @@ public sealed class AccountGroupTotalsPageTests : WebTestContext
             rawTotal.Should().NotBeNullOrWhiteSpace();
             decimal.Parse(rawTotal!, CultureInfo.InvariantCulture)
                 .Should().BeApproximately(100m, 0.01m);
+            chart.GetAttribute("class").Should().Contain("is-side-legend");
+            cut.Find("[data-testid='account-group-totals-stock-composition-chart-legend']");
+        });
+    }
+
+    [Fact]
+    public void State_Evolution_List_Uses_Exact_SelectedMonth_Balance()
+    {
+        var currentYear = DateHelper.GetCurrentYear();
+        var firstGroupId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        var secondGroupId = Guid.Parse("dddddddd-dddd-dddd-dddd-dddddddddddd");
+
+        var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        var httpClient = CreateHttpClient(handlerMock);
+
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync((HttpRequestMessage req, CancellationToken _) =>
+            {
+                var uri = req.RequestUri!.ToString();
+
+                if (uri.Contains($"api/v1/account-groups/{firstGroupId}", StringComparison.OrdinalIgnoreCase))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(CreateExpenseOnlyGroupDetailsPayload(firstGroupId, "Household"))
+                    };
+                }
+
+                if (uri.Contains($"api/v1/account-groups/{secondGroupId}", StringComparison.OrdinalIgnoreCase))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(CreateExpenseOnlyGroupDetailsPayload(secondGroupId, "Transport"))
+                    };
+                }
+
+                if (uri.Contains("api/v1/account-groups"))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(CreateGroupListPayloadForComposition())
+                    };
+                }
+
+                if (uri.Contains("api/v1/reports/state-evolution") &&
+                    uri.Contains($"year={currentYear}") &&
+                    uri.Contains("scope=account-groups"))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(CreateMonthlyEvolutionPayloadForExactMonthValidation(currentYear, firstGroupId, secondGroupId))
+                    };
+                }
+
+                if (uri.Contains("api/v1/reports/monthly-charts/group-evolution") &&
+                    uri.Contains($"year={currentYear}"))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(CreateMonthlyBalanceVsGroupsPayloadForComposition(currentYear, firstGroupId, secondGroupId))
+                    };
+                }
+
+                return new HttpResponseMessage(HttpStatusCode.BadRequest);
+            });
+
+        RegisterAuthorizedServices(httpClient);
+
+        var cut = RenderComponent<AccountGroupTotalsPage>();
+        cut.FindAll("button.nav-link")
+            .First(button => button.TextContent.Contains("state", StringComparison.OrdinalIgnoreCase))
+            .Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            var rows = cut.FindAll("tr.series-summary-row");
+            rows.Should().HaveCount(2);
+
+            var firstRow = rows.First(r => r.TextContent.Contains("Household", StringComparison.OrdinalIgnoreCase));
+            firstRow.TextContent.Should().Contain(MoneyFormatter.FormatCentsWithSign(600));
+
+            var secondRow = rows.First(r => r.TextContent.Contains("Transport", StringComparison.OrdinalIgnoreCase));
+            secondRow.TextContent.Should().Contain("-");
+            secondRow.TextContent.Should().NotContain(MoneyFormatter.FormatCentsWithSign(200));
+        });
+    }
+
+    [Fact]
+    public void State_Evolution_Uses_Annual_Bar_Chart_And_Removes_Comparability_Card_Text()
+    {
+        var currentYear = DateHelper.GetCurrentYear();
+        var groupId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+
+        var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        var httpClient = CreateHttpClient(handlerMock);
+
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync((HttpRequestMessage req, CancellationToken _) =>
+            {
+                var uri = req.RequestUri!.ToString();
+
+                if (uri.Contains($"api/v1/account-groups/{groupId}", StringComparison.OrdinalIgnoreCase))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(CreateGroupDetailsPayload(groupId))
+                    };
+                }
+
+                if (uri.Contains("api/v1/account-groups"))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(CreateGroupListPayload())
+                    };
+                }
+
+                if (uri.Contains("api/v1/reports/state-evolution") &&
+                    uri.Contains($"year={currentYear}") &&
+                    uri.Contains("scope=account-groups"))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(CreateMonthlyEvolutionPayload(currentYear, groupId))
+                    };
+                }
+
+                if (uri.Contains("api/v1/reports/monthly-charts/group-evolution") &&
+                    uri.Contains($"year={currentYear}"))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(CreateMonthlyBalanceVsGroupsPayload(currentYear, groupId))
+                    };
+                }
+
+                return new HttpResponseMessage(HttpStatusCode.BadRequest);
+            });
+
+        RegisterAuthorizedServices(httpClient);
+
+        var cut = RenderComponent<AccountGroupTotalsPage>();
+        cut.FindAll("button.nav-link")
+            .First(button => button.TextContent.Contains("state", StringComparison.OrdinalIgnoreCase))
+            .Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            var chart = cut.Find("[data-testid='account-group-totals-stock-evolution-chart']");
+            chart.ClassList.Should().Contain("annual-bar-chart");
+            cut.Markup.Should().Contain("Monthly result bars (non-cumulative).");
+            cut.Markup.Should().NotContain("Monthly evolution end balances and deltas are stock metrics.");
         });
     }
 
@@ -306,6 +471,135 @@ public sealed class AccountGroupTotalsPageTests : WebTestContext
         cut.Find("[data-testid='account-group-totals-export-csv']").Click();
 
         exportCall.Invocations.Should().ContainSingle();
+    }
+
+    [Fact]
+    public void Period_Totals_Loads_Group_MonthFocused_And_Annual_Charts()
+    {
+        var groupId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        var reportDto = new AccountGroupTotalsDto(
+            groupId,
+            "Household",
+            new DateOnly(2026, 2, 1),
+            new DateOnly(2026, 3, 1),
+            AccountNature.Expense,
+            123_456,
+            3,
+            1,
+            [
+                new AccountGroupTotalItemDto(
+                    Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
+                    "Groceries",
+                    123_456,
+                    3)
+            ]);
+
+        var requestedUris = new List<string>();
+        var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        var httpClient = CreateHttpClient(handlerMock);
+
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync((HttpRequestMessage req, CancellationToken _) =>
+            {
+                var uri = req.RequestUri!.ToString();
+                requestedUris.Add(uri);
+
+                if (uri.Contains("api/v1/account-groups", StringComparison.OrdinalIgnoreCase) &&
+                    !uri.Contains("/totals", StringComparison.OrdinalIgnoreCase))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(CreateGroupListPayload())
+                    };
+                }
+
+                if (uri.Contains("api/v1/reports/account-groups/", StringComparison.OrdinalIgnoreCase) &&
+                    uri.Contains("/totals", StringComparison.OrdinalIgnoreCase))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(reportDto)
+                    };
+                }
+
+                if (uri.Contains("api/v1/reports/monthly-charts/group-evolution", StringComparison.OrdinalIgnoreCase) &&
+                    uri.Contains("year=2026", StringComparison.OrdinalIgnoreCase) &&
+                    uri.Contains("month=2", StringComparison.OrdinalIgnoreCase))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(new MonthlyBalanceVsGroupsChartDto(
+                            2026,
+                            2,
+                            [
+                                new MonthlyChartSeriesDto(
+                                    "asset-total",
+                                    "Asset Total",
+                                    null,
+                                    "scope",
+                                    [
+                                        new MonthlyChartPointDto(1, new DateOnly(2026, 2, 1), 100_000),
+                                        new MonthlyChartPointDto(2, new DateOnly(2026, 2, 2), 101_000)
+                                    ]),
+                                new MonthlyChartSeriesDto(
+                                    $"group:{groupId:D}",
+                                    "Household",
+                                    groupId,
+                                    "account-group",
+                                    [
+                                        new MonthlyChartPointDto(1, new DateOnly(2026, 2, 1), -10_000),
+                                        new MonthlyChartPointDto(2, new DateOnly(2026, 2, 2), -12_000)
+                                    ])
+                            ]))
+                    };
+                }
+
+                if (uri.Contains("api/v1/reports/state-evolution", StringComparison.OrdinalIgnoreCase) &&
+                    uri.Contains("scope=account-groups", StringComparison.OrdinalIgnoreCase) &&
+                    uri.Contains("year=2026", StringComparison.OrdinalIgnoreCase))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(new MonthlyEvolutionReportDto(
+                            2026,
+                            MonthlyEvolutionScope.AccountGroups,
+                            [
+                                new MonthlyEvolutionSeriesDto(
+                                    $"group:{groupId:D}",
+                                    "Household",
+                                    groupId,
+                                    "account-group",
+                                    [
+                                        new MonthlyEvolutionPointDto(1, new DateOnly(2026, 1, 31), -100_000, -100_000, -100_000),
+                                        new MonthlyEvolutionPointDto(2, new DateOnly(2026, 2, 28), -123_456, -23_456, -123_456)
+                                    ])
+                            ]))
+                    };
+                }
+
+                return new HttpResponseMessage(HttpStatusCode.BadRequest);
+            });
+
+        RegisterAuthorizedServices(httpClient);
+
+        var cut = RenderComponent<AccountGroupTotalsPage>();
+        cut.Find("select.form-select").Change(groupId.ToString());
+        cut.Find("[data-testid='account-group-totals-generate-report']").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("[data-testid='account-group-totals-period-account-breakdown']");
+            cut.FindAll("[data-testid='account-group-totals-period-account-row']").Should().NotBeEmpty();
+            requestedUris.Should().Contain(uri => uri.Contains("monthly-charts/group-evolution", StringComparison.OrdinalIgnoreCase));
+            requestedUris.Should().Contain(uri => uri.Contains("scope=account-groups", StringComparison.OrdinalIgnoreCase));
+            cut.Find("[data-testid='account-group-totals-period-group-monthly-chart']");
+            cut.Find("[data-testid='account-group-totals-period-group-annual-chart']");
+        });
     }
 
     private void RegisterAuthorizedServices(HttpClient httpClient)
@@ -439,6 +733,35 @@ public sealed class AccountGroupTotalsPageTests : WebTestContext
                     [
                         new MonthlyEvolutionPointDto(1, new DateOnly(year, 1, 31), 200, 200, 200),
                         new MonthlyEvolutionPointDto(2, new DateOnly(year, 2, DateTime.DaysInMonth(year, 2)), 400, 200, 400)
+                    ])
+            ]);
+    }
+
+    private static MonthlyEvolutionReportDto CreateMonthlyEvolutionPayloadForExactMonthValidation(
+        int year,
+        Guid firstGroupId,
+        Guid secondGroupId)
+    {
+        return new MonthlyEvolutionReportDto(
+            year,
+            MonthlyEvolutionScope.AccountGroups,
+            [
+                new MonthlyEvolutionSeriesDto(
+                    $"group:{firstGroupId:D}",
+                    "Household",
+                    firstGroupId,
+                    "account-group",
+                    [
+                        new MonthlyEvolutionPointDto(1, new DateOnly(year, 1, 31), 300, 300, 300),
+                        new MonthlyEvolutionPointDto(2, new DateOnly(year, 2, DateTime.DaysInMonth(year, 2)), 600, 300, 600)
+                    ]),
+                new MonthlyEvolutionSeriesDto(
+                    $"group:{secondGroupId:D}",
+                    "Transport",
+                    secondGroupId,
+                    "account-group",
+                    [
+                        new MonthlyEvolutionPointDto(1, new DateOnly(year, 1, 31), 200, 200, 200)
                     ])
             ]);
     }

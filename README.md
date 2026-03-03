@@ -283,10 +283,21 @@ Schema source:
   - Health
 
 ### Reporting Map (Current UI)
+- `Dashboard` (`/`)
+  - analytics-first overview (no tabs, no report shortcut cards)
+  - KPI strip: `Income`, `Expense`, `Net Result`, `Net Worth` with delta vs previous month
+  - monthly `Income vs Expense` chart
+  - account-group current-state chart
+  - YTD accumulated net summary with compact monthly trend
+  - compact insights list with explicit data-sufficiency state (`Complete`, `Partial`, `Insufficient history`)
+- `Quick Entry` (`/quick-entry`)
+  - dedicated transaction capture workspace (expense, income, transfer, refund)
+  - hosts quick-entry widgets (`MortgagePaymentWidget`, `MultiSplitWidget`) moved out of dashboard
 - `Economic State` (`/reports/economic-state`)
-  - `Snapshot` tab: current stock + period flow KPIs
+  - `Snapshot` tab: current stock + period flow KPIs, monthly net list (`Income - Expense`), month-focused income vs expense chart, annual month-by-month income vs expense bars
   - `Asset Evolution` tab: annual asset-total evolution (table + chart) + focused-month daily asset chart + CSV/PNG export actions
   - `Income Evolution` tab: annual income-total evolution (table + chart) + focused-month daily income chart + CSV/PNG export actions
+  - `Expense Evolution` tab: annual expense-total evolution (table + chart) + focused-month daily expense chart + CSV/PNG export actions
 - `Period Summary` (`/reports/monthly-summary`)
   - period flow KPIs (`Income`, `Expense`, `Period Net Result`, `Transactions Count`)
   - account-focused month chart (when an account is selected)
@@ -297,9 +308,11 @@ Schema source:
 - `Account Totals` (`/reports/account-totals`)
   - `Period Totals` tab + CSV export
   - `State Evolution` tab: annual account evolution and composition + overview CSV export + chart PNG export
+  - period totals rows are sortable by header click (default order: net change descending within each nature group)
 - `Account Group Totals` (`/reports/account-group-totals`)
   - `Period Totals` tab + CSV export
-  - `State Evolution` tab: annual group evolution, expense-oriented composition, focused-month daily group-evolution chart + overview CSV export + chart PNG export
+  - `State Evolution` tab: annual month-result bar evolution (non-cumulative), expense-oriented composition, focused-month daily group-evolution chart + overview CSV export + chart PNG export
+  - list context uses exact selected-month balance semantics
 
 ### Reporting Exports & Accessibility (`0.9.6`)
 - CSV exports are available on table-based report views and include active filter context.
@@ -332,8 +345,14 @@ Schema source:
   - Concurrent operation conflict: `409` with `reason=OperationInProgress`.
 
 ### Reporting API Evolution Endpoint
-- Primary endpoint: `GET /api/v1/reports/state-evolution?year=YYYY&scope=<accounts|asset-total|account-groups>`
-- Backward-compatible alias: `GET /api/v1/reports/monthly-evolution?year=YYYY&scope=<accounts|asset-total|account-groups>`
+- Primary endpoint: `GET /api/v1/reports/state-evolution?year=YYYY&scope=<accounts|asset-total|account-groups|income-total|expense-total>`
+- Backward-compatible alias: `GET /api/v1/reports/monthly-evolution?year=YYYY&scope=<accounts|asset-total|account-groups|income-total|expense-total>`
+
+### Reporting API Dashboard Endpoint
+- `GET /api/v1/reports/dashboard-overview`
+  - default behavior (no query): uses current date as `asOf`.
+  - optional query: `year` and `month` must be provided together.
+  - returns dashboard KPI comparison, daily income-vs-expense points, account-group state points, YTD summary, compact insights, and data-sufficiency state.
 
 ### Reporting API Monthly Chart Endpoints (`0.9.4`)
 - `GET /api/v1/reports/monthly-charts/balance?year=YYYY&month=MM`

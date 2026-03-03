@@ -83,6 +83,11 @@
     color: #edf4ff;
 }
 
+.nav-quick-entry ::deep a.nav-link.ff-nav-link.active {
+    background: linear-gradient(180deg, rgba(45, 214, 125, 0.28), rgba(45, 214, 125, 0.11));
+    border-color: rgba(45, 214, 125, 0.62);
+}
+
 .nav-item ::deep .nav-link.ff-nav-link:hover {
     background-color: rgba(79, 164, 255, 0.12);
     border-color: rgba(79, 164, 255, 0.35);

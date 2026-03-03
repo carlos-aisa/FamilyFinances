@@ -221,6 +221,49 @@ public sealed class MonthlyEvolutionTests
     }
 
     [Fact]
+    public async Task MonthlyEvolution_ExpenseTotalScope_Returns_Single_Deterministic_Series()
+    {
+        var year = DateTime.UtcNow.Year - 1;
+
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var bank = await TestHelpers.CreateAccountAsync(client, "Main Bank", "Asset", "Checking");
+        var groceries = await TestHelpers.CreateAccountAsync(client, "Groceries", "Expense", "Other");
+
+        await PostTransactionAsync(
+            client,
+            new DateOnly(year, 1, 7),
+            "January groceries",
+            new Split(bank.Id, -5_000, "Asset decrease"),
+            new Split(groceries.Id, 5_000, "Expense debit"));
+
+        await PostTransactionAsync(
+            client,
+            new DateOnly(year, 2, 7),
+            "February groceries",
+            new Split(bank.Id, -2_000, "Asset decrease"),
+            new Split(groceries.Id, 2_000, "Expense debit"));
+
+        var response = await client.GetAsync($"/api/v1/reports/monthly-evolution?year={year}&scope=expense-total");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var dto = await response.Content.ReadFromJsonAsync<MonthlyEvolutionReportDto>();
+        dto.Should().NotBeNull();
+        dto!.Series.Should().ContainSingle();
+
+        var series = dto.Series.Single();
+        series.SeriesKey.Should().Be("expense-total");
+        series.Points.Should().HaveCount(12);
+        series.Points.Single(p => p.Month == 1).EndBalanceCents.Should().Be(-5_000);
+        series.Points.Single(p => p.Month == 2).EndBalanceCents.Should().Be(-7_000);
+        series.Points.Single(p => p.Month == 2).DeltaVsPreviousMonthCents.Should().Be(-2_000);
+
+        var primaryResponse = await client.GetAsync($"/api/v1/reports/state-evolution?year={year}&scope=expense-total");
+        primaryResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
     public async Task MonthlyEvolution_AccountGroupsScope_Returns_Group_Aggregates_With_Deterministic_Points()
     {
         var year = DateTime.UtcNow.Year - 1;

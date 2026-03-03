@@ -75,6 +75,8 @@ public sealed class NavMenuEconomicStateTests : WebTestContext
         cut.WaitForAssertion(() =>
         {
             cut.Markup.Should().Contain("Economic State");
+            cut.Markup.Should().Contain("Quick Entry");
+            cut.Markup.Should().Contain("href=\"quick-entry\"");
             cut.Markup.Should().Contain("Asset Balance");
             cut.Markup.Should().Contain("As of");
             cut.Markup.Should().Contain(payload.AsOf.ToString("d", CultureInfo.CurrentCulture));

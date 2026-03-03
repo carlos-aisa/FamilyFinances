@@ -1,210 +1,228 @@
 @page "/"
 @rendermode InteractiveServer
-@using System.Globalization
-@using FamilyFinances.Application.Ledger.Accounts.Dtos
-@using FamilyFinances.Application.Ledger.Payees.Dtos
-@using FamilyFinances.Domain.Ledger.Accounts
-@using FamilyFinances.Web.Components.Dashboard
-@using FamilyFinances.Web.Components.QuickEntry
-@using FamilyFinances.Web
+@using FamilyFinances.Application.Reporting.Dtos
+@using FamilyFinances.Web.Api
+@using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web.Components.Pages.Reports.Charts
+@using FamilyFinances.Web.Features.Reports
+@using FamilyFinances.Web.Features.Reports.Charts
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.Extensions.Localization
-@inherits FamilyFinances.Web.Components.Base.ApiPageBase
+@using FamilyFinances.Web
+@inherits ApiPageBase
 
-@inject FamilyFinances.Web.Api.IAccountsApi AccountsApi
-@inject FamilyFinances.Web.Api.PayeesApi PayeesApi
-@inject FamilyFinances.Web.Api.TransactionsApi TransactionsApi
+@inject ReportsApi ReportsApi
 @inject IStringLocalizer<SharedResource> L
 
 <AuthorizeView>
-    <Authorized Context="auth">
+    <Authorized>
         <div class="d-flex align-items-center justify-content-between mb-4 ff-page-header">
             <div>
                 <h3 class="mb-1 ff-page-title">
                     <i class="bi bi-speedometer2 me-2"></i>@L["Dashboard_Title"]
                 </h3>
-                <p class="text-muted mb-0 ff-page-subtitle">@L["Dashboard_Subtitle"]</p>
+                <p class="text-muted mb-0 ff-page-subtitle">@L["Dashboard_Analytics_Subtitle"]</p>
             </div>
+            <a class="btn btn-outline-secondary" href="/quick-entry" data-testid="dashboard-open-quick-entry">
+                <i class="bi bi-lightning-charge me-1"></i>@L["Nav_QuickEntry"]
+            </a>
         </div>
 
-        @if (_accounts is null)
+        @if (!string.IsNullOrWhiteSpace(_error))
         {
-            <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
-                <div class="text-center">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle me-2"></i>@_error
+                <button type="button" class="btn-close" @onclick="@(() => _error = null)"></button>
+            </div>
+        }
+
+        @if (_isLoading)
+        {
+            <div class="card shadow-sm ff-panel">
+                <div class="card-body text-center py-5">
                     <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
                         <span class="visually-hidden">@L["Common_Loading"]</span>
                     </div>
-                    <p class="text-muted">@L["Dashboard_LoadingAccounts"]</p>
+                    <p class="text-muted">@L["Dashboard_LoadingAnalytics"]</p>
                 </div>
             </div>
         }
-        else if (_hasAnyTransactions == false)
+        else if (_overview is not null)
         {
-            <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
-                <div class="text-center">
-                    <i class="bi bi-rocket-takeoff display-1 text-primary mb-3"></i>
-                    <h4 class="mb-3">@L["Dashboard_GetStarted_Title"]</h4>
-                    <p class="text-muted mb-4">@L["Dashboard_GetStarted_Description"]</p>
-                    <button class="btn btn-success btn-lg" @onclick="GoToOpeningBalance">
-                        <i class="bi bi-play-circle me-2"></i>@L["Dashboard_GetStarted_Action"]
-                    </button>
+            @if (_overview.DataSufficiencyState != DashboardDataSufficiencyState.Complete)
+            {
+                <div class="alert alert-info mb-3 ff-info-note" role="alert" data-testid="dashboard-data-sufficiency-state">
+                    <i class="bi bi-info-circle me-2"></i>
+                    @GetDataSufficiencyMessage(_overview.DataSufficiencyState)
                 </div>
-            </div>
-        }
-        else
-        {
-            <div class="row g-4 ff-dashboard-grid">
-                <div class="col-12 col-lg-7 ff-dashboard-primary">
-                    <QuickEntryCard Title="@Specs[QuickEntryType.Expense].Title"
-                                    Subtitle="@Specs[QuickEntryType.Expense].Hint"
-                                    Type="@QuickEntryType.Expense"
-                                    IsActive="@(_activeEntry == QuickEntryType.Expense)"
-                                    OnHeaderClick="@(() => SetActive(QuickEntryType.Expense))">
-                        <QuickEntryDrawer Mode="@(_activeEntry ?? QuickEntryType.Expense)"
-                                          Specs="Specs"
-                                          Accounts="_accounts"
-                                          Payees="_payees"
-                                          SelectedFromAccountId="_selectedFromAccountId"
-                                          SelectedToAccountId="_selectedToAccountId"
-                                          OnTransactionCreated="OnTransactionCreatedAsync"
-                                          OnClearSelection="ClearSelection"
-                                          OnSwapAccounts="SwapTransferAccounts" />
+            }
 
-                        <div class="mt-3">
-                            <small class="text-muted">
-                                <i class="bi bi-info-circle me-1"></i>
-                                @L["Dashboard_QuickEntryHint_Expense"]
+            <div class="row g-3 mb-3" data-testid="dashboard-kpi-strip">
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="card shadow-sm border-start border-success border-4 h-100 ff-kpi-card ff-panel">
+                        <div class="card-body">
+                            <h6 class="text-muted text-uppercase mb-2 ff-kpi-label">@L["Dashboard_Kpi_Income"]</h6>
+                            <h4 class="mb-1 text-success">@MoneyFormatter.FormatCentsWithSign(_overview.Income.ValueCents)</h4>
+                            <small class="@MoneyFormatter.GetColorClass(_overview.Income.DeltaVsPreviousMonthCents)">
+                                @L["Dashboard_DeltaVsPreviousMonth"] @MoneyFormatter.FormatCentsWithSign(_overview.Income.DeltaVsPreviousMonthCents)
                             </small>
                         </div>
-                    </QuickEntryCard>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="card shadow-sm border-start border-danger border-4 h-100 ff-kpi-card ff-panel">
+                        <div class="card-body">
+                            <h6 class="text-muted text-uppercase mb-2 ff-kpi-label">@L["Dashboard_Kpi_Expense"]</h6>
+                            <h4 class="mb-1 text-danger">@MoneyFormatter.FormatCentsWithSign(-Math.Abs(_overview.Expense.ValueCents))</h4>
+                            <small class="@MoneyFormatter.GetColorClass(_overview.Expense.DeltaVsPreviousMonthCents)">
+                                @L["Dashboard_DeltaVsPreviousMonth"] @MoneyFormatter.FormatCentsWithSign(_overview.Expense.DeltaVsPreviousMonthCents)
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="card shadow-sm border-start border-info border-4 h-100 ff-kpi-card ff-panel">
+                        <div class="card-body">
+                            <h6 class="text-muted text-uppercase mb-2 ff-kpi-label">@L["Dashboard_Kpi_NetResult"]</h6>
+                            <h4 class="mb-1 @MoneyFormatter.GetColorClass(_overview.NetResult.ValueCents)">
+                                @MoneyFormatter.FormatCentsWithSign(_overview.NetResult.ValueCents)
+                            </h4>
+                            <small class="@MoneyFormatter.GetColorClass(_overview.NetResult.DeltaVsPreviousMonthCents)">
+                                @L["Dashboard_DeltaVsPreviousMonth"] @MoneyFormatter.FormatCentsWithSign(_overview.NetResult.DeltaVsPreviousMonthCents)
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="card shadow-sm border-start border-primary border-4 h-100 ff-kpi-card ff-panel">
+                        <div class="card-body">
+                            <h6 class="text-muted text-uppercase mb-2 ff-kpi-label">@L["Dashboard_Kpi_NetWorth"]</h6>
+                            <h4 class="mb-1 @MoneyFormatter.GetColorClass(_overview.NetWorth.ValueCents)">
+                                @MoneyFormatter.FormatCentsWithSign(_overview.NetWorth.ValueCents)
+                            </h4>
+                            <small class="@MoneyFormatter.GetColorClass(_overview.NetWorth.DeltaVsPreviousMonthCents)">
+                                @L["Dashboard_DeltaVsPreviousMonth"] @MoneyFormatter.FormatCentsWithSign(_overview.NetWorth.DeltaVsPreviousMonthCents)
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                    <QuickEntryCard Title="@Specs[QuickEntryType.Income].Title"
-                                    Subtitle="@Specs[QuickEntryType.Income].Hint"
-                                    Type="@QuickEntryType.Income"
-                                    IsActive="@(_activeEntry == QuickEntryType.Income)"
-                                    OnHeaderClick="@(() => SetActive(QuickEntryType.Income))">
-                        <QuickEntryDrawer Mode="@(_activeEntry ?? QuickEntryType.Income)"
-                                          Specs="Specs"
-                                          Accounts="_accounts"
-                                          Payees="_payees"
-                                          SelectedFromAccountId="_incomeFromSourceId"
-                                          SelectedToAccountId="_incomeToAssetId"
-                                          OnTransactionCreated="OnTransactionCreatedAsync"
-                                          OnClearSelection="ClearSelection"
-                                          OnSwapAccounts="SwapTransferAccounts" />
-                    </QuickEntryCard>
-
-                    <QuickEntryCard Title="@Specs[QuickEntryType.Transfer].Title"
-                                    Subtitle="@Specs[QuickEntryType.Transfer].Hint"
-                                    Type="@QuickEntryType.Transfer"
-                                    IsActive="@(_activeEntry == QuickEntryType.Transfer)"
-                                    OnHeaderClick="@(() => SetActive(QuickEntryType.Transfer))">
-                        <QuickEntryDrawer Mode="@(_activeEntry ?? QuickEntryType.Transfer)"
-                                          Specs="Specs"
-                                          Accounts="_accounts"
-                                          Payees="_payees"
-                                          SelectedFromAccountId="_transferFromAssetId"
-                                          SelectedToAccountId="_transferToAssetId"
-                                          OnTransactionCreated="OnTransactionCreatedAsync"
-                                          OnClearSelection="ClearSelection"
-                                          OnSwapAccounts="SwapTransferAccounts" />
-                    </QuickEntryCard>
-
-                    <QuickEntryCard Title="@Specs[QuickEntryType.Refund].Title"
-                                    Subtitle="@Specs[QuickEntryType.Refund].Hint"
-                                    Type="@QuickEntryType.Refund"
-                                    IsActive="@(_activeEntry == QuickEntryType.Refund)"
-                                    OnHeaderClick="@(() => SetActive(QuickEntryType.Refund))">
-                        <QuickEntryDrawer Mode="@(_activeEntry ?? QuickEntryType.Refund)"
-                                          Specs="Specs"
-                                          Accounts="_accounts"
-                                          Payees="_payees"
-                                          SelectedFromAccountId="_refundFromExpenseId"
-                                          SelectedToAccountId="_refundToAssetId"
-                                          OnTransactionCreated="OnTransactionCreatedAsync"
-                                          OnClearSelection="ClearSelection"
-                                          OnSwapAccounts="SwapTransferAccounts" />
-                    </QuickEntryCard>
-
-                    <MortgagePaymentWidget Accounts="_accounts"
-                                           IsExpanded="@(_expandedWidget == "mortgage")"
-                                           OnToggle="OnWidgetToggle"
-                                           OnTransactionCreated="OnWidgetTransactionCreatedAsync" />
-
-                    <MultiSplitWidget Accounts="_accounts"
-                                      Payees="_payees"
-                                      IsExpanded="@(_expandedWidget == "multisplit")"
-                                      OnToggle="OnWidgetToggle"
-                                      OnTransactionCreated="OnWidgetTransactionCreatedAsync" />
+            <div class="ff-dashboard-cockpit">
+                <div class="row g-3 mb-3 ff-dashboard-analytics-row ff-dashboard-analytics-row-2">
+                    <div class="col-12 col-xxl-4">
+                        @if (_monthlyIncomeVsExpenseSeries.Count == 0)
+                        {
+                            <ReportingChartEmptyState
+                                Title="@L["Dashboard_MonthlyIncomeExpense_Title"]"
+                                Description="@L["Reports_NoDailyPointsForMonth"]" />
+                        }
+                        else
+                        {
+                            <MonthlyLineChart
+                                Title="@L["Dashboard_MonthlyIncomeExpense_Title"]"
+                                Subtitle="@L["Dashboard_MonthlyIncomeExpense_Subtitle", DateHelper.GetMonthName(_overview.AsOf.Month), _overview.AsOf.Year, _overview.AsOf.Day]"
+                                Year="@_overview.AsOf.Year"
+                                Month="@_overview.AsOf.Month"
+                                YTickMaxTicks="5"
+                                ShowFullMonthRange="true"
+                                Series="@_monthlyIncomeVsExpenseSeries"
+                                TestId="dashboard-monthly-income-expense-chart" />
+                        }
+                    </div>
+                    <div class="col-12 col-xxl-4">
+                        @if (_annualIncomeVsExpenseSeries.Count == 0)
+                        {
+                            <ReportingChartEmptyState
+                                Title="@L["Dashboard_AnnualIncomeExpense_Title"]"
+                                Description="@L["ReportingChart_Empty_NoPointsForFilters"]" />
+                        }
+                        else
+                        {
+                            <AnnualBarChart
+                                Title="@L["Dashboard_AnnualIncomeExpense_Title"]"
+                                Subtitle="@L["Dashboard_AnnualIncomeExpense_Subtitle"]"
+                                Year="@_overview.AsOf.Year"
+                                Series="@_annualIncomeVsExpenseSeries"
+                                DataUntilMonth="@_overview.AsOf.Month"
+                                TestId="dashboard-annual-income-expense-chart" />
+                        }
+                    </div>
+                    <div class="col-12 col-xxl-4">
+                        @if (_monthlyNetTrendSeries.Count == 0)
+                        {
+                            <ReportingChartEmptyState
+                                Title="@L["Dashboard_MonthlyNetTrend_Title"]"
+                                Description="@L["ReportingChart_Empty_NoPointsForFilters"]" />
+                        }
+                        else
+                        {
+                            <AnnualLineChart
+                                Title="@L["Dashboard_MonthlyNetTrend_Title"]"
+                                Subtitle="@L["Dashboard_MonthlyNetTrend_Subtitle"]"
+                                Year="@_overview.AsOf.Year"
+                                Series="@_monthlyNetTrendSeries"
+                                DataUntilMonth="@_overview.AsOf.Month"
+                                TestId="dashboard-monthly-net-trend-chart" />
+                        }
+                    </div>
                 </div>
 
-                <div class="col-12 col-lg-5 ff-dashboard-secondary">
-                    @foreach (var nature in _natureOrder)
-                    {
-                        var items = GetAccounts(nature);
-
-                        if (items.Count == 0)
-                            continue;
-
-                        <div class="card shadow-sm mb-3 border-start border-4 ff-panel ff-dashboard-nature-card @GetNatureBorderClass(nature)">
-                            <div class="card-header ff-panel-header @GetNatureHeaderClass(nature)">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <h6 class="mb-0 @GetNatureTextClass(nature)">
-                                        <i class="@GetNatureIcon(nature) me-2"></i>@GetNatureLabel(nature)
-                                    </h6>
-                                    <span class="badge @GetNatureCountBadgeClass(nature)">@items.Count</span>
-                                </div>
-                            </div>
-
-                            <div class="card-body p-0">
-                                @if (items.Count > 8)
-                                {
-                                    <div class="p-2 border-bottom">
-                                        <input type="text"
-                                               class="form-control form-control-sm"
-                                               placeholder="@L["Dashboard_SearchAccountsPlaceholder", GetNatureLabel(nature).ToLower(CultureInfo.CurrentCulture)]"
-                                               @bind="_accountSearchQueries[nature]"
-                                               @bind:event="oninput" />
-                                    </div>
-                                }
-                                <div class="list-group list-group-flush">
-                                    @foreach (var a in GetFilteredAccounts(nature, items))
-                                    {
-                                        var isSelectedFrom = _selectedFromAccountId == a.Id;
-                                        var isSelectedTo = _selectedToAccountId == a.Id;
-                                        var isSelected = isSelectedFrom || isSelectedTo;
-
-                                        <button type="button"
-                                                class="list-group-item list-group-item-action ff-dashboard-account-item d-flex justify-content-between align-items-center @(isSelected ? "active" : "")"
-                                                @onclick="@(() => OnAccountClicked(a))">
-                                            <span>
-                                                <i class="bi bi-wallet2 me-2"></i>@a.Name
-                                            </span>
-                                            @if (isSelectedFrom)
-                                            {
-                                                <span class="badge bg-warning text-dark">
-                                                    <i class="bi bi-arrow-up-right me-1"></i>@L["Dashboard_FromBadge"]
-                                                </span>
-                                            }
-                                            else if (isSelectedTo)
-                                            {
-                                                <span class="badge bg-success">
-                                                    <i class="bi bi-arrow-down-left me-1"></i>@L["Dashboard_ToBadge"]
-                                                </span>
-                                            }
-                                        </button>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    }
+                <div class="row g-3 ff-dashboard-analytics-row ff-dashboard-analytics-row-3">
+                    <div class="col-12 col-xxl-4">
+                        @if (_assetAnnualEvolutionSeries.Count == 0)
+                        {
+                            <ReportingChartEmptyState
+                                Title="@L["Dashboard_AssetEvolution_Title"]"
+                                Description="@L["ReportingChart_Empty_NoPointsForFilters"]" />
+                        }
+                        else
+                        {
+                            <AnnualLineChart
+                                Title="@L["Dashboard_AssetEvolution_Title"]"
+                                Subtitle="@L["Dashboard_AssetEvolution_Subtitle"]"
+                                Year="@_overview.AsOf.Year"
+                                Series="@_assetAnnualEvolutionSeries"
+                                DataUntilMonth="@_overview.AsOf.Month"
+                                TestId="dashboard-asset-evolution-chart" />
+                        }
+                    </div>
+                    <div class="col-12 col-xxl-4">
+                        @if (_groupAnnualEvolutionSeries.Count == 0)
+                        {
+                            <ReportingChartEmptyState
+                                Title="@L["Dashboard_GroupAnnualEvolution_Title"]"
+                                Description="@L["ReportingChart_Empty_NoPointsForFilters"]" />
+                        }
+                        else
+                        {
+                            <AnnualBarChart
+                                Title="@L["Dashboard_GroupAnnualEvolution_Title"]"
+                                Subtitle="@L["Dashboard_GroupAnnualEvolution_Subtitle"]"
+                                Year="@_overview.AsOf.Year"
+                                Series="@_groupAnnualEvolutionSeries"
+                                DataUntilMonth="@_overview.AsOf.Month"
+                                TestId="dashboard-group-annual-evolution-chart" />
+                        }
+                    </div>
+                    <div class="col-12 col-xxl-4">
+                        <AnnualCompositionChart
+                            Title="@L["Dashboard_ExpenseComposition_Title"]"
+                            Subtitle="@L["Dashboard_ExpenseComposition_Subtitle", DateHelper.GetMonthName(_overview.AsOf.Month)]"
+                            Year="@_overview.AsOf.Year"
+                            BadgeText="@($"{_overview.AsOf.Year:D4}-{_overview.AsOf.Month:D2}")"
+                            Slices="@_expenseCompositionSlices"
+                            UseSideLegend="true"
+                            LegendMaxItems="10"
+                            TestId="dashboard-expense-composition-chart" />
+                    </div>
                 </div>
             </div>
         }
     </Authorized>
 
     <NotAuthorized>
-        <div class="card shadow-sm">
+        <div class="card shadow-sm ff-panel">
             <div class="card-body text-center py-5">
                 <i class="bi bi-shield-lock display-1 text-muted mb-3"></i>
                 <h5 class="text-muted">@L["Dashboard_AuthenticationRequired"]</h5>
@@ -218,409 +236,194 @@
 </AuthorizeView>
 
 @code {
-    private IReadOnlyList<AccountDto>? _accounts;
-    private IReadOnlyList<PayeeDto> _payees = Array.Empty<PayeeDto>();
-    private bool? _hasAnyTransactions;
-
-    private Guid? _selectedFromAccountId;
-    private Guid? _selectedToAccountId;
-
-    private QuickEntryType? _activeEntry = QuickEntryType.Expense;
-
-    private Guid? _expenseFromAssetId;
-    private Guid? _expenseToCategoryId;
-
-    private Guid? _incomeFromSourceId;
-    private Guid? _incomeToAssetId;
-
-    private Guid? _transferFromAssetId;
-    private Guid? _transferToAssetId;
-
-    private Guid? _refundFromExpenseId;
-    private Guid? _refundToAssetId;
-
-    private readonly Dictionary<AccountNature, string> _accountSearchQueries = new()
-    {
-        { AccountNature.Asset, "" },
-        { AccountNature.Liability, "" },
-        { AccountNature.Expense, "" },
-        { AccountNature.Income, "" }
-    };
-
-    private string? _expandedWidget;
-
-    private Dictionary<QuickEntryType, QuickEntrySpec> _specs = new();
-    private Dictionary<QuickEntryType, QuickEntrySpec> Specs => _specs;
-
-    private void GoToOpeningBalance() => Nav.NavigateTo("/opening-balance");
-
-    private static readonly AccountNature[] _natureOrder =
-    [
-        AccountNature.Asset,
-        AccountNature.Liability,
-        AccountNature.Expense,
-        AccountNature.Income
-    ];
+    private DashboardOverviewDto? _overview;
+    private string? _error;
+    private bool _isLoading = true;
+    private IReadOnlyList<MonthlyChartSeries> _monthlyIncomeVsExpenseSeries = Array.Empty<MonthlyChartSeries>();
+    private IReadOnlyList<AnnualChartSeries> _annualIncomeVsExpenseSeries = Array.Empty<AnnualChartSeries>();
+    private IReadOnlyList<AnnualChartSeries> _monthlyNetTrendSeries = Array.Empty<AnnualChartSeries>();
+    private IReadOnlyList<AnnualChartSeries> _assetAnnualEvolutionSeries = Array.Empty<AnnualChartSeries>();
+    private IReadOnlyList<AnnualChartSeries> _groupAnnualEvolutionSeries = Array.Empty<AnnualChartSeries>();
+    private IReadOnlyList<AnnualCompositionSlice> _expenseCompositionSlices = Array.Empty<AnnualCompositionSlice>();
 
     protected override async Task OnInitializedAsync()
     {
-        _specs = BuildSpecs();
-
-        await ExecuteApiAsync(async ct =>
-        {
-            var allAccounts = await AccountsApi.ListAsync(ct);
-            _accounts = allAccounts
-                .Where(a => !a.IsClosed)
-                .ToList();
-
-            _payees = await PayeesApi.ListAsync(ct);
-
-            _hasAnyTransactions = await TransactionsApi.HasAnyAsync(ct);
-        });
+        await LoadOverviewAsync();
     }
 
-    private Dictionary<QuickEntryType, QuickEntrySpec> BuildSpecs()
+    private async Task LoadOverviewAsync()
     {
-        return new Dictionary<QuickEntryType, QuickEntrySpec>
-        {
-            [QuickEntryType.Expense] = new(
-                Title: L["QuickEntry_Expense_Title"],
-                Hint: L["QuickEntry_Expense_Hint"],
-                FromAllowed: new() { AccountNature.Asset, AccountNature.Liability },
-                ToAllowed: new() { AccountNature.Expense },
-                ReplaceToWhenBothSelected: false),
-
-            [QuickEntryType.Income] = new(
-                Title: L["QuickEntry_Income_Title"],
-                Hint: L["QuickEntry_Income_Hint"],
-                FromAllowed: new() { AccountNature.Income },
-                ToAllowed: new() { AccountNature.Asset },
-                ReplaceToWhenBothSelected: false),
-
-            [QuickEntryType.Transfer] = new(
-                Title: L["QuickEntry_Transfer_Title"],
-                Hint: L["QuickEntry_Transfer_Hint"],
-                FromAllowed: new() { AccountNature.Asset, AccountNature.Liability },
-                ToAllowed: new() { AccountNature.Asset, AccountNature.Liability },
-                ReplaceToWhenBothSelected: true),
-
-            [QuickEntryType.Refund] = new(
-                Title: L["QuickEntry_Refund_Title"],
-                Hint: L["QuickEntry_Refund_Hint"],
-                FromAllowed: new() { AccountNature.Expense },
-                ToAllowed: new() { AccountNature.Asset, AccountNature.Liability },
-                ReplaceToWhenBothSelected: false),
-        };
-    }
-
-    private string GetNatureLabel(AccountNature nature)
-    {
-        return nature switch
-        {
-            AccountNature.Asset => L["Dashboard_Nature_Asset"].Value,
-            AccountNature.Liability => L["Dashboard_Nature_Liability"].Value,
-            AccountNature.Expense => L["Dashboard_Nature_Expense"].Value,
-            AccountNature.Income => L["Dashboard_Nature_Income"].Value,
-            AccountNature.Equity => L["Accounts_Nature_Equity"].Value,
-            _ => nature.ToString()
-        };
-    }
-
-    private void OnAccountClicked(AccountDto account)
-    {
-        if (!_activeEntry.HasValue)
-            return;
-
-        var spec = Specs[_activeEntry.Value];
-
-        var canBeFrom = spec.FromAllowed.Contains(account.Nature);
-        var canBeTo = spec.ToAllowed.Contains(account.Nature);
-
-        if (!canBeFrom && !canBeTo)
-            return;
-
-        if (canBeFrom && canBeTo)
-        {
-            if (ShouldAssignToInActiveEntry())
-                SetToForActiveEntry(account.Id, spec.ReplaceToWhenBothSelected);
-            else
-                SetFromForActiveEntry(account.Id);
-
-            return;
-        }
-
-        if (canBeFrom)
-        {
-            SetFromForActiveEntry(account.Id);
-            return;
-        }
-
-        SetToForActiveEntry(account.Id, spec.ReplaceToWhenBothSelected);
-    }
-
-    private void SetFromForActiveEntry(Guid accountId)
-    {
-        if (!_activeEntry.HasValue)
-            return;
-
-        switch (_activeEntry.Value)
-        {
-            case QuickEntryType.Expense:
-                _expenseFromAssetId = accountId;
-                _selectedFromAccountId = accountId;
-                break;
-
-            case QuickEntryType.Income:
-                _incomeFromSourceId = accountId;
-                _selectedFromAccountId = accountId;
-                break;
-
-            case QuickEntryType.Transfer:
-                _transferFromAssetId = accountId;
-                _selectedFromAccountId = accountId;
-                break;
-
-            case QuickEntryType.Refund:
-                _refundFromExpenseId = accountId;
-                _selectedFromAccountId = accountId;
-                break;
-        }
-    }
-
-    private void SetToForActiveEntry(Guid accountId, bool replaceWhenBothSelected)
-    {
-        if (!_activeEntry.HasValue)
-            return;
-
-        switch (_activeEntry.Value)
-        {
-            case QuickEntryType.Expense:
-                _expenseToCategoryId = accountId;
-                _selectedToAccountId = accountId;
-                break;
-
-            case QuickEntryType.Income:
-                _incomeToAssetId = accountId;
-                _selectedToAccountId = accountId;
-                break;
-
-            case QuickEntryType.Transfer:
-                if (_transferFromAssetId is null)
-                {
-                    _transferFromAssetId = accountId;
-                    _selectedFromAccountId = accountId;
-                    return;
-                }
-
-                if (_transferToAssetId is null)
-                {
-                    _transferToAssetId = accountId;
-                    _selectedToAccountId = accountId;
-                    return;
-                }
-
-                if (replaceWhenBothSelected)
-                {
-                    _transferToAssetId = accountId;
-                    _selectedToAccountId = accountId;
-                }
-
-                break;
-
-            case QuickEntryType.Refund:
-                _refundToAssetId = accountId;
-                _selectedToAccountId = accountId;
-                break;
-        }
-    }
-
-    private Task OnTransactionCreatedAsync()
-    {
-        if (!_activeEntry.HasValue)
-            return Task.CompletedTask;
-
-        switch (_activeEntry.Value)
-        {
-            case QuickEntryType.Expense:
-                _expenseToCategoryId = null;
-                break;
-
-            case QuickEntryType.Income:
-                _incomeToAssetId = null;
-                break;
-
-            case QuickEntryType.Transfer:
-                _transferToAssetId = null;
-                break;
-            case QuickEntryType.Refund:
-                _refundToAssetId = null;
-                break;
-        }
-
-        _selectedToAccountId = null;
+        _isLoading = true;
+        _error = null;
+        _overview = null;
+        _monthlyIncomeVsExpenseSeries = Array.Empty<MonthlyChartSeries>();
+        _annualIncomeVsExpenseSeries = Array.Empty<AnnualChartSeries>();
+        _monthlyNetTrendSeries = Array.Empty<AnnualChartSeries>();
+        _assetAnnualEvolutionSeries = Array.Empty<AnnualChartSeries>();
+        _groupAnnualEvolutionSeries = Array.Empty<AnnualChartSeries>();
+        _expenseCompositionSlices = Array.Empty<AnnualCompositionSlice>();
         StateHasChanged();
-        return Task.CompletedTask;
-    }
 
-    private Task OnWidgetTransactionCreatedAsync()
-    {
-        StateHasChanged();
-        return Task.CompletedTask;
-    }
-
-    private void OnWidgetToggle(string widgetName)
-    {
-        if (_expandedWidget != widgetName)
+        try
         {
-            _activeEntry = null;
+            _overview = await ReportsApi.GetDashboardOverviewAsync();
+            _monthlyIncomeVsExpenseSeries = BuildMonthlyIncomeExpenseSeries(_overview);
+            _annualIncomeVsExpenseSeries = BuildAnnualIncomeExpenseSeries(_overview);
+            _monthlyNetTrendSeries = BuildMonthlyNetTrendSeries(_overview);
+            await LoadAnnualEvolutionSeriesAsync(_overview.AsOf.Year);
+            _expenseCompositionSlices = BuildExpenseCompositionSlices(_overview);
         }
-
-        _expandedWidget = _expandedWidget == widgetName ? null : widgetName;
-        StateHasChanged();
-    }
-
-    private void ClearSelection()
-    {
-        switch (_activeEntry)
+        catch (UnauthorizedAccessException)
         {
-            case QuickEntryType.Expense:
-                _expenseFromAssetId = null;
-                _expenseToCategoryId = null;
-                break;
-
-            case QuickEntryType.Income:
-                _incomeFromSourceId = null;
-                _incomeToAssetId = null;
-                break;
-
-            case QuickEntryType.Transfer:
-                _transferFromAssetId = null;
-                _transferToAssetId = null;
-                break;
-            case QuickEntryType.Refund:
-                _refundFromExpenseId = null;
-                _refundToAssetId = null;
-                break;
+            _error = L["Reports_Error_Unauthorized"];
         }
-
-        _selectedFromAccountId = null;
-        _selectedToAccountId = null;
-    }
-
-    private void SetActive(QuickEntryType type)
-    {
-        _activeEntry = type;
-        _expandedWidget = null;
-        SyncSelectionForActiveEntry();
-    }
-
-    private void SyncSelectionForActiveEntry()
-    {
-        if (!_activeEntry.HasValue)
-            return;
-
-        switch (_activeEntry.Value)
+        catch (Exception ex)
         {
-            case QuickEntryType.Expense:
-                _selectedFromAccountId = _expenseFromAssetId;
-                _selectedToAccountId = _expenseToCategoryId;
-                break;
-
-            case QuickEntryType.Income:
-                _selectedFromAccountId = _incomeFromSourceId;
-                _selectedToAccountId = _incomeToAssetId;
-                break;
-
-            case QuickEntryType.Transfer:
-                _selectedFromAccountId = _transferFromAssetId;
-                _selectedToAccountId = _transferToAssetId;
-                break;
-            case QuickEntryType.Refund:
-                _selectedFromAccountId = _refundFromExpenseId;
-                _selectedToAccountId = _refundToAssetId;
-                break;
+            _error = L["Reports_Error_LoadFailed", ex.Message];
+        }
+        finally
+        {
+            _isLoading = false;
         }
     }
 
-    private void SwapTransferAccounts()
+    private IReadOnlyList<MonthlyChartSeries> BuildMonthlyIncomeExpenseSeries(DashboardOverviewDto overview)
     {
-        (_transferFromAssetId, _transferToAssetId) = (_transferToAssetId, _transferFromAssetId);
-        (_selectedFromAccountId, _selectedToAccountId) = (_selectedToAccountId, _selectedFromAccountId);
-    }
-
-    private IReadOnlyList<AccountDto> GetAccounts(AccountNature nature)
-    {
-        if (_accounts is null) return Array.Empty<AccountDto>();
-
-        return _accounts
-            .Where(a => a.Nature == nature && !a.IsClosed)
-            .OrderBy(a => a.Name)
+        var orderedPoints = overview.DailyIncomeVsExpense
+            .OrderBy(point => point.Day)
             .ToList();
+
+        if (orderedPoints.Count == 0)
+            return Array.Empty<MonthlyChartSeries>();
+
+        return
+        [
+            new MonthlyChartSeries(
+                Key: "income",
+                Label: L["Dashboard_Kpi_Income"],
+                ColorHex: "#2dd67d",
+                Points: orderedPoints.Select(point => new MonthlyChartPoint(point.Day, point.IncomeCents)).ToList()),
+            new MonthlyChartSeries(
+                Key: "expense",
+                Label: L["Dashboard_Kpi_Expense"],
+                ColorHex: "#ff5f75",
+                Points: orderedPoints.Select(point => new MonthlyChartPoint(point.Day, point.ExpenseCents)).ToList())
+        ];
     }
 
-    private IReadOnlyList<AccountDto> GetFilteredAccounts(AccountNature nature, IReadOnlyList<AccountDto> accounts)
+    private IReadOnlyList<AnnualChartSeries> BuildAnnualIncomeExpenseSeries(DashboardOverviewDto overview)
     {
-        var searchQuery = _accountSearchQueries[nature];
+        var pointsByMonth = overview.YtdSummary.MonthlyNetPoints
+            .ToDictionary(point => point.Month, point => point);
 
-        if (string.IsNullOrWhiteSpace(searchQuery))
-            return accounts;
-
-        return accounts
-            .Where(a => a.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-    }
-
-    private bool ShouldAssignToInActiveEntry()
-    {
-        return _activeEntry switch
+        var incomePoints = new List<AnnualChartPoint>(12);
+        var expensePoints = new List<AnnualChartPoint>(12);
+        for (var month = 1; month <= 12; month++)
         {
-            QuickEntryType.Transfer => _transferFromAssetId is not null && _transferToAssetId is null,
-            _ => _selectedFromAccountId is not null && _selectedToAccountId is null
+            var point = pointsByMonth.GetValueOrDefault(month);
+            incomePoints.Add(new AnnualChartPoint(month, point?.IncomeCents ?? 0L));
+            expensePoints.Add(new AnnualChartPoint(month, point?.ExpenseCents ?? 0L));
+        }
+
+        return
+        [
+            new AnnualChartSeries(
+                Key: "income",
+                Label: L["Dashboard_Kpi_Income"],
+                ColorHex: "#2dd67d",
+                Points: incomePoints),
+            new AnnualChartSeries(
+                Key: "expense",
+                Label: L["Dashboard_Kpi_Expense"],
+                ColorHex: "#ff5f75",
+                Points: expensePoints)
+        ];
+    }
+
+    private IReadOnlyList<AnnualChartSeries> BuildMonthlyNetTrendSeries(DashboardOverviewDto overview)
+    {
+        var pointsByMonth = overview.YtdSummary.MonthlyNetPoints
+            .ToDictionary(point => point.Month, point => point);
+
+        var netPoints = new List<AnnualChartPoint>(12);
+        for (var month = 1; month <= 12; month++)
+        {
+            var point = pointsByMonth.GetValueOrDefault(month);
+            netPoints.Add(new AnnualChartPoint(month, point?.NetCents ?? 0L));
+        }
+
+        return
+        [
+            new AnnualChartSeries(
+                Key: "monthly-net",
+                Label: L["Dashboard_MonthlyNetTrend_Legend"],
+                ColorHex: "#56c7ff",
+                Points: netPoints)
+        ];
+    }
+
+    private IReadOnlyList<AnnualCompositionSlice> BuildExpenseCompositionSlices(DashboardOverviewDto overview)
+    {
+        var rows = overview.CompactInsights
+            .Where(row => row.AmountCents > 0L)
+            .OrderBy(row => string.Equals(row.StatusCode, "others", StringComparison.OrdinalIgnoreCase) ? 1 : 0)
+            .ThenByDescending(row => row.AmountCents)
+            .ThenBy(row => row.Label, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (rows.Count == 0)
+            return Array.Empty<AnnualCompositionSlice>();
+
+        var totalAmount = rows.Sum(row => row.AmountCents);
+        if (totalAmount <= 0L)
+            return Array.Empty<AnnualCompositionSlice>();
+
+        var slices = new List<AnnualCompositionSlice>(rows.Count);
+        for (var index = 0; index < rows.Count; index++)
+        {
+            var row = rows[index];
+            var label = string.Equals(row.StatusCode, "others", StringComparison.OrdinalIgnoreCase)
+                ? L["Dashboard_ExpenseComposition_Others"]
+                : row.Label;
+
+            var percentage = row.Percentage is decimal value
+                ? value
+                : (row.AmountCents * 100m) / totalAmount;
+
+            slices.Add(new AnnualCompositionSlice(
+                Key: row.RowKey,
+                Label: label,
+                RawValueCents: row.AmountCents,
+                Percentage: percentage,
+                ColorHex: AnnualChartPalette.Resolve(index)));
+        }
+
+        return slices;
+    }
+
+    private async Task LoadAnnualEvolutionSeriesAsync(int year)
+    {
+        var assetEvolution = await ReportsApi.GetStateEvolutionAsync(year, MonthlyEvolutionScope.AssetTotal);
+        var groupEvolution = await ReportsApi.GetStateEvolutionAsync(year, MonthlyEvolutionScope.AccountGroups);
+
+        _assetAnnualEvolutionSeries = AnnualChartDatasetAdapter.BuildEndBalanceSeries(
+            assetEvolution,
+            key: "asset-total",
+            label: L["Dashboard_AssetEvolution_Legend"],
+            colorHex: "#4fa4ff");
+
+        _groupAnnualEvolutionSeries = AnnualChartDatasetAdapter.BuildSeriesMonthlyDelta(
+            groupEvolution,
+            maxSeries: 8);
+    }
+
+    private string GetDataSufficiencyMessage(DashboardDataSufficiencyState state)
+    {
+        return state switch
+        {
+            DashboardDataSufficiencyState.Complete => L["Dashboard_DataState_Complete"],
+            DashboardDataSufficiencyState.Partial => L["Dashboard_DataState_Partial"],
+            _ => L["Dashboard_DataState_InsufficientHistory"]
         };
     }
-
-    private static string GetNatureBorderClass(AccountNature nature) => nature switch
-    {
-        AccountNature.Asset => "border-primary",
-        AccountNature.Liability => "border-warning",
-        AccountNature.Expense => "border-danger",
-        AccountNature.Income => "border-success",
-        _ => "border-secondary"
-    };
-
-    private static string GetNatureHeaderClass(AccountNature nature) => nature switch
-    {
-        AccountNature.Asset => "bg-primary-subtle",
-        AccountNature.Liability => "bg-warning-subtle",
-        AccountNature.Expense => "bg-danger-subtle",
-        AccountNature.Income => "bg-success-subtle",
-        _ => "bg-secondary-subtle"
-    };
-
-    private static string GetNatureTextClass(AccountNature nature) => nature switch
-    {
-        AccountNature.Asset => "text-primary-emphasis",
-        AccountNature.Liability => "text-warning-emphasis",
-        AccountNature.Expense => "text-danger-emphasis",
-        AccountNature.Income => "text-success-emphasis",
-        _ => "text-secondary-emphasis"
-    };
-
-    private static string GetNatureCountBadgeClass(AccountNature nature) => nature switch
-    {
-        AccountNature.Asset => "bg-primary text-white",
-        AccountNature.Liability => "bg-warning text-dark",
-        AccountNature.Expense => "bg-danger text-white",
-        AccountNature.Income => "bg-success text-white",
-        _ => "bg-secondary text-white"
-    };
-
-    private static string GetNatureIcon(AccountNature nature) => nature switch
-    {
-        AccountNature.Asset => "bi-bank",
-        AccountNature.Liability => "bi-credit-card",
-        AccountNature.Expense => "bi-arrow-up-circle",
-        AccountNature.Income => "bi-arrow-down-circle",
-        _ => "bi-wallet2"
-    };
 }

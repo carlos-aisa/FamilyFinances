@@ -71,6 +71,7 @@ else
     [Parameter] public string TestId { get; set; } = "monthly-line-chart";
     [Parameter] public int? YTickMaxTicks { get; set; }
     [Parameter] public bool EnableImageExport { get; set; } = true;
+    [Parameter] public bool ShowFullMonthRange { get; set; }
 
     private readonly string _canvasId = $"monthly-line-{Guid.NewGuid():N}";
     private string? _lastRenderedSignature;
@@ -116,24 +117,52 @@ else
 
     private object BuildChartPayload()
     {
-        var orderedDays = Series
-            .SelectMany(s => s.Points.Select(p => p.Day))
-            .Distinct()
-            .OrderBy(d => d)
-            .ToList();
+        var daysInMonth = DateTime.DaysInMonth(Year, Month);
+        var orderedDays = ShowFullMonthRange
+            ? Enumerable.Range(1, daysInMonth).ToList()
+            : Series
+                .SelectMany(s => s.Points.Select(p => p.Day))
+                .Distinct()
+                .OrderBy(d => d)
+                .ToList();
 
-        var labels = orderedDays
-            .Select(d => d.ToString(CultureInfo.InvariantCulture))
-            .ToList();
+        var labels = orderedDays.Select(d => d.ToString(CultureInfo.InvariantCulture)).ToList();
+
+        var dataCutoffDay = ShowFullMonthRange
+            ? Series
+                .SelectMany(series => series.Points.Select(point => point.Day))
+                .Where(day => day >= 1 && day <= daysInMonth)
+                .DefaultIfEmpty()
+                .Max()
+            : 0;
 
         var datasets = Series
             .Select(series =>
             {
                 var pointsByDay = series.Points.ToDictionary(x => x.Day, x => x.Value);
+                var firstDayWithData = series.Points.Count == 0
+                    ? (int?)null
+                    : series.Points.Min(point => point.Day);
+                decimal? latestValue = null;
                 var values = orderedDays
-                    .Select(day => pointsByDay.TryGetValue(day, out var value)
-                        ? Convert.ToDouble(value / 100m, CultureInfo.InvariantCulture)
-                        : (double?)null)
+                    .Select(day =>
+                    {
+                        if (pointsByDay.TryGetValue(day, out var value))
+                        {
+                            latestValue = value;
+                            return Convert.ToDouble(value / 100m, CultureInfo.InvariantCulture);
+                        }
+
+                        if (ShowFullMonthRange &&
+                            firstDayWithData is not null &&
+                            day >= firstDayWithData.Value &&
+                            latestValue is not null)
+                        {
+                            return Convert.ToDouble(latestValue.Value / 100m, CultureInfo.InvariantCulture);
+                        }
+
+                        return (double?)null;
+                    })
                     .ToList();
 
                 return new
@@ -147,6 +176,10 @@ else
             })
             .ToList();
 
+        int? markerDay = ShowFullMonthRange && dataCutoffDay > 0
+            ? dataCutoffDay
+            : null;
+
         return new
         {
             labels,
@@ -154,7 +187,9 @@ else
             useDualAxis = false,
             xTickAutoSkip = true,
             xTickMaxTicks = 12,
-            yTickMaxTicks = YTickMaxTicks
+            yTickMaxTicks = YTickMaxTicks,
+            markerDay,
+            totalDays = ShowFullMonthRange ? daysInMonth : labels.Count
         };
     }
 

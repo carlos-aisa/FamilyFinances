@@ -183,21 +183,45 @@
                                         <thead class="table-light">
                                             <tr>
                                                 <th class="border-0 ps-3" style="width: 40%;">
-                                                    <i class="bi bi-tag me-1"></i>@L["AccountTotals_Table_AccountName"]
+                                                    <button type="button"
+                                                            class="btn btn-link btn-sm text-decoration-none p-0 ff-sort-header"
+                                                            aria-label="@L["AccountTotals_Table_AccountName"]"
+                                                            aria-sort="@GetAriaSort(SortColumn.AccountName)"
+                                                            @onclick="() => ToggleSort(SortColumn.AccountName)">
+                                                        <i class="bi bi-tag me-1"></i>@L["AccountTotals_Table_AccountName"] @GetSortGlyph(SortColumn.AccountName)
+                                                    </button>
                                                 </th>
                                                 <th class="border-0" style="width: 20%;">
-                                                    <i class="bi bi-folder me-1"></i>@L["AccountTotals_Table_Kind"]
+                                                    <button type="button"
+                                                            class="btn btn-link btn-sm text-decoration-none p-0 ff-sort-header"
+                                                            aria-label="@L["AccountTotals_Table_Kind"]"
+                                                            aria-sort="@GetAriaSort(SortColumn.Kind)"
+                                                            @onclick="() => ToggleSort(SortColumn.Kind)">
+                                                        <i class="bi bi-folder me-1"></i>@L["AccountTotals_Table_Kind"] @GetSortGlyph(SortColumn.Kind)
+                                                    </button>
                                                 </th>
                                                 <th class="border-0 text-end" style="width: 25%;">
-                                                    <i class="bi bi-currency-euro me-1"></i>@L["AccountTotals_Table_NetChange"]
+                                                    <button type="button"
+                                                            class="btn btn-link btn-sm text-decoration-none p-0 ff-sort-header"
+                                                            aria-label="@L["AccountTotals_Table_NetChange"]"
+                                                            aria-sort="@GetAriaSort(SortColumn.NetChange)"
+                                                            @onclick="() => ToggleSort(SortColumn.NetChange)">
+                                                        <i class="bi bi-currency-euro me-1"></i>@L["AccountTotals_Table_NetChange"] @GetSortGlyph(SortColumn.NetChange)
+                                                    </button>
                                                 </th>
                                                 <th class="border-0 text-end pe-3" style="width: 15%;">
-                                                    <i class="bi bi-receipt me-1"></i>@L["AccountTotals_Table_Transactions"]
+                                                    <button type="button"
+                                                            class="btn btn-link btn-sm text-decoration-none p-0 ff-sort-header"
+                                                            aria-label="@L["AccountTotals_Table_Transactions"]"
+                                                            aria-sort="@GetAriaSort(SortColumn.Transactions)"
+                                                            @onclick="() => ToggleSort(SortColumn.Transactions)">
+                                                        <i class="bi bi-receipt me-1"></i>@L["AccountTotals_Table_Transactions"] @GetSortGlyph(SortColumn.Transactions)
+                                                    </button>
                                                 </th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @foreach (var item in items.OrderBy(i => i.AccountName))
+                                            @foreach (var item in SortItems(items))
                                             {
                                                 <tr>
                                                     <td class="ps-3">
@@ -285,6 +309,8 @@
     private bool _includeZeroAccounts = false;
     private string? _activePreset = "this-month";
     private AccountTotalsReportTab _activeTab = AccountTotalsReportTab.PeriodTotals;
+    private SortColumn _sortColumn = SortColumn.NetChange;
+    private SortDirection _sortDirection = SortDirection.Descending;
 
     private async Task HandlePresetSelected(DateRangePresets.DateRangePreset preset)
     {
@@ -417,23 +443,93 @@
         StateEvolution
     }
 
+    private enum SortColumn
+    {
+        AccountName,
+        Kind,
+        NetChange,
+        Transactions
+    }
+
+    private enum SortDirection
+    {
+        Ascending,
+        Descending
+    }
+
+    private IEnumerable<AccountTotalItemDto> SortItems(IEnumerable<AccountTotalItemDto> items)
+    {
+        IOrderedEnumerable<AccountTotalItemDto> query = _sortColumn switch
+        {
+            SortColumn.AccountName => _sortDirection == SortDirection.Ascending
+                ? items.OrderBy(item => item.AccountName, StringComparer.OrdinalIgnoreCase)
+                : items.OrderByDescending(item => item.AccountName, StringComparer.OrdinalIgnoreCase),
+            SortColumn.Kind => _sortDirection == SortDirection.Ascending
+                ? items.OrderBy(item => item.AccountKind)
+                : items.OrderByDescending(item => item.AccountKind),
+            SortColumn.Transactions => _sortDirection == SortDirection.Ascending
+                ? items.OrderBy(item => item.TransactionsCount)
+                : items.OrderByDescending(item => item.TransactionsCount),
+            _ => _sortDirection == SortDirection.Ascending
+                ? items.OrderBy(item => item.NetChange)
+                : items.OrderByDescending(item => item.NetChange)
+        };
+
+        return query.ThenBy(item => item.AccountName, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private void ToggleSort(SortColumn column)
+    {
+        if (_sortColumn == column)
+        {
+            _sortDirection = _sortDirection == SortDirection.Ascending
+                ? SortDirection.Descending
+                : SortDirection.Ascending;
+            return;
+        }
+
+        _sortColumn = column;
+        _sortDirection = column == SortColumn.AccountName
+            ? SortDirection.Ascending
+            : SortDirection.Descending;
+    }
+
+    private string GetSortGlyph(SortColumn column)
+    {
+        if (_sortColumn != column)
+            return "↕";
+
+        return _sortDirection == SortDirection.Ascending ? "↑" : "↓";
+    }
+
+    private string GetAriaSort(SortColumn column)
+    {
+        if (_sortColumn != column)
+            return "none";
+
+        return _sortDirection == SortDirection.Ascending ? "ascending" : "descending";
+    }
+
     private async Task ExportCsvAsync()
     {
         if (_report is null)
             return;
 
-        var rows = _report.Items
-            .OrderBy(item => item.AccountNature)
-            .ThenBy(item => item.AccountName, StringComparer.OrdinalIgnoreCase)
-            .Select(item => (IReadOnlyList<string?>)
-            [
-                GetNatureLabel(item.AccountNature),
-                item.AccountName,
-                GetKindLabel(item.AccountKind),
-                MoneyFormatter.FormatCentsWithSign(item.NetChange),
-                item.TransactionsCount.ToString()
-            ])
-            .ToList();
+        var rows = new List<IReadOnlyList<string?>>();
+        foreach (var natureGroup in _report.Items.GroupBy(item => item.AccountNature).OrderBy(group => group.Key))
+        {
+            foreach (var item in SortItems(natureGroup))
+            {
+                rows.Add(
+                [
+                    GetNatureLabel(item.AccountNature),
+                    item.AccountName,
+                    GetKindLabel(item.AccountKind),
+                    MoneyFormatter.FormatCentsWithSign(item.NetChange),
+                    item.TransactionsCount.ToString()
+                ]);
+            }
+        }
 
         rows.Add(
         [

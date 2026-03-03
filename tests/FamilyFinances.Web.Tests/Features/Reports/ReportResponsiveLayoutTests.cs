@@ -19,7 +19,7 @@ namespace FamilyFinances.Web.Tests.Features.Reports;
 public sealed class ReportResponsiveLayoutTests : WebTestContext
 {
     [Fact]
-    public void EconomicState_Snapshot_Uses_Responsive_Grid_And_Accessible_Date_Label()
+    public void EconomicState_Snapshot_Uses_Responsive_Grid_And_Global_Filters()
     {
         var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
         var httpClient = new HttpClient(handlerMock.Object)
@@ -72,9 +72,12 @@ public sealed class ReportResponsiveLayoutTests : WebTestContext
         cut.WaitForAssertion(() =>
         {
             cut.Markup.Should().Contain("col-12 col-md-6 col-xl-4");
-            cut.Markup.Should().Contain("aria-label=\"As of date\"");
             cut.Markup.Should().Contain("ff-report-filter-panel");
             cut.Markup.Should().Contain("ff-premium-tabs");
+            cut.Find("[data-testid='economic-state-global-filters']");
+            cut.Find("[data-testid='economic-state-global-year']");
+            cut.Find("[data-testid='economic-state-global-focused-month']");
+            cut.Find("[data-testid='economic-state-global-load']");
         });
     }
 

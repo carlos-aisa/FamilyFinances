@@ -35,6 +35,10 @@ public interface IReportingReadRepository
         DateOnly periodToExclusive,
         CancellationToken ct);
 
+    Task<DashboardOverviewCoreDto> GetDashboardOverviewCoreAsync(
+        DateOnly asOf,
+        CancellationToken ct);
+
     Task<MonthlyEvolutionReportDto> GetMonthlyEvolutionAsync(
         int year,
         MonthlyEvolutionScope scope,
