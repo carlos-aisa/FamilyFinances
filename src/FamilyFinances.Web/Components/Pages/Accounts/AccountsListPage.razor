@@ -1,11 +1,13 @@
 @page "/accounts"
 @rendermode InteractiveServer
 @using System.ComponentModel.DataAnnotations
+@using System.Globalization
 @using FamilyFinances.Application.Ledger.Accounts.Dtos
 @using FamilyFinances.Application.Ledger.Accounts.Requests
 @using FamilyFinances.Application.Reporting.Dtos
 @using FamilyFinances.Domain.Ledger.Accounts
 @using FamilyFinances.Web.Api
+@using FamilyFinances.Web.Components.Shared
 @using FamilyFinances.Web.Features.Reports
 @using Microsoft.Extensions.Localization
 @using Microsoft.AspNetCore.Components.Authorization
@@ -29,6 +31,9 @@
                         <i class="bi bi-wallet2 me-1"></i>
                         <span>@(visibleCount == 1 ? L["Accounts_Count_Singular", visibleCount] : L["Accounts_Count_Plural", visibleCount])</span>
                     }
+                </p>
+                <p class="text-muted mb-0">
+                    <i class="bi bi-clock-history me-1"></i>@L["Accounts_UpdatedAsOf", DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)]
                 </p>
             </div>
 
@@ -162,166 +167,154 @@
         }
         else
         {
-            @foreach (var nature in _natureOrder)
-            {
-                var items = _accounts
-                    .Where(a => a.Nature == nature)
-                    .Where(a => _showClosed || !a.IsClosed)
-                    .OrderBy(a => a.IsClosed)
-                    .ThenBy(a => a.Name, StringComparer.OrdinalIgnoreCase)
-                    .ToList();
-
-                if (items.Count == 0)
-                    continue;
-
-                <div class="card shadow-sm mb-3 border-start border-4 @GetNatureBorderClass(nature)">
-                    <div class="card-header @GetNatureHeaderClass(nature)">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0 @GetNatureTextClass(nature)">
-                                <i class="@GetNatureIcon(nature) me-2"></i>@GetNatureLabel(nature)
-                            </h5>
-                            <span class="badge @GetNatureCountBadgeClass(nature) fs-6">@items.Count</span>
-                        </div>
+            <SingleOpenAccordion Id="accounts-by-nature" Sections="@BuildNatureSections()">
+                <HeaderTemplate Context="accordionSection">
+                    @{
+                        var nature = ParseNature(accordionSection.Key);
+                    }
+                    <div class="d-flex justify-content-between align-items-center w-100">
+                        <h5 class="mb-0 @GetNatureTextClass(nature)">
+                            <i class="@GetNatureIcon(nature) me-2"></i>@accordionSection.Title
+                        </h5>
+                        <span class="badge @GetNatureCountBadgeClass(nature) fs-6">@accordionSection.BadgeText</span>
                     </div>
+                </HeaderTemplate>
+                <SectionTemplate Context="accordionSection">
+                    @{
+                        var nature = ParseNature(accordionSection.Key);
+                        var items = GetAccountsForNature(nature);
+                    }
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 ff-data-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="border-0 ps-3" style="width: 35%;">
+                                        <i class="bi bi-tag me-1"></i>@L["Accounts_Table_Name"]
+                                    </th>
+                                    <th class="border-0" style="width: 15%;">
+                                        <i class="bi bi-bookmark me-1"></i>@L["Accounts_Table_Kind"]
+                                    </th>
+                                    <th class="border-0 text-end" style="width: 15%;">
+                                        <i class="bi bi-calendar-month me-1"></i>@L["Accounts_Table_CurrentMonthBalance"]
+                                    </th>
+                                    <th class="border-0 text-end" style="width: 15%;">
+                                        <i class="bi bi-currency-euro me-1"></i>@L["Accounts_Table_AccumulatedBalance"]
+                                    </th>
+                                    <th class="border-0" style="width: 10%;">
+                                        <i class="bi bi-info-circle me-1"></i>@L["Accounts_Table_Status"]
+                                    </th>
+                                    <th class="border-0 text-end pe-3" style="width: 10%;">@L["Accounts_Table_Actions"]</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var a in items)
+                                {
+                                    var accumulatedBalanceText = GetAccumulatedBalanceText(a.Id);
+                                    var currentMonthBalanceText = GetCurrentMonthBalanceText(a.Id);
+                                    <tr class="account-row">
+                                        <td class="ps-3">
+                                            <div class="d-flex align-items-center">
+                                                <i class="bi bi-wallet2 text-muted me-2"></i>
+                                                <span class="@(a.IsClosed ? "text-muted" : "fw-semibold")">@a.Name</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary-subtle text-secondary">@GetKindLabel(a.Kind)</span>
+                                        </td>
+                                        <td class="text-end">
+                                            @if (currentMonthBalanceText is null)
+                                            {
+                                                <span class="text-muted">&mdash;</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="fw-semibold">@currentMonthBalanceText</span>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            @if (accumulatedBalanceText is null)
+                                            {
+                                                <span class="text-muted">&mdash;</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="fw-semibold">@accumulatedBalanceText</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (a.IsClosed)
+                                            {
+                                                <span class="badge bg-secondary">
+                                                    <i class="bi bi-lock me-1"></i>@L["Accounts_Status_Closed"]
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-check-circle me-1"></i>@L["Accounts_Status_Active"]
+                                                </span>
+                                            }
+                                        </td>
+                                        <td class="text-end pe-3">
+                                            @if (_editingAccountId == a.Id)
+                                            {
+                                                <EditForm Model="_renameModel" OnValidSubmit="@(() => SaveRenameAsync(a.Id))">
+                                                    <DataAnnotationsValidator />
 
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th class="border-0 ps-3" style="width: 35%;">
-                                            <i class="bi bi-tag me-1"></i>@L["Accounts_Table_Name"]
-                                        </th>
-                                        <th class="border-0" style="width: 15%;">
-                                            <i class="bi bi-bookmark me-1"></i>@L["Accounts_Table_Kind"]
-                                        </th>
-                                        <th class="border-0 text-end" style="width: 15%;">
-                                            <i class="bi bi-calendar-month me-1"></i>@L["Accounts_Table_CurrentMonthBalance"]
-                                        </th>
-                                        <th class="border-0 text-end" style="width: 15%;">
-                                            <i class="bi bi-currency-euro me-1"></i>@L["Accounts_Table_AccumulatedBalance"]
-                                        </th>
-                                        <th class="border-0" style="width: 10%;">
-                                            <i class="bi bi-info-circle me-1"></i>@L["Accounts_Table_Status"]
-                                        </th>
-                                        <th class="border-0 text-end pe-3" style="width: 10%;">@L["Accounts_Table_Actions"]</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var a in items)
-                                    {
-                                        var accumulatedBalanceText = GetAccumulatedBalanceText(a.Id);
-                                        var currentMonthBalanceText = GetCurrentMonthBalanceText(a.Id);
-                                        <tr class="account-row">
-                                            <td class="ps-3">
-                                                <div class="d-flex align-items-center">
-                                                    <i class="bi bi-wallet2 text-muted me-2"></i>
-                                                    <span class="@(a.IsClosed ? "text-muted" : "fw-semibold")">@a.Name</span>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span class="badge bg-secondary-subtle text-secondary">@GetKindLabel(a.Kind)</span>
-                                            </td>
-                                            <td class="text-end">
-                                                @if (currentMonthBalanceText is null)
-                                                {
-                                                    <span class="text-muted">&mdash;</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="fw-semibold">@currentMonthBalanceText</span>
-                                                }
-                                            </td>
-                                            <td class="text-end">
-                                                @if (accumulatedBalanceText is null)
-                                                {
-                                                    <span class="text-muted">&mdash;</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="fw-semibold">@accumulatedBalanceText</span>
-                                                }
-                                            </td>
-                                            <td>
-                                                @if (a.IsClosed)
-                                                {
-                                                    <span class="badge bg-secondary">
-                                                        <i class="bi bi-lock me-1"></i>@L["Accounts_Status_Closed"]
-                                                    </span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="badge bg-success">
-                                                        <i class="bi bi-check-circle me-1"></i>@L["Accounts_Status_Active"]
-                                                    </span>
-                                                }
-                                            </td>
-                                            <td class="text-end pe-3">
-                                                @if (_editingAccountId == a.Id)
-                                                {
-                                                    <EditForm Model="_renameModel" OnValidSubmit="@(() => SaveRenameAsync(a.Id))">
-                                                        <DataAnnotationsValidator />
+                                                    <div class="d-flex justify-content-end gap-2">
+                                                        <InputText class="form-control form-control-sm" style="min-width: 200px;"
+                                                                   @bind-Value="_renameModel.Name" />
 
-                                                        <div class="d-flex justify-content-end gap-2">
-                                                            <InputText class="form-control form-control-sm" style="min-width: 200px;"
-                                                                    @bind-Value="_renameModel.Name" />
-
-                                                            <button class="btn btn-sm btn-success" type="submit" disabled="@_isBusy">
-                                                                <i class="bi bi-check me-1"></i>@L["Accounts_Save"]
-                                                            </button>
-
-                                                            <button class="btn btn-sm btn-outline-secondary" type="button" @onclick="CancelRename" disabled="@_isBusy">
-                                                                <i class="bi bi-x me-1"></i>@L["Accounts_Cancel"]
-                                                            </button>
-                                                        </div>
-                                                    </EditForm>
-                                                }
-                                                else
-                                                {
-                                                    <div class="d-flex justify-content-end gap-1">
-                                                        <button class="btn btn-sm btn-outline-primary" type="button" @onclick="@(() => StartRename(a))" disabled="@_isBusy" title="@L["Accounts_Action_Rename"]">
-                                                            <i class="bi bi-pencil"></i>
+                                                        <button class="btn btn-sm btn-success" type="submit" disabled="@_isBusy">
+                                                            <i class="bi bi-check me-1"></i>@L["Accounts_Save"]
                                                         </button>
 
-                                                        <button class="btn btn-sm btn-outline-secondary" type="button" @onclick="@(() => ViewMovements(a.Id))" title="@L["Accounts_Action_ViewMovements"]">
-                                                            <i class="bi bi-list-ul"></i>
+                                                        <button class="btn btn-sm btn-outline-secondary" type="button" @onclick="CancelRename" disabled="@_isBusy">
+                                                            <i class="bi bi-x me-1"></i>@L["Accounts_Cancel"]
                                                         </button>
-
-                                                        @if (a.IsClosed)
-                                                        {
-                                                            <button class="btn btn-sm btn-outline-success" type="button" @onclick="@(() => ReopenAsync(a))" disabled="@_isBusy" title="@L["Accounts_Action_Reopen"]">
-                                                                <i class="bi bi-unlock"></i>
-                                                            </button>
-                                                            <button class="btn btn-sm btn-outline-danger"
-                                                            type="button"
-                                                            @onclick="@(() => DeleteAsync(a))"
-                                                            disabled="@_isBusy"
-                                                            title="@L["Accounts_Action_Delete"]">
-                                                                <i class="bi bi-trash"></i>
-                                                            </button>
-                                                        }
-                                                        else
-                                                        {
-                                                            <button class="btn btn-sm btn-outline-warning" type="button" @onclick="@(() => CloseAsync(a))" disabled="@_isBusy" title="@L["Accounts_Action_Close"]">
-                                                                <i class="bi bi-lock"></i>
-                                                            </button>
-                                                        }
                                                     </div>
-                                                }
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="px-3 pb-2">
-                            <small class="text-muted">
-                                <i class="bi bi-info-circle me-1"></i>@L["Accounts_CurrentMonth_Basis", DateTime.Today.ToString("Y")]
-                            </small>
-                        </div>
+                                                </EditForm>
+                                            }
+                                            else
+                                            {
+                                                <div class="d-flex justify-content-end gap-1">
+                                                    <button class="btn btn-sm btn-outline-primary" type="button" @onclick="@(() => StartRename(a))" disabled="@_isBusy" title="@L["Accounts_Action_Rename"]">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+
+                                                    <button class="btn btn-sm btn-outline-secondary" type="button" @onclick="@(() => ViewMovements(a.Id))" title="@L["Accounts_Action_ViewMovements"]">
+                                                        <i class="bi bi-list-ul"></i>
+                                                    </button>
+
+                                                    @if (a.IsClosed)
+                                                    {
+                                                        <button class="btn btn-sm btn-outline-success" type="button" @onclick="@(() => ReopenAsync(a))" disabled="@_isBusy" title="@L["Accounts_Action_Reopen"]">
+                                                            <i class="bi bi-unlock"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-danger"
+                                                                type="button"
+                                                                @onclick="@(() => DeleteAsync(a))"
+                                                                disabled="@_isBusy"
+                                                                title="@L["Accounts_Action_Delete"]">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    }
+                                                    else
+                                                    {
+                                                        <button class="btn btn-sm btn-outline-warning" type="button" @onclick="@(() => CloseAsync(a))" disabled="@_isBusy" title="@L["Accounts_Action_Close"]">
+                                                            <i class="bi bi-lock"></i>
+                                                        </button>
+                                                    }
+                                                </div>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
                     </div>
-                </div>
-            }
+                </SectionTemplate>
+            </SingleOpenAccordion>
         }
     </Authorized>
 
@@ -374,6 +367,47 @@
         AccountNature.Income,
         AccountNature.Equity
     ];
+
+    private IReadOnlyList<SingleOpenAccordion.Section> BuildNatureSections()
+    {
+        if (_accounts is null)
+            return Array.Empty<SingleOpenAccordion.Section>();
+
+        var sections = new List<SingleOpenAccordion.Section>();
+        foreach (var nature in _natureOrder)
+        {
+            var items = GetAccountsForNature(nature);
+            if (items.Count == 0)
+                continue;
+
+            sections.Add(new SingleOpenAccordion.Section
+            {
+                Key = nature.ToString(),
+                Title = GetNatureLabel(nature),
+                BadgeText = items.Count.ToString(CultureInfo.InvariantCulture),
+                ItemCssClass = $"border-start border-4 {GetNatureBorderClass(nature)}",
+                IsInitiallyOpen = sections.Count == 0
+            });
+        }
+
+        return sections;
+    }
+
+    private List<AccountDto> GetAccountsForNature(AccountNature nature)
+    {
+        if (_accounts is null)
+            return [];
+
+        return _accounts
+            .Where(a => a.Nature == nature)
+            .Where(a => _showClosed || !a.IsClosed)
+            .OrderBy(a => a.IsClosed)
+            .ThenBy(a => a.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static AccountNature ParseNature(string key)
+        => Enum.TryParse<AccountNature>(key, out var nature) ? nature : AccountNature.Expense;
 
     protected override async Task OnInitializedAsync()
     {

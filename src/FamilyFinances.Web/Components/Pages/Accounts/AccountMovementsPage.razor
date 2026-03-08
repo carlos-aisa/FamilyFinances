@@ -5,6 +5,7 @@
 @using FamilyFinances.Application.Reporting.Dtos
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web.Components.Pages.Transactions
 @using FamilyFinances.Web.Components.Shared
 @using FamilyFinances.Web.Features.Reports
 @using FamilyFinances.Web
@@ -352,6 +353,7 @@
     private bool _isReconciling;
     private string? _reconcileError;
     private readonly ReconcileModel _reconcileModel = new();
+    private TransactionOriginContext _originContext = new(TransactionOrigin.AccountsMovements);
 
     private async Task HandlePresetSelected(DateRangePresets.DateRangePreset preset)
     {
@@ -370,6 +372,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _originContext = TransactionOriginContext.FromNavigation(Nav);
         await LoadMovementsAsync();
     }
 
@@ -412,7 +415,21 @@
 
     private void NavigateToTransaction(Guid transactionId)
     {
-        Nav.NavigateTo($"/transactions/{transactionId}");
+        var detailOrigin = _originContext.Origin switch
+        {
+            TransactionOrigin.ReportCategoryTotals => TransactionOrigin.ReportCategoryTotals,
+            TransactionOrigin.ReportAccountTotals => TransactionOrigin.ReportAccountTotals,
+            _ => TransactionOrigin.AccountsMovements
+        };
+
+        var context = new TransactionOriginContext(
+            Origin: detailOrigin,
+            AccountId: Id,
+            From: _fromDate,
+            To: _toDate,
+            Year: _originContext.Year);
+
+        Nav.NavigateTo(context.BuildUri($"/transactions/{transactionId}"));
     }
 
     private string GetAmountBadgeClass(decimal amount)

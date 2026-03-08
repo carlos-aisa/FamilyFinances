@@ -39,7 +39,7 @@ else
                             <i class="bi bi-download me-1"></i>@L["Reports_Export"]
                         </button>
                     }
-                    <span class="badge bg-secondary-subtle text-secondary">@Year</span>
+                    <span class="badge bg-secondary-subtle text-secondary">@GetBadgeText()</span>
                 </div>
             </div>
 
@@ -117,11 +117,7 @@ else
 
     private object BuildChartPayload()
     {
-        var orderedMonths = Series
-            .SelectMany(s => s.Points.Select(p => p.Month))
-            .Distinct()
-            .OrderBy(m => m)
-            .ToList();
+        var orderedMonths = Enumerable.Range(1, 12).ToList();
 
         var labels = orderedMonths
             .Select(GetShortMonthLabel)
@@ -161,7 +157,9 @@ else
             labels,
             datasets,
             useDualAxis,
-            yTickMaxTicks = YTickMaxTicks
+            yTickMaxTicks = YTickMaxTicks,
+            markerMonth = DataUntilMonth,
+            totalMonths = 12
         };
     }
 
@@ -197,4 +195,7 @@ else
         var full = DateHelper.GetMonthName(month);
         return full.Length <= 3 ? full : full[..3];
     }
+
+    private string GetBadgeText()
+        => L["Reports_BadgeYear", Year.ToString(CultureInfo.InvariantCulture)];
 }

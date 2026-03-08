@@ -271,12 +271,21 @@
     font-size: 0.9rem;
 }
 
+.account-group-state-summary-scroll {
+    max-height: 420px;
+    overflow-y: auto;
+}
+
 .accounts-overview-grid .table {
     font-size: 0.9rem;
 }
 
-.report-export-button {
+.report-export-button,
+.ff-chart-export-button {
     white-space: nowrap;
+    border-radius: 0.55rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
 }
 
 .period-summary-detail-grid .annual-line-chart,
@@ -297,6 +306,59 @@
 
 .account-nature-group .accordion-button .badge {
     margin-left: auto;
+}
+
+.ff-single-open-accordion .accordion-item {
+    border: 1px solid var(--ff-border-soft, var(--bs-border-color));
+    border-radius: 0.7rem;
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+}
+
+.ff-single-open-accordion .accordion-item:last-child {
+    margin-bottom: 0;
+}
+
+.ff-single-open-accordion .accordion-button {
+    font-weight: 600;
+}
+
+.ff-single-open-accordion .accordion-button:not(.collapsed) {
+    box-shadow: none;
+}
+
+.ff-single-open-accordion .accordion-body {
+    padding: 0;
+}
+
+.ff-report-three-column {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    align-items: start;
+}
+
+.ff-report-three-column > .ff-report-column {
+    min-width: 0;
+}
+
+.payees-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 0.9rem;
+    align-items: stretch;
+}
+
+.payee-card {
+    margin: 0;
+}
+
+.payee-card .card-body {
+    padding: 0.85rem 1rem;
+}
+
+.payee-card .text-truncate {
+    max-width: 220px;
 }
 
 .accounts-chart-panel .annual-line-chart,
@@ -340,6 +402,10 @@
         min-height: 220px;
     }
 
+    .account-group-state-summary-scroll {
+        max-height: none;
+    }
+
     .account-groups-chart-panel .annual-line-chart .annual-line-canvas-wrap,
     .account-groups-chart-panel .annual-composition-chart .annual-composition-canvas-wrap {
         height: 260px;
@@ -381,6 +447,10 @@
 @media (max-width: 767.98px) {
     .report-export-button {
         width: 100%;
+    }
+
+    .payees-grid {
+        grid-template-columns: 1fr;
     }
 
     .asset-total-overview-grid .card-header .d-flex,
@@ -736,12 +806,6 @@
     border-radius: inherit;
 }
 
-.ff-chart-export-button {
-    border-radius: 999px;
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
-}
-
 [data-bs-theme="dark"] .ff-chart-export-button {
     border-color: rgba(166, 182, 207, 0.45);
     color: #d7e4f7;
@@ -854,6 +918,29 @@
     max-height: 230px;
 }
 
+/* Side-legend composition charts: keep legend height aligned with pie card height. */
+@media (min-width: 1200px) {
+    [data-testid="dashboard-expense-composition-chart"].annual-composition-chart.is-side-legend .annual-composition-layout,
+    [data-testid="account-group-totals-stock-composition-chart"].annual-composition-chart.is-side-legend .annual-composition-layout,
+    [data-testid="annual-accounts-composition-chart"].annual-composition-chart.is-side-legend .annual-composition-layout,
+    [data-testid="economic-state-asset-composition-chart"].annual-composition-chart.is-side-legend .annual-composition-layout,
+    [data-testid="economic-state-income-composition-chart"].annual-composition-chart.is-side-legend .annual-composition-layout,
+    [data-testid="economic-state-expense-composition-chart"].annual-composition-chart.is-side-legend .annual-composition-layout {
+        align-items: stretch;
+    }
+
+    [data-testid="dashboard-expense-composition-chart"].annual-composition-chart.is-side-legend .composition-legend-side,
+    [data-testid="account-group-totals-stock-composition-chart"].annual-composition-chart.is-side-legend .composition-legend-side,
+    [data-testid="annual-accounts-composition-chart"].annual-composition-chart.is-side-legend .composition-legend-side,
+    [data-testid="economic-state-asset-composition-chart"].annual-composition-chart.is-side-legend .composition-legend-side,
+    [data-testid="economic-state-income-composition-chart"].annual-composition-chart.is-side-legend .composition-legend-side,
+    [data-testid="economic-state-expense-composition-chart"].annual-composition-chart.is-side-legend .composition-legend-side {
+        align-self: stretch;
+        height: 100%;
+        max-height: none;
+    }
+}
+
 .ff-dashboard-group-bar-row {
     margin-bottom: 0.7rem;
 }
@@ -904,5 +991,17 @@
     .ff-dashboard-analytics-row-2 > div,
     .ff-dashboard-analytics-row-3 > div {
         min-height: 285px;
+    }
+}
+
+@media (max-width: 1399.98px) {
+    .ff-report-three-column {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 991.98px) {
+    .ff-report-three-column {
+        grid-template-columns: 1fr;
     }
 }

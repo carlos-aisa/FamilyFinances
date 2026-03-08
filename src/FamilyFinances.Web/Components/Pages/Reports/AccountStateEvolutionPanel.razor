@@ -338,6 +338,8 @@ else if (_report is not null)
                                         Subtitle="@L["AccountStateOverview_CompositionSubtitle", GetAccountsCompositionNatureLabel().ToLowerInvariant(), compositionMonthLabel]"
                                         Year="@_selectedYear"
                                         Slices="@GetAccountsCompositionSlices(charts)"
+                                        UseSideLegend="true"
+                                        LegendMaxItems="10"
                                         TestId="annual-accounts-composition-chart" />
                                 }
                             }

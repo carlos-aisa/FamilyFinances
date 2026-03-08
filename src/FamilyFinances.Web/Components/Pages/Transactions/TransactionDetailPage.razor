@@ -38,14 +38,7 @@ else
         <div>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-1">
-                    @if (IsReadOnlyHistory)
-                    {
-                        <li class="breadcrumb-item"><a href="/history">@L["TransactionDetail_BreadcrumbHistory"]</a></li>
-                    }
-                    else
-                    {
-                        <li class="breadcrumb-item"><a href="/transactions">@L["TransactionDetail_BreadcrumbTransactions"]</a></li>
-                    }
+                    <li class="breadcrumb-item"><a href="@GetBreadcrumbParentUrl()">@GetBreadcrumbParentLabel()</a></li>
                     <li class="breadcrumb-item active" aria-current="page">@L["TransactionDetail_BreadcrumbDetails"]</li>
                 </ol>
             </nav>
@@ -53,24 +46,22 @@ else
         </div>
 
         <div class="d-flex gap-2">
-            @if (IsReadOnlyHistory)
+            @if (!_confirmDelete)
             {
-                <button class="btn btn-outline-secondary" type="button" @onclick="NavigateBackToHistory">
-                    <i class="bi bi-arrow-left me-1"></i>@L["TransactionDetail_BackToHistory"]
-                </button>
-            }
-            else if (!_confirmDelete)
-            {
-                <a class="btn btn-outline-secondary" href="/transactions">
-                    <i class="bi bi-arrow-left me-1"></i>@L["TransactionDetail_Back"]
+                <a class="btn btn-outline-secondary" href="@GetBackUrl()">
+                    <i class="bi bi-arrow-left me-1"></i>@GetBackButtonLabel()
                 </a>
-                <a class="btn btn-primary" href="@($"/transactions/{Id}/edit")">
-                    <i class="bi bi-pencil me-1"></i>@L["TransactionDetail_Edit"]
-                </a>
-                <button class="btn btn-outline-danger" type="button"
-                        @onclick="() => _confirmDelete = true">
-                    <i class="bi bi-trash me-1"></i>@L["TransactionDetail_Delete"]
-                </button>
+
+                @if (!IsReadOnlyHistory)
+                {
+                    <a class="btn btn-primary" href="@BuildEditUrl()">
+                        <i class="bi bi-pencil me-1"></i>@L["TransactionDetail_Edit"]
+                    </a>
+                    <button class="btn btn-outline-danger" type="button"
+                            @onclick="() => _confirmDelete = true">
+                        <i class="bi bi-trash me-1"></i>@L["TransactionDetail_Delete"]
+                    </button>
+                }
             }
             else
             {
@@ -192,7 +183,6 @@ else
 @code {
     [Parameter] public Guid Id { get; set; }
     [SupplyParameterFromQuery(Name = "readonly")] public bool ReadOnly { get; set; }
-    [SupplyParameterFromQuery(Name = "returnTo")] public string? ReturnTo { get; set; }
 
     private TransactionDto? _tx;
     private string? _error;
@@ -203,9 +193,11 @@ else
     private bool _confirmDelete;
     private bool _isDeleting;
     private string? _result;
+    private TransactionOriginContext _originContext = new(TransactionOrigin.Transactions);
 
     protected override async Task OnInitializedAsync()
     {
+        _originContext = TransactionOriginContext.FromNavigation(Nav);
         _result = GetQueryParam("result");
         await LoadAsync();
     }
@@ -251,14 +243,62 @@ else
     private static string FormatMoney(decimal amount)
         => amount.ToString("C", CultureInfo.CurrentCulture);
 
-    private bool IsReadOnlyHistory => ReadOnly;
+    private bool IsReadOnlyHistory =>
+        ReadOnly || _originContext.Origin is TransactionOrigin.HistoryTransactions or TransactionOrigin.HistoryMovements;
 
-    private void NavigateBackToHistory()
+    private string GetBackButtonLabel()
     {
-        var destination = string.Equals(ReturnTo, "history-movements", StringComparison.OrdinalIgnoreCase)
-            ? "/history/movements"
-            : "/history/transactions";
-        Nav.NavigateTo(destination);
+        return IsReadOnlyHistory
+            ? L["TransactionDetail_BackToHistory"]
+            : L["TransactionDetail_Back"];
+    }
+
+    private string BuildEditUrl()
+        => _originContext.BuildUri($"/transactions/{Id}/edit");
+
+    private string GetBreadcrumbParentUrl()
+    {
+        return _originContext.Origin switch
+        {
+            TransactionOrigin.AccountsMovements when _originContext.AccountId is Guid accountId
+                => _originContext.BuildUri($"/accounts/{accountId}/movements"),
+            TransactionOrigin.ReportCategoryTotals when _originContext.AccountId is Guid reportCategoryAccountId
+                => _originContext.BuildUri($"/accounts/{reportCategoryAccountId}/movements"),
+            TransactionOrigin.ReportAccountTotals when _originContext.AccountId is Guid reportAccountId
+                => _originContext.BuildUri($"/accounts/{reportAccountId}/movements"),
+            TransactionOrigin.HistoryTransactions => _originContext.BuildUri("/history/transactions", includeOrigin: false),
+            TransactionOrigin.HistoryMovements => _originContext.BuildUri("/history/movements", includeOrigin: false),
+            _ => "/transactions"
+        };
+    }
+
+    private string GetBackUrl()
+    {
+        return _originContext.Origin switch
+        {
+            TransactionOrigin.AccountsMovements when _originContext.AccountId is Guid accountId
+                => _originContext.BuildUri($"/accounts/{accountId}/movements"),
+            TransactionOrigin.ReportCategoryTotals when _originContext.AccountId is Guid reportCategoryAccountId
+                => _originContext.BuildUri($"/accounts/{reportCategoryAccountId}/movements"),
+            TransactionOrigin.ReportAccountTotals when _originContext.AccountId is Guid reportAccountId
+                => _originContext.BuildUri($"/accounts/{reportAccountId}/movements"),
+            TransactionOrigin.HistoryTransactions => _originContext.BuildUri("/history/transactions", includeOrigin: false),
+            TransactionOrigin.HistoryMovements => _originContext.BuildUri("/history/movements", includeOrigin: false),
+            _ => "/transactions"
+        };
+    }
+
+    private string GetBreadcrumbParentLabel()
+    {
+        return _originContext.Origin switch
+        {
+            TransactionOrigin.AccountsMovements => L["Nav_Accounts"],
+            TransactionOrigin.ReportCategoryTotals => L["Nav_Accounts"],
+            TransactionOrigin.ReportAccountTotals => L["Nav_Accounts"],
+            TransactionOrigin.HistoryTransactions => L["TransactionDetail_BreadcrumbHistory"],
+            TransactionOrigin.HistoryMovements => L["TransactionDetail_BreadcrumbHistory"],
+            _ => L["TransactionDetail_BreadcrumbTransactions"]
+        };
     }
 
     private async Task DeleteAsync()

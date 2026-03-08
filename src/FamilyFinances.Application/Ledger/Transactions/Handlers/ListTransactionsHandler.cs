@@ -79,6 +79,7 @@ public sealed class ListTransactionsHandler
                 t.BookedOn,
                 headline,
                 CreateSubHeadLine(t),
+                t.Payee?.Name,
                 CalculateAmount(t),
                 type);
         }).ToList();
@@ -86,10 +87,7 @@ public sealed class ListTransactionsHandler
 
     private static string CreateSubHeadLine(Transaction transaction)
     {
-        var payeeName = transaction.Payee?.Name;
-        if (string.IsNullOrWhiteSpace(payeeName))
-            return transaction.Description;
-        return $"{payeeName} - {transaction.Description}";
+        return transaction.Description;
     }
 
     private static decimal CalculateAmount(Transaction transaction)

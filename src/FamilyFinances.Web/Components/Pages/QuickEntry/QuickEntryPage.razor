@@ -7,6 +7,7 @@
 @using FamilyFinances.Web.Components.Dashboard
 @using FamilyFinances.Web.Components.Pages.Dashboard
 @using FamilyFinances.Web.Components.QuickEntry
+@using FamilyFinances.Web.Components.Shared
 @using FamilyFinances.Web
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.Extensions.Localization
@@ -57,7 +58,7 @@
             <div class="row g-4 ff-dashboard-grid">
                 <div class="col-12 col-lg-7 ff-dashboard-primary">
                     <QuickEntryCard Title="@Specs[QuickEntryType.Expense].Title"
-                                    Subtitle="@Specs[QuickEntryType.Expense].Hint"
+                                    Subtitle="@GetCardSubtitle(QuickEntryType.Expense)"
                                     Type="@QuickEntryType.Expense"
                                     IsActive="@(_activeEntry == QuickEntryType.Expense)"
                                     OnHeaderClick="@(() => SetActive(QuickEntryType.Expense))">
@@ -65,22 +66,17 @@
                                           Specs="Specs"
                                           Accounts="_accounts"
                                           Payees="_payees"
+                                          BookedOn="_sharedBookedOn"
+                                          OnBookedOnChanged="OnSharedBookedOnChanged"
                                           SelectedFromAccountId="_selectedFromAccountId"
                                           SelectedToAccountId="_selectedToAccountId"
                                           OnTransactionCreated="OnTransactionCreatedAsync"
                                           OnClearSelection="ClearSelection"
                                           OnSwapAccounts="SwapTransferAccounts" />
-
-                        <div class="mt-3">
-                            <small class="text-muted">
-                                <i class="bi bi-info-circle me-1"></i>
-                                @L["Dashboard_QuickEntryHint_Expense"]
-                            </small>
-                        </div>
                     </QuickEntryCard>
 
                     <QuickEntryCard Title="@Specs[QuickEntryType.Income].Title"
-                                    Subtitle="@Specs[QuickEntryType.Income].Hint"
+                                    Subtitle="@GetCardSubtitle(QuickEntryType.Income)"
                                     Type="@QuickEntryType.Income"
                                     IsActive="@(_activeEntry == QuickEntryType.Income)"
                                     OnHeaderClick="@(() => SetActive(QuickEntryType.Income))">
@@ -88,6 +84,8 @@
                                           Specs="Specs"
                                           Accounts="_accounts"
                                           Payees="_payees"
+                                          BookedOn="_sharedBookedOn"
+                                          OnBookedOnChanged="OnSharedBookedOnChanged"
                                           SelectedFromAccountId="_incomeFromSourceId"
                                           SelectedToAccountId="_incomeToAssetId"
                                           OnTransactionCreated="OnTransactionCreatedAsync"
@@ -96,7 +94,7 @@
                     </QuickEntryCard>
 
                     <QuickEntryCard Title="@Specs[QuickEntryType.Transfer].Title"
-                                    Subtitle="@Specs[QuickEntryType.Transfer].Hint"
+                                    Subtitle="@GetCardSubtitle(QuickEntryType.Transfer)"
                                     Type="@QuickEntryType.Transfer"
                                     IsActive="@(_activeEntry == QuickEntryType.Transfer)"
                                     OnHeaderClick="@(() => SetActive(QuickEntryType.Transfer))">
@@ -104,6 +102,8 @@
                                           Specs="Specs"
                                           Accounts="_accounts"
                                           Payees="_payees"
+                                          BookedOn="_sharedBookedOn"
+                                          OnBookedOnChanged="OnSharedBookedOnChanged"
                                           SelectedFromAccountId="_transferFromAssetId"
                                           SelectedToAccountId="_transferToAssetId"
                                           OnTransactionCreated="OnTransactionCreatedAsync"
@@ -112,7 +112,7 @@
                     </QuickEntryCard>
 
                     <QuickEntryCard Title="@Specs[QuickEntryType.Refund].Title"
-                                    Subtitle="@Specs[QuickEntryType.Refund].Hint"
+                                    Subtitle="@GetCardSubtitle(QuickEntryType.Refund)"
                                     Type="@QuickEntryType.Refund"
                                     IsActive="@(_activeEntry == QuickEntryType.Refund)"
                                     OnHeaderClick="@(() => SetActive(QuickEntryType.Refund))">
@@ -120,6 +120,8 @@
                                           Specs="Specs"
                                           Accounts="_accounts"
                                           Payees="_payees"
+                                          BookedOn="_sharedBookedOn"
+                                          OnBookedOnChanged="OnSharedBookedOnChanged"
                                           SelectedFromAccountId="_refundFromExpenseId"
                                           SelectedToAccountId="_refundToAssetId"
                                           OnTransactionCreated="OnTransactionCreatedAsync"
@@ -140,65 +142,68 @@
                 </div>
 
                 <div class="col-12 col-lg-5 ff-dashboard-secondary">
-                    @foreach (var nature in _natureOrder)
-                    {
-                        var items = GetAccounts(nature);
-
-                        if (items.Count == 0)
-                            continue;
-
-                        <div class="card shadow-sm mb-3 border-start border-4 ff-panel ff-dashboard-nature-card @GetNatureBorderClass(nature)">
-                            <div class="card-header ff-panel-header @GetNatureHeaderClass(nature)">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <h6 class="mb-0 @GetNatureTextClass(nature)">
-                                        <i class="@GetNatureIcon(nature) me-2"></i>@GetNatureLabel(nature)
-                                    </h6>
-                                    <span class="badge @GetNatureCountBadgeClass(nature)">@items.Count</span>
-                                </div>
-                            </div>
-
-                            <div class="card-body p-0">
-                                @if (items.Count > 8)
-                                {
-                                    <div class="p-2 border-bottom">
-                                        <input type="text"
-                                               class="form-control form-control-sm"
-                                               placeholder="@L["Dashboard_SearchAccountsPlaceholder", GetNatureLabel(nature).ToLower(CultureInfo.CurrentCulture)]"
-                                               @bind="_accountSearchQueries[nature]"
-                                               @bind:event="oninput" />
-                                    </div>
-                                }
-                                <div class="list-group list-group-flush">
-                                    @foreach (var a in GetFilteredAccounts(nature, items))
-                                    {
-                                        var isSelectedFrom = _selectedFromAccountId == a.Id;
-                                        var isSelectedTo = _selectedToAccountId == a.Id;
-                                        var isSelected = isSelectedFrom || isSelectedTo;
-
-                                        <button type="button"
-                                                class="list-group-item list-group-item-action ff-dashboard-account-item d-flex justify-content-between align-items-center @(isSelected ? "active" : "")"
-                                                @onclick="@(() => OnAccountClicked(a))">
-                                            <span>
-                                                <i class="bi bi-wallet2 me-2"></i>@a.Name
-                                            </span>
-                                            @if (isSelectedFrom)
-                                            {
-                                                <span class="badge bg-warning text-dark">
-                                                    <i class="bi bi-arrow-up-right me-1"></i>@L["Dashboard_FromBadge"]
-                                                </span>
-                                            }
-                                            else if (isSelectedTo)
-                                            {
-                                                <span class="badge bg-success">
-                                                    <i class="bi bi-arrow-down-left me-1"></i>@L["Dashboard_ToBadge"]
-                                                </span>
-                                            }
-                                        </button>
-                                    }
-                                </div>
-                            </div>
+                    <div class="card shadow-sm mb-3 ff-panel">
+                        <div class="card-body">
+                            <label class="form-label fw-semibold mb-2">
+                                <i class="bi bi-search me-1"></i>@L["Transactions_Search"]
+                            </label>
+                            <input type="text"
+                                   class="form-control"
+                                   placeholder="@L["QuickEntry_SearchAccountsPlaceholder"]"
+                                   @bind="_globalAccountSearchQuery"
+                                   @bind:event="oninput" />
                         </div>
-                    }
+                    </div>
+
+                    <SingleOpenAccordion Id="quick-entry-accounts"
+                                         Sections="@BuildAccountSections()"
+                                         OpenSectionKey="@GetAutoExpandedSectionKey()"
+                                         AccordionCssClass="account-nature-group">
+                        <HeaderTemplate Context="accordionSection">
+                            @{
+                                var nature = ParseNature(accordionSection.Key);
+                            }
+                            <div class="d-flex justify-content-between align-items-center w-100">
+                                <h6 class="mb-0 @GetNatureTextClass(nature)">
+                                    <i class="@GetNatureIcon(nature) me-2"></i>@accordionSection.Title
+                                </h6>
+                                <span class="badge @GetNatureCountBadgeClass(nature)">@accordionSection.BadgeText</span>
+                            </div>
+                        </HeaderTemplate>
+                        <SectionTemplate Context="accordionSection">
+                            @{
+                                var items = GetSectionAccounts(accordionSection.Key);
+                            }
+                            <div class="list-group list-group-flush">
+                                @foreach (var a in items)
+                                {
+                                    var isSelectedFrom = _selectedFromAccountId == a.Id;
+                                    var isSelectedTo = _selectedToAccountId == a.Id;
+                                    var isSelected = isSelectedFrom || isSelectedTo;
+
+                                    <button type="button"
+                                            class="list-group-item list-group-item-action ff-dashboard-account-item d-flex justify-content-between align-items-center @(isSelected ? "active" : "")"
+                                            @onclick="@(() => OnAccountClicked(a))">
+                                        <span>
+                                            <i class="bi bi-wallet2 me-2"></i>@a.Name
+                                        </span>
+                                        @if (isSelectedFrom)
+                                        {
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="bi bi-arrow-up-right me-1"></i>@L["Dashboard_FromBadge"]
+                                            </span>
+                                        }
+                                        else if (isSelectedTo)
+                                        {
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-arrow-down-left me-1"></i>@L["Dashboard_ToBadge"]
+                                            </span>
+                                        }
+                                    </button>
+                                }
+                            </div>
+                        </SectionTemplate>
+                    </SingleOpenAccordion>
                 </div>
             </div>
         }
@@ -239,14 +244,8 @@
 
     private Guid? _refundFromExpenseId;
     private Guid? _refundToAssetId;
-
-    private readonly Dictionary<AccountNature, string> _accountSearchQueries = new()
-    {
-        { AccountNature.Asset, "" },
-        { AccountNature.Liability, "" },
-        { AccountNature.Expense, "" },
-        { AccountNature.Income, "" }
-    };
+    private DateOnly _sharedBookedOn = DateOnly.FromDateTime(DateTime.Today);
+    private string _globalAccountSearchQuery = string.Empty;
 
     private string? _expandedWidget;
 
@@ -287,6 +286,7 @@
             [QuickEntryType.Expense] = new(
                 Title: L["QuickEntry_Expense_Title"],
                 Hint: L["QuickEntry_Expense_Hint"],
+                Guidance: L["QuickEntry_Guidance_Expense"],
                 FromAllowed: new() { AccountNature.Asset, AccountNature.Liability },
                 ToAllowed: new() { AccountNature.Expense },
                 ReplaceToWhenBothSelected: false),
@@ -294,6 +294,7 @@
             [QuickEntryType.Income] = new(
                 Title: L["QuickEntry_Income_Title"],
                 Hint: L["QuickEntry_Income_Hint"],
+                Guidance: L["QuickEntry_Guidance_Income"],
                 FromAllowed: new() { AccountNature.Income },
                 ToAllowed: new() { AccountNature.Asset },
                 ReplaceToWhenBothSelected: false),
@@ -301,6 +302,7 @@
             [QuickEntryType.Transfer] = new(
                 Title: L["QuickEntry_Transfer_Title"],
                 Hint: L["QuickEntry_Transfer_Hint"],
+                Guidance: L["QuickEntry_Guidance_Transfer"],
                 FromAllowed: new() { AccountNature.Asset, AccountNature.Liability },
                 ToAllowed: new() { AccountNature.Asset, AccountNature.Liability },
                 ReplaceToWhenBothSelected: true),
@@ -308,6 +310,7 @@
             [QuickEntryType.Refund] = new(
                 Title: L["QuickEntry_Refund_Title"],
                 Hint: L["QuickEntry_Refund_Hint"],
+                Guidance: L["QuickEntry_Guidance_Refund"],
                 FromAllowed: new() { AccountNature.Expense },
                 ToAllowed: new() { AccountNature.Asset, AccountNature.Liability },
                 ReplaceToWhenBothSelected: false),
@@ -515,6 +518,12 @@
         SyncSelectionForActiveEntry();
     }
 
+    private Task OnSharedBookedOnChanged(DateOnly bookedOn)
+    {
+        _sharedBookedOn = bookedOn;
+        return Task.CompletedTask;
+    }
+
     private void SyncSelectionForActiveEntry()
     {
         if (!_activeEntry.HasValue)
@@ -549,6 +558,12 @@
         (_selectedFromAccountId, _selectedToAccountId) = (_selectedToAccountId, _selectedFromAccountId);
     }
 
+    private string GetCardSubtitle(QuickEntryType type)
+    {
+        var spec = Specs[type];
+        return string.IsNullOrWhiteSpace(spec.Guidance) ? spec.Hint : spec.Guidance;
+    }
+
     private IReadOnlyList<AccountDto> GetAccounts(AccountNature nature)
     {
         if (_accounts is null) return Array.Empty<AccountDto>();
@@ -561,14 +576,58 @@
 
     private IReadOnlyList<AccountDto> GetFilteredAccounts(AccountNature nature, IReadOnlyList<AccountDto> accounts)
     {
-        var searchQuery = _accountSearchQueries[nature];
-
-        if (string.IsNullOrWhiteSpace(searchQuery))
+        if (string.IsNullOrWhiteSpace(_globalAccountSearchQuery))
             return accounts;
 
+        var query = _globalAccountSearchQuery.Trim();
+        var natureLabel = GetNatureLabel(nature);
+
         return accounts
-            .Where(a => a.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase))
+            .Where(a =>
+                a.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                natureLabel.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                GetKindLabel(a.Kind).Contains(query, StringComparison.OrdinalIgnoreCase))
             .ToList();
+    }
+
+    private IReadOnlyList<SingleOpenAccordion.Section> BuildAccountSections()
+    {
+        var sections = new List<SingleOpenAccordion.Section>();
+        foreach (var nature in _natureOrder)
+        {
+            var items = GetAccounts(nature);
+            if (items.Count == 0)
+                continue;
+
+            var filteredItems = GetFilteredAccounts(nature, items);
+            if (!string.IsNullOrWhiteSpace(_globalAccountSearchQuery) && filteredItems.Count == 0)
+                continue;
+
+            sections.Add(new SingleOpenAccordion.Section
+            {
+                Key = nature.ToString(),
+                Title = GetNatureLabel(nature),
+                BadgeText = filteredItems.Count.ToString(CultureInfo.InvariantCulture),
+                IsInitiallyOpen = sections.Count == 0
+            });
+        }
+
+        return sections;
+    }
+
+    private IReadOnlyList<AccountDto> GetSectionAccounts(string sectionKey)
+    {
+        var nature = ParseNature(sectionKey);
+        return GetFilteredAccounts(nature, GetAccounts(nature));
+    }
+
+    private string? GetAutoExpandedSectionKey()
+    {
+        if (string.IsNullOrWhiteSpace(_globalAccountSearchQuery))
+            return null;
+
+        var firstMatch = BuildAccountSections().FirstOrDefault();
+        return firstMatch?.Key;
     }
 
     private bool ShouldAssignToInActiveEntry()
@@ -580,23 +639,23 @@
         };
     }
 
-    private static string GetNatureBorderClass(AccountNature nature) => nature switch
+    private string GetKindLabel(AccountKind kind) => kind switch
     {
-        AccountNature.Asset => "border-primary",
-        AccountNature.Liability => "border-warning",
-        AccountNature.Expense => "border-danger",
-        AccountNature.Income => "border-success",
-        _ => "border-secondary"
+        AccountKind.Cash => L["Accounts_Kind_Cash"],
+        AccountKind.Checking => L["Accounts_Kind_Checking"],
+        AccountKind.Savings => L["Accounts_Kind_Savings"],
+        AccountKind.Investment => L["Accounts_Kind_Investment"],
+        AccountKind.CreditCard => L["Accounts_Kind_CreditCard"],
+        AccountKind.Loan => L["Accounts_Kind_Loan"],
+        AccountKind.Mortgage => L["Accounts_Kind_Mortgage"],
+        AccountKind.ExpenseCategory => L["Accounts_Kind_ExpenseCategory"],
+        AccountKind.IncomeSource => L["Accounts_Kind_IncomeSource"],
+        AccountKind.Other => L["Accounts_Kind_Other"],
+        _ => kind.ToString()
     };
 
-    private static string GetNatureHeaderClass(AccountNature nature) => nature switch
-    {
-        AccountNature.Asset => "bg-primary-subtle",
-        AccountNature.Liability => "bg-warning-subtle",
-        AccountNature.Expense => "bg-danger-subtle",
-        AccountNature.Income => "bg-success-subtle",
-        _ => "bg-secondary-subtle"
-    };
+    private static AccountNature ParseNature(string key)
+        => Enum.TryParse<AccountNature>(key, out var nature) ? nature : AccountNature.Expense;
 
     private static string GetNatureTextClass(AccountNature nature) => nature switch
     {

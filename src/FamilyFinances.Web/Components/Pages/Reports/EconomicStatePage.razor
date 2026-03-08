@@ -63,22 +63,6 @@
                             }
                         </select>
                     </div>
-                    <div class="col-12 col-md-auto">
-                        <button class="btn btn-primary"
-                                data-testid="economic-state-global-load"
-                                @onclick="LoadReportAsync"
-                                disabled="@_isLoading">
-                            @if (_isLoading)
-                            {
-                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                            }
-                            else
-                            {
-                                <i class="bi bi-search me-1"></i>
-                            }
-                            @L["Reports_LoadReport"]
-                        </button>
-                    </div>
                 </div>
             </div>
         </div>
@@ -396,23 +380,29 @@
         return _activeTab == tab ? "active" : string.Empty;
     }
 
-    private Task OnGlobalYearChangedAsync(ChangeEventArgs e)
+    private async Task OnGlobalYearChangedAsync(ChangeEventArgs e)
     {
         if (!int.TryParse(e.Value?.ToString(), out var year))
-            return Task.CompletedTask;
+            return;
+
+        if (year == _filterYear)
+            return;
 
         _filterYear = year;
         SyncGlobalFocusedMonthOptions();
-        return Task.CompletedTask;
+        await LoadReportAsync();
     }
 
-    private Task OnGlobalFocusedMonthChangedAsync(ChangeEventArgs e)
+    private async Task OnGlobalFocusedMonthChangedAsync(ChangeEventArgs e)
     {
         if (!int.TryParse(e.Value?.ToString(), out var month))
-            return Task.CompletedTask;
+            return;
+
+        if (month == _filterFocusedMonth)
+            return;
 
         _filterFocusedMonth = month;
-        return Task.CompletedTask;
+        await LoadReportAsync();
     }
 
     private void SyncGlobalFocusedMonthOptions()

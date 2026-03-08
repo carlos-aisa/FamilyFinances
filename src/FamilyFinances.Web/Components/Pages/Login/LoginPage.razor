@@ -14,31 +14,6 @@
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResource> L
 
-<script>
-    window.loginHelper = {
-        executeLogin: async function (email, password) {
-            try {
-                const response = await fetch('/auth/session', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password }),
-                    credentials: 'include'
-                });
-
-                if (!response.ok) {
-                    const error = await response.text();
-                    return { success: false, error: error || 'Login failed' };
-                }
-
-                const data = await response.json();
-                return { success: true, accessToken: data.accessToken };
-            } catch (error) {
-                return { success: false, error: error.message };
-            }
-        }
-    };
-</script>
-
 <div class="container">
     <div class="row justify-content-center mt-5">
         <div class="col-md-6 col-lg-4">
@@ -58,7 +33,7 @@
 
                     <div class="mb-3">
                         <label class="form-label">@L["Login_EmailLabel"]</label>
-                        <input type="email" class="form-control" @bind="_email" placeholder="admin@familyfinances.local" />
+                        <input type="email" class="form-control" @bind="_email" placeholder="@L["Login_EmailPlaceholder"]" />
                     </div>
 
                     <div class="mb-3">
@@ -112,9 +87,21 @@
     {
         if (firstRender)
         {
-            await Task.Delay(100);
-            _jsLoaded = true;
-            StateHasChanged();
+            try
+            {
+                var lastUsername = await JS.InvokeAsync<string?>("loginHelper.getLastUsername");
+                if (!string.IsNullOrWhiteSpace(lastUsername))
+                    _email = lastUsername.Trim();
+            }
+            catch (JSException jsEx)
+            {
+                Logger.LogDebug(jsEx, "Unable to read last username from local storage");
+            }
+            finally
+            {
+                _jsLoaded = true;
+                StateHasChanged();
+            }
         }
     }
 
@@ -156,6 +143,7 @@
             }
 
             TokenStore.SetAccessToken(result.AccessToken);
+            await JS.InvokeVoidAsync("loginHelper.setLastUsername", _email);
             
             // Mark session as active in sessionStorage to allow F5 session recovery
             await JS.InvokeVoidAsync("sessionHelper.markSessionActive");

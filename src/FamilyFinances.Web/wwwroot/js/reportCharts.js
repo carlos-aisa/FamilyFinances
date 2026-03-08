@@ -114,6 +114,158 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
         };
     }
 
+    function resolveCutoffMetadata(payload) {
+        const labelsCount = (payload.labels || []).length;
+
+        const markerDayRaw = Number(payload.markerDay);
+        const markerDay = Number.isFinite(markerDayRaw) ? Math.trunc(markerDayRaw) : null;
+        const totalDaysRaw = Number(payload.totalDays);
+        const totalDays = Number.isFinite(totalDaysRaw)
+            ? Math.trunc(totalDaysRaw)
+            : labelsCount;
+
+        if (markerDay && markerDay >= 1) {
+            return {
+                markerIndex: Math.max(0, markerDay - 1),
+                totalUnits: Math.max(1, totalDays),
+                hasMarker: markerDay < totalDays
+            };
+        }
+
+        const markerMonthRaw = Number(payload.markerMonth);
+        const markerMonth = Number.isFinite(markerMonthRaw) ? Math.trunc(markerMonthRaw) : null;
+        const totalMonthsRaw = Number(payload.totalMonths);
+        const totalMonths = Number.isFinite(totalMonthsRaw)
+            ? Math.trunc(totalMonthsRaw)
+            : labelsCount;
+
+        if (markerMonth && markerMonth >= 1) {
+            return {
+                markerIndex: Math.max(0, markerMonth - 1),
+                totalUnits: Math.max(1, totalMonths),
+                hasMarker: markerMonth < totalMonths
+            };
+        }
+
+        return {
+            markerIndex: null,
+            totalUnits: Math.max(1, labelsCount),
+            hasMarker: false
+        };
+    }
+
+    function buildCutoffMarkerPlugin(markerIndex, totalUnits, theme) {
+        if (!Number.isFinite(markerIndex) || markerIndex < 0) {
+            return null;
+        }
+
+        if (!Number.isFinite(totalUnits) || totalUnits <= 1 || markerIndex >= totalUnits - 1) {
+            return null;
+        }
+
+        return {
+            id: "ffCutoffMarker",
+            _getXForDataIndex(chart, dataIndex) {
+                const labels = chart.data?.labels || [];
+                const labelsCount = labels.length;
+                const chartArea = chart.chartArea;
+                const xScale = chart.scales?.x;
+                if (!xScale || !chartArea || labelsCount === 0) {
+                    return null;
+                }
+
+                const boundedIndex = Math.min(labelsCount - 1, Math.max(0, dataIndex));
+                const labelValue = labels[boundedIndex];
+
+                if (typeof xScale.getPixelForValue === "function") {
+                    const pixelForLabel = xScale.getPixelForValue(labelValue);
+                    if (Number.isFinite(pixelForLabel)) {
+                        return pixelForLabel;
+                    }
+                }
+
+                if (labelsCount === 1) {
+                    return chartArea.left;
+                }
+
+                const ratio = boundedIndex / (labelsCount - 1);
+                return chartArea.left + (chartArea.right - chartArea.left) * ratio;
+            },
+            beforeDatasetsDraw(chart) {
+                const labelsCount = (chart.data?.labels || []).length;
+                if (labelsCount <= 1) {
+                    return;
+                }
+
+                const chartArea = chart.chartArea;
+                if (!chartArea) {
+                    return;
+                }
+
+                const boundedIndex = Math.min(labelsCount - 1, Math.max(0, markerIndex));
+                const markerX = this._getXForDataIndex(chart, boundedIndex);
+                const nextTickX = boundedIndex + 1 < labelsCount
+                    ? this._getXForDataIndex(chart, boundedIndex + 1)
+                    : chartArea.right;
+                if (!Number.isFinite(markerX) || !Number.isFinite(nextTickX)) {
+                    return;
+                }
+
+                const shadeStartX = boundedIndex + 1 < labelsCount
+                    ? (markerX + nextTickX) / 2
+                    : chartArea.right;
+
+                if (shadeStartX >= chartArea.right) {
+                    return;
+                }
+
+                const ctx = chart.ctx;
+                ctx.save();
+                ctx.fillStyle = theme.cutoffShade || "rgba(86, 199, 255, 0.18)";
+                ctx.fillRect(
+                    shadeStartX,
+                    chartArea.top,
+                    chartArea.right - shadeStartX,
+                    chartArea.bottom - chartArea.top);
+                ctx.restore();
+            },
+            afterDatasetsDraw(chart) {
+                const labelsCount = (chart.data?.labels || []).length;
+                if (labelsCount === 0) {
+                    return;
+                }
+
+                const chartArea = chart.chartArea;
+                if (!chartArea) {
+                    return;
+                }
+
+                const boundedIndex = Math.min(labelsCount - 1, Math.max(0, markerIndex));
+                const markerX = this._getXForDataIndex(chart, boundedIndex);
+                if (!Number.isFinite(markerX)) {
+                    return;
+                }
+
+                const ctx = chart.ctx;
+                ctx.save();
+                ctx.strokeStyle = theme.cutoffLine || "rgba(86, 199, 255, 1)";
+                ctx.lineWidth = 2.1;
+                ctx.setLineDash([6, 4]);
+                ctx.beginPath();
+                ctx.moveTo(markerX, chartArea.top);
+                ctx.lineTo(markerX, chartArea.bottom);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                ctx.fillStyle = theme.cutoffLine || "rgba(86, 199, 255, 1)";
+                ctx.beginPath();
+                ctx.arc(markerX, chartArea.top + 6, 3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        };
+    }
+
     function triggerBrowserDownload(blob, fileName) {
         if (!blob || !fileName) {
             return;
@@ -185,124 +337,16 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
             chartByCanvasId.delete(canvasId);
         }
 
-        const markerDayRaw = Number(payload.markerDay);
-        const markerDay = Number.isFinite(markerDayRaw) ? Math.trunc(markerDayRaw) : null;
-        const markerIndex = markerDay ? Math.max(0, markerDay - 1) : null;
-        let datasets = (payload.datasets || []).map((dataset) => toDataset(dataset, markerIndex));
+        const cutoff = resolveCutoffMetadata(payload);
+        let datasets = (payload.datasets || []).map((dataset) => toDataset(dataset, cutoff.markerIndex));
         const useDualAxis = !!payload.useDualAxis;
         const xTickAutoSkip = payload.xTickAutoSkip === true;
         const xTickMaxTicks = Number.isFinite(payload.xTickMaxTicks) ? payload.xTickMaxTicks : undefined;
         const yTickMaxTicks = Number.isFinite(payload.yTickMaxTicks) ? payload.yTickMaxTicks : undefined;
-        const totalDaysRaw = Number(payload.totalDays);
-        const totalDays = Number.isFinite(totalDaysRaw)
-            ? Math.trunc(totalDaysRaw)
-            : (payload.labels || []).length;
 
         const theme = resolveChartTheme();
-        const hasCutoffMarker = Number.isFinite(markerIndex) &&
-            markerDay &&
-            markerDay >= 1 &&
-            markerDay < totalDays;
-        const cutoffMarkerPlugin = hasCutoffMarker
-            ? {
-                id: "ffCutoffMarker",
-                _getXForDataIndex(chart, dataIndex) {
-                    const labels = chart.data?.labels || [];
-                    const labelsCount = labels.length;
-                    const chartArea = chart.chartArea;
-                    const xScale = chart.scales?.x;
-                    if (!xScale || !chartArea || labelsCount === 0) {
-                        return null;
-                    }
-
-                    const boundedIndex = Math.min(labelsCount - 1, Math.max(0, dataIndex));
-                    const labelValue = labels[boundedIndex];
-
-                    if (typeof xScale.getPixelForValue === "function") {
-                        const pixelForLabel = xScale.getPixelForValue(labelValue);
-                        if (Number.isFinite(pixelForLabel)) {
-                            return pixelForLabel;
-                        }
-                    }
-
-                    if (labelsCount === 1) {
-                        return chartArea.left;
-                    }
-
-                    const ratio = boundedIndex / (labelsCount - 1);
-                    return chartArea.left + (chartArea.right - chartArea.left) * ratio;
-                },
-                beforeDatasetsDraw(chart) {
-                    const labelsCount = (chart.data?.labels || []).length;
-                    if (labelsCount <= 1) {
-                        return;
-                    }
-
-                    const chartArea = chart.chartArea;
-                    if (!chartArea) {
-                        return;
-                    }
-
-                    const boundedIndex = Math.min(labelsCount - 1, Math.max(0, markerIndex));
-                    const markerX = this._getXForDataIndex(chart, boundedIndex);
-                    const nextTickX = boundedIndex + 1 < labelsCount
-                        ? this._getXForDataIndex(chart, boundedIndex + 1)
-                        : chartArea.right;
-                    if (!Number.isFinite(markerX) || !Number.isFinite(nextTickX)) {
-                        return;
-                    }
-                    const shadeStartX = boundedIndex + 1 < labelsCount
-                        ? (markerX + nextTickX) / 2
-                        : chartArea.right;
-
-                    if (shadeStartX >= chartArea.right) {
-                        return;
-                    }
-
-                    const ctx = chart.ctx;
-                    ctx.save();
-                    ctx.fillStyle = theme.cutoffShade || "rgba(86, 199, 255, 0.18)";
-                    ctx.fillRect(
-                        shadeStartX,
-                        chartArea.top,
-                        chartArea.right - shadeStartX,
-                        chartArea.bottom - chartArea.top);
-                    ctx.restore();
-                },
-                afterDatasetsDraw(chart) {
-                    const labelsCount = (chart.data?.labels || []).length;
-                    if (labelsCount === 0) {
-                        return;
-                    }
-
-                    const chartArea = chart.chartArea;
-                    if (!chartArea) {
-                        return;
-                    }
-
-                    const boundedIndex = Math.min(labelsCount - 1, Math.max(0, markerIndex));
-                    const markerX = this._getXForDataIndex(chart, boundedIndex);
-                    if (!Number.isFinite(markerX)) {
-                        return;
-                    }
-                    const ctx = chart.ctx;
-                    ctx.save();
-                    ctx.strokeStyle = theme.cutoffLine || "rgba(86, 199, 255, 1)";
-                    ctx.lineWidth = 2.1;
-                    ctx.setLineDash([6, 4]);
-                    ctx.beginPath();
-                    ctx.moveTo(markerX, chartArea.top);
-                    ctx.lineTo(markerX, chartArea.bottom);
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-
-                    ctx.fillStyle = theme.cutoffLine || "rgba(86, 199, 255, 1)";
-                    ctx.beginPath();
-                    ctx.arc(markerX, chartArea.top + 6, 3, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.restore();
-                }
-            }
+        const cutoffMarkerPlugin = cutoff.hasMarker
+            ? buildCutoffMarkerPlugin(cutoff.markerIndex, cutoff.totalUnits, theme)
             : null;
 
         const scales = {
@@ -426,6 +470,10 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
         }
 
         const theme = resolveChartTheme();
+        const cutoff = resolveCutoffMetadata(payload);
+        const cutoffMarkerPlugin = cutoff.hasMarker
+            ? buildCutoffMarkerPlugin(cutoff.markerIndex, cutoff.totalUnits, theme)
+            : null;
         const yTickMaxTicks = Number.isFinite(payload.yTickMaxTicks) ? payload.yTickMaxTicks : undefined;
         const datasets = (payload.datasets || []).map((dataset) => ({
             label: dataset.label,
@@ -443,6 +491,7 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
                 labels: payload.labels || [],
                 datasets
             },
+            plugins: cutoffMarkerPlugin ? [cutoffMarkerPlugin] : [],
             options: {
                 responsive: true,
                 maintainAspectRatio: false,

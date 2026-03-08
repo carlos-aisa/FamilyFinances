@@ -86,16 +86,14 @@ public sealed class ListHistoricalTransactionsHandler
             t.BookedOn,
             headline,
             CreateSubHeadline(t),
+            t.Payee?.Name,
             CalculateAmount(t),
             type);
     }
 
     private static string CreateSubHeadline(Transaction transaction)
     {
-        var payeeName = transaction.Payee?.Name;
-        if (string.IsNullOrWhiteSpace(payeeName))
-            return transaction.Description;
-        return $"{payeeName} - {transaction.Description}";
+        return transaction.Description;
     }
 
     private static decimal CalculateAmount(Transaction transaction)

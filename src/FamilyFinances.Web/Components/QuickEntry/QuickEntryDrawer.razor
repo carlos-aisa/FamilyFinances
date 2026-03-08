@@ -15,6 +15,13 @@
 @inject FamilyFinances.Web.Api.TransactionsApi TransactionsApi
 @inject IStringLocalizer<SharedResource> L
 
+@if (CurrentSpec is not null && !string.IsNullOrWhiteSpace(CurrentSpec.Guidance))
+{
+    <div class="alert alert-info py-2 mb-3" role="status">
+        <i class="bi bi-info-circle me-2"></i>@CurrentSpec.Guidance
+    </div>
+}
+
 <div class="mb-3 p-3 bg-light rounded border">
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
         <div class="flex-grow-1">
@@ -74,7 +81,7 @@
             <label class="form-label">
                 <i class="bi bi-calendar-event me-1"></i>@L["QuickEntryDrawer_Date"]
             </label>
-            <InputDate class="form-control" @bind-Value="_model.BookedOn" @bind-Value:after="ValidateForm" />
+            <InputDate class="form-control" @bind-Value="_model.BookedOn" @bind-Value:after="OnBookedOnChangedInternal" />
         </div>
 
         <div class="col-md-8">
@@ -223,6 +230,7 @@
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<AccountDto> Accounts { get; set; } = Array.Empty<AccountDto>();
     [Parameter, EditorRequired] public IReadOnlyList<PayeeDto> Payees { get; set; } = Array.Empty<PayeeDto>();
+    [Parameter] public DateOnly BookedOn { get; set; } = DateOnly.FromDateTime(DateTime.Today);
 
     [Parameter] public Guid? SelectedFromAccountId { get; set; }
     [Parameter] public Guid? SelectedToAccountId { get; set; }
@@ -230,6 +238,7 @@
     [Parameter] public EventCallback OnTransactionCreated { get; set; }
     [Parameter] public EventCallback OnClearSelection { get; set; }
     [Parameter] public EventCallback OnSwapAccounts { get; set; }
+    [Parameter] public EventCallback<DateOnly> OnBookedOnChanged { get; set; }
 
     [Parameter] public QuickEntryType Mode { get; set; }
 
@@ -255,9 +264,19 @@
     private bool _isSearching;
     private string _expenseSearchQuery = "";
     private List<ExpenseSearchResultDto> _expenseSearchResults = new();
+    private QuickEntrySpec? CurrentSpec => Specs.GetValueOrDefault(Mode);
 
     protected override void OnParametersSet()
     {
+        if (_model.BookedOn != BookedOn)
+            _model.BookedOn = BookedOn;
+
+        ValidateForm();
+    }
+
+    private async Task OnBookedOnChangedInternal()
+    {
+        await OnBookedOnChanged.InvokeAsync(_model.BookedOn);
         ValidateForm();
     }
 

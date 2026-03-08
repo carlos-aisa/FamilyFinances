@@ -38,7 +38,7 @@ else
                             <i class="bi bi-download me-1"></i>@L["Reports_Export"]
                         </button>
                     }
-                    <span class="badge bg-secondary-subtle text-secondary">@($"{Year}-{Month:00}")</span>
+                    <span class="badge bg-secondary-subtle text-secondary">@GetBadgeText()</span>
                 </div>
             </div>
 
@@ -71,7 +71,7 @@ else
     [Parameter] public string TestId { get; set; } = "monthly-line-chart";
     [Parameter] public int? YTickMaxTicks { get; set; }
     [Parameter] public bool EnableImageExport { get; set; } = true;
-    [Parameter] public bool ShowFullMonthRange { get; set; }
+    [Parameter] public bool ShowFullMonthRange { get; set; } = true;
 
     private readonly string _canvasId = $"monthly-line-{Guid.NewGuid():N}";
     private string? _lastRenderedSignature;
@@ -200,6 +200,9 @@ else
                 .OrderBy(p => p.Day)
                 .Select(p => $"{p.Day}:{p.Value.ToString(CultureInfo.InvariantCulture)}"));
     }
+
+    private string GetBadgeText()
+        => L["Reports_BadgePeriod", $"{Year:D4}-{Month:00}"];
 
     private async Task ExportChartAsync()
     {

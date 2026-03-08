@@ -1,4 +1,4 @@
-@page "/reports/category-totals"
+﻿@page "/reports/category-totals"
 @rendermode InteractiveServer
 @using FamilyFinances.Application.Ledger.Payees.Dtos
 @using FamilyFinances.Application.Reporting.Dtos
@@ -6,6 +6,7 @@
 @using FamilyFinances.Web
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web.Components.Pages.Transactions
 @using FamilyFinances.Web.Components.Shared
 @using FamilyFinances.Web.Features.Reports
 @using FamilyFinances.Web.Features.Reports.Export
@@ -163,21 +164,42 @@
                             <table class="table table-hover align-middle mb-0 ff-data-table">
                                 <thead class="table-light">
                                     <tr>
-                                                <th class="border-0 ps-3" style="width: 50%;">
-                                                    <i class="bi bi-tag me-1"></i>@L["CategoryTotals_Table_AccountName"]
-                                                </th>
-                                                <th class="border-0 text-end" style="width: 30%;">
-                                                    <i class="bi bi-currency-euro me-1"></i>@L["CategoryTotals_Table_Total"]
-                                                </th>
-                                                <th class="border-0 text-end pe-3" style="width: 20%;">
-                                                    <i class="bi bi-receipt me-1"></i>@L["CategoryTotals_Table_Transactions"]
-                                                </th>
-                                            </tr>
-                                        </thead>
+                                        <th class="border-0 ps-3" style="width: 50%;">
+                                            <button type="button"
+                                                    class="btn btn-link btn-sm text-decoration-none p-0 ff-sort-header"
+                                                    aria-label="@L["CategoryTotals_Table_AccountName"]"
+                                                    aria-sort="@GetAriaSort(SortColumn.AccountName)"
+                                                    @onclick="() => ToggleSort(SortColumn.AccountName)">
+                                                <i class="bi bi-tag me-1"></i>@L["CategoryTotals_Table_AccountName"]
+                                                <i class="bi @GetSortIconClass(SortColumn.AccountName) ms-1" aria-hidden="true"></i>
+                                            </button>
+                                        </th>
+                                        <th class="border-0 text-end" style="width: 30%;">
+                                            <button type="button"
+                                                    class="btn btn-link btn-sm text-decoration-none p-0 ff-sort-header"
+                                                    aria-label="@L["CategoryTotals_Table_Total"]"
+                                                    aria-sort="@GetAriaSort(SortColumn.Total)"
+                                                    @onclick="() => ToggleSort(SortColumn.Total)">
+                                                <i class="bi bi-currency-euro me-1"></i>@L["CategoryTotals_Table_Total"]
+                                                <i class="bi @GetSortIconClass(SortColumn.Total) ms-1" aria-hidden="true"></i>
+                                            </button>
+                                        </th>
+                                        <th class="border-0 text-end pe-3" style="width: 20%;">
+                                            <button type="button"
+                                                    class="btn btn-link btn-sm text-decoration-none p-0 ff-sort-header"
+                                                    aria-label="@L["CategoryTotals_Table_Transactions"]"
+                                                    aria-sort="@GetAriaSort(SortColumn.Transactions)"
+                                                    @onclick="() => ToggleSort(SortColumn.Transactions)">
+                                                <i class="bi bi-receipt me-1"></i>@L["CategoryTotals_Table_Transactions"]
+                                                <i class="bi @GetSortIconClass(SortColumn.Transactions) ms-1" aria-hidden="true"></i>
+                                            </button>
+                                        </th>
+                                    </tr>
+                                </thead>
                                 <tbody>
-                                    @foreach (var item in _report.Items)
+                                    @foreach (var item in SortItems(_report.Items))
                                     {
-                                        <tr>
+                                        <tr class="clickable-row" style="cursor: pointer;" @onclick="() => OpenAccountMovements(item.AccountId)">
                                             <td class="ps-3">
                                                 <span class="fw-semibold">@item.AccountName</span>
                                             </td>
@@ -251,6 +273,8 @@
     private AccountNature _selectedNature = AccountNature.Expense;
     private Guid? _selectedPayeeId;
     private string? _activePreset = "this-month";
+    private SortColumn _sortColumn = SortColumn.Total;
+    private SortDirection _sortDirection = SortDirection.Descending;
 
     private async Task HandlePresetSelected(DateRangePresets.DateRangePreset preset)
     {
@@ -369,4 +393,79 @@
             _ => nature.ToString()
         };
     }
+
+    private void OpenAccountMovements(Guid accountId)
+    {
+        var context = new TransactionOriginContext(
+            Origin: TransactionOrigin.ReportCategoryTotals,
+            AccountId: accountId,
+            From: _fromDate,
+            To: _toDate);
+
+        Nav.NavigateTo(context.BuildUri($"/accounts/{accountId}/movements"));
+    }
+
+    private IEnumerable<CategoryTotalItemDto> SortItems(IEnumerable<CategoryTotalItemDto> items)
+    {
+        IOrderedEnumerable<CategoryTotalItemDto> ordered = _sortColumn switch
+        {
+            SortColumn.AccountName => _sortDirection == SortDirection.Ascending
+                ? items.OrderBy(item => item.AccountName, StringComparer.OrdinalIgnoreCase)
+                : items.OrderByDescending(item => item.AccountName, StringComparer.OrdinalIgnoreCase),
+            SortColumn.Transactions => _sortDirection == SortDirection.Ascending
+                ? items.OrderBy(item => item.TransactionsCount)
+                : items.OrderByDescending(item => item.TransactionsCount),
+            _ => _sortDirection == SortDirection.Ascending
+                ? items.OrderBy(item => item.Total)
+                : items.OrderByDescending(item => item.Total)
+        };
+
+        return ordered.ThenBy(item => item.AccountName, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private void ToggleSort(SortColumn column)
+    {
+        if (_sortColumn == column)
+        {
+            _sortDirection = _sortDirection == SortDirection.Ascending
+                ? SortDirection.Descending
+                : SortDirection.Ascending;
+            return;
+        }
+
+        _sortColumn = column;
+        _sortDirection = column == SortColumn.AccountName
+            ? SortDirection.Ascending
+            : SortDirection.Descending;
+    }
+
+    private string GetSortIconClass(SortColumn column)
+    {
+        if (_sortColumn != column)
+            return "bi-arrow-down-up";
+
+        return _sortDirection == SortDirection.Ascending ? "bi-sort-up" : "bi-sort-down";
+    }
+
+    private string GetAriaSort(SortColumn column)
+    {
+        if (_sortColumn != column)
+            return "none";
+
+        return _sortDirection == SortDirection.Ascending ? "ascending" : "descending";
+    }
+
+    private enum SortColumn
+    {
+        AccountName,
+        Total,
+        Transactions
+    }
+
+    private enum SortDirection
+    {
+        Ascending,
+        Descending
+    }
 }
+

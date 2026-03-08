@@ -170,6 +170,9 @@ else
                             <th class="border-0">
                                 <i class="bi bi-file-text me-1"></i>@L["Transactions_TableDescription"]
                             </th>
+                            <th class="border-0" style="width: 220px;">
+                                <i class="bi bi-person me-1"></i>@L["Transactions_TablePayee"]
+                            </th>
                             <th class="border-0 text-end pe-3" style="width: 160px;">
                                 <i class="bi bi-currency-euro me-1"></i>@L["Transactions_TableAmount"]
                             </th>
@@ -193,6 +196,16 @@ else
                                         <span class="fw-semibold">@t.Headline</span>
                                         <small class="text-muted">@t.Subheadline</small>
                                     </div>
+                                </td>
+                                <td>
+                                    @if (string.IsNullOrWhiteSpace(t.PayeeName))
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                    else
+                                    {
+                                        <span>@t.PayeeName</span>
+                                    }
                                 </td>
                                 <td class="text-end pe-3">
                                     <span class="badge @GetAmountBadgeClass(t.Type) fs-6 px-3 py-2">
@@ -328,10 +341,11 @@ else
 
         if (!string.IsNullOrWhiteSpace(_searchQuery))
         {
-            var query = _searchQuery.ToLowerInvariant();
-            filtered = filtered.Where(t =>
-                t.Headline.ToLowerInvariant().Contains(query) ||
-                (t.Subheadline?.ToLowerInvariant().Contains(query) ?? false));
+                var query = _searchQuery.ToLowerInvariant();
+                filtered = filtered.Where(t =>
+                    t.Headline.ToLowerInvariant().Contains(query) ||
+                    (t.Subheadline?.ToLowerInvariant().Contains(query) ?? false) ||
+                    (t.PayeeName?.ToLowerInvariant().Contains(query) ?? false));
         }
 
         return filtered.ToList();
