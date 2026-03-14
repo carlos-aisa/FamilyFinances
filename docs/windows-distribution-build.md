@@ -64,8 +64,7 @@ Release workflow behavior:
 1. Pre-clean old release ZIP assets before publishing (keep latest 2 historical ZIPs).
 2. Build and validate distribution.
 3. Run ZIP smoke test.
-4. Upload ZIP artifact (short retention).
-5. Create/update GitHub Release and attach ZIP.
+4. Create/update GitHub Release and attach ZIP.
 
 Retention behavior:
 - Cleanup targets ZIP assets matching `FamilyFinances-v*-win-x64.zip`.

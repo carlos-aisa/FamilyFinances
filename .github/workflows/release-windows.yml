@@ -224,13 +224,6 @@ jobs:
           $zipPath = "${{ steps.build_dist.outputs.ZIP_PATH }}"
           ./tools/dist/smoke-windows-dist.ps1 -ZipPath $zipPath
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: FamilyFinances-v${{ steps.get_version.outputs.VERSION }}-win-x64
-          path: ${{ steps.build_dist.outputs.ZIP_PATH }}
-          retention-days: 3
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
@@ -242,4 +235,3 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

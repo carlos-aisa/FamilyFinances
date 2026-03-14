@@ -13,11 +13,11 @@
   - `push` on `main` and `develop`
 - [x] 2.2 Add build pipeline steps in `ci-quality.yml`: `actions/checkout@v4`, `actions/setup-dotnet@v4` (`9.0.x`), `dotnet restore`, `dotnet build --configuration Release --no-restore`.
 - [x] 2.3 Add test step in `ci-quality.yml` using `dotnet test --configuration Release --no-build --collect:"XPlat Code Coverage" --logger "trx;LogFileName=test-results.trx"`.
-- [x] 2.4 Add artifact upload step in `ci-quality.yml` with `actions/upload-artifact@v4` for:
+- [x] 2.4 Add PR-scoped, best-effort artifact upload in `ci-quality.yml` with `actions/upload-artifact@v4` for:
   - `**/TestResults/**/*.trx`
   - `**/TestResults/**/coverage.cobertura.xml`
 - [x] 2.5 Add explicit `permissions` in `ci-quality.yml` with read-only scope (`contents: read`) and verify no write permission is granted.
-- [x] 2.6 Add a job summary step in `ci-quality.yml` that points reviewers to test and coverage artifacts in the run output.
+- [x] 2.6 Add run summary output in `ci-quality.yml` that includes inline coverage summary and artifact guidance.
 
 ## 3. Implement security scanning workflows
 
@@ -27,17 +27,18 @@
   - `pull_request` on `main`
   - `push` on `main` and `develop`
   - weekly `schedule` cron
-- [x] 3.4 In `codeql.yml`, configure `github/codeql-action/init@v3` with `languages: csharp`, and include autobuild + analyze steps.
+- [x] 3.4 In `codeql.yml`, configure `github/codeql-action/init@v4` with `languages: csharp`, and include autobuild + analyze steps.
 - [x] 3.5 In `codeql.yml`, set permissions so `security-events: write` exists for result publishing and all other permissions are minimal.
 
 ## 4. Implement tag-only Windows release workflow with pre-clean keep=2
 
 - [x] 4.1 In `d:/Programacion/FamilyFinances/.github/workflows/release-windows.yml`, configure trigger only for `push` tags matching `v*.*.*`.
-- [x] 4.2 Port release packaging steps from legacy CI into `release-windows.yml`: version extraction, `build-windows-dist.ps1`, distribution structure verification, ZIP smoke test (`d:/Programacion/FamilyFinances/tools/dist/smoke-windows-dist.ps1`), artifact upload, and GitHub release publish.
+- [x] 4.2 Port release packaging steps from legacy CI into `release-windows.yml`: version extraction, `build-windows-dist.ps1`, distribution structure verification, ZIP smoke test (`d:/Programacion/FamilyFinances/tools/dist/smoke-windows-dist.ps1`), and GitHub release publish.
 - [x] 4.3 Add pre-publish cleanup step in `release-windows.yml` (before build/publish) using `actions/github-script@v7` to delete matching assets with regex `^FamilyFinances-v.*-win-x64\\.zip$` beyond the latest 2 retained.
 - [x] 4.4 Ensure cleanup logic in `release-windows.yml` ignores draft releases and does not delete non-matching assets.
-- [x] 4.5 Set explicit low artifact retention in `release-windows.yml` upload step (for example 2-3 days) to reduce Actions storage consumption.
+- [x] 4.5 Avoid duplicate Actions artifact ZIP upload in `release-windows.yml` so release ZIP storage remains only in GitHub Releases.
 - [x] 4.6 Ensure `release-windows.yml` uses `permissions: contents: write` only where release asset management requires it.
+- [x] 4.7 Add scheduled/manual Actions artifact cleanup workflow to reduce storage pressure over time.
 
 ## 5. Remove overlap from legacy mixed workflow
 
@@ -66,7 +67,7 @@
 - [x] 7.3 Add or update CI governance documentation (for example `d:/Programacion/FamilyFinances/docs/github-actions-governance.md`) with:
   - required checks for `main`
   - informational policy for `develop`
-  - where to find coverage outputs in GitHub checks/artifacts
+  - where to find coverage outputs in GitHub checks summary and PR artifacts
 - [ ] 7.4 Configure repository branch protection in GitHub settings:
   - `main`: require `ci-quality`, `dependency-review`, and `analyze`
   - `develop`: do not require these checks

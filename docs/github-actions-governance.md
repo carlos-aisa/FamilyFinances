@@ -7,8 +7,9 @@ This document defines the workflow ownership model, merge-gate policy, and opera
 The repository uses a split workflow model:
 
 - `ci-quality.yml`
-  - Purpose: build, test, and publish test/coverage evidence.
+  - Purpose: build, test, and publish coverage summary evidence in-run.
   - Trigger: PR (`main`) and push (`main`, `develop`).
+  - Note: PR runs also attempt raw TRX/coverage artifact upload as best effort.
 - `dependency-review.yml`
   - Purpose: dependency risk check for incoming PR changes.
   - Trigger: PR (`main`) only.
@@ -18,6 +19,9 @@ The repository uses a split workflow model:
 - `release-windows.yml`
   - Purpose: tag-driven Windows ZIP packaging and release publishing.
   - Trigger: push tags `v*.*.*` and optional manual ZIP cleanup via `workflow_dispatch`.
+- `actions-artifacts-cleanup.yml`
+  - Purpose: delete old Actions artifacts to control storage growth.
+  - Trigger: daily schedule and optional manual cleanup via `workflow_dispatch`.
 
 ## Branch Protection Policy
 
@@ -36,14 +40,15 @@ The repository uses a split workflow model:
 - Windows release packaging is tag-only to avoid unnecessary ZIP generation on branch pushes.
 - Release ZIP cleanup runs before publish in `release-windows.yml`.
 - ZIP retention policy keeps only 2 historical matching ZIP assets (`FamilyFinances-v*-win-x64.zip`).
-- Workflow artifact retention for release ZIP runs is intentionally low.
+- Release ZIP is attached directly to GitHub Release (no duplicate Actions artifact upload).
+- CI artifact retention is intentionally low and PR-scoped for test/coverage evidence.
+- `actions-artifacts-cleanup.yml` performs scheduled/manual cleanup of old Actions artifacts.
 
 ## Coverage Visibility Policy
 
 Current policy (no external SaaS dependency):
-- Publish `coverage.cobertura.xml` as Actions artifacts from `ci-quality`.
-- Publish test TRX files as Actions artifacts from `ci-quality`.
-- Add run summary guidance to point reviewers to artifacts.
+- Publish coverage summary directly in `ci-quality` run summary.
+- On PR runs, attempt short-lived TRX + raw coverage artifact upload as best effort.
 
 Future enhancement (out of current scope):
 - Evaluate Codecov or Coveralls for richer UI ("coverage bonito"), PR diff coverage, and historical trends.

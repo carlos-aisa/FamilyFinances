@@ -230,7 +230,8 @@ Recommended Cypress base URL:
 Current workflow split:
 - `.github/workflows/ci-quality.yml`
   - Triggers: PR to `main`, push to `main`/`develop`
-  - Runs restore/build/test and publishes TRX + coverage artifacts.
+  - Runs restore/build/test and publishes coverage summary in the run UI.
+  - PR runs also attempt TRX + coverage artifact upload (best effort, short retention).
 - `.github/workflows/dependency-review.yml`
   - Triggers: PR to `main`
   - Runs dependency diff risk checks.
@@ -241,15 +242,18 @@ Current workflow split:
   - Triggers: push tags `v*.*.*` for release packaging/publish
   - Includes pre-publish ZIP cleanup with keep count `2`.
   - Includes optional manual cleanup via `workflow_dispatch`.
+- `.github/workflows/actions-artifacts-cleanup.yml`
+  - Triggers: daily schedule + manual dispatch
+  - Deletes old Actions artifacts to keep storage usage under control.
 
 Branch policy intent:
 - `main`: required checks for `ci-quality`, `dependency-review`, and CodeQL analyze job.
 - `develop`: checks run on branch pushes as informational signal (not required for merge) in this phase.
 
 Coverage visibility:
-- Coverage files are available in Actions artifacts (`coverage.cobertura.xml`).
-- Test results are available as TRX artifacts in the same run.
-- Rich coverage UI integrations (Codecov/Coveralls) are intentionally deferred.
+- Coverage summary is shown directly in each `ci-quality` run summary.
+- On PR runs, raw coverage (`coverage.cobertura.xml`) and TRX files are uploaded as short-lived artifacts (best effort).
+- Rich external coverage SaaS integrations (Codecov/Coveralls) are intentionally deferred.
 
 ## Testing
 
