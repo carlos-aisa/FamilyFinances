@@ -8,7 +8,7 @@
 
 ### Required
 - Remove as many hardcoded UI values as practical and replace them with shared tokens/primitives.
-- Keep visual output functionally equivalent to the approved UX baseline from prior changes.
+- Keep visual output functionally equivalent to the approved UX baseline from prior changes, except for explicitly documented month-focused chart baseline normalization.
 - Establish explicit style ownership and consumption rules across shared CSS, component CSS, and chart config paths.
 - Add regression tests/checks that protect against reintroducing hardcoded style drift.
 
@@ -30,7 +30,11 @@ The current frontend still contains many hardcoded visual values (sizes, spacing
 - Consolidate style source-of-truth strategy and remove conflicting duplicated rules.
 - Replace page-level chart color literals with shared semantic palette resolution.
 - Introduce guardrails (tests or static checks) to detect regressions such as new inline hardcoded styles or duplicate style blocks.
-- Keep runtime behavior and API contracts unchanged while refactoring presentation plumbing.
+- Keep runtime behavior unchanged for token/style refactors, with one explicit chart semantic adjustment:
+  - month-focused daily evolution charts are normalized to month opening balance (day-by-day evolution starts at 0),
+  - preserving day-1 transaction impact.
+- Apply one additive reporting contract extension required by that normalization:
+  - include `OpeningBalanceCents` in monthly chart DTOs (`MonthlyBalanceChartDto`, `MonthlyChartSeriesDto`) without breaking existing clients.
 
 ## Capabilities
 
@@ -64,7 +68,8 @@ The current frontend still contains many hardcoded visual values (sizes, spacing
 
 - No new UX features or flow redesign.
 - No date-filter semantic changes.
-- No backend domain/model changes or API behavior changes.
+- No backend domain model changes.
+- No breaking API behavior changes (only additive `OpeningBalanceCents` metadata in monthly chart DTOs).
 - No change in approved user-facing wording unless required for token/system consistency.
 
 ## Rollback Plan

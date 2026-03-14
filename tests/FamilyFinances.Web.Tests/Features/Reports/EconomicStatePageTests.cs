@@ -9,6 +9,7 @@ using FamilyFinances.Web.Api;
 using FamilyFinances.Web.Auth;
 using FamilyFinances.Web.Components.Pages.Reports;
 using FamilyFinances.Web.Features.Reports;
+using FamilyFinances.Web.Features.Reports.Charts;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
@@ -594,6 +595,44 @@ public sealed class EconomicStatePageTests : WebTestContext
         var cut = RenderComponent<EconomicStatePage>();
 
         cut.Markup.Should().Contain("Please sign in to access reports.");
+    }
+
+    [Fact]
+    public void Snapshot_Chart_Payloads_Use_Shared_Income_Expense_Semantic_Colors()
+    {
+        var (httpClientFactory, _) = BuildHttpClientFactoryForEconomicState();
+        var lineCall = JSInterop.SetupVoid("familyFinancesCharts.renderAnnualLineChart", _ => true);
+        var barCall = JSInterop.SetupVoid("familyFinancesCharts.renderAnnualBarChart", _ => true);
+
+        var tokenStore = new TestTokenStore("test-token");
+        var authContext = this.AddTestAuthorization();
+        authContext.SetAuthorized("test-user");
+
+        Services.AddSingleton(httpClientFactory.Object);
+        Services.AddSingleton<IApiTokenStore>(tokenStore);
+        Services.AddSingleton(new JwtAuthStateProvider(tokenStore));
+        Services.AddScoped<ReportsApi>();
+        Services.AddSingleton(BuildAccountsApiMock().Object);
+
+        RenderComponent<EconomicStatePage>();
+
+        lineCall.Invocations.Should().NotBeEmpty();
+        barCall.Invocations.Should().NotBeEmpty();
+
+        var payloadColors = new List<string>();
+        foreach (var invocation in lineCall.Invocations.Concat(barCall.Invocations))
+        {
+            var payloadJson = System.Text.Json.JsonSerializer.Serialize(invocation.Arguments[1]);
+            using var payload = System.Text.Json.JsonDocument.Parse(payloadJson);
+            var datasets = payload.RootElement.GetProperty("datasets");
+            payloadColors.AddRange(datasets.EnumerateArray()
+                .Select(dataset => dataset.GetProperty("colorHex").GetString())
+                .Where(color => !string.IsNullOrWhiteSpace(color))!
+                .Select(color => color!));
+        }
+
+        payloadColors.Should().Contain(ChartSemanticPalette.ResolveSemantic(ChartSemanticPalette.Income));
+        payloadColors.Should().Contain(ChartSemanticPalette.ResolveSemantic(ChartSemanticPalette.Expense));
     }
 
     private static (Mock<IHttpClientFactory> Factory, Mock<HttpMessageHandler> Handler) BuildHttpClientFactoryForEconomicState(

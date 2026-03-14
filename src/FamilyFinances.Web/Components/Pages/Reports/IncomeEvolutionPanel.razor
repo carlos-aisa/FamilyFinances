@@ -240,14 +240,15 @@ else if (_report is not null)
                     }
                     else
                     {
-                        <MonthlyLineChart
+                        <EvolutionChart
+                            Mode="EvolutionChartMode.DailyInMonth"
                             Title="@L["IncomeEvolution_MonthFocusedTitle"]"
                             Subtitle="@L["IncomeEvolution_MonthFocusedSubtitle", focusedMonthLabel, _selectedYear]"
                             Year="@_selectedYear"
                             Month="@_focusedMonth"
                             YTickMaxTicks="5"
-                            ShowFullMonthRange="true"
-                            Series="@monthlyChartSeries"
+                            ShowFullRange="true"
+                            DailySeries="@monthlyChartSeries"
                             TestId="economic-state-income-monthly-chart" />
                     }
                 </div>
@@ -264,13 +265,15 @@ else if (_report is not null)
                     }
                     else
                     {
-                        <AnnualLineChart
+                        <EvolutionChart
+                            Mode="EvolutionChartMode.MonthlyInYear"
                             Title="@L["IncomeEvolution_AnnualTitle"]"
                             Subtitle="@L["IncomeEvolution_AnnualSubtitle"]"
                             Year="@_selectedYear"
-                            Series="@charts.IncomeEndBalanceEvolution"
+                            AnnualSeries="@charts.IncomeEndBalanceEvolution"
                             DataUntilMonth="@dataUntilMonth"
                             YTickMaxTicks="5"
+                            CarryForwardAfterMarker="true"
                             TestId="economic-state-income-evolution-chart" />
                     }
                 </div>

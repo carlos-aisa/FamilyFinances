@@ -62,7 +62,7 @@ else
                         @foreach (var slice in _displaySlices.Take(Math.Max(1, LegendMaxItems)))
                         {
                             <div class="composition-slice-row">
-                                <span class="composition-dot" style="@($"background-color:{slice.ColorHex};")"></span>
+                                <span class="composition-dot" style="@($"--ff-slice-color:{slice.ColorHex};")"></span>
                                 <span class="composition-label" title="@slice.Label">@slice.Label</span>
                                 <span class="composition-percentage">@slice.Percentage.ToString("0.##", CultureInfo.InvariantCulture)%</span>
                             </div>

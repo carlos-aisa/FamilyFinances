@@ -1,0 +1,166 @@
+/*
+ * Global UI tokens (canonical source of truth).
+ *
+ * Ownership rules:
+ * - Define global presentation primitives only in this file.
+ * - Shared/component styles MUST consume these tokens.
+ * - Theme files MAY override semantic aliases only when required.
+ */
+:root {
+    --ff-font-heading: "Sora", "Plus Jakarta Sans", "Segoe UI", sans-serif;
+    --ff-font-body: "Source Sans 3", "Segoe UI", sans-serif;
+    --ff-font-mono: "IBM Plex Mono", "Consolas", "Courier New", monospace;
+
+    --ff-accent-primary: #4fa4ff;
+    --ff-accent-success: #2dd67d;
+    --ff-accent-success-soft: #56e09a;
+    --ff-accent-danger: #ff5f75;
+    --ff-accent-danger-soft: #ff7f95;
+    --ff-accent-warning: #f6b14a;
+    --ff-accent-info: #56c7ff;
+
+    --ff-surface-0: #0b111a;
+    --ff-surface-1: #111b2a;
+    --ff-surface-2: #182436;
+    --ff-surface-3: #223149;
+    --ff-border-soft: #2c3e59;
+    --ff-border-strong: #3a4f70;
+
+    --ff-text-strong: #e8efff;
+    --ff-text-muted: #a6b6cf;
+    --ff-text-soft: #7f92b1;
+
+    --ff-color-white: #ffffff;
+    --ff-color-black: #000000;
+    --ff-color-neutral-100: #f8f9fa;
+    --ff-color-neutral-200: #e9ecef;
+    --ff-color-neutral-300: #dee2e6;
+    --ff-color-neutral-400: #adb5bd;
+    --ff-color-neutral-500: #6c757d;
+    --ff-color-neutral-600: #495057;
+    --ff-color-neutral-900: #212529;
+
+    --ff-color-dark-body-bg: #1a1d20;
+    --ff-color-dark-body-text: #e9ecef;
+    --ff-color-dark-surface: #2b3035;
+    --ff-color-dark-surface-alt: #343a40;
+    --ff-color-dark-border: #495057;
+    --ff-color-dark-focus: #86b7fe;
+    --ff-color-dark-muted: #dee2e6;
+
+    --ff-color-light-body-bg: #ffffff;
+    --ff-color-light-body-text: #212529;
+    --ff-color-light-muted: #495057;
+
+    --ff-color-warning-bg-dark: #664d03;
+    --ff-color-warning-border-dark: #997404;
+    --ff-color-warning-text-dark: #ffecb5;
+    --ff-color-danger-bg-dark: #842029;
+    --ff-color-danger-border-dark: #a52834;
+    --ff-color-danger-text-dark: #f8d7da;
+    --ff-color-success-bg-dark: #0f5132;
+    --ff-color-success-border-dark: #146c43;
+    --ff-color-success-text-dark: #d1e7dd;
+
+    --ff-btn-outline-primary-border-dark: #6c94d6;
+    --ff-btn-outline-primary-bg-hover-dark: #2c5282;
+    --ff-btn-outline-primary-bg-active-dark: #3d6ba8;
+
+    --ff-radius-sm: 10px;
+    --ff-radius-md: 14px;
+    --ff-radius-lg: 18px;
+    --ff-radius-pill: 999px;
+
+    --ff-button-radius: 0.55rem;
+    --ff-button-inline-padding-x: 0.75rem;
+
+    --ff-shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.28);
+    --ff-shadow-elevated: 0 14px 34px rgba(0, 0, 0, 0.33);
+
+    --ff-chart-grid-color: rgba(166, 182, 207, 0.18);
+    --ff-chart-tick-color: #a6b6cf;
+    --ff-chart-tooltip-bg: #223149;
+    --ff-chart-tooltip-text: #e8efff;
+    --ff-chart-surface: rgba(10, 19, 30, 0.64);
+    --ff-chart-cutoff-line: rgba(86, 199, 255, 0.85);
+    --ff-chart-cutoff-shade: rgba(86, 199, 255, 0.08);
+    --ff-chart-bar-border-radius: 4;
+    --ff-chart-pie-border-width: 2;
+    --ff-chart-pie-hover-offset: 8;
+    --ff-chart-pie-slice-spacing: 2;
+
+    --ff-table-row-zebra: rgba(166, 182, 207, 0.04);
+    --ff-table-row-hover: rgba(79, 164, 255, 0.12);
+
+    --ff-spinner-size-lg: 3rem;
+    --ff-spinner-size-md: 2.5rem;
+    --ff-loading-block-min-height: 400px;
+
+    --ff-chart-annual-svg-height: 320px;
+    --ff-chart-annual-wrap-height: 340px;
+    --ff-chart-annual-wrap-min-height: 280px;
+    --ff-chart-panel-compact-height: 220px;
+    --ff-chart-panel-compact-min-height: 200px;
+    --ff-chart-panel-medium-height: 260px;
+    --ff-chart-panel-medium-min-height: 220px;
+    --ff-chart-panel-period-height: 300px;
+    --ff-chart-panel-period-min-height: 240px;
+
+    --ff-chart-stacked-desktop-height: 120px;
+    --ff-chart-stacked-desktop-min-height: 110px;
+    --ff-chart-stacked-laptop-height: 145px;
+    --ff-chart-stacked-laptop-min-height: 130px;
+    --ff-chart-stacked-tablet-height: 170px;
+    --ff-chart-stacked-tablet-min-height: 150px;
+
+    --ff-composition-wrap-height: 300px;
+    --ff-composition-wrap-min-height: 240px;
+    --ff-composition-side-wrap-height: 185px;
+    --ff-composition-side-wrap-min-height: 165px;
+    --ff-composition-legend-height: 185px;
+    --ff-composition-legend-gap: 0.5;
+    --ff-composition-legend-row-gap: 0.6;
+    --ff-composition-side-row-gap: 0.45;
+    --ff-composition-dot-size: 0.7;
+    --ff-composition-dot-size-compact: 0.6;
+
+    --ff-legend-dashboard-wrap-height: 208px;
+    --ff-legend-dashboard-wrap-min-height: 188px;
+    --ff-legend-dashboard-max-height: 208px;
+    --ff-legend-group-wrap-height: 230px;
+    --ff-legend-group-wrap-min-height: 210px;
+    --ff-legend-group-max-height: 230px;
+
+    --ff-mini-trend-max-height: 220px;
+
+    --ff-chart-export-text: #d7e4f7;
+}
+
+[data-bs-theme="light"] {
+    --ff-surface-0: var(--ff-color-light-body-bg);
+    --ff-surface-1: #f8f9fb;
+    --ff-surface-2: #f2f5f9;
+    --ff-surface-3: #e8edf5;
+    --ff-border-soft: #dbe2eb;
+    --ff-border-strong: #c7d0dd;
+    --ff-text-strong: #212529;
+    --ff-text-muted: #495057;
+    --ff-text-soft: #6c757d;
+    --ff-chart-grid-color: rgba(73, 80, 87, 0.18);
+    --ff-chart-tick-color: #495057;
+    --ff-chart-tooltip-bg: #223149;
+    --ff-chart-tooltip-text: #f8fbff;
+    --ff-chart-surface: rgba(248, 250, 253, 0.92);
+}
+
+[data-bs-theme="dark"] {
+    --ff-surface-0: #0b111a;
+    --ff-surface-1: #111b2a;
+    --ff-surface-2: #182436;
+    --ff-surface-3: #223149;
+    --ff-border-soft: #2c3e59;
+    --ff-border-strong: #3a4f70;
+    --ff-text-strong: #e8efff;
+    --ff-text-muted: #a6b6cf;
+    --ff-text-soft: #7f92b1;
+}

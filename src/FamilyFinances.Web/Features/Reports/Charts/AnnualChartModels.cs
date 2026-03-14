@@ -22,26 +22,9 @@ public sealed record AnnualCompositionSlice(
 
 public static class AnnualChartPalette
 {
-    private static readonly string[] Colors =
-    {
-        "#0d6efd",
-        "#20c997",
-        "#dc3545",
-        "#fd7e14",
-        "#6f42c1",
-        "#0dcaf0",
-        "#198754",
-        "#ffc107",
-        "#6610f2",
-        "#adb5bd"
-    };
-
     public static string Resolve(int index)
     {
-        if (index < 0)
-            return Colors[0];
-
-        return Colors[index % Colors.Length];
+        return ChartSemanticPalette.ResolveIndexed(index);
     }
 }
 

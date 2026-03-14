@@ -38,6 +38,7 @@ public sealed class AnnualCompositionChartTests : WebTestContext
         legendRows.Should().HaveCount(10);
         legendRows.Select(row => row.TextContent).Should().Contain(text => text.Contains("Others", StringComparison.OrdinalIgnoreCase));
         legendRows.Select(row => row.TextContent).Should().NotContain(text => text.Contains("Slice 10", StringComparison.OrdinalIgnoreCase));
+        cut.Markup.Should().Contain("--ff-slice-color:");
 
         renderCall.Invocations.Should().ContainSingle();
         var payloadJson = JsonSerializer.Serialize(renderCall.Invocations.Single().Arguments[1]);

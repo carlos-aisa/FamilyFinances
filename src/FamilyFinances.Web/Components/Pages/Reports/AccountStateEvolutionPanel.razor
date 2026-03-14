@@ -285,12 +285,15 @@ else if (_report is not null)
                                 }
                                 else
                                 {
-                                    <AnnualLineChart
+                                    <EvolutionChart
+                                        Mode="EvolutionChartMode.MonthlyInYear"
                                         Title="@L["AccountStateOverview_AnnualEvolutionTitle"]"
                                         Subtitle="@L["AccountStateOverview_AnnualEvolutionSubtitle"]"
                                         Year="@_selectedYear"
-                                        Series="@charts.AccountEvolution"
+                                        AnnualSeries="@charts.AccountEvolution"
                                         DataUntilMonth="@dataUntilMonth"
+                                        YTickMaxTicks="5"
+                                        CarryForwardAfterMarker="true"
                                         TestId="annual-accounts-evolution-chart" />
                                 }
                             }

@@ -26,7 +26,7 @@
 
 @if (_tx is null)
 {
-    <div class="d-flex justify-content-center align-items-center" style="min-height: 300px;">
+    <div class="d-flex justify-content-center align-items-center ff-loading-shell-sm">
         <div class="spinner-border text-primary" role="status">
             <span class="visually-hidden">@L["Common_Loading"]</span>
         </div>
@@ -133,7 +133,7 @@ else
                             <thead class="table-light">
                                 <tr>
                                     <th class="border-0">@L["TransactionDetail_Account"]</th>
-                                    <th class="border-0 text-end" style="width: 160px;">@L["TransactionDetail_Amount"]</th>
+                                    <th class="border-0 text-end ff-w-160">@L["TransactionDetail_Amount"]</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -338,3 +338,5 @@ else
         }
     }
 }
+
+

@@ -125,7 +125,7 @@
         {
             <div class="col-12 mt-2">
                 <div class="card border-secondary">
-                    <div class="card-header bg-secondary-subtle" style="cursor: pointer;" @onclick="ToggleExpenseSearch">
+                    <div class="card-header bg-secondary-subtle ff-clickable" @onclick="ToggleExpenseSearch">
                         <small class="text-muted">
                             <i class="bi bi-link-45deg me-1"></i>
                             <strong>@L["QuickEntryDrawer_LinkOriginalExpense"]</strong>
@@ -570,3 +570,4 @@
         public Guid? RelatedTransactionId { get; set; }
     }
 }
+

@@ -1,4 +1,4 @@
-﻿@page "/reports/category-totals"
+@page "/reports/category-totals"
 @rendermode InteractiveServer
 @using FamilyFinances.Application.Ledger.Payees.Dtos
 @using FamilyFinances.Application.Reporting.Dtos
@@ -115,7 +115,7 @@
         {
             <div class="card shadow-sm ff-panel">
                     <div class="card-body text-center py-5">
-                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <div class="spinner-border text-primary mb-3 ff-spinner-lg" role="status">
                             <span class="visually-hidden">@L["Common_Loading"]</span>
                         </div>
                         <p class="text-muted">@L["Reports_LoadingData"]</p>
@@ -164,7 +164,7 @@
                             <table class="table table-hover align-middle mb-0 ff-data-table">
                                 <thead class="table-light">
                                     <tr>
-                                        <th class="border-0 ps-3" style="width: 50%;">
+                                        <th class="border-0 ps-3 ff-w-50p">
                                             <button type="button"
                                                     class="btn btn-link btn-sm text-decoration-none p-0 ff-sort-header"
                                                     aria-label="@L["CategoryTotals_Table_AccountName"]"
@@ -174,7 +174,7 @@
                                                 <i class="bi @GetSortIconClass(SortColumn.AccountName) ms-1" aria-hidden="true"></i>
                                             </button>
                                         </th>
-                                        <th class="border-0 text-end" style="width: 30%;">
+                                        <th class="border-0 text-end ff-w-30p">
                                             <button type="button"
                                                     class="btn btn-link btn-sm text-decoration-none p-0 ff-sort-header"
                                                     aria-label="@L["CategoryTotals_Table_Total"]"
@@ -184,7 +184,7 @@
                                                 <i class="bi @GetSortIconClass(SortColumn.Total) ms-1" aria-hidden="true"></i>
                                             </button>
                                         </th>
-                                        <th class="border-0 text-end pe-3" style="width: 20%;">
+                                        <th class="border-0 text-end pe-3 ff-w-20p">
                                             <button type="button"
                                                     class="btn btn-link btn-sm text-decoration-none p-0 ff-sort-header"
                                                     aria-label="@L["CategoryTotals_Table_Transactions"]"
@@ -199,7 +199,7 @@
                                 <tbody>
                                     @foreach (var item in SortItems(_report.Items))
                                     {
-                                        <tr class="clickable-row" style="cursor: pointer;" @onclick="() => OpenAccountMovements(item.AccountId)">
+                                        <tr class="clickable-row ff-clickable" @onclick="() => OpenAccountMovements(item.AccountId)">
                                             <td class="ps-3">
                                                 <span class="fw-semibold">@item.AccountName</span>
                                             </td>
@@ -468,4 +468,6 @@
         Descending
     }
 }
+
+
 

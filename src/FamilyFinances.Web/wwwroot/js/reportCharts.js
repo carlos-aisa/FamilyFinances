@@ -1,6 +1,26 @@
 window.familyFinancesCharts = window.familyFinancesCharts || (function () {
     const chartByCanvasId = new Map();
     const formatterCache = new Map();
+    const themeColorDefaults = {
+        tickColor: { token: "--ff-chart-tick-color", fallback: "#adb5bd" },
+        gridColor: { token: "--ff-chart-grid-color", fallback: "rgba(173, 181, 189, 0.15)" },
+        tooltipBackground: { token: "--ff-chart-tooltip-bg", fallback: "#223149" },
+        tooltipText: { token: "--ff-chart-tooltip-text", fallback: "#e8efff" },
+        surfaceBorder: { token: "--ff-border-soft", fallback: "#1f252d" },
+        cutoffLine: { token: "--ff-chart-cutoff-line", fallback: "rgba(86, 199, 255, 0.85)" },
+        cutoffShade: { token: "--ff-chart-cutoff-shade", fallback: "rgba(86, 199, 255, 0.08)" }
+    };
+    const themeNumberDefaults = {
+        barBorderRadius: { token: "--ff-chart-bar-border-radius", fallback: 4 },
+        pieBorderWidth: { token: "--ff-chart-pie-border-width", fallback: 2 },
+        pieHoverOffset: { token: "--ff-chart-pie-hover-offset", fallback: 8 },
+        pieSliceSpacing: { token: "--ff-chart-pie-slice-spacing", fallback: 2 },
+        compositionLegendGap: { token: "--ff-composition-legend-gap", fallback: 0.5 },
+        compositionLegendRowGap: { token: "--ff-composition-legend-row-gap", fallback: 0.6 },
+        compositionLegendSideRowGap: { token: "--ff-composition-side-row-gap", fallback: 0.45 },
+        compositionDotSize: { token: "--ff-composition-dot-size", fallback: 0.7 },
+        compositionDotSizeCompact: { token: "--ff-composition-dot-size-compact", fallback: 0.6 }
+    };
 
     function resolveCulture() {
         const docCulture = document?.documentElement?.lang;
@@ -39,7 +59,7 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
             ? window.getComputedStyle(document.documentElement)
             : null;
 
-        const pick = (tokenName, fallback) => {
+        const pickColor = (tokenName, fallback) => {
             if (!style) {
                 return fallback;
             }
@@ -48,15 +68,37 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
             return tokenValue && tokenValue.trim().length > 0 ? tokenValue.trim() : fallback;
         };
 
-        return {
-            tickColor: pick("--ff-chart-tick-color", "#adb5bd"),
-            gridColor: pick("--ff-chart-grid-color", "rgba(173, 181, 189, 0.15)"),
-            tooltipBackground: pick("--ff-chart-tooltip-bg", "#223149"),
-            tooltipText: pick("--ff-chart-tooltip-text", "#e8efff"),
-            surfaceBorder: pick("--ff-border-soft", "#1f252d"),
-            cutoffLine: pick("--ff-chart-cutoff-line", "rgba(86, 199, 255, 0.85)"),
-            cutoffShade: pick("--ff-chart-cutoff-shade", "rgba(86, 199, 255, 0.08)")
+        const pickNumber = (tokenName, fallback) => {
+            if (!style) {
+                return fallback;
+            }
+
+            const tokenValue = style.getPropertyValue(tokenName);
+            const raw = tokenValue ? Number.parseFloat(tokenValue.trim()) : Number.NaN;
+            return Number.isFinite(raw) ? raw : fallback;
         };
+
+        const theme = {};
+        Object.keys(themeColorDefaults).forEach((key) => {
+            const source = themeColorDefaults[key];
+            theme[key] = pickColor(source.token, source.fallback);
+        });
+        Object.keys(themeNumberDefaults).forEach((key) => {
+            const source = themeNumberDefaults[key];
+            theme[key] = pickNumber(source.token, source.fallback);
+        });
+
+        return theme;
+    }
+
+    function destroyChart(canvasId) {
+        const existing = chartByCanvasId.get(canvasId);
+        if (!existing) {
+            return;
+        }
+
+        existing.destroy();
+        chartByCanvasId.delete(canvasId);
     }
 
     function toRgba(color, alpha) {
@@ -221,7 +263,7 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
 
                 const ctx = chart.ctx;
                 ctx.save();
-                ctx.fillStyle = theme.cutoffShade || "rgba(86, 199, 255, 0.18)";
+                ctx.fillStyle = theme.cutoffShade;
                 ctx.fillRect(
                     shadeStartX,
                     chartArea.top,
@@ -248,7 +290,7 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
 
                 const ctx = chart.ctx;
                 ctx.save();
-                ctx.strokeStyle = theme.cutoffLine || "rgba(86, 199, 255, 1)";
+                ctx.strokeStyle = theme.cutoffLine;
                 ctx.lineWidth = 2.1;
                 ctx.setLineDash([6, 4]);
                 ctx.beginPath();
@@ -257,7 +299,7 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
                 ctx.stroke();
                 ctx.setLineDash([]);
 
-                ctx.fillStyle = theme.cutoffLine || "rgba(86, 199, 255, 1)";
+                ctx.fillStyle = theme.cutoffLine;
                 ctx.beginPath();
                 ctx.arc(markerX, chartArea.top + 6, 3, 0, Math.PI * 2);
                 ctx.fill();
@@ -331,11 +373,7 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
             return;
         }
 
-        const previous = chartByCanvasId.get(canvasId);
-        if (previous) {
-            previous.destroy();
-            chartByCanvasId.delete(canvasId);
-        }
+        destroyChart(canvasId);
 
         const cutoff = resolveCutoffMetadata(payload);
         let datasets = (payload.datasets || []).map((dataset) => toDataset(dataset, cutoff.markerIndex));
@@ -463,11 +501,7 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
             return;
         }
 
-        const previous = chartByCanvasId.get(canvasId);
-        if (previous) {
-            previous.destroy();
-            chartByCanvasId.delete(canvasId);
-        }
+        destroyChart(canvasId);
 
         const theme = resolveChartTheme();
         const cutoff = resolveCutoffMetadata(payload);
@@ -481,7 +515,7 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
             borderColor: dataset.colorHex,
             backgroundColor: `${dataset.colorHex}B3`,
             borderWidth: 1.4,
-            borderRadius: 4,
+            borderRadius: theme.barBorderRadius,
             maxBarThickness: 28
         }));
 
@@ -549,13 +583,20 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
     }
 
     function disposeAnnualLineChart(canvasId) {
-        const existing = chartByCanvasId.get(canvasId);
-        if (!existing) {
+        destroyChart(canvasId);
+    }
+
+    function applyCompositionLegendContract(canvas, theme) {
+        const host = canvas?.closest(".annual-composition-chart");
+        if (!host || !host.style) {
             return;
         }
 
-        existing.destroy();
-        chartByCanvasId.delete(canvasId);
+        host.style.setProperty("--ff-composition-legend-gap", `${theme.compositionLegendGap}rem`);
+        host.style.setProperty("--ff-composition-legend-row-gap", `${theme.compositionLegendRowGap}rem`);
+        host.style.setProperty("--ff-composition-side-row-gap", `${theme.compositionLegendSideRowGap}rem`);
+        host.style.setProperty("--ff-composition-dot-size", `${theme.compositionDotSize}rem`);
+        host.style.setProperty("--ff-composition-dot-size-compact", `${theme.compositionDotSizeCompact}rem`);
     }
 
     function renderAnnualCompositionChart(canvasId, payload) {
@@ -568,13 +609,10 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
             return;
         }
 
-        const previous = chartByCanvasId.get(canvasId);
-        if (previous) {
-            previous.destroy();
-            chartByCanvasId.delete(canvasId);
-        }
+        destroyChart(canvasId);
 
         const theme = resolveChartTheme();
+        applyCompositionLegendContract(canvas, theme);
         const chart = new window.Chart(canvas, {
             type: "pie",
             data: {
@@ -584,9 +622,9 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
                         data: payload.values || [],
                         backgroundColor: payload.colors || [],
                         borderColor: theme.surfaceBorder,
-                        borderWidth: 2,
-                        hoverOffset: 8,
-                        spacing: 2
+                        borderWidth: theme.pieBorderWidth,
+                        hoverOffset: theme.pieHoverOffset,
+                        spacing: theme.pieSliceSpacing
                     }
                 ]
             },
@@ -618,13 +656,7 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
     }
 
     function disposeAnnualCompositionChart(canvasId) {
-        const existing = chartByCanvasId.get(canvasId);
-        if (!existing) {
-            return;
-        }
-
-        existing.destroy();
-        chartByCanvasId.delete(canvasId);
+        destroyChart(canvasId);
     }
 
     return {

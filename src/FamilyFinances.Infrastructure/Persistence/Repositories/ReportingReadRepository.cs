@@ -708,7 +708,11 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             ? signedPoints.Select(point => point with { EndBalanceCents = -point.EndBalanceCents }).ToList()
             : signedPoints;
 
-        return new MonthlyBalanceChartDto(year, month, points);
+        return new MonthlyBalanceChartDto(
+            year,
+            month,
+            points,
+            OpeningBalanceCents: openingBalance);
     }
 
     public async Task<MonthlyBalanceVsGroupsChartDto> GetMonthlyBalanceVsGroupsChartAsync(
@@ -736,7 +740,8 @@ public sealed class ReportingReadRepository : IReportingReadRepository
                 year,
                 month,
                 assetOpening,
-                assetMovementByDay));
+                assetMovementByDay),
+            OpeningBalanceCents: assetOpening);
 
         var groups = await _db.AccountGroups
             .AsNoTracking()
@@ -793,7 +798,8 @@ public sealed class ReportingReadRepository : IReportingReadRepository
                     year,
                     month,
                     openingBalance,
-                    movementByDay)
+                    movementByDay),
+                OpeningBalanceCents: openingBalance
             ));
         }
 

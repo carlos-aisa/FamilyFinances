@@ -79,6 +79,7 @@ This document defines mandatory frontend development standards. It must be follo
 ### 5.4 Styling and CSS Strategy
 - Scoped styles preferred.
 - No inline styles unless justified.
+- In protected frontend paths (`src/FamilyFinances.Web/Components/**/*.razor`, `src/FamilyFinances.Web/wwwroot/css/*.css`, `src/FamilyFinances.Web/wwwroot/js/reportCharts.js`), new hardcoded presentation literals (hex colors, fixed inline geometry values) are forbidden unless explicitly allowlisted and documented.
 
 ---
 

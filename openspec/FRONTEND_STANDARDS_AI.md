@@ -40,6 +40,7 @@ If a rule is missing or unclear, the AI must ask for clarification.
 ## Styling
 - Scoped styles
 - No inline styles unless approved
+- In protected frontend paths, do not introduce new hardcoded presentation literals (hex colors, fixed inline geometry values) unless an explicit allowlist entry and justification are added.
 
 ---
 

@@ -143,9 +143,9 @@
         <!-- Content -->
         @if (!_hasLoaded)
         {
-            <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+            <div class="d-flex justify-content-center align-items-center ff-loading-shell">
                 <div class="text-center">
-                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                    <div class="spinner-border text-primary mb-3 ff-spinner-lg" role="status">
                         <span class="visually-hidden">@L["Common_Loading"]</span>
                     </div>
                     <p class="text-muted">@L["Accounts_Loading"]</p>
@@ -188,22 +188,22 @@
                         <table class="table table-hover align-middle mb-0 ff-data-table">
                             <thead class="table-light">
                                 <tr>
-                                    <th class="border-0 ps-3" style="width: 35%;">
+                                    <th class="border-0 ps-3 ff-w-35p">
                                         <i class="bi bi-tag me-1"></i>@L["Accounts_Table_Name"]
                                     </th>
-                                    <th class="border-0" style="width: 15%;">
+                                    <th class="border-0 ff-w-15p">
                                         <i class="bi bi-bookmark me-1"></i>@L["Accounts_Table_Kind"]
                                     </th>
-                                    <th class="border-0 text-end" style="width: 15%;">
+                                    <th class="border-0 text-end ff-w-15p">
                                         <i class="bi bi-calendar-month me-1"></i>@L["Accounts_Table_CurrentMonthBalance"]
                                     </th>
-                                    <th class="border-0 text-end" style="width: 15%;">
+                                    <th class="border-0 text-end ff-w-15p">
                                         <i class="bi bi-currency-euro me-1"></i>@L["Accounts_Table_AccumulatedBalance"]
                                     </th>
-                                    <th class="border-0" style="width: 10%;">
+                                    <th class="border-0 ff-w-10p">
                                         <i class="bi bi-info-circle me-1"></i>@L["Accounts_Table_Status"]
                                     </th>
-                                    <th class="border-0 text-end pe-3" style="width: 10%;">@L["Accounts_Table_Actions"]</th>
+                                    <th class="border-0 text-end pe-3 ff-w-10p">@L["Accounts_Table_Actions"]</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -262,7 +262,7 @@
                                                     <DataAnnotationsValidator />
 
                                                     <div class="d-flex justify-content-end gap-2">
-                                                        <InputText class="form-control form-control-sm" style="min-width: 200px;"
+                                                        <InputText class="form-control form-control-sm ff-input-min-w-200"
                                                                    @bind-Value="_renameModel.Name" />
 
                                                         <button class="btn btn-sm btn-success" type="submit" disabled="@_isBusy">
@@ -815,3 +815,5 @@
         public string Name { get; set; } = "";
     }
 }
+
+

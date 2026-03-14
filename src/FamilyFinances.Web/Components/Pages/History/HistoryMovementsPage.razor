@@ -87,12 +87,12 @@ else
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="ps-3" style="width: 120px;">@L["HistoryMovements_Table_Date"]</th>
+                            <th class="ps-3 ff-w-120">@L["HistoryMovements_Table_Date"]</th>
                             <th>@L["HistoryMovements_Table_Description"]</th>
-                            <th style="width: 220px;">@L["HistoryMovements_Table_Payee"]</th>
-                            <th style="width: 220px;">@L["HistoryMovements_Table_Counterparty"]</th>
-                            <th class="text-end pe-3" style="width: 160px;">@L["HistoryMovements_Table_Amount"]</th>
-                            <th class="text-end pe-3" style="width: 200px;">@L["HistoryMovements_Table_RunningBalance"]</th>
+                            <th class="ff-w-220">@L["HistoryMovements_Table_Payee"]</th>
+                            <th class="ff-w-220">@L["HistoryMovements_Table_Counterparty"]</th>
+                            <th class="text-end pe-3 ff-w-160">@L["HistoryMovements_Table_Amount"]</th>
+                            <th class="text-end pe-3 ff-w-200">@L["HistoryMovements_Table_RunningBalance"]</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -260,3 +260,4 @@ else
         return QueryHelpers.AddQueryString($"/transactions/{transactionId}", query);
     }
 }
+

@@ -40,7 +40,7 @@
         {
             <div class="card shadow-sm ff-panel">
                 <div class="card-body text-center py-5">
-                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                    <div class="spinner-border text-primary mb-3 ff-spinner-lg" role="status">
                         <span class="visually-hidden">@L["Common_Loading"]</span>
                     </div>
                     <p class="text-muted">@L["Dashboard_LoadingAnalytics"]</p>
@@ -119,14 +119,15 @@
                         }
                         else
                         {
-                            <MonthlyLineChart
+                            <EvolutionChart
+                                Mode="EvolutionChartMode.DailyInMonth"
                                 Title="@L["Dashboard_MonthlyIncomeExpense_Title"]"
                                 Subtitle="@L["Dashboard_MonthlyIncomeExpense_Subtitle", DateHelper.GetMonthName(_overview.AsOf.Month), _overview.AsOf.Year, _overview.AsOf.Day]"
                                 Year="@_overview.AsOf.Year"
                                 Month="@_overview.AsOf.Month"
                                 YTickMaxTicks="5"
-                                ShowFullMonthRange="true"
-                                Series="@_monthlyIncomeVsExpenseSeries"
+                                ShowFullRange="true"
+                                DailySeries="@_monthlyIncomeVsExpenseSeries"
                                 TestId="dashboard-monthly-income-expense-chart" />
                         }
                     </div>
@@ -157,11 +158,12 @@
                         }
                         else
                         {
-                            <AnnualLineChart
+                            <EvolutionChart
+                                Mode="EvolutionChartMode.MonthlyInYear"
                                 Title="@L["Dashboard_MonthlyNetTrend_Title"]"
                                 Subtitle="@L["Dashboard_MonthlyNetTrend_Subtitle"]"
                                 Year="@_overview.AsOf.Year"
-                                Series="@_monthlyNetTrendSeries"
+                                AnnualSeries="@_monthlyNetTrendSeries"
                                 DataUntilMonth="@_overview.AsOf.Month"
                                 TestId="dashboard-monthly-net-trend-chart" />
                         }
@@ -178,11 +180,12 @@
                         }
                         else
                         {
-                            <AnnualLineChart
+                            <EvolutionChart
+                                Mode="EvolutionChartMode.MonthlyInYear"
                                 Title="@L["Dashboard_AssetEvolution_Title"]"
                                 Subtitle="@L["Dashboard_AssetEvolution_Subtitle"]"
                                 Year="@_overview.AsOf.Year"
-                                Series="@_assetAnnualEvolutionSeries"
+                                AnnualSeries="@_assetAnnualEvolutionSeries"
                                 DataUntilMonth="@_overview.AsOf.Month"
                                 TestId="dashboard-asset-evolution-chart" />
                         }
@@ -301,13 +304,15 @@
             new MonthlyChartSeries(
                 Key: "income",
                 Label: L["Dashboard_Kpi_Income"],
-                ColorHex: "#2dd67d",
-                Points: orderedPoints.Select(point => new MonthlyChartPoint(point.Day, point.IncomeCents)).ToList()),
+                ColorHex: ChartSemanticPalette.ResolveSemantic(ChartSemanticPalette.Income),
+                Points: orderedPoints.Select(point => new MonthlyChartPoint(point.Day, point.IncomeCents)).ToList(),
+                BaselineValue: 0m),
             new MonthlyChartSeries(
                 Key: "expense",
                 Label: L["Dashboard_Kpi_Expense"],
-                ColorHex: "#ff5f75",
-                Points: orderedPoints.Select(point => new MonthlyChartPoint(point.Day, point.ExpenseCents)).ToList())
+                ColorHex: ChartSemanticPalette.ResolveSemantic(ChartSemanticPalette.Expense),
+                Points: orderedPoints.Select(point => new MonthlyChartPoint(point.Day, point.ExpenseCents)).ToList(),
+                BaselineValue: 0m)
         ];
     }
 
@@ -330,12 +335,12 @@
             new AnnualChartSeries(
                 Key: "income",
                 Label: L["Dashboard_Kpi_Income"],
-                ColorHex: "#2dd67d",
+                ColorHex: ChartSemanticPalette.ResolveSemantic(ChartSemanticPalette.Income),
                 Points: incomePoints),
             new AnnualChartSeries(
                 Key: "expense",
                 Label: L["Dashboard_Kpi_Expense"],
-                ColorHex: "#ff5f75",
+                ColorHex: ChartSemanticPalette.ResolveSemantic(ChartSemanticPalette.Expense),
                 Points: expensePoints)
         ];
     }
@@ -357,7 +362,7 @@
             new AnnualChartSeries(
                 Key: "monthly-net",
                 Label: L["Dashboard_MonthlyNetTrend_Legend"],
-                ColorHex: "#56c7ff",
+                ColorHex: ChartSemanticPalette.ResolveSemantic(ChartSemanticPalette.Balance),
                 Points: netPoints)
         ];
     }
@@ -410,7 +415,7 @@
             assetEvolution,
             key: "asset-total",
             label: L["Dashboard_AssetEvolution_Legend"],
-            colorHex: "#4fa4ff");
+            colorHex: ChartSemanticPalette.ResolveSemantic(ChartSemanticPalette.Neutral));
 
         _groupAnnualEvolutionSeries = AnnualChartDatasetAdapter.BuildSeriesMonthlyDelta(
             groupEvolution,
@@ -427,3 +432,4 @@
         };
     }
 }
+

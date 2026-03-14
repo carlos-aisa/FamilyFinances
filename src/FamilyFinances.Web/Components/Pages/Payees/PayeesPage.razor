@@ -108,9 +108,9 @@
 
 @if (_items is null)
 {
-    <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+    <div class="d-flex justify-content-center align-items-center ff-loading-shell">
         <div class="text-center">
-            <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+            <div class="spinner-border text-primary mb-3 ff-spinner-lg" role="status">
                 <span class="visually-hidden">@L["Common_Loading"]</span>
             </div>
             <p class="text-muted">@L["Payees_Loading"]</p>
@@ -403,3 +403,4 @@ else
         public string Name { get; set; } = string.Empty;
     }
 }
+

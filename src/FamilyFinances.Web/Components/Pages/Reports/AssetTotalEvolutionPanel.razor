@@ -240,14 +240,15 @@ else if (_report is not null)
                     }
                     else
                     {
-                        <MonthlyLineChart
+                        <EvolutionChart
+                            Mode="EvolutionChartMode.DailyInMonth"
                             Title="@L["AssetEvolution_MonthFocusedTitle"]"
                             Subtitle="@L["AssetEvolution_MonthFocusedSubtitle", focusedMonthLabel, _selectedYear]"
                             Year="@_selectedYear"
                             Month="@_focusedMonth"
                             YTickMaxTicks="5"
-                            ShowFullMonthRange="true"
-                            Series="@monthlyChartSeries"
+                            ShowFullRange="true"
+                            DailySeries="@monthlyChartSeries"
                             TestId="economic-state-asset-monthly-chart" />
                     }
                 </div>
@@ -264,13 +265,15 @@ else if (_report is not null)
                     }
                     else
                     {
-                        <AnnualLineChart
+                        <EvolutionChart
+                            Mode="EvolutionChartMode.MonthlyInYear"
                             Title="@L["AssetEvolution_AnnualTitle"]"
                             Subtitle="@L["AssetEvolution_AnnualSubtitle"]"
                             Year="@_selectedYear"
-                            Series="@charts.AssetEndBalanceEvolution"
+                            AnnualSeries="@charts.AssetEndBalanceEvolution"
                             DataUntilMonth="@dataUntilMonth"
                             YTickMaxTicks="5"
+                            CarryForwardAfterMarker="true"
                             TestId="economic-state-asset-evolution-chart" />
                     }
                 </div>
