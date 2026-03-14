@@ -29,6 +29,7 @@
   - weekly `schedule` cron
 - [x] 3.4 In `codeql.yml`, configure `github/codeql-action/init@v4` with `languages: csharp`, and include autobuild + analyze steps.
 - [x] 3.5 In `codeql.yml`, set permissions so `security-events: write` exists for result publishing and all other permissions are minimal.
+- [x] 3.6 Add private-repo guard (`if: !github.event.repository.private`) to `codeql.yml` and `dependency-review.yml` so workflows skip cleanly when Code Security/GHAS is unavailable.
 
 ## 4. Implement tag-only Windows release workflow with pre-clean keep=2
 

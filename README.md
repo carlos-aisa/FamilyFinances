@@ -234,10 +234,10 @@ Current workflow split:
   - PR runs also attempt TRX + coverage artifact upload (best effort, short retention).
 - `.github/workflows/dependency-review.yml`
   - Triggers: PR to `main`
-  - Runs dependency diff risk checks.
+  - Runs dependency diff risk checks (auto-skipped on private repos without Code Security/GHAS).
 - `.github/workflows/codeql.yml`
   - Triggers: PR to `main`, push to `main`/`develop`, weekly schedule
-  - Publishes CodeQL results to repository code scanning.
+  - Publishes CodeQL results to repository code scanning (auto-skipped on private repos without Code Security/GHAS).
 - `.github/workflows/release-windows.yml`
   - Triggers: push tags `v*.*.*` for release packaging/publish
   - Includes pre-publish ZIP cleanup with keep count `2`.
@@ -247,7 +247,8 @@ Current workflow split:
   - Deletes old Actions artifacts to keep storage usage under control.
 
 Branch policy intent:
-- `main`: required checks for `ci-quality`, `dependency-review`, and CodeQL analyze job.
+- `main` (public repo with Code Security/GHAS): required checks for `ci-quality`, `dependency-review`, and CodeQL analyze job.
+- `main` (private repo without Code Security/GHAS): require only `ci-quality` until security features are enabled.
 - `develop`: checks run on branch pushes as informational signal (not required for merge) in this phase.
 
 Coverage visibility:
