@@ -51,6 +51,7 @@ The repository uses a split workflow model:
 ## Coverage Visibility Policy
 
 Current policy (no external SaaS dependency):
+- Publish and auto-update local coverage badge file (`docs/badges/coverage.svg`) from `main` push runs.
 - Publish coverage summary directly in `ci-quality` run summary.
 - On PR runs, attempt short-lived TRX + raw coverage artifact upload as best effort.
 

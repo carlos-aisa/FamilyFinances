@@ -1,4 +1,5 @@
 # FamilyFinances
+![Coverage](docs/badges/coverage.svg)
 
 ## Overview
 
@@ -252,6 +253,7 @@ Branch policy intent:
 - `develop`: checks run on branch pushes as informational signal (not required for merge) in this phase.
 
 Coverage visibility:
+- Coverage badge is published in this README (`docs/badges/coverage.svg`) and auto-updated from `main` CI runs.
 - Coverage summary is shown directly in each `ci-quality` run summary.
 - On PR runs, raw coverage (`coverage.cobertura.xml`) and TRX files are uploaded as short-lived artifacts (best effort).
 - Rich external coverage SaaS integrations (Codecov/Coveralls) are intentionally deferred.
