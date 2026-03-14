@@ -78,7 +78,7 @@ Rollback guidance for visual regressions:
 - bUnit (web component tests)
 - `Microsoft.AspNetCore.Mvc.Testing` (integration tests)
 - Coverlet collector
-- GitHub Actions (CI + Windows ZIP distribution build)
+- GitHub Actions (quality, security scanning, and tag-driven Windows release)
 - Docker/PostgreSQL: not wired as default runtime in current codebase (see setup notes)
 - Cypress: not committed in the repository as of now (setup path provided below)
 
@@ -224,6 +224,37 @@ npx cypress open
 
 Recommended Cypress base URL:
 - `http://localhost:5019`
+
+## GitHub Actions Workflows
+
+Current workflow split:
+- `.github/workflows/ci-quality.yml`
+  - Triggers: PR to `main`, push to `main`/`develop`
+  - Runs restore/build/test and publishes coverage summary in the run UI.
+  - PR runs also attempt TRX + coverage artifact upload (best effort, short retention).
+- `.github/workflows/dependency-review.yml`
+  - Triggers: PR to `main`
+  - Runs dependency diff risk checks (auto-skipped on private repos without Code Security/GHAS).
+- `.github/workflows/codeql.yml`
+  - Triggers: PR to `main`, push to `main`/`develop`, weekly schedule
+  - Publishes CodeQL results to repository code scanning (auto-skipped on private repos without Code Security/GHAS).
+- `.github/workflows/release-windows.yml`
+  - Triggers: push tags `v*.*.*` for release packaging/publish
+  - Includes pre-publish ZIP cleanup with keep count `2`.
+  - Includes optional manual cleanup via `workflow_dispatch`.
+- `.github/workflows/actions-artifacts-cleanup.yml`
+  - Triggers: daily schedule + manual dispatch
+  - Deletes old Actions artifacts to keep storage usage under control.
+
+Branch policy intent:
+- `main` (public repo with Code Security/GHAS): required checks for `ci-quality`, `dependency-review`, and CodeQL analyze job.
+- `main` (private repo without Code Security/GHAS): require only `ci-quality` until security features are enabled.
+- `develop`: checks run on branch pushes as informational signal (not required for merge) in this phase.
+
+Coverage visibility:
+- Coverage summary is shown directly in each `ci-quality` run summary.
+- On PR runs, raw coverage (`coverage.cobertura.xml`) and TRX files are uploaded as short-lived artifacts (best effort).
+- Rich external coverage SaaS integrations (Codecov/Coveralls) are intentionally deferred.
 
 ## Testing
 

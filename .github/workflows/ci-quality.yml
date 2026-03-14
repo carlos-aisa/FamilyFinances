@@ -1,0 +1,74 @@
+name: CI Quality
+
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main", "develop"]
+
+jobs:
+  ci-quality:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test with coverage
+        run: dotnet test --configuration Release --no-build --collect:"XPlat Code Coverage" --logger "trx;LogFileName=test-results.trx"
+
+      - name: Generate coverage summary
+        continue-on-error: true
+        shell: bash
+        run: |
+          dotnet tool install --global dotnet-reportgenerator-globaltool
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          reportgenerator \
+            -reports:"**/TestResults/**/coverage.cobertura.xml" \
+            -targetdir:"coveragereport" \
+            -reporttypes:"MarkdownSummaryGithub;TextSummary"
+
+          if [ -f "coveragereport/SummaryGithub.md" ]; then
+            cat coveragereport/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload test and coverage artifacts (PR only, best effort)
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-quality-results-${{ github.run_id }}
+          path: |
+            **/TestResults/**/*.trx
+            **/TestResults/**/coverage.cobertura.xml
+          retention-days: 2
+          if-no-files-found: warn
+          compression-level: 9
+
+      - name: Add run summary
+        shell: bash
+        run: |
+          {
+            echo "## CI Quality"
+            echo ""
+            echo "- Build and tests completed."
+            if [ "${{ github.event_name }}" = "pull_request" ]; then
+              echo "- PR run: artifact upload attempted for TRX + coverage (best effort)."
+            else
+              echo "- Push run: artifact upload skipped to reduce storage usage."
+            fi
+            echo "- Coverage summary is included above in this run summary."
+          } >> "$GITHUB_STEP_SUMMARY"
