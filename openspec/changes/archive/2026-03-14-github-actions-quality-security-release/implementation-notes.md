@@ -29,3 +29,9 @@ Source: d:/Programacion/FamilyFinances/.github/workflows/ci.yml
   - cleanup moved before publish with keep_count=2
 -->
 
+## Operational Notes
+
+- Branch protection policy depends on repository visibility/licensing:
+  - `main` on public repo with GHAS/Code Security: require `ci-quality`, `dependency-review`, and `analyze`.
+  - `main` on private repo without GHAS/Code Security: require `ci-quality` only.
+  - `develop`: checks are informational and not required blockers.

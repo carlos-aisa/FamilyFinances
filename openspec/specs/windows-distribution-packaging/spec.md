@@ -68,7 +68,7 @@ The packaged stop command MUST reliably stop both runtime processes under the ne
 - **AND** it MUST remove PID marker files created by the start process
 
 ### Requirement: CI Packaging SHALL Match Local Packaging Rules
-The GitHub Actions distribution job MUST apply the same merge and verification rules as local distribution build.
+The GitHub Actions distribution job MUST apply the same merge and verification rules as local distribution build, MUST run only for version tag releases, and MUST enforce release ZIP retention cleanup before publish.
 
 #### Scenario: CI fails on unresolved collision
 - **WHEN** CI packaging finds same-path files with different hashes that are not classified as app-specific configuration
@@ -79,6 +79,21 @@ The GitHub Actions distribution job MUST apply the same merge and verification r
 - **WHEN** CI packaging completes merge
 - **THEN** CI MUST verify required files and folders for the new layout before creating/uploading ZIP
 - **AND** CI MUST reject ZIP generation if required structure checks fail
+
+#### Scenario: Packaging release workflow runs only for version tags
+- **WHEN** a workflow run is triggered by a branch push to `main` or `develop`
+- **THEN** Windows distribution packaging MUST NOT run
+- **AND** packaging MUST run when a `v*.*.*` version tag push occurs
+
+#### Scenario: ZIP cleanup executes before new release publish
+- **WHEN** a `v*.*.*` release tag workflow starts packaging
+- **THEN** release ZIP cleanup MUST execute before creating or publishing the new ZIP
+- **AND** cleanup MUST target only assets matching `FamilyFinances-v*-win-x64.zip`
+
+#### Scenario: ZIP retention keeps only two prior assets before publish
+- **WHEN** release ZIP cleanup executes before publish
+- **THEN** the cleanup MUST retain only the two most recent historical matching ZIP assets
+- **AND** after publishing the new ZIP, the recent matching ZIP set MUST be exactly three assets (new + two previous)
 
 ### Requirement: Distribution Documentation SHALL Describe the New Layout
 The operator-facing distribution README MUST document the new structure and runtime troubleshooting paths.
@@ -96,4 +111,3 @@ This change MUST not alter business behavior, API contract behavior, or database
 - **THEN** no API endpoint path/version or DTO schema MUST be changed by this capability
 - **AND** no database migration files MUST be added by this capability
 - **AND** any runtime code changes MUST be limited to packaged-mode configuration bootstrapping
-
