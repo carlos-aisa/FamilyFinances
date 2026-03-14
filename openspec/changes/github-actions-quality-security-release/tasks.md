@@ -46,20 +46,20 @@
 - [x] 5.1 Refactor or remove packaging/release jobs from `d:/Programacion/FamilyFinances/.github/workflows/ci.yml` so Windows packaging is not executed from branch pushes anymore.
 - [x] 5.2 Ensure no duplicate release upload path remains (avoid running publish from both `push tag` and `release` event flows simultaneously).
 - [x] 5.3 Keep or move manual ZIP cleanup capability (`workflow_dispatch`) into a dedicated workflow file only if still needed operationally; if kept, set default `keep_count` to `2`.
-- [ ] 5.4 Verify expected check identities in PR UI are now:
+- [x] 5.4 Verify expected check identities in PR UI are now:
   - `ci-quality`
-  - `dependency-review`
-  - `analyze` (CodeQL job)
+  - `dependency-review` (or `Skipped` on private repo without GHAS)
+  - `analyze` (CodeQL job, or `Skipped` on private repo without GHAS)
 
 ## 6. Validation and behavioral test updates
 
 - [x] 6.1 Validate workflow YAML syntax and structure for all new workflow files under `d:/Programacion/FamilyFinances/.github/workflows/`.
 - [x] 6.2 Run repository tests locally after workflow refactor with `dotnet test d:/Programacion/FamilyFinances/FamilyFinances.sln -c Release` and resolve regressions.
-- [ ] 6.3 Open a PR targeting `main` and verify the three required checks execute and appear in GitHub checks UI with expected names.
-- [ ] 6.4 Push to `develop` and verify quality/security checks run as informational signal for that branch.
-- [ ] 6.5 Push a disposable semver tag (for example `v0.0.0`) in a controlled validation branch/repo context and verify `release-windows.yml` is the only packaging workflow that runs.
-- [ ] 6.6 In release run logs, verify pre-clean step executes before ZIP publish and keeps only 2 historical matching ZIP assets.
-- [ ] 6.7 Verify post-publish state contains exactly 3 recent matching ZIP assets (new + two previous).
+- [x] 6.3 Open a PR targeting `main` and verify required checks execute/appear in GitHub checks UI with expected names and private-repo skip behavior where applicable.
+- [x] 6.4 Push to `develop` and verify quality/security checks run as informational signal for that branch (including expected skips when GHAS is unavailable).
+- [x] 6.5 Push a disposable semver tag (for example `v0.0.0`) in a controlled validation branch/repo context and verify `release-windows.yml` is the only packaging workflow that runs.
+- [x] 6.6 In release run logs, verify pre-clean step executes before ZIP publish and keeps only 2 historical matching ZIP assets.
+- [x] 6.7 Verify post-publish state contains exactly 3 recent matching ZIP assets (new + two previous).
 
 ## 7. Documentation and branch protection rollout
 
@@ -69,8 +69,9 @@
   - required checks for `main`
   - informational policy for `develop`
   - where to find coverage outputs in GitHub checks summary and PR artifacts
-- [ ] 7.4 Configure repository branch protection in GitHub settings:
-  - `main`: require `ci-quality`, `dependency-review`, and `analyze`
+- [x] 7.4 Configure repository branch protection in GitHub settings:
+  - `main` (public/GHAS): require `ci-quality`, `dependency-review`, and `analyze`
+  - `main` (private without GHAS): require `ci-quality` only
   - `develop`: do not require these checks
 - [x] 7.5 Document future enhancement note (outside this change) for "coverage UI bonita" using Codecov/Coveralls and required setup implications.
 

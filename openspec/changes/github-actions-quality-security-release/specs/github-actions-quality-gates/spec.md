@@ -13,13 +13,19 @@ The repository MUST provide a dedicated quality workflow that validates build an
 - **THEN** the quality workflow MUST execute restore, build, and test validation
 - **AND** the workflow MUST NOT perform Windows release packaging or release publication
 
-### Requirement: CI Quality Workflow SHALL Publish Test and Coverage Evidence
-The quality workflow MUST produce deterministic test and coverage outputs so reviewers can inspect quality signals from GitHub checks.
+### Requirement: CI Quality Workflow SHALL Publish Coverage Evidence with PR Artifact Support
+The quality workflow MUST produce deterministic test and coverage outputs so reviewers can inspect quality signals from GitHub checks, while using storage-aware artifact publication.
 
-#### Scenario: Test results and coverage artifacts are published for review
-- **WHEN** the quality workflow test step completes
-- **THEN** test result files (`.trx`) MUST be published as workflow artifacts
-- **AND** coverage result files (`coverage.cobertura.xml`) MUST be published as workflow artifacts
+#### Scenario: Pull request runs attempt to publish test and coverage artifacts for review
+- **WHEN** the quality workflow test step completes in a pull request run
+- **THEN** test result files (`.trx`) SHOULD be published as workflow artifacts
+- **AND** coverage result files (`coverage.cobertura.xml`) SHOULD be published as workflow artifacts
+- **AND** artifact publication MAY be configured as best-effort to avoid blocking quality signal on storage quota errors
+
+#### Scenario: Push runs provide coverage visibility without mandatory artifact upload
+- **WHEN** the quality workflow test step completes in a push run
+- **THEN** coverage visibility MUST be provided in the run summary
+- **AND** artifact upload MAY be skipped to reduce storage consumption
 
 #### Scenario: Coverage collection uses native .NET collector in CI
 - **WHEN** tests run in the quality workflow
