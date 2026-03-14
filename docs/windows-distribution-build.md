@@ -1,178 +1,108 @@
 # Windows Distribution Build Guide
 
-This document explains how to build and publish the Windows ZIP distribution for FamilyFinances v0.6.7.
+This document explains how to build and publish the Windows ZIP distribution for FamilyFinances.
 
 ## Overview
 
-The Windows distribution provides a self-contained, portable version of FamilyFinances that non-technical users can run without installing .NET or any other dependencies.
+The Windows ZIP distribution is a self-contained package that allows users to run the app without installing .NET separately.
 
-## Distribution Structure
+## Distribution Structure (Shared Runtime Layout)
 
-```
-FamilyFinances-v0.6.7-win-x64/
-  ├── Start FamilyFinances.bat     # Launcher script
-  ├── Stop FamilyFinances.bat      # Shutdown script
-  ├── README.txt                   # End-user documentation
-  ├── data/                        # Optional fallback DB path
-  ├── logs/                        # Application logs
-  ├── api/                         # API binaries
-  │   ├── FamilyFinances.Api.exe
-  │   ├── appsettings.Production.json
-  │   └── ... (runtime files)
-  └── web/                         # Web binaries
-      ├── FamilyFinances.Web.exe
-      ├── appsettings.Production.json
-      └── ... (runtime files)
+```text
+FamilyFinances-v<version>-win-x64/
+  Start FamilyFinances.bat
+  Stop FamilyFinances.bat
+  README.txt
+  FamilyFinances.Api.exe
+  FamilyFinances.Web.exe
+  *.dll / *.deps.json / *.runtimeconfig.json
+  config/
+    api/appsettings.json
+    api/appsettings.Production.json
+    web/appsettings.json
+    web/appsettings.Production.json
+  data/
+  logs/
+  wwwroot/
 ```
 
 ## Building Locally
 
 ### Prerequisites
-- .NET 9.0 SDK
+- .NET 9 SDK
 - PowerShell 5.1 or later
 - Windows 10/11
 
-### Steps
+### Build command
 
-1. **Run the build script:**
-   ```powershell
-   .\build-windows-dist.ps1
-   ```
+```powershell
+.\build-windows-dist.ps1 -Version "0.6.7" -Configuration Release
+```
 
-2. **Optional: Specify version:**
-   ```powershell
-   .\build-windows-dist.ps1 -Version "0.6.7"
-   ```
+Output:
+- Folder: `dist/FamilyFinances-v0.6.7-win-x64/`
+- ZIP: `dist/FamilyFinances-v0.6.7-win-x64.zip`
 
-3. **Output:**
-   - Distribution folder: `dist/FamilyFinances-v0.6.7-win-x64/`
-   - ZIP archive: `dist/FamilyFinances-v0.6.7-win-x64.zip`
+### Local smoke check
 
-### Testing Locally
+```cmd
+cd dist\FamilyFinances-v0.6.7-win-x64
+Start FamilyFinances.bat
+Stop FamilyFinances.bat
+```
 
-1. Navigate to the distribution folder:
-   ```powershell
-   cd dist\FamilyFinances-v0.6.7-win-x64
-   ```
+## GitHub Actions Release Flow
 
-2. Run the start script:
-   ```cmd
-   Start FamilyFinances.bat
-   ```
+Windows release packaging is handled by:
+- `.github/workflows/release-windows.yml`
 
-3. Test the application at `http://localhost:5019`
+Trigger policy:
+- Automatic packaging and release publish only on version tags `v*.*.*`.
+- Optional manual cleanup path via `workflow_dispatch`.
 
-4. Stop the application:
-   ```cmd
-   Stop FamilyFinances.bat
-   ```
+Release workflow behavior:
+1. Pre-clean old release ZIP assets before publishing (keep latest 2 historical ZIPs).
+2. Build and validate distribution.
+3. Run ZIP smoke test.
+4. Upload ZIP artifact (short retention).
+5. Create/update GitHub Release and attach ZIP.
 
-## CI/CD Pipeline
+Retention behavior:
+- Cleanup targets ZIP assets matching `FamilyFinances-v*-win-x64.zip`.
+- Pre-clean keeps only 2 previous ZIP assets.
+- After publishing the new ZIP, the recent set is expected to be 3 total (new + two previous).
 
-The GitHub Actions workflow (`.github/workflows/ci.yml`) automatically builds the Windows distribution on:
-- Pushes to `main` or `develop` branches
-- Pull requests to `main`
-- Version tags (e.g., `v0.6.7`)
+## Creating a Release
 
-### Workflow Steps
+```bash
+git tag v0.6.7
+git push origin v0.6.7
+```
 
-1. **Build and Test** (Ubuntu)
-   - Restore dependencies
-   - Build solution
-   - Run all tests
+The release workflow will package and publish the ZIP automatically.
 
-2. **Windows Distribution** (Windows)
-   - Publish API as self-contained win-x64
-   - Publish Web as self-contained win-x64
-   - Assemble distribution folder
-   - Verify required files
-   - Create ZIP archive
-   - Upload as artifact
-   - *If tagged:* Create GitHub Release
+## Runtime Configuration Notes
 
-### Downloading Artifacts
+API production config:
+- `src/FamilyFinances.Api/appsettings.Production.json`
 
-After a successful CI run:
-1. Go to the Actions tab in GitHub
-2. Select the workflow run
-3. Download the ZIP from the Artifacts section
+Web production config:
+- `src/FamilyFinances.Web/appsettings.Production.json`
 
-### Creating a Release
-
-To create a GitHub Release:
-
-1. Tag the commit:
-   ```bash
-   git tag v0.6.7
-   git push origin v0.6.7
-   ```
-
-2. The workflow will automatically:
-   - Build the distribution
-   - Create a GitHub Release
-   - Attach the ZIP file
-
-## Configuration
-
-### Production Settings
-
-**API (`src/FamilyFinances.Api/appsettings.Production.json`):**
-- Database fallback: `data/familyfinances.db` (overridden by start script)
-- Logs: `../logs/api-YYYYMMDD.log` (daily rotation)
-- Port: `5084` (HTTP only)
-- JWT: Uses default key (should be changed for production deployments)
-
-**Web (`src/FamilyFinances.Web/appsettings.Production.json`):**
-- API URL: `http://localhost:5084/`
-- Port: `5019` (HTTP only)
-
-### Startup Behavior
-
-`Start FamilyFinances.bat`:
-1. Creates `logs/` and `%LOCALAPPDATA%\FamilyFinances\data\` folders
-2. Sets `ConnectionStrings__Default` to `%LOCALAPPDATA%\FamilyFinances\data\familyfinances.db`
-3. Starts API in minimized window
-4. Polls API health endpoint (30 second timeout)
-5. Starts Web in minimized window
-6. Opens browser to `http://localhost:5019`
-7. Saves PIDs to `.pid` files for shutdown
-
-### Shutdown Behavior
-
-`Stop FamilyFinances.bat`:
-1. Terminates Web process
-2. Terminates API process
-3. Cleans up `.pid` files
-
-## Publish Settings
-
-Both projects use:
-- `--runtime win-x64`
-- `--self-contained true`
-- `PublishTrimmed=false` (safer, larger size)
-- `PublishSingleFile=false` (better compatibility)
+Packaged runtime config files are isolated under:
+- `config/api/*`
+- `config/web/*`
 
 ## Troubleshooting
 
-### Build fails with "not found" errors
-- Ensure .NET 9.0 SDK is installed: `dotnet --version`
-- Run `dotnet restore` manually
+### Build fails
+- Verify SDK: `dotnet --version`
+- Run `dotnet restore` before building.
 
-### Distribution won't start
-- Check ports 5084 and 5019 aren't in use
-- Review logs in `logs/api-*.log`
-- Ensure no firewall is blocking the executables
+### Distribution start issues
+- Check ports `5084` and `5019`.
+- Check logs under `logs/`.
+- Confirm executables are not blocked by local security policies.
 
-### Database issues
-- Database is created automatically on first run
-- Located at `%LOCALAPPDATA%\FamilyFinances\data\familyfinances.db`
-- Backup by copying `%LOCALAPPDATA%\FamilyFinances\data\`
-
-## Future Improvements
-
-Consider for future versions:
-- Single-file publish (if compatible with all dependencies)
-- Configurable ports via environment variables
-- Installer (MSI) instead of ZIP
-- Auto-update mechanism
-- HTTPS with self-signed certificate option
+### Database path issues
+- Packaged mode writes runtime DB under `%LOCALAPPDATA%\FamilyFinances\data\` through startup script configuration.
