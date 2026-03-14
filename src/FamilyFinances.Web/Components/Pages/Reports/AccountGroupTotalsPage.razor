@@ -264,8 +264,8 @@
                                                     </td>
                                                     <td class="text-end">
                                                         <div class="d-flex align-items-center justify-content-end">
-                                                            <div class="progress me-2" style="width: 100px; height: 8px;">
-                                                                <div class="progress-bar" role="progressbar" style="width: @(percentage)%"></div>
+                                                            <div class="progress me-2 ff-progress-compact">
+                                                                <div class="progress-bar ff-progress-fill" role="progressbar" style="--ff-progress-width:@(percentage)%;"></div>
                                                             </div>
                                                             <span class="text-muted small">@percentage.ToString("F1")%</span>
                                                         </div>
@@ -278,16 +278,6 @@
                             </div>
 
                             <div class="col-12 col-xxl-6">
-                                <div class="d-flex align-items-center justify-content-between mb-2">
-                                    <h6 class="mb-0">
-                                        <i class="bi bi-graph-up-arrow me-2"></i>@L["AccountGroupState_Title"]
-                                    </h6>
-                                    @if (!string.IsNullOrWhiteSpace(_report.GroupName))
-                                    {
-                                        <span class="badge text-bg-secondary">@_report.GroupName</span>
-                                    }
-                                </div>
-
                                 <div class="economic-state-stacked-charts account-group-period-stacked-charts">
                                     @if (_isGroupChartsLoading)
                                     {
@@ -313,13 +303,16 @@
                                         }
                                         else
                                         {
-                                            <MonthlyLineChart
+                                            <EvolutionChart
+                                                Mode="EvolutionChartMode.DailyInMonth"
                                                 Title="@L["MonthlySummary_MonthFocusedEvolution"]"
                                                 Subtitle="@L["AccountGroupState_MonthFocusedSubtitle", groupChartMonthLabel, groupChartYear]"
                                                 Year="@groupChartYear"
                                                 Month="@groupChartMonth"
+                                                DataUntilDay="@ResolveGroupMonthlyChartCutoffDay()"
                                                 YTickMaxTicks="5"
-                                                Series="@groupMonthlySeries"
+                                                ShowFullRange="true"
+                                                DailySeries="@groupMonthlySeries"
                                                 TestId="account-group-totals-period-group-monthly-chart" />
                                         }
 
@@ -591,7 +584,7 @@
             new AnnualChartSeries(
                 Key: "account-group-month-result",
                 Label: label,
-                ColorHex: "#4fa4ff",
+                ColorHex: ChartSemanticPalette.ResolveSemantic(ChartSemanticPalette.Neutral),
                 Points: points)
         ];
     }
@@ -635,6 +628,27 @@
             .Where(month => month <= preferredMonth)
             .DefaultIfEmpty(availableMonths.Max())
             .Max();
+    }
+
+    private int? ResolveGroupMonthlyChartCutoffDay()
+    {
+        var daysInMonth = DateTime.DaysInMonth(_groupChartYear, _groupChartMonth);
+        var monthStart = new DateOnly(_groupChartYear, _groupChartMonth, 1);
+        var monthEnd = new DateOnly(_groupChartYear, _groupChartMonth, daysInMonth);
+
+        var cutoff = _toDate.AddDays(-1);
+        if (cutoff > monthEnd)
+            cutoff = monthEnd;
+        if (cutoff < monthStart)
+            return null;
+
+        var madridTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time");
+        var madridNow = TimeZoneInfo.ConvertTime(DateTime.UtcNow, madridTimeZone);
+        var today = new DateOnly(madridNow.Year, madridNow.Month, madridNow.Day);
+        if (monthStart.Year == today.Year && monthStart.Month == today.Month && cutoff > today)
+            cutoff = today;
+
+        return cutoff.Day;
     }
 
     private void GoBack()
@@ -722,3 +736,4 @@
     }
 
 }
+

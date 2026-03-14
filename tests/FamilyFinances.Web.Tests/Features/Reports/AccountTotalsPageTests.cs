@@ -187,6 +187,8 @@ public sealed class AccountTotalsPageTests : WebTestContext
             rawTotal.Should().NotBeNullOrWhiteSpace();
             decimal.Parse(rawTotal!, CultureInfo.InvariantCulture)
                 .Should().BeApproximately(100m, 0.01m);
+            chart.GetAttribute("class").Should().Contain("is-side-legend");
+            cut.Find("[data-testid='annual-accounts-composition-chart-legend']");
         });
     }
 

@@ -9,5 +9,6 @@ public sealed record MonthlyChartSeries(
     string Key,
     string Label,
     string ColorHex,
-    IReadOnlyList<MonthlyChartPoint> Points
+    IReadOnlyList<MonthlyChartPoint> Points,
+    decimal? BaselineValue = null
 );

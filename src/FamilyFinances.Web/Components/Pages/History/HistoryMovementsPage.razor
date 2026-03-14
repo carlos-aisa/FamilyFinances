@@ -7,7 +7,9 @@
 @using FamilyFinances.Web
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web.Components.Pages.Transactions
 @using FamilyFinances.Web.State
+@using Microsoft.AspNetCore.WebUtilities
 @using Microsoft.Extensions.Localization
 @inject HistoryApi HistoryApi
 @inject IAccountsApi AccountsApi
@@ -85,12 +87,12 @@ else
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="ps-3" style="width: 120px;">@L["HistoryMovements_Table_Date"]</th>
+                            <th class="ps-3 ff-w-120">@L["HistoryMovements_Table_Date"]</th>
                             <th>@L["HistoryMovements_Table_Description"]</th>
-                            <th style="width: 220px;">@L["HistoryMovements_Table_Payee"]</th>
-                            <th style="width: 220px;">@L["HistoryMovements_Table_Counterparty"]</th>
-                            <th class="text-end pe-3" style="width: 160px;">@L["HistoryMovements_Table_Amount"]</th>
-                            <th class="text-end pe-3" style="width: 200px;">@L["HistoryMovements_Table_RunningBalance"]</th>
+                            <th class="ff-w-220">@L["HistoryMovements_Table_Payee"]</th>
+                            <th class="ff-w-220">@L["HistoryMovements_Table_Counterparty"]</th>
+                            <th class="text-end pe-3 ff-w-160">@L["HistoryMovements_Table_Amount"]</th>
+                            <th class="text-end pe-3 ff-w-200">@L["HistoryMovements_Table_RunningBalance"]</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -105,7 +107,7 @@ else
                                 </td>
                                 <td>
                                     <a class="text-decoration-none"
-                                       href='@BuildReadOnlyDetailUrl(movement.TransactionId, "history-movements")'>
+                                       href='@BuildReadOnlyDetailUrl(movement.TransactionId, TransactionOrigin.HistoryMovements, _selectedYear, _selectedAccountId)'>
                                         @movement.Description
                                     </a>
                                 </td>
@@ -135,10 +137,29 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        ApplyNavigationContext();
         _refreshSubscription = HistoryRefreshNotifier.Subscribe(OnHistoryRefreshRequested);
         await LoadFiltersAsync();
         if (_accounts.Count > 0)
             await LoadMovementsAsync();
+    }
+
+    private void ApplyNavigationContext()
+    {
+        var query = QueryHelpers.ParseQuery(Nav.ToAbsoluteUri(Nav.Uri).Query);
+
+        if (query.TryGetValue(TransactionOriginContext.YearQueryKey, out var rawYear) &&
+            int.TryParse(rawYear.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var year) &&
+            year >= 1)
+        {
+            _selectedYear = year;
+        }
+
+        if (query.TryGetValue(TransactionOriginContext.AccountIdQueryKey, out var rawAccountId) &&
+            Guid.TryParse(rawAccountId.ToString(), out var accountId))
+        {
+            _selectedAccountId = accountId;
+        }
     }
 
     private async Task LoadFiltersAsync()
@@ -160,8 +181,11 @@ else
                 .OrderBy(x => x.Nature)
                 .ThenBy(x => x.Name));
 
-            if (_accounts.Count > 0 && _selectedAccountId == Guid.Empty)
+            if (_accounts.Count > 0 &&
+                (_selectedAccountId == Guid.Empty || !_accounts.Any(account => account.Id == _selectedAccountId)))
+            {
                 _selectedAccountId = _accounts[0].Id;
+            }
         });
     }
 
@@ -213,6 +237,27 @@ else
         _refreshSubscription?.Dispose();
     }
 
-    private static string BuildReadOnlyDetailUrl(Guid transactionId, string returnTo)
-        => $"/transactions/{transactionId}?readonly=true&returnTo={Uri.EscapeDataString(returnTo)}";
+    private static string BuildReadOnlyDetailUrl(
+        Guid transactionId,
+        TransactionOrigin origin,
+        int year,
+        Guid? accountId)
+    {
+        var query = new Dictionary<string, string?>
+        {
+            [TransactionOriginContext.OriginQueryKey] = origin switch
+            {
+                TransactionOrigin.HistoryTransactions => "history-transactions",
+                _ => "history-movements"
+            },
+            [TransactionOriginContext.YearQueryKey] = year.ToString(CultureInfo.InvariantCulture),
+            ["readonly"] = "true"
+        };
+
+        if (accountId is not null)
+            query[TransactionOriginContext.AccountIdQueryKey] = accountId.Value.ToString();
+
+        return QueryHelpers.AddQueryString($"/transactions/{transactionId}", query);
+    }
 }
+

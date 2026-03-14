@@ -9,7 +9,8 @@ public sealed record MonthlyChartPointDto(
 public sealed record MonthlyBalanceChartDto(
     int Year,
     int Month,
-    IReadOnlyList<MonthlyChartPointDto> Points
+    IReadOnlyList<MonthlyChartPointDto> Points,
+    long OpeningBalanceCents = 0L
 );
 
 public sealed record MonthlyChartSeriesDto(
@@ -17,7 +18,8 @@ public sealed record MonthlyChartSeriesDto(
     string DisplayName,
     Guid? EntityId,
     string EntityType,
-    IReadOnlyList<MonthlyChartPointDto> Points
+    IReadOnlyList<MonthlyChartPointDto> Points,
+    long OpeningBalanceCents = 0L
 );
 
 public sealed record MonthlyBalanceVsGroupsChartDto(

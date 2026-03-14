@@ -10,7 +10,7 @@
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResource> L
 
-@if (Slices.Count == 0)
+@if (_displaySlices.Count == 0)
 {
     <ReportingChartEmptyState
         Title="@Title"
@@ -59,10 +59,10 @@ else
                 @if (UseSideLegend)
                 {
                     <div class="composition-legend composition-legend-side" data-testid="@($"{TestId}-legend")">
-                        @foreach (var slice in OrderedSlices.Take(Math.Max(1, LegendMaxItems)))
+                        @foreach (var slice in _displaySlices.Take(Math.Max(1, LegendMaxItems)))
                         {
                             <div class="composition-slice-row">
-                                <span class="composition-dot" style="@($"background-color:{slice.ColorHex};")"></span>
+                                <span class="composition-dot" style="@($"--ff-slice-color:{slice.ColorHex};")"></span>
                                 <span class="composition-label" title="@slice.Label">@slice.Label</span>
                                 <span class="composition-percentage">@slice.Percentage.ToString("0.##", CultureInfo.InvariantCulture)%</span>
                             </div>
@@ -84,36 +84,38 @@ else
     [Parameter] public bool EnableImageExport { get; set; } = true;
     [Parameter] public bool UseSideLegend { get; set; }
     [Parameter] public int LegendMaxItems { get; set; } = 10;
+    [Parameter] public int MaxSlices { get; set; } = 10;
 
     private readonly string _canvasId = $"annual-composition-{Guid.NewGuid():N}";
     private string? _lastRenderedSignature;
     private string? _exportError;
+    private IReadOnlyList<AnnualCompositionSlice> _displaySlices = Array.Empty<AnnualCompositionSlice>();
 
-    private IReadOnlyList<AnnualCompositionSlice> OrderedSlices => Slices
-        .OrderByDescending(x => x.Percentage)
-        .ThenBy(x => x.Label, StringComparer.OrdinalIgnoreCase)
-        .ToList();
-
-    private decimal TotalPercentage => OrderedSlices.Sum(x => x.Percentage);
+    private decimal TotalPercentage => _displaySlices.Sum(x => x.Percentage);
 
     private string GetBadgeText()
     {
         if (!string.IsNullOrWhiteSpace(BadgeText))
             return BadgeText;
 
-        return Year.ToString(CultureInfo.InvariantCulture);
+        return L["Reports_BadgeYear", Year.ToString(CultureInfo.InvariantCulture)];
+    }
+
+    protected override void OnParametersSet()
+    {
+        _displaySlices = BuildDisplaySlices();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (OrderedSlices.Count == 0)
+        if (_displaySlices.Count == 0)
             return;
 
         var payload = new
         {
-            labels = OrderedSlices.Select(x => x.Label).ToList(),
-            values = OrderedSlices.Select(x => Convert.ToDouble(x.Percentage, CultureInfo.InvariantCulture)).ToList(),
-            colors = OrderedSlices.Select(x => x.ColorHex).ToList()
+            labels = _displaySlices.Select(x => x.Label).ToList(),
+            values = _displaySlices.Select(x => Convert.ToDouble(x.Percentage, CultureInfo.InvariantCulture)).ToList(),
+            colors = _displaySlices.Select(x => x.ColorHex).ToList()
         };
 
         var signature = JsonSerializer.Serialize(payload);
@@ -160,5 +162,82 @@ else
         {
             _exportError = L["ReportingChart_Error_ExportFailed", ex.Message];
         }
+    }
+
+    private IReadOnlyList<AnnualCompositionSlice> BuildDisplaySlices()
+    {
+        if (Slices.Count == 0)
+            return Array.Empty<AnnualCompositionSlice>();
+
+        var othersLabel = L["Dashboard_ExpenseComposition_Others"];
+        var normalized = Slices
+            .Select(slice => slice with { RawValueCents = Math.Abs(slice.RawValueCents) })
+            .Where(slice => slice.RawValueCents > 0)
+            .ToList();
+
+        if (normalized.Count == 0)
+            return Array.Empty<AnnualCompositionSlice>();
+
+        var normalizedMaxSlices = Math.Max(2, MaxSlices);
+        var explicitOthersTotal = normalized
+            .Where(slice => IsOthersSlice(slice, othersLabel))
+            .Sum(slice => slice.RawValueCents);
+
+        var ordered = normalized
+            .Where(slice => !IsOthersSlice(slice, othersLabel))
+            .OrderByDescending(slice => slice.RawValueCents)
+            .ThenBy(slice => slice.Label, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var collapsed = new List<AnnualCompositionSlice>(ordered.Count);
+        if (ordered.Count + (explicitOthersTotal > 0 ? 1 : 0) > normalizedMaxSlices)
+        {
+            var keepCount = normalizedMaxSlices - 1;
+            collapsed.AddRange(ordered.Take(keepCount));
+
+            var othersTotal = ordered.Skip(keepCount).Sum(slice => slice.RawValueCents) + explicitOthersTotal;
+            if (othersTotal > 0)
+            {
+                collapsed.Add(new AnnualCompositionSlice(
+                    Key: "others",
+                    Label: othersLabel,
+                    RawValueCents: othersTotal,
+                    Percentage: 0m,
+                    ColorHex: AnnualChartPalette.Resolve(collapsed.Count)));
+            }
+        }
+        else
+        {
+            collapsed.AddRange(ordered);
+            if (explicitOthersTotal > 0)
+            {
+                collapsed.Add(new AnnualCompositionSlice(
+                    Key: "others",
+                    Label: othersLabel,
+                    RawValueCents: explicitOthersTotal,
+                    Percentage: 0m,
+                    ColorHex: AnnualChartPalette.Resolve(collapsed.Count)));
+            }
+        }
+
+        var total = collapsed.Sum(slice => slice.RawValueCents);
+        if (total <= 0)
+            return Array.Empty<AnnualCompositionSlice>();
+
+        return collapsed
+            .Select((slice, idx) => new AnnualCompositionSlice(
+                Key: IsOthersSlice(slice, othersLabel) ? "others" : slice.Key,
+                Label: IsOthersSlice(slice, othersLabel) ? othersLabel : slice.Label,
+                RawValueCents: slice.RawValueCents,
+                Percentage: (slice.RawValueCents * 100m) / total,
+                ColorHex: AnnualChartPalette.Resolve(idx)))
+            .ToList();
+    }
+
+    private static bool IsOthersSlice(AnnualCompositionSlice slice, string othersLabel)
+    {
+        return string.Equals(slice.Key, "others", StringComparison.OrdinalIgnoreCase)
+            || slice.Key.Contains("others", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(slice.Label, othersLabel, StringComparison.OrdinalIgnoreCase);
     }
 }

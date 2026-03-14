@@ -1,0 +1,98 @@
+@using Microsoft.AspNetCore.Components
+
+<div class="accordion ff-single-open-accordion @AccordionCssClass" id="@Id">
+    @for (var index = 0; index < Sections.Count; index++)
+    {
+        var accordionSection = Sections[index];
+        var isOpen = string.Equals(_openSectionKey, accordionSection.Key, StringComparison.Ordinal);
+        var headerId = $"{Id}-header-{index}";
+        var collapseId = $"{Id}-collapse-{index}";
+
+        <div class="accordion-item @accordionSection.ItemCssClass">
+            <h2 class="accordion-header" id="@headerId">
+                <button type="button"
+                        class="accordion-button @(isOpen ? string.Empty : "collapsed") @accordionSection.ButtonCssClass"
+                        aria-expanded="@isOpen"
+                        aria-controls="@collapseId"
+                        @onclick="@(() => SetOpen(accordionSection.Key))">
+                    @if (HeaderTemplate is not null)
+                    {
+                        @HeaderTemplate(accordionSection)
+                    }
+                    else
+                    {
+                        <span>@accordionSection.Title</span>
+                        @if (!string.IsNullOrWhiteSpace(accordionSection.BadgeText))
+                        {
+                            <span class="badge bg-secondary-subtle text-secondary ms-2">@accordionSection.BadgeText</span>
+                        }
+                    }
+                </button>
+            </h2>
+
+            <div id="@collapseId"
+                 class="accordion-collapse collapse @(isOpen ? "show" : string.Empty)"
+                 aria-labelledby="@headerId"
+                 data-bs-parent="#@Id">
+                <div class="accordion-body @accordionSection.BodyCssClass">
+                    @SectionTemplate(accordionSection)
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Id { get; set; } = "ff-single-open-accordion";
+    [Parameter, EditorRequired] public IReadOnlyList<Section> Sections { get; set; } = Array.Empty<Section>();
+    [Parameter, EditorRequired] public RenderFragment<Section> SectionTemplate { get; set; } = default!;
+
+    [Parameter] public RenderFragment<Section>? HeaderTemplate { get; set; }
+    [Parameter] public string AccordionCssClass { get; set; } = string.Empty;
+    [Parameter] public string? OpenSectionKey { get; set; }
+
+    private string? _openSectionKey;
+
+    protected override void OnParametersSet()
+    {
+        if (Sections.Count == 0)
+        {
+            _openSectionKey = null;
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(OpenSectionKey) &&
+            Sections.Any(section => string.Equals(section.Key, OpenSectionKey, StringComparison.Ordinal)))
+        {
+            _openSectionKey = OpenSectionKey;
+            return;
+        }
+
+        if (_openSectionKey is not null &&
+            Sections.Any(section => string.Equals(section.Key, _openSectionKey, StringComparison.Ordinal)))
+        {
+            return;
+        }
+
+        _openSectionKey = Sections.FirstOrDefault(section => section.IsInitiallyOpen)?.Key ?? Sections[0].Key;
+    }
+
+    private void SetOpen(string key)
+    {
+        if (string.Equals(_openSectionKey, key, StringComparison.Ordinal))
+            return;
+
+        _openSectionKey = key;
+    }
+
+    public sealed class Section
+    {
+        public required string Key { get; init; }
+        public required string Title { get; init; }
+        public string? BadgeText { get; init; }
+        public string ItemCssClass { get; init; } = string.Empty;
+        public string ButtonCssClass { get; init; } = string.Empty;
+        public string BodyCssClass { get; init; } = string.Empty;
+        public bool IsInitiallyOpen { get; init; }
+    }
+}

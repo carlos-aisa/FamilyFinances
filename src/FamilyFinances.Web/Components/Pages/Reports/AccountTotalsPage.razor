@@ -5,6 +5,7 @@
 @using FamilyFinances.Web
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web.Components.Pages.Transactions
 @using FamilyFinances.Web.Components.Shared
 @using FamilyFinances.Web.Features.Reports
 @using FamilyFinances.Web.Features.Reports.Export
@@ -128,7 +129,7 @@
             {
                 <div class="card shadow-sm ff-panel">
                     <div class="card-body text-center py-5">
-                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <div class="spinner-border text-primary mb-3 ff-spinner-lg" role="status">
                             <span class="visually-hidden">@L["Common_Loading"]</span>
                         </div>
                         <p class="text-muted">@L["Reports_LoadingData"]</p>
@@ -182,40 +183,44 @@
                                     <table class="table table-hover align-middle mb-0 ff-data-table">
                                         <thead class="table-light">
                                             <tr>
-                                                <th class="border-0 ps-3" style="width: 40%;">
+                                                <th class="border-0 ps-3 ff-w-40p">
                                                     <button type="button"
                                                             class="btn btn-link btn-sm text-decoration-none p-0 ff-sort-header"
                                                             aria-label="@L["AccountTotals_Table_AccountName"]"
                                                             aria-sort="@GetAriaSort(SortColumn.AccountName)"
                                                             @onclick="() => ToggleSort(SortColumn.AccountName)">
-                                                        <i class="bi bi-tag me-1"></i>@L["AccountTotals_Table_AccountName"] @GetSortGlyph(SortColumn.AccountName)
+                                                        <i class="bi bi-tag me-1"></i>@L["AccountTotals_Table_AccountName"]
+                                                        <i class="bi @GetSortIconClass(SortColumn.AccountName) ms-1" aria-hidden="true"></i>
                                                     </button>
                                                 </th>
-                                                <th class="border-0" style="width: 20%;">
+                                                <th class="border-0 ff-w-20p">
                                                     <button type="button"
                                                             class="btn btn-link btn-sm text-decoration-none p-0 ff-sort-header"
                                                             aria-label="@L["AccountTotals_Table_Kind"]"
                                                             aria-sort="@GetAriaSort(SortColumn.Kind)"
                                                             @onclick="() => ToggleSort(SortColumn.Kind)">
-                                                        <i class="bi bi-folder me-1"></i>@L["AccountTotals_Table_Kind"] @GetSortGlyph(SortColumn.Kind)
+                                                        <i class="bi bi-folder me-1"></i>@L["AccountTotals_Table_Kind"]
+                                                        <i class="bi @GetSortIconClass(SortColumn.Kind) ms-1" aria-hidden="true"></i>
                                                     </button>
                                                 </th>
-                                                <th class="border-0 text-end" style="width: 25%;">
+                                                <th class="border-0 text-end ff-w-25p">
                                                     <button type="button"
                                                             class="btn btn-link btn-sm text-decoration-none p-0 ff-sort-header"
                                                             aria-label="@L["AccountTotals_Table_NetChange"]"
                                                             aria-sort="@GetAriaSort(SortColumn.NetChange)"
                                                             @onclick="() => ToggleSort(SortColumn.NetChange)">
-                                                        <i class="bi bi-currency-euro me-1"></i>@L["AccountTotals_Table_NetChange"] @GetSortGlyph(SortColumn.NetChange)
+                                                        <i class="bi bi-currency-euro me-1"></i>@L["AccountTotals_Table_NetChange"]
+                                                        <i class="bi @GetSortIconClass(SortColumn.NetChange) ms-1" aria-hidden="true"></i>
                                                     </button>
                                                 </th>
-                                                <th class="border-0 text-end pe-3" style="width: 15%;">
+                                                <th class="border-0 text-end pe-3 ff-w-15p">
                                                     <button type="button"
                                                             class="btn btn-link btn-sm text-decoration-none p-0 ff-sort-header"
                                                             aria-label="@L["AccountTotals_Table_Transactions"]"
                                                             aria-sort="@GetAriaSort(SortColumn.Transactions)"
                                                             @onclick="() => ToggleSort(SortColumn.Transactions)">
-                                                        <i class="bi bi-receipt me-1"></i>@L["AccountTotals_Table_Transactions"] @GetSortGlyph(SortColumn.Transactions)
+                                                        <i class="bi bi-receipt me-1"></i>@L["AccountTotals_Table_Transactions"]
+                                                        <i class="bi @GetSortIconClass(SortColumn.Transactions) ms-1" aria-hidden="true"></i>
                                                     </button>
                                                 </th>
                                             </tr>
@@ -223,7 +228,7 @@
                                         <tbody>
                                             @foreach (var item in SortItems(items))
                                             {
-                                                <tr>
+                                                <tr class="clickable-row ff-clickable" @onclick="() => OpenAccountMovements(item.AccountId)">
                                                     <td class="ps-3">
                                                         <span class="fw-semibold">@item.AccountName</span>
                                                     </td>
@@ -255,17 +260,17 @@
                         <div class="card-body">
                             <div class="row text-center">
                                 <div class="col-12 col-md-4">
-                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@L["AccountTotals_Summary_Period"]</h6>
+                                    <h6 class="text-muted text-uppercase mb-2 ff-text-xxs">@L["AccountTotals_Summary_Period"]</h6>
                                     <p class="mb-0 fw-semibold">
                                         @DateHelper.FormatShortDate(_report.FromInclusive) - @DateHelper.FormatShortDate(_report.ToExclusive)
                                     </p>
                                 </div>
                                 <div class="col-12 col-md-4">
-                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@L["AccountTotals_Summary_TotalAccounts"]</h6>
+                                    <h6 class="text-muted text-uppercase mb-2 ff-text-xxs">@L["AccountTotals_Summary_TotalAccounts"]</h6>
                                     <p class="mb-0 fw-semibold">@_report.Items.Count</p>
                                 </div>
                                 <div class="col-12 col-md-4">
-                                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">@L["AccountTotals_Summary_TotalTransactions"]</h6>
+                                    <h6 class="text-muted text-uppercase mb-2 ff-text-xxs">@L["AccountTotals_Summary_TotalTransactions"]</h6>
                                     <p class="mb-0 fw-semibold">@_report.Items.Sum(i => i.TransactionsCount)</p>
                                 </div>
                             </div>
@@ -494,12 +499,12 @@
             : SortDirection.Descending;
     }
 
-    private string GetSortGlyph(SortColumn column)
+    private string GetSortIconClass(SortColumn column)
     {
         if (_sortColumn != column)
-            return "↕";
+            return "bi-arrow-down-up";
 
-        return _sortDirection == SortDirection.Ascending ? "↑" : "↓";
+        return _sortDirection == SortDirection.Ascending ? "bi-sort-up" : "bi-sort-down";
     }
 
     private string GetAriaSort(SortColumn column)
@@ -564,4 +569,18 @@
             _error = L["Reports_Error_ExportCsvFailed", ex.Message];
         }
     }
+
+    private void OpenAccountMovements(Guid accountId)
+    {
+        var context = new TransactionOriginContext(
+            Origin: TransactionOrigin.ReportAccountTotals,
+            AccountId: accountId,
+            From: _fromDate,
+            To: _toDate);
+
+        Nav.NavigateTo(context.BuildUri($"/accounts/{accountId}/movements"));
+    }
 }
+
+
+

@@ -1,41 +1,11 @@
-/* Premium dark-first token system for Dashboard and Reports surfaces */
-:root {
-    --ff-font-heading: "Sora", "Plus Jakarta Sans", "Segoe UI", sans-serif;
-    --ff-font-body: "Source Sans 3", "Segoe UI", sans-serif;
-    --ff-font-mono: "IBM Plex Mono", "Consolas", "Courier New", monospace;
-
-    --ff-surface-0: #0b111a;
-    --ff-surface-1: #111b2a;
-    --ff-surface-2: #182436;
-    --ff-surface-3: #223149;
-    --ff-border-soft: #2c3e59;
-    --ff-border-strong: #3a4f70;
-
-    --ff-text-strong: #e8efff;
-    --ff-text-muted: #a6b6cf;
-    --ff-text-soft: #7f92b1;
-
-    --ff-accent-primary: #4fa4ff;
-    --ff-accent-success: #2dd67d;
-    --ff-accent-danger: #ff5f75;
-    --ff-accent-warning: #f6b14a;
-    --ff-accent-info: #56c7ff;
-
-    --ff-radius-sm: 10px;
-    --ff-radius-md: 14px;
-    --ff-radius-lg: 18px;
-
-    --ff-shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.28);
-    --ff-shadow-elevated: 0 14px 34px rgba(0, 0, 0, 0.33);
-
-    --ff-chart-grid-color: rgba(166, 182, 207, 0.18);
-    --ff-chart-tick-color: #a6b6cf;
-    --ff-chart-tooltip-bg: #223149;
-    --ff-chart-tooltip-text: #e8efff;
-    --ff-chart-surface: rgba(10, 19, 30, 0.64);
-    --ff-table-row-zebra: rgba(166, 182, 207, 0.04);
-    --ff-table-row-hover: rgba(79, 164, 255, 0.12);
-}
+/*
+ * Premium theme overlays.
+ *
+ * Ownership rules:
+ * - Consume canonical tokens from ui-tokens.css.
+ * - Do not redefine global primitives already declared in ui-tokens.css.
+ * - Keep overrides scoped to premium/dark theme behavior only.
+ */
 
 body.ff-premium {
     font-family: var(--ff-font-body);
@@ -149,18 +119,18 @@ body.ff-premium {
 }
 
 [data-bs-theme="dark"] .ff-premium .report-export-button {
-    border-radius: 999px;
+    border-radius: var(--ff-button-radius);
     font-weight: 600;
     letter-spacing: 0.01em;
     border-color: rgba(166, 182, 207, 0.45);
-    color: #d7e4f7;
+    color: var(--ff-chart-export-text);
 }
 
 [data-bs-theme="dark"] .ff-premium .report-export-button:hover,
 [data-bs-theme="dark"] .ff-premium .report-export-button:focus-visible {
     border-color: rgba(79, 164, 255, 0.78);
     background-color: rgba(79, 164, 255, 0.15);
-    color: #ffffff;
+    color: var(--ff-color-white);
 }
 
 [data-bs-theme="dark"] .ff-premium .ff-data-table {
@@ -182,18 +152,18 @@ body.ff-premium {
 
 [data-bs-theme="dark"] .ff-premium .table-responsive {
     border: 1px solid var(--ff-border-soft);
-    border-radius: 12px;
+    border-radius: var(--ff-radius-sm);
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.01), rgba(255, 255, 255, 0.005));
 }
 
 [data-bs-theme="dark"] .ff-premium .ff-chart-panel .card-body {
-    padding: 1rem 1rem 0.95rem;
+    padding: var(--ff-button-inline-padding-x) var(--ff-button-inline-padding-x) 0.95rem;
 }
 
 [data-bs-theme="dark"] .ff-premium .annual-line-canvas-wrap,
 [data-bs-theme="dark"] .ff-premium .annual-composition-canvas-wrap {
     border: 1px solid var(--ff-border-soft);
-    border-radius: 12px;
+    border-radius: var(--ff-radius-sm);
     padding: 0.55rem;
     background:
         linear-gradient(180deg, rgba(86, 199, 255, 0.08), rgba(86, 199, 255, 0.01)),
@@ -202,7 +172,7 @@ body.ff-premium {
 
 [data-bs-theme="dark"] .ff-premium .annual-line-canvas,
 [data-bs-theme="dark"] .ff-premium .annual-composition-canvas {
-    border-radius: 8px;
+    border-radius: calc(var(--ff-radius-sm) - 2px);
 }
 
 [data-bs-theme="dark"] .ff-premium .annual-composition-canvas-wrap {

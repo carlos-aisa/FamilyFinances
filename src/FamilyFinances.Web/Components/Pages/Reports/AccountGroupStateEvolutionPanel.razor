@@ -143,11 +143,11 @@ else if (_report is not null)
                                 <i class="bi bi-download me-1"></i>@L["Reports_Export"]
                             </button>
                         </div>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-sm table-hover align-middle mb-0 ff-data-table" data-testid="account-group-state-summary-table">
-                                <thead class="table-light">
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="table-responsive account-group-state-summary-scroll">
+                                        <table class="table table-sm table-hover align-middle mb-0 ff-data-table" data-testid="account-group-state-summary-table">
+                                            <thead class="table-light">
                                     <tr>
                                         <th class="border-0 ps-3">@L["Reports_SeriesName"]</th>
                                         <th class="border-0 text-end">@L["Reports_EndBalance"]</th>
@@ -244,6 +244,7 @@ else if (_report is not null)
                         Year="@_selectedYear"
                         Series="@charts.AccountGroupEvolution"
                         DataUntilMonth="@dataUntilMonth"
+                        YTickMaxTicks="5"
                         TestId="account-group-totals-stock-evolution-chart" />
                 }
                 else
@@ -258,35 +259,41 @@ else if (_report is not null)
                         LegendMaxItems="10"
                         TestId="account-group-totals-stock-composition-chart" />
                 }
+                
+                <div class="mt-3">
+                    @if (_isMonthlyChartLoading)
+                    {
+                        <ReportingChartLoadingState
+                            Title="@L["AccountGroupState_LoadingMonthFocused"]"
+                            Description="@L["Reports_LoadingDailyPoints"]" />
+                    }
+                    else if (!string.IsNullOrWhiteSpace(_monthlyChartError))
+                    {
+                        <ReportingChartErrorState Message="@_monthlyChartError" />
+                    }
+                    else if (_monthlyBalanceVsGroupsChart is null || monthlyComparisonSeries.Count == 0)
+                    {
+                        <ReportingChartEmptyState
+                            Title="@L["AccountGroupState_MonthFocusedTitle"]"
+                            Description="@L["Reports_NoDailyPointsForMonth"]" />
+                    }
+                    else
+                    {
+                        <EvolutionChart
+                            Mode="EvolutionChartMode.DailyInMonth"
+                            Title="@L["AccountGroupState_MonthFocusedTitle"]"
+                            Subtitle="@L["AccountGroupState_MonthFocusedSubtitle", compositionMonthLabel, _selectedYear]"
+                            Year="@_selectedYear"
+                            Month="@(_focusedMonth ?? 1)"
+                            DataUntilDay="@ResolveMonthlyComparisonCutoffDay()"
+                            YTickMaxTicks="5"
+                            ShowFullRange="true"
+                            DailySeries="@monthlyComparisonSeries"
+                            TestId="account-group-totals-monthly-comparison-chart" />
+                    }
+                </div>
             </div>
         </div>
-
-        @if (_isMonthlyChartLoading)
-        {
-            <ReportingChartLoadingState
-                Title="@L["AccountGroupState_LoadingMonthFocused"]"
-                Description="@L["Reports_LoadingDailyPoints"]" />
-        }
-        else if (!string.IsNullOrWhiteSpace(_monthlyChartError))
-        {
-            <ReportingChartErrorState Message="@_monthlyChartError" />
-        }
-        else if (_monthlyBalanceVsGroupsChart is null || monthlyComparisonSeries.Count == 0)
-        {
-            <ReportingChartEmptyState
-                Title="@L["AccountGroupState_MonthFocusedTitle"]"
-                Description="@L["Reports_NoDailyPointsForMonth"]" />
-        }
-        else
-        {
-            <MonthlyLineChart
-                Title="@L["AccountGroupState_MonthFocusedTitle"]"
-                Subtitle="@L["AccountGroupState_MonthFocusedSubtitle", compositionMonthLabel, _selectedYear]"
-                Year="@_selectedYear"
-                Month="@(_focusedMonth ?? 1)"
-                Series="@monthlyComparisonSeries"
-                TestId="account-group-totals-monthly-comparison-chart" />
-        }
     }
 }
 else
@@ -671,6 +678,24 @@ else
             .Where(series => !string.Equals(series.Key, "asset-total", StringComparison.OrdinalIgnoreCase))
             .Take(12)
             .ToList();
+    }
+
+    private int? ResolveMonthlyComparisonCutoffDay()
+    {
+        if (_focusedMonth is null)
+            return null;
+
+        var month = _focusedMonth.Value;
+        var daysInMonth = DateTime.DaysInMonth(_selectedYear, month);
+
+        if (_selectedYear == DateHelper.GetCurrentYear() && month == DateHelper.GetCurrentMonth())
+        {
+            var madridTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time");
+            var madridNow = TimeZoneInfo.ConvertTime(DateTime.UtcNow, madridTimeZone);
+            return Math.Clamp(madridNow.Day, 1, daysInMonth);
+        }
+
+        return daysInMonth;
     }
 
     private async Task ExportOverviewCsvAsync()

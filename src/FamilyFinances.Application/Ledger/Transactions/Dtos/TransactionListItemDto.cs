@@ -14,5 +14,6 @@ public sealed record TransactionListItemDto(
     DateOnly BookedOn,
     string Headline,
     string? Subheadline,
+    string? PayeeName,
     decimal Amount,
     TransactionListItemType Type);

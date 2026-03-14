@@ -5,6 +5,7 @@
 @using FamilyFinances.Application.Reporting.Dtos
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web.Components.Pages.Transactions
 @using FamilyFinances.Web.Components.Shared
 @using FamilyFinances.Web.Features.Reports
 @using FamilyFinances.Web
@@ -115,9 +116,9 @@
 
         @if (_movements is null)
         {
-            <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+            <div class="d-flex justify-content-center align-items-center ff-loading-shell">
                 <div class="text-center">
-                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                    <div class="spinner-border text-primary mb-3 ff-spinner-lg" role="status">
                         <span class="visually-hidden">@L["Common_Loading"]</span>
                     </div>
                     <p class="text-muted">@L["AccountMovements_LoadingMovements"]</p>
@@ -152,22 +153,22 @@
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th class="border-0 ps-3" style="width: 120px;">
+                                    <th class="border-0 ps-3 ff-w-120">
                                         <i class="bi bi-calendar3 me-1"></i>@L["AccountMovements_TableDate"]
                                     </th>
                                     <th class="border-0">
                                         <i class="bi bi-file-text me-1"></i>@L["AccountMovements_TableDescription"]
                                     </th>
-                                    <th class="border-0" style="width: 200px;">
+                                    <th class="border-0 ff-w-200">
                                         <i class="bi bi-person me-1"></i>@L["AccountMovements_TablePayee"]
                                     </th>
-                                    <th class="border-0" style="width: 200px;">
+                                    <th class="border-0 ff-w-200">
                                         <i class="bi bi-arrow-left-right me-1"></i>@L["AccountMovements_TableCounterparty"]
                                     </th>
-                                    <th class="border-0 text-end pe-3" style="width: 160px;">
+                                    <th class="border-0 text-end pe-3 ff-w-160">
                                         <i class="bi bi-currency-euro me-1"></i>@L["AccountMovements_TableAmount"]
                                     </th>
-                                    <th class="border-0 text-end pe-3" style="width: 180px;">
+                                    <th class="border-0 text-end pe-3 ff-w-180">
                                         <i class="bi bi-graph-up-arrow me-1"></i>@L["AccountMovements_TableRunningBalance"]
                                     </th>
                                 </tr>
@@ -175,7 +176,7 @@
                             <tbody>
                                 @foreach (var movement in _movements.Items)
                                 {
-                                    <tr class="movement-row" style="cursor: pointer;" @onclick="@(() => NavigateToTransaction(movement.TransactionId))">
+                                    <tr class="movement-row ff-clickable" @onclick="@(() => NavigateToTransaction(movement.TransactionId))">
                                         <td class="ps-3">
                                             <div class="d-flex flex-column">
                                                 <span class="fw-semibold">@movement.BookedOn.ToString("dd MMM", CultureInfo.CurrentCulture)</span>
@@ -256,7 +257,7 @@
 
 @if (_showReconcileModal)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal fade show d-block ff-modal-overlay" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header bg-warning">
@@ -352,6 +353,7 @@
     private bool _isReconciling;
     private string? _reconcileError;
     private readonly ReconcileModel _reconcileModel = new();
+    private TransactionOriginContext _originContext = new(TransactionOrigin.AccountsMovements);
 
     private async Task HandlePresetSelected(DateRangePresets.DateRangePreset preset)
     {
@@ -370,6 +372,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _originContext = TransactionOriginContext.FromNavigation(Nav);
         await LoadMovementsAsync();
     }
 
@@ -412,7 +415,21 @@
 
     private void NavigateToTransaction(Guid transactionId)
     {
-        Nav.NavigateTo($"/transactions/{transactionId}");
+        var detailOrigin = _originContext.Origin switch
+        {
+            TransactionOrigin.ReportCategoryTotals => TransactionOrigin.ReportCategoryTotals,
+            TransactionOrigin.ReportAccountTotals => TransactionOrigin.ReportAccountTotals,
+            _ => TransactionOrigin.AccountsMovements
+        };
+
+        var context = new TransactionOriginContext(
+            Origin: detailOrigin,
+            AccountId: Id,
+            From: _fromDate,
+            To: _toDate,
+            Year: _originContext.Year);
+
+        Nav.NavigateTo(context.BuildUri($"/transactions/{transactionId}"));
     }
 
     private string GetAmountBadgeClass(decimal amount)
@@ -524,3 +541,5 @@
         public string Note { get; set; } = string.Empty;
     }
 }
+
+

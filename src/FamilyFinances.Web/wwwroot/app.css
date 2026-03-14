@@ -1,2 +1,3 @@
-/* Canonical app styles live in wwwroot/css/app.css */
+/* Canonical shared entrypoint import chain */
+@import url("css/ui-tokens.css");
 @import url("css/app.css");

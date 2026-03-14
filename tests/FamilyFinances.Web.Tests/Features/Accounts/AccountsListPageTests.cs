@@ -97,8 +97,8 @@ public sealed class AccountsListPageTests : WebTestContext
 
         cut.WaitForAssertion(() =>
         {
-            cut.Markup.Should().Contain("Current month:");
-            cut.Markup.Should().Contain(DateTime.Today.ToString("Y"));
+            cut.Markup.Should().Contain("Accounts updated as of");
+            cut.Markup.Should().Contain(DateTime.Today.ToString("yyyy-MM-dd"));
         });
     }
 

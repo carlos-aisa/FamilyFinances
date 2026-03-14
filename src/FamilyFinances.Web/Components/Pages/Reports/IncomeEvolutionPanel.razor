@@ -13,6 +13,7 @@
 @inherits ApiPageBase
 
 @inject ReportsApi ReportsApi
+@inject IAccountsApi AccountsApi
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResource> L
 
@@ -120,8 +121,19 @@ else if (_report is not null)
         @L["IncomeEvolution_StockMetricsHint"]
     </div>
 
-    <div class="row g-3 mb-4 asset-total-overview-grid economic-state-two-col-grid">
-        <div class="col-12 col-xl-7 economic-state-overview-col">
+    var visibleMonths = GetVisibleMonths();
+    var compositionMonth = GetCompositionMonth();
+    var compositionMonthLabel = compositionMonth is not null
+        ? DateHelper.GetMonthName(compositionMonth.Value)
+        : L["Reports_NotAvailable"];
+    var compositionSubtitle = $"{L["Reports_FocusedMonth"]}: {compositionMonthLabel}";
+    var compositionBadgeText = compositionMonth is not null
+        ? L["Reports_BadgePeriod", $"{_selectedYear:D4}-{compositionMonth.Value:D2}"]
+        : L["Reports_BadgeYear", _selectedYear.ToString()];
+    var compositionSlices = BuildCompositionSlices();
+
+    <div class="ff-report-three-column mb-4">
+        <div class="ff-report-column">
             <div class="card shadow-sm h-100 ff-panel">
                 <div class="card-header bg-transparent ff-panel-header">
                     <div class="d-flex justify-content-between align-items-center gap-3">
@@ -151,33 +163,33 @@ else if (_report is not null)
                             <thead class="table-light">
                                 <tr>
                                     <th class="border-0 ps-3">@L["Reports_Month"]</th>
+                                    <th class="border-0 text-end">@L["Reports_Balance"]</th>
                                     <th class="border-0 text-end">@L["Reports_EndBalance"]</th>
-                                    <th class="border-0 text-end">@L["Reports_DeltaPrevMonth"]</th>
                                     <th class="border-0 text-end pe-3">@L["Reports_DeltaYearStart"]</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var point in series.Points.OrderBy(p => p.Month))
+                                @foreach (var month in visibleMonths)
                                 {
-                                    var hasData = dataUntilMonth is null || point.Month <= dataUntilMonth.Value;
-                                    var isCurrentMonth = dataUntilMonth is not null && point.Month == dataUntilMonth.Value;
+                                    var point = series.Points.FirstOrDefault(p => p.Month == month);
+                                    var isCurrentMonth = dataUntilMonth is not null && month == dataUntilMonth.Value;
 
                                     <tr class="series-summary-row @(isCurrentMonth ? "table-active" : string.Empty)">
                                         <td class="ps-3">
-                                            @DateHelper.GetMonthName(point.Month)
+                                            @DateHelper.GetMonthName(month)
                                             @if (isCurrentMonth)
                                             {
                                                 <span class="badge rounded-pill text-bg-primary ms-2">@L["Reports_Current"]</span>
                                             }
                                         </td>
-                                        <td class="text-end @MoneyFormatter.GetColorClass(point.EndBalanceCents)">
-                                            @(hasData ? MoneyFormatter.FormatCentsWithSign(point.EndBalanceCents) : "-")
+                                        <td class="text-end @MoneyFormatter.GetColorClass(point?.DeltaVsPreviousMonthCents ?? 0)">
+                                            @(point is not null ? MoneyFormatter.FormatCentsWithSign(point.DeltaVsPreviousMonthCents) : "-")
                                         </td>
-                                        <td class="text-end @MoneyFormatter.GetColorClass(point.DeltaVsPreviousMonthCents)">
-                                            @(hasData ? MoneyFormatter.FormatCentsWithSign(point.DeltaVsPreviousMonthCents) : "-")
+                                        <td class="text-end @MoneyFormatter.GetColorClass(point?.EndBalanceCents ?? 0)">
+                                            @(point is not null ? MoneyFormatter.FormatCentsWithSign(point.EndBalanceCents) : "-")
                                         </td>
-                                        <td class="text-end pe-3 @MoneyFormatter.GetColorClass(point.DeltaVsYearStartCents)">
-                                            @(hasData ? MoneyFormatter.FormatCentsWithSign(point.DeltaVsYearStartCents) : "-")
+                                        <td class="text-end pe-3 @MoneyFormatter.GetColorClass(point?.DeltaVsYearStartCents ?? 0)">
+                                            @(point is not null ? MoneyFormatter.FormatCentsWithSign(point.DeltaVsYearStartCents) : "-")
                                         </td>
                                     </tr>
                                 }
@@ -187,7 +199,27 @@ else if (_report is not null)
                 </div>
             </div>
         </div>
-        <div class="col-12 col-xl-5 economic-state-stacked-col">
+        <div class="ff-report-column">
+            @if (compositionSlices.Count == 0)
+            {
+                <ReportingChartEmptyState
+                    Title="@L["Reports_ChartMode_Composition"]"
+                    Description="@L["Reports_NoChartPointsForFilters"]" />
+            }
+            else
+            {
+                <AnnualCompositionChart
+                    Title="@L["Reports_ChartMode_Composition"]"
+                    Subtitle="@compositionSubtitle"
+                    Year="@_selectedYear"
+                    BadgeText="@compositionBadgeText"
+                    Slices="@compositionSlices"
+                    UseSideLegend="true"
+                    LegendMaxItems="10"
+                    TestId="economic-state-income-composition-chart" />
+            }
+        </div>
+        <div class="ff-report-column">
             <div class="economic-state-stacked-charts">
                 <div class="asset-total-chart-panel economic-state-chart-item">
                     @if (_isMonthlyChartLoading)
@@ -208,13 +240,15 @@ else if (_report is not null)
                     }
                     else
                     {
-                        <MonthlyLineChart
+                        <EvolutionChart
+                            Mode="EvolutionChartMode.DailyInMonth"
                             Title="@L["IncomeEvolution_MonthFocusedTitle"]"
                             Subtitle="@L["IncomeEvolution_MonthFocusedSubtitle", focusedMonthLabel, _selectedYear]"
                             Year="@_selectedYear"
                             Month="@_focusedMonth"
                             YTickMaxTicks="5"
-                            Series="@monthlyChartSeries"
+                            ShowFullRange="true"
+                            DailySeries="@monthlyChartSeries"
                             TestId="economic-state-income-monthly-chart" />
                     }
                 </div>
@@ -231,13 +265,15 @@ else if (_report is not null)
                     }
                     else
                     {
-                        <AnnualLineChart
+                        <EvolutionChart
+                            Mode="EvolutionChartMode.MonthlyInYear"
                             Title="@L["IncomeEvolution_AnnualTitle"]"
                             Subtitle="@L["IncomeEvolution_AnnualSubtitle"]"
                             Year="@_selectedYear"
-                            Series="@charts.IncomeEndBalanceEvolution"
+                            AnnualSeries="@charts.IncomeEndBalanceEvolution"
                             DataUntilMonth="@dataUntilMonth"
                             YTickMaxTicks="5"
+                            CarryForwardAfterMarker="true"
                             TestId="economic-state-income-evolution-chart" />
                     }
                 </div>
@@ -261,6 +297,7 @@ else
     [Parameter] public int? FocusedMonth { get; set; }
 
     private MonthlyEvolutionReportDto? _report;
+    private MonthlyEvolutionReportDto? _accountsEvolutionReport;
     private MonthlyBalanceChartDto? _monthlyBalanceChart;
     private string? _error;
     private string? _monthlyChartError;
@@ -272,6 +309,9 @@ else
     private int _focusedMonth = DateHelper.GetCurrentMonth();
     private int? _lastExternalYear;
     private int? _lastExternalMonth;
+    private IReadOnlyDictionary<Guid, AccountNature> _accountNatureById =
+        new Dictionary<Guid, AccountNature>();
+    private const int CompositionMaxSlices = 10;
 
     private static readonly ReportingMetricDefinition _deltaPrevMetric =
         ReportingMetricSemantics.Get(ReportingMetricKey.DeltaVsPreviousMonth);
@@ -329,12 +369,16 @@ else
         _error = null;
         _monthlyChartError = null;
         _report = null;
+        _accountsEvolutionReport = null;
         _monthlyBalanceChart = null;
+        _accountNatureById = new Dictionary<Guid, AccountNature>();
         StateHasChanged();
 
         try
         {
             _report = await ReportsApi.GetStateEvolutionAsync(_selectedYear, MonthlyEvolutionScope.IncomeTotal);
+            _accountsEvolutionReport = await ReportsApi.GetStateEvolutionAsync(_selectedYear, MonthlyEvolutionScope.Accounts);
+            await LoadAccountNatureLookupBestEffortAsync();
             SyncFocusedMonth();
             await LoadMonthlyChartAsync();
         }
@@ -414,36 +458,21 @@ else
 
     private int? GetReferenceMonthForSelectedYear()
     {
-        if (_report is null || _report.Series.Count == 0)
-            return null;
-
-        var months = _report.Series
-            .SelectMany(s => s.Points.Select(p => p.Month))
-            .Distinct()
-            .OrderBy(m => m)
-            .ToList();
+        var months = GetVisibleMonths();
 
         if (months.Count == 0)
             return null;
 
-        var dataUntilMonth = GetDataUntilMonthForSelectedYear();
-        var visibleMonths = dataUntilMonth is null
-            ? months
-            : months.Where(m => m <= dataUntilMonth.Value).ToList();
-
-        if (visibleMonths.Count == 0)
-            return null;
-
         var preferredMonth = _selectedYear == DateHelper.GetCurrentYear()
             ? DateHelper.GetCurrentMonth()
-            : visibleMonths.Max();
+            : months.Max();
 
-        if (visibleMonths.Contains(preferredMonth))
+        if (months.Contains(preferredMonth))
             return preferredMonth;
 
-        return visibleMonths
+        return months
             .Where(m => m <= preferredMonth)
-            .DefaultIfEmpty(visibleMonths.Max())
+            .DefaultIfEmpty(months.Max())
             .Max();
     }
 
@@ -500,10 +529,112 @@ else
         if (_monthlyBalanceChart is null)
             return Array.Empty<MonthlyChartSeries>();
 
-            return MonthlyChartDatasetAdapter.BuildSingleSeries(
+        var series = MonthlyChartDatasetAdapter.BuildSingleSeries(
             _monthlyBalanceChart,
             key: "income-total-monthly",
             label: L["Reports_EndBalance"]);
+
+        if (_selectedYear != DateHelper.GetCurrentYear() || _focusedMonth != DateHelper.GetCurrentMonth())
+            return series;
+
+        var cutoffDay = DateTime.Today.Day;
+        return series
+            .Select(item => item with
+            {
+                Points = item.Points
+                    .Where(point => point.Day <= cutoffDay)
+                    .ToList()
+            })
+            .ToList();
+    }
+
+    private IReadOnlyList<int> GetVisibleMonths()
+    {
+        var maxMonth = GetDataUntilMonthForSelectedYear() ?? 12;
+        return Enumerable.Range(1, maxMonth).ToList();
+    }
+
+    private int? GetCompositionMonth()
+    {
+        var visibleMonths = GetVisibleMonths();
+        if (visibleMonths.Count == 0)
+            return null;
+
+        if (visibleMonths.Contains(_focusedMonth))
+            return _focusedMonth;
+
+        return GetReferenceMonthForSelectedYear();
+    }
+
+    private IReadOnlyList<AnnualCompositionSlice> BuildCompositionSlices()
+    {
+        if (_accountsEvolutionReport is null || _accountsEvolutionReport.Series.Count == 0 || _accountNatureById.Count == 0)
+            return Array.Empty<AnnualCompositionSlice>();
+
+        var month = GetCompositionMonth();
+        if (month is null)
+            return Array.Empty<AnnualCompositionSlice>();
+
+        var raw = AnnualChartDatasetAdapter.BuildCompositionByNatureAtMonth(
+            _accountsEvolutionReport,
+            _accountNatureById,
+            AccountNature.Income,
+            month.Value);
+
+        return BuildTopSlices(raw);
+    }
+
+    private IReadOnlyList<AnnualCompositionSlice> BuildTopSlices(IReadOnlyList<AnnualCompositionSlice> slices)
+    {
+        if (slices.Count == 0)
+            return Array.Empty<AnnualCompositionSlice>();
+
+        var ordered = slices
+            .OrderByDescending(slice => Math.Abs(slice.RawValueCents))
+            .ThenBy(slice => slice.Label, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var maxSlices = Math.Max(2, CompositionMaxSlices);
+        var head = ordered.Take(Math.Min(maxSlices, ordered.Count)).ToList();
+        if (ordered.Count > maxSlices)
+        {
+            var othersRawValue = ordered.Skip(maxSlices).Sum(slice => Math.Abs(slice.RawValueCents));
+            if (othersRawValue > 0)
+            {
+                head.Add(new AnnualCompositionSlice(
+                    Key: "others",
+                    Label: L["Dashboard_ExpenseComposition_Others"],
+                    RawValueCents: othersRawValue,
+                    Percentage: 0m,
+                    ColorHex: AnnualChartPalette.Resolve(head.Count)));
+            }
+        }
+
+        var total = head.Sum(slice => Math.Abs(slice.RawValueCents));
+        if (total <= 0)
+            return Array.Empty<AnnualCompositionSlice>();
+
+        return head
+            .Select((slice, idx) => new AnnualCompositionSlice(
+                Key: slice.Key,
+                Label: slice.Label,
+                RawValueCents: Math.Abs(slice.RawValueCents),
+                Percentage: (Math.Abs(slice.RawValueCents) * 100m) / total,
+                ColorHex: AnnualChartPalette.Resolve(idx)))
+            .ToList();
+    }
+
+    private async Task LoadAccountNatureLookupBestEffortAsync()
+    {
+        try
+        {
+            var accounts = await AccountsApi.ListAsync(default);
+            _accountNatureById = accounts.ToDictionary(account => account.Id, account => account.Nature);
+        }
+        catch
+        {
+            _accountNatureById = new Dictionary<Guid, AccountNature>();
+        }
     }
 
     private async Task ExportMonthlyOverviewCsvAsync()
@@ -511,18 +642,17 @@ else
         if (_report is null || _report.Series.Count == 0)
             return;
 
-        var dataUntilMonth = GetDataUntilMonthForSelectedYear();
-        var rows = _report.Series.First().Points
-            .OrderBy(point => point.Month)
-            .Select(point =>
+        var pointsByMonth = _report.Series.First().Points.ToDictionary(point => point.Month, point => point);
+        var rows = GetVisibleMonths()
+            .Select(month =>
             {
-                var hasData = dataUntilMonth is null || point.Month <= dataUntilMonth.Value;
+                var point = pointsByMonth.GetValueOrDefault(month);
                 return (IReadOnlyList<string?>)
                 [
-                    DateHelper.GetMonthName(point.Month),
-                    hasData ? MoneyFormatter.FormatCentsWithSign(point.EndBalanceCents) : "-",
-                    hasData ? MoneyFormatter.FormatCentsWithSign(point.DeltaVsPreviousMonthCents) : "-",
-                    hasData ? MoneyFormatter.FormatCentsWithSign(point.DeltaVsYearStartCents) : "-"
+                    DateHelper.GetMonthName(month),
+                    point is not null ? MoneyFormatter.FormatCentsWithSign(point.DeltaVsPreviousMonthCents) : "-",
+                    point is not null ? MoneyFormatter.FormatCentsWithSign(point.EndBalanceCents) : "-",
+                    point is not null ? MoneyFormatter.FormatCentsWithSign(point.DeltaVsYearStartCents) : "-"
                 ];
             })
             .ToList();
@@ -534,7 +664,7 @@ else
                 [L["Reports_Year"]] = _selectedYear.ToString(),
                 [L["Reports_FocusedMonth"]] = DateHelper.GetMonthName(_focusedMonth)
             },
-            headers: [L["Reports_Month"], L["Reports_EndBalance"], L["Reports_DeltaPrevMonth"], L["Reports_DeltaYearStart"]],
+            headers: [L["Reports_Month"], L["Reports_Balance"], L["Reports_EndBalance"], L["Reports_DeltaYearStart"]],
             rows: rows);
 
         try

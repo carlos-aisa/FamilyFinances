@@ -10,7 +10,7 @@ main {
 }
 
 .sidebar {
-    background: linear-gradient(180deg, #0e1623 0%, #131f31 52%, #111827 100%);
+    background: linear-gradient(180deg, var(--ff-surface-0) 0%, var(--ff-surface-1) 52%, var(--ff-surface-0) 100%);
     border-right: 1px solid rgba(166, 182, 207, 0.2);
 }
 

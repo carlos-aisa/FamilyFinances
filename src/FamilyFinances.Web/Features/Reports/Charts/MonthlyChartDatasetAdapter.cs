@@ -23,8 +23,9 @@ public static class MonthlyChartDatasetAdapter
             new MonthlyChartSeries(
                 key,
                 label,
-                colorHex ?? AnnualChartPalette.Resolve(0),
-                points)
+                colorHex ?? ChartSemanticPalette.ResolveForSeriesKey(key, fallbackIndex: 0),
+                points,
+                BaselineValue: chart.OpeningBalanceCents)
         ];
     }
 
@@ -39,11 +40,12 @@ public static class MonthlyChartDatasetAdapter
             .Select((series, idx) => new MonthlyChartSeries(
                 series.SeriesKey,
                 series.DisplayName,
-                AnnualChartPalette.Resolve(idx),
+                ChartSemanticPalette.ResolveForSeriesKey(series.SeriesKey, idx),
                 series.Points
                     .OrderBy(p => p.Day)
                     .Select(p => new MonthlyChartPoint(p.Day, p.EndBalanceCents))
-                    .ToList()))
+                    .ToList(),
+                BaselineValue: series.OpeningBalanceCents))
             .ToList();
 
         if (maxSeries is null || maxSeries.Value <= 0)

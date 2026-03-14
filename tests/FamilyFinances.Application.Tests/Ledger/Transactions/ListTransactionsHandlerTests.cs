@@ -1,8 +1,12 @@
 using FamilyFinances.Application.Ledger.Transactions.Abstractions;
 using FamilyFinances.Application.Ledger.Transactions.Handlers;
+using FamilyFinances.Domain.Common;
+using FamilyFinances.Domain.Ledger.Accounts;
+using FamilyFinances.Domain.Ledger.Payees;
 using FamilyFinances.Domain.Ledger.Transactions;
 using FluentAssertions;
 using Moq;
+using System.Reflection;
 
 namespace FamilyFinances.Application.Tests.Ledger.Transactions;
 
@@ -95,5 +99,63 @@ public sealed class ListTransactionsHandlerTests
         // Assert
         repo.Verify(r => r.ListAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
         repo.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task HandleAsync_Maps_PayeeName_And_Uses_Description_As_Subheadline()
+    {
+        // Arrange
+        var expenseAccount = Account.Create("Groceries", AccountNature.Expense, AccountKind.ExpenseCategory, new DateOnly(2026, 1, 1));
+        var assetAccount = Account.Create("Main Bank", AccountNature.Asset, AccountKind.Checking, new DateOnly(2026, 1, 1));
+        var payee = Payee.Create("Supermarket");
+
+        var splits = new[]
+        {
+            TransactionSplit.Create(assetAccount.Id, Money.FromEuros(-42.5m)),
+            TransactionSplit.Create(expenseAccount.Id, Money.FromEuros(42.5m))
+        };
+
+        SetSplitAccount(splits[0], assetAccount);
+        SetSplitAccount(splits[1], expenseAccount);
+
+        var transaction = Transaction.Create(
+            bookedOn: new DateOnly(2026, 2, 15),
+            description: "Weekly food run",
+            splits: splits,
+            payeeId: payee.Id);
+
+        SetTransactionPayee(transaction, payee);
+
+        var repo = new Mock<ITransactionRepository>(MockBehavior.Strict);
+        repo.Setup(r => r.ListAsync(10, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([transaction]);
+
+        var handler = new ListTransactionsHandler(repo.Object);
+
+        // Act
+        var result = await handler.HandleAsync(10, CancellationToken.None);
+
+        // Assert
+        result.Should().ContainSingle();
+        var item = result.Single();
+        item.Type.Should().Be(FamilyFinances.Application.Ledger.Transactions.Dtos.TransactionListItemType.Expense);
+        item.Headline.Should().Be("Groceries");
+        item.Subheadline.Should().Be("Weekly food run");
+        item.PayeeName.Should().Be("Supermarket");
+        item.Amount.Should().Be(42.5m);
+    }
+
+    private static void SetSplitAccount(TransactionSplit split, Account account)
+    {
+        var field = typeof(TransactionSplit).GetField("<Account>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("Unable to find backing field for TransactionSplit.Account.");
+        field.SetValue(split, account);
+    }
+
+    private static void SetTransactionPayee(Transaction transaction, Payee payee)
+    {
+        var field = typeof(Transaction).GetField("<Payee>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("Unable to find backing field for Transaction.Payee.");
+        field.SetValue(transaction, payee);
     }
 }

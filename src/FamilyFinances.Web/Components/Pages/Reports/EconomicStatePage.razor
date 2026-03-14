@@ -63,22 +63,6 @@
                             }
                         </select>
                     </div>
-                    <div class="col-12 col-md-auto">
-                        <button class="btn btn-primary"
-                                data-testid="economic-state-global-load"
-                                @onclick="LoadReportAsync"
-                                disabled="@_isLoading">
-                            @if (_isLoading)
-                            {
-                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                            }
-                            else
-                            {
-                                <i class="bi bi-search me-1"></i>
-                            }
-                            @L["Reports_LoadReport"]
-                        </button>
-                    </div>
                 </div>
             </div>
         </div>
@@ -132,7 +116,7 @@
             {
                 <div class="card shadow-sm">
                     <div class="card-body text-center py-5">
-                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <div class="spinner-border text-primary mb-3 ff-spinner-lg" role="status">
                             <span class="visually-hidden">@L["Common_Loading"]</span>
                         </div>
                         <p class="text-muted mb-0">@L["Reports_LoadingData"]</p>
@@ -287,14 +271,15 @@
                         }
                         else
                         {
-                            <MonthlyLineChart
+                            <EvolutionChart
+                                Mode="EvolutionChartMode.DailyInMonth"
                                 Title="@L["EconomicState_MonthFocusedChartTitle"]"
                                 Subtitle="@L["EconomicState_MonthFocusedSubtitle", snapshotMonthLabel, _report.AsOf.Year, _report.AsOf.Day]"
                                 Year="@_report.AsOf.Year"
                                 Month="@_report.AsOf.Month"
                                 YTickMaxTicks="5"
-                                ShowFullMonthRange="true"
-                                Series="@snapshotSeries"
+                                ShowFullRange="true"
+                                DailySeries="@snapshotSeries"
                                 TestId="economic-state-snapshot-income-expense-chart" />
                         }
                     </div>
@@ -396,23 +381,29 @@
         return _activeTab == tab ? "active" : string.Empty;
     }
 
-    private Task OnGlobalYearChangedAsync(ChangeEventArgs e)
+    private async Task OnGlobalYearChangedAsync(ChangeEventArgs e)
     {
         if (!int.TryParse(e.Value?.ToString(), out var year))
-            return Task.CompletedTask;
+            return;
+
+        if (year == _filterYear)
+            return;
 
         _filterYear = year;
         SyncGlobalFocusedMonthOptions();
-        return Task.CompletedTask;
+        await LoadReportAsync();
     }
 
-    private Task OnGlobalFocusedMonthChangedAsync(ChangeEventArgs e)
+    private async Task OnGlobalFocusedMonthChangedAsync(ChangeEventArgs e)
     {
         if (!int.TryParse(e.Value?.ToString(), out var month))
-            return Task.CompletedTask;
+            return;
+
+        if (month == _filterFocusedMonth)
+            return;
 
         _filterFocusedMonth = month;
-        return Task.CompletedTask;
+        await LoadReportAsync();
     }
 
     private void SyncGlobalFocusedMonthOptions()
@@ -535,7 +526,7 @@
             _snapshotIncomeMonthlyChart,
             "snapshot-income",
             L["Dashboard_Nature_Income"],
-            "#198754",
+            ChartSemanticPalette.ResolveSemantic(ChartSemanticPalette.Income),
             dayLimit,
             absoluteValues: true);
         if (incomeSeries is not null)
@@ -545,7 +536,7 @@
             _snapshotExpenseMonthlyChart,
             "snapshot-expense",
             L["Dashboard_Nature_Expense"],
-            "#dc3545",
+            ChartSemanticPalette.ResolveSemantic(ChartSemanticPalette.Expense),
             dayLimit);
         if (expenseSeries is not null)
             series.Add(expenseSeries);
@@ -571,7 +562,14 @@
 
         return points.Count == 0
             ? null
-            : new MonthlyChartSeries(key, label, colorHex, points);
+            : new MonthlyChartSeries(
+                key,
+                label,
+                colorHex,
+                points,
+                BaselineValue: absoluteValues
+                    ? Math.Abs(chart.OpeningBalanceCents)
+                    : chart.OpeningBalanceCents);
     }
 
     private IReadOnlyList<SnapshotMonthlyNetRow> BuildSnapshotMonthlyNetRows()
@@ -615,7 +613,7 @@
         var income = new AnnualChartSeries(
             Key: "income-month-result",
             Label: L["Dashboard_Kpi_Income"],
-            ColorHex: "#2dd67d",
+            ColorHex: ChartSemanticPalette.ResolveSemantic(ChartSemanticPalette.Income),
             Points: points.Select(month => new AnnualChartPoint(
                 month,
                 Math.Abs(incomeSeries.Points.FirstOrDefault(point => point.Month == month)?.DeltaVsPreviousMonthCents ?? 0L))).ToList());
@@ -623,7 +621,7 @@
         var expense = new AnnualChartSeries(
             Key: "expense-month-result",
             Label: L["Dashboard_Kpi_Expense"],
-            ColorHex: "#ff5f75",
+            ColorHex: ChartSemanticPalette.ResolveSemantic(ChartSemanticPalette.Expense),
             Points: points.Select(month => new AnnualChartPoint(
                 month,
                 Math.Abs(expenseSeries.Points.FirstOrDefault(point => point.Month == month)?.DeltaVsPreviousMonthCents ?? 0L))).ToList());
@@ -646,3 +644,4 @@
         long NetCents
     );
 }
+

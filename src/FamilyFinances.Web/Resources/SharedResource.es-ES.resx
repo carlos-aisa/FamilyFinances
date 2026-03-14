@@ -1225,7 +1225,7 @@
     <value>Cuenta seleccionada</value>
   </data>
   <data name="MonthlySummary_SelectedMonth" xml:space="preserve">
-    <value>Mes seleccionado</value>
+    <value>Mes actual</value>
   </data>
   <data name="MonthlySummary_Status_Anomaly" xml:space="preserve">
     <value>Anomalía</value>
@@ -1617,11 +1617,17 @@
   <data name="QuickEntry_Expense_Hint" xml:space="preserve">
     <value>Selecciona una cuenta y una categoría de gasto</value>
   </data>
+  <data name="QuickEntry_Guidance_Expense" xml:space="preserve">
+    <value>Selecciona un Activo/Pasivo como origen y una cuenta de gasto como destino.</value>
+  </data>
   <data name="QuickEntry_Expense_Title" xml:space="preserve">
     <value>Gasto</value>
   </data>
   <data name="QuickEntry_Income_Hint" xml:space="preserve">
     <value>Selecciona un origen de ingreso y una cuenta destino</value>
+  </data>
+  <data name="QuickEntry_Guidance_Income" xml:space="preserve">
+    <value>Selecciona una cuenta de ingresos de origen y un Activo de destino.</value>
   </data>
   <data name="QuickEntry_Income_Title" xml:space="preserve">
     <value>Ingreso</value>
@@ -1629,14 +1635,23 @@
   <data name="QuickEntry_Refund_Hint" xml:space="preserve">
     <value>Selecciona una categoría de gasto y una cuenta destino</value>
   </data>
+  <data name="QuickEntry_Guidance_Refund" xml:space="preserve">
+    <value>Selecciona la categoría de gasto a devolver y un Activo/Pasivo de destino.</value>
+  </data>
   <data name="QuickEntry_Refund_Title" xml:space="preserve">
     <value>Reembolso</value>
   </data>
   <data name="QuickEntry_Transfer_Hint" xml:space="preserve">
     <value>Selecciona dos cuentas para mover dinero entre ellas</value>
   </data>
+  <data name="QuickEntry_Guidance_Transfer" xml:space="preserve">
+    <value>Selecciona cuentas origen y destino dentro de Activos/Pasivos.</value>
+  </data>
   <data name="QuickEntry_Transfer_Title" xml:space="preserve">
     <value>Transferencia</value>
+  </data>
+  <data name="QuickEntry_SearchAccountsPlaceholder" xml:space="preserve">
+    <value>Buscar cuentas por nombre o tipo</value>
   </data>
   <data name="QuickEntryDrawer_Amount" xml:space="preserve">
     <value>Importe</value>
@@ -1794,6 +1809,12 @@
   <data name="Reports_CurrentMonth" xml:space="preserve">
     <value>Mes actual: {0}</value>
   </data>
+  <data name="Reports_BadgeYear" xml:space="preserve">
+    <value>Año {0}</value>
+  </data>
+  <data name="Reports_BadgePeriod" xml:space="preserve">
+    <value>Periodo {0}</value>
+  </data>
   <data name="Reports_DeltaPrevMonth" xml:space="preserve">
     <value>Variación vs mes anterior</value>
   </data>
@@ -1814,6 +1835,9 @@
   </data>
   <data name="Reports_MonthBalance" xml:space="preserve">
     <value>Saldo del mes</value>
+  </data>
+  <data name="Reports_Balance" xml:space="preserve">
+    <value>Saldo</value>
   </data>
   <data name="Reports_Error_BuildAnnualChartDataset" xml:space="preserve">
     <value>No se pudo construir el dataset anual: {0}</value>
@@ -2000,6 +2024,9 @@
   </data>
   <data name="ReportsIndex_MonthlySummary_Title" xml:space="preserve">
     <value>Resumen mensual</value>
+  </data>
+  <data name="ReportsIndex_AccountAnalysis_Title" xml:space="preserve">
+    <value>Análisis por cuenta</value>
   </data>
   <data name="ReportsIndex_Subtitle" xml:space="preserve">
     <value>Informes financieros y analítica</value>
@@ -2295,6 +2322,9 @@
   <data name="Transactions_TableDescription" xml:space="preserve">
     <value>Descripción</value>
   </data>
+  <data name="Transactions_TablePayee" xml:space="preserve">
+    <value>Beneficiario</value>
+  </data>
   <data name="Transactions_TableType" xml:space="preserve">
     <value>Tipo</value>
   </data>
@@ -2367,6 +2397,9 @@
   <data name="Login_EmailLabel" xml:space="preserve">
     <value>Correo electrónico</value>
   </data>
+  <data name="Login_EmailPlaceholder" xml:space="preserve">
+    <value>Introduce tu correo</value>
+  </data>
   <data name="Login_PasswordLabel" xml:space="preserve">
     <value>Contraseña</value>
   </data>
@@ -2434,7 +2467,7 @@
     <value>Resumen mensual de gastos</value>
   </data>
   <data name="Dashboard_Analytics_Subtitle" xml:space="preserve">
-    <value>Resumen financiero del hogar para el mes seleccionado.</value>
+    <value>Resumen financiero del hogar para el mes actual.</value>
   </data>
   <data name="Dashboard_Ytd_Title" xml:space="preserve">
     <value>Acumulado anual</value>
@@ -2546,6 +2579,9 @@
   </data>
   <data name="Accounts_CurrentMonth_Basis" xml:space="preserve">
     <value>Mes actual: {0}</value>
+  </data>
+  <data name="Accounts_UpdatedAsOf" xml:space="preserve">
+    <value>Cuentas actualizadas a fecha de {0}</value>
   </data>
   <data name="ExpenseEvolution_MonthFocusedTitle" xml:space="preserve">
     <value>Grafico mensual de gastos</value>

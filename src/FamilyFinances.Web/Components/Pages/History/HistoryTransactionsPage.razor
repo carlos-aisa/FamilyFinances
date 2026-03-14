@@ -6,7 +6,9 @@
 @using FamilyFinances.Web
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web.Components.Pages.Transactions
 @using FamilyFinances.Web.State
+@using Microsoft.AspNetCore.WebUtilities
 @using Microsoft.Extensions.Localization
 @inject HistoryApi HistoryApi
 @inject HistoryRefreshNotifier HistoryRefreshNotifier
@@ -66,10 +68,10 @@ else
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="ps-3" style="width: 120px;">@L["HistoryTransactions_Table_Date"]</th>
-                            <th style="width: 100px;">@L["HistoryTransactions_Table_Type"]</th>
+                            <th class="ps-3 ff-w-120">@L["HistoryTransactions_Table_Date"]</th>
+                            <th class="ff-w-100">@L["HistoryTransactions_Table_Type"]</th>
                             <th>@L["HistoryTransactions_Table_Description"]</th>
-                            <th class="text-end pe-3" style="width: 180px;">@L["HistoryTransactions_Table_Amount"]</th>
+                            <th class="text-end pe-3 ff-w-180">@L["HistoryTransactions_Table_Amount"]</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -86,7 +88,7 @@ else
                                 <td>
                                     <div class="d-flex flex-column">
                                         <a class="fw-semibold text-decoration-none"
-                                           href='@BuildReadOnlyDetailUrl(item.Id, "history-transactions")'>
+                                           href='@BuildReadOnlyDetailUrl(item.Id, TransactionOrigin.HistoryTransactions, _selectedYear, null)'>
                                             @item.Headline
                                         </a>
                                         <small class="text-muted">@item.Subheadline</small>
@@ -116,9 +118,20 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        ApplyNavigationContext();
         _refreshSubscription = HistoryRefreshNotifier.Subscribe(OnHistoryRefreshRequested);
         await LoadYearsAsync();
         await LoadTransactionsAsync();
+    }
+
+    private void ApplyNavigationContext()
+    {
+        var query = QueryHelpers.ParseQuery(Nav.ToAbsoluteUri(Nav.Uri).Query);
+        if (!query.TryGetValue(TransactionOriginContext.YearQueryKey, out var rawYear))
+            return;
+
+        if (int.TryParse(rawYear.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var year) && year >= 1)
+            _selectedYear = year;
     }
 
     private async Task LoadYearsAsync()
@@ -190,8 +203,28 @@ else
         _ => "bg-secondary-subtle text-secondary"
     };
 
-    private static string BuildReadOnlyDetailUrl(Guid transactionId, string returnTo)
-        => $"/transactions/{transactionId}?readonly=true&returnTo={Uri.EscapeDataString(returnTo)}";
+    private static string BuildReadOnlyDetailUrl(
+        Guid transactionId,
+        TransactionOrigin origin,
+        int year,
+        Guid? accountId)
+    {
+        var query = new Dictionary<string, string?>
+        {
+            [TransactionOriginContext.OriginQueryKey] = origin switch
+            {
+                TransactionOrigin.HistoryMovements => "history-movements",
+                _ => "history-transactions"
+            },
+            [TransactionOriginContext.YearQueryKey] = year.ToString(CultureInfo.InvariantCulture),
+            ["readonly"] = "true"
+        };
+
+        if (accountId is not null)
+            query[TransactionOriginContext.AccountIdQueryKey] = accountId.Value.ToString();
+
+        return QueryHelpers.AddQueryString($"/transactions/{transactionId}", query);
+    }
 
     private void OnHistoryRefreshRequested()
     {
@@ -208,3 +241,4 @@ else
         _refreshSubscription?.Dispose();
     }
 }
+

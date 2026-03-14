@@ -1,12 +1,15 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using Bunit;
 using Bunit.TestDoubles;
+using FamilyFinances.Application.Ledger.Accounts.Dtos;
 using FamilyFinances.Application.Reporting.Dtos;
+using FamilyFinances.Domain.Ledger.Accounts;
 using FamilyFinances.Web.Api;
 using FamilyFinances.Web.Auth;
 using FamilyFinances.Web.Components.Pages.Reports;
 using FamilyFinances.Web.Features.Reports;
+using FamilyFinances.Web.Features.Reports.Charts;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
@@ -16,6 +19,10 @@ namespace FamilyFinances.Web.Tests.Features.Reports;
 
 public sealed class EconomicStatePageTests : WebTestContext
 {
+    private static readonly Guid AssetAccountId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+    private static readonly Guid IncomeAccountId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+    private static readonly Guid ExpenseAccountId = Guid.Parse("33333333-3333-3333-3333-333333333333");
+
     [Fact]
     public void EconomicStatePage_Loads_With_Current_Date_By_Default()
     {
@@ -32,6 +39,7 @@ public sealed class EconomicStatePageTests : WebTestContext
         Services.AddSingleton<IApiTokenStore>(tokenStore);
         Services.AddSingleton(new JwtAuthStateProvider(tokenStore));
         Services.AddScoped<ReportsApi>();
+        Services.AddSingleton(BuildAccountsApiMock().Object);
 
         var cut = RenderComponent<EconomicStatePage>();
 
@@ -55,6 +63,7 @@ public sealed class EconomicStatePageTests : WebTestContext
         Services.AddSingleton<IApiTokenStore>(tokenStore);
         Services.AddSingleton(new JwtAuthStateProvider(tokenStore));
         Services.AddScoped<ReportsApi>();
+        Services.AddSingleton(BuildAccountsApiMock().Object);
 
         var cut = RenderComponent<EconomicStatePage>();
 
@@ -114,14 +123,16 @@ public sealed class EconomicStatePageTests : WebTestContext
 
         MonthlyBalanceChartDto BuildMonthlyChartPayload(int month)
         {
+            var daysInMonth = DateTime.DaysInMonth(currentYear, month);
             return new MonthlyBalanceChartDto(
                 currentYear,
                 month,
-                new[]
-                {
-                    new MonthlyChartPointDto(1, new DateOnly(currentYear, month, 1), 2_532_894),
-                    new MonthlyChartPointDto(2, new DateOnly(currentYear, month, Math.Min(2, DateTime.DaysInMonth(currentYear, month))), 2_457_005)
-                });
+                Enumerable.Range(1, daysInMonth)
+                    .Select(day => new MonthlyChartPointDto(
+                        day,
+                        new DateOnly(currentYear, month, day),
+                        2_400_000 + (day * 1_000)))
+                    .ToArray());
         }
 
         httpMessageHandlerMock
@@ -150,6 +161,16 @@ public sealed class EconomicStatePageTests : WebTestContext
                     return new HttpResponseMessage(HttpStatusCode.OK)
                     {
                         Content = JsonContent.Create(evolutionPayload)
+                    };
+                }
+
+                if (uri.Contains("api/v1/reports/state-evolution") &&
+                    uri.Contains($"year={currentYear}") &&
+                    uri.Contains("scope=accounts"))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(BuildAccountsEvolutionPayload(currentYear))
                     };
                 }
 
@@ -189,6 +210,7 @@ public sealed class EconomicStatePageTests : WebTestContext
         Services.AddSingleton<IApiTokenStore>(tokenStore);
         Services.AddSingleton(new JwtAuthStateProvider(tokenStore));
         Services.AddScoped<ReportsApi>();
+        Services.AddSingleton(BuildAccountsApiMock().Object);
 
         var cut = RenderComponent<EconomicStatePage>();
         var assetTab = cut.FindAll("button.nav-link")
@@ -202,15 +224,23 @@ public sealed class EconomicStatePageTests : WebTestContext
             cut.Markup.Should().Contain("Monthly Overview");
             cut.Find("[data-testid='economic-state-asset-evolution-chart']");
             cut.Find("[data-testid='economic-state-asset-monthly-chart']");
+            var points = cut
+                .Find("[data-testid='economic-state-asset-monthly-chart'] [data-series-key='asset-total-monthly']")
+                .GetAttribute("data-points");
+            points.Should().NotBeNullOrWhiteSpace();
+            points!.Should().Contain($"{DateTime.Today.Day}:");
+            var lastDayOfCurrentMonth = DateTime.DaysInMonth(currentYear, DateHelper.GetCurrentMonth());
+            if (DateTime.Today.Day < lastDayOfCurrentMonth)
+            {
+                points.Should().NotContain($"{lastDayOfCurrentMonth}:");
+            }
             cut.Find("[data-testid='economic-state-global-year']");
             cut.Find("[data-testid='economic-state-global-focused-month']");
-            cut.Find("[data-testid='economic-state-global-load']");
             cut.FindAll("[data-testid='economic-state-asset-focused-month']").Should().BeEmpty();
         });
 
         var monthSelector = cut.Find("[data-testid='economic-state-global-focused-month']");
         monthSelector.Change("1");
-        cut.Find("[data-testid='economic-state-global-load']").Click();
 
         cut.WaitForAssertion(() =>
         {
@@ -265,14 +295,16 @@ public sealed class EconomicStatePageTests : WebTestContext
 
         MonthlyBalanceChartDto BuildMonthlyChartPayload(int month)
         {
+            var daysInMonth = DateTime.DaysInMonth(currentYear, month);
             return new MonthlyBalanceChartDto(
                 currentYear,
                 month,
-                new[]
-                {
-                    new MonthlyChartPointDto(1, new DateOnly(currentYear, month, 1), 125_000),
-                    new MonthlyChartPointDto(2, new DateOnly(currentYear, month, Math.Min(2, DateTime.DaysInMonth(currentYear, month))), 134_346)
-                });
+                Enumerable.Range(1, daysInMonth)
+                    .Select(day => new MonthlyChartPointDto(
+                        day,
+                        new DateOnly(currentYear, month, day),
+                        120_000 + (day * 1_000)))
+                    .ToArray());
         }
 
         httpMessageHandlerMock
@@ -301,6 +333,16 @@ public sealed class EconomicStatePageTests : WebTestContext
                     return new HttpResponseMessage(HttpStatusCode.OK)
                     {
                         Content = JsonContent.Create(evolutionPayload)
+                    };
+                }
+
+                if (uri.Contains("api/v1/reports/state-evolution") &&
+                    uri.Contains($"year={currentYear}") &&
+                    uri.Contains("scope=accounts"))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(BuildAccountsEvolutionPayload(currentYear))
                     };
                 }
 
@@ -340,6 +382,7 @@ public sealed class EconomicStatePageTests : WebTestContext
         Services.AddSingleton<IApiTokenStore>(tokenStore);
         Services.AddSingleton(new JwtAuthStateProvider(tokenStore));
         Services.AddScoped<ReportsApi>();
+        Services.AddSingleton(BuildAccountsApiMock().Object);
 
         var cut = RenderComponent<EconomicStatePage>();
         var incomeTab = cut.FindAll("button.nav-link")
@@ -353,6 +396,14 @@ public sealed class EconomicStatePageTests : WebTestContext
             cut.Markup.Should().Contain("Monthly Overview");
             cut.Find("[data-testid='economic-state-income-evolution-chart']");
             cut.Find("[data-testid='economic-state-income-monthly-chart']");
+            var points = cut
+                .Find("[data-testid='economic-state-income-monthly-chart'] [data-series-key='income-total-monthly']")
+                .GetAttribute("data-points");
+            points.Should().NotBeNullOrWhiteSpace();
+            points!.Should().Contain($"{DateTime.Today.Day}:");
+            var lastDayOfCurrentMonth = DateTime.DaysInMonth(currentYear, DateHelper.GetCurrentMonth());
+            if (DateTime.Today.Day < lastDayOfCurrentMonth)
+                points.Should().NotContain($"{lastDayOfCurrentMonth}:");
             cut.Find("[data-testid='economic-state-global-focused-month']");
             cut.FindAll("[data-testid='economic-state-income-focused-month']").Should().BeEmpty();
         });
@@ -398,14 +449,16 @@ public sealed class EconomicStatePageTests : WebTestContext
 
         MonthlyBalanceChartDto BuildMonthlyChartPayload(int month)
         {
+            var daysInMonth = DateTime.DaysInMonth(currentYear, month);
             return new MonthlyBalanceChartDto(
                 currentYear,
                 month,
-                new[]
-                {
-                    new MonthlyChartPointDto(1, new DateOnly(currentYear, month, 1), 125_000),
-                    new MonthlyChartPointDto(2, new DateOnly(currentYear, month, Math.Min(2, DateTime.DaysInMonth(currentYear, month))), 134_346)
-                });
+                Enumerable.Range(1, daysInMonth)
+                    .Select(day => new MonthlyChartPointDto(
+                        day,
+                        new DateOnly(currentYear, month, day),
+                        120_000 + (day * 1_000)))
+                    .ToArray());
         }
 
         httpMessageHandlerMock
@@ -434,6 +487,16 @@ public sealed class EconomicStatePageTests : WebTestContext
                     return new HttpResponseMessage(HttpStatusCode.OK)
                     {
                         Content = JsonContent.Create(evolutionPayload)
+                    };
+                }
+
+                if (uri.Contains("api/v1/reports/state-evolution") &&
+                    uri.Contains($"year={currentYear}") &&
+                    uri.Contains("scope=accounts"))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(BuildAccountsEvolutionPayload(currentYear))
                     };
                 }
 
@@ -487,6 +550,7 @@ public sealed class EconomicStatePageTests : WebTestContext
         Services.AddSingleton<IApiTokenStore>(tokenStore);
         Services.AddSingleton(new JwtAuthStateProvider(tokenStore));
         Services.AddScoped<ReportsApi>();
+        Services.AddSingleton(BuildAccountsApiMock().Object);
 
         var cut = RenderComponent<EconomicStatePage>();
         var expenseTab = cut.FindAll("button.nav-link")
@@ -500,6 +564,14 @@ public sealed class EconomicStatePageTests : WebTestContext
             cut.Markup.Should().Contain("Monthly expense overview");
             cut.Find("[data-testid='economic-state-expense-evolution-chart']");
             cut.Find("[data-testid='economic-state-expense-monthly-chart']");
+            var points = cut
+                .Find("[data-testid='economic-state-expense-monthly-chart'] [data-series-key='expense-total-monthly']")
+                .GetAttribute("data-points");
+            points.Should().NotBeNullOrWhiteSpace();
+            points!.Should().Contain($"{DateTime.Today.Day}:");
+            var lastDayOfCurrentMonth = DateTime.DaysInMonth(currentYear, DateHelper.GetCurrentMonth());
+            if (DateTime.Today.Day < lastDayOfCurrentMonth)
+                points.Should().NotContain($"{lastDayOfCurrentMonth}:");
             cut.Find("[data-testid='economic-state-global-focused-month']");
             cut.FindAll("[data-testid='economic-state-expense-focused-month']").Should().BeEmpty();
         });
@@ -518,10 +590,49 @@ public sealed class EconomicStatePageTests : WebTestContext
         Services.AddSingleton<IApiTokenStore>(tokenStore);
         Services.AddSingleton(new JwtAuthStateProvider(tokenStore));
         Services.AddScoped<ReportsApi>();
+        Services.AddSingleton(BuildAccountsApiMock().Object);
 
         var cut = RenderComponent<EconomicStatePage>();
 
         cut.Markup.Should().Contain("Please sign in to access reports.");
+    }
+
+    [Fact]
+    public void Snapshot_Chart_Payloads_Use_Shared_Income_Expense_Semantic_Colors()
+    {
+        var (httpClientFactory, _) = BuildHttpClientFactoryForEconomicState();
+        var lineCall = JSInterop.SetupVoid("familyFinancesCharts.renderAnnualLineChart", _ => true);
+        var barCall = JSInterop.SetupVoid("familyFinancesCharts.renderAnnualBarChart", _ => true);
+
+        var tokenStore = new TestTokenStore("test-token");
+        var authContext = this.AddTestAuthorization();
+        authContext.SetAuthorized("test-user");
+
+        Services.AddSingleton(httpClientFactory.Object);
+        Services.AddSingleton<IApiTokenStore>(tokenStore);
+        Services.AddSingleton(new JwtAuthStateProvider(tokenStore));
+        Services.AddScoped<ReportsApi>();
+        Services.AddSingleton(BuildAccountsApiMock().Object);
+
+        RenderComponent<EconomicStatePage>();
+
+        lineCall.Invocations.Should().NotBeEmpty();
+        barCall.Invocations.Should().NotBeEmpty();
+
+        var payloadColors = new List<string>();
+        foreach (var invocation in lineCall.Invocations.Concat(barCall.Invocations))
+        {
+            var payloadJson = System.Text.Json.JsonSerializer.Serialize(invocation.Arguments[1]);
+            using var payload = System.Text.Json.JsonDocument.Parse(payloadJson);
+            var datasets = payload.RootElement.GetProperty("datasets");
+            payloadColors.AddRange(datasets.EnumerateArray()
+                .Select(dataset => dataset.GetProperty("colorHex").GetString())
+                .Where(color => !string.IsNullOrWhiteSpace(color))!
+                .Select(color => color!));
+        }
+
+        payloadColors.Should().Contain(ChartSemanticPalette.ResolveSemantic(ChartSemanticPalette.Income));
+        payloadColors.Should().Contain(ChartSemanticPalette.ResolveSemantic(ChartSemanticPalette.Expense));
     }
 
     private static (Mock<IHttpClientFactory> Factory, Mock<HttpMessageHandler> Handler) BuildHttpClientFactoryForEconomicState(
@@ -612,6 +723,14 @@ public sealed class EconomicStatePageTests : WebTestContext
                     };
                 }
 
+                if (uri.Contains("api/v1/reports/state-evolution") && uri.Contains("scope=accounts"))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(BuildAccountsEvolutionPayload(payload.AsOf.Year))
+                    };
+                }
+
                 if (uri.Contains("api/v1/reports/monthly-summary"))
                 {
                     return new HttpResponseMessage(HttpStatusCode.OK)
@@ -637,6 +756,78 @@ public sealed class EconomicStatePageTests : WebTestContext
         return (httpClientFactory, httpMessageHandlerMock);
     }
 
+    private static Mock<IAccountsApi> BuildAccountsApiMock()
+    {
+        var mock = new Mock<IAccountsApi>(MockBehavior.Strict);
+        mock
+            .Setup(x => x.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new AccountDto(
+                    AssetAccountId,
+                    "Main Bank",
+                    AccountNature.Asset,
+                    AccountKind.Checking,
+                    new DateOnly(2026, 1, 1),
+                    false,
+                    null),
+                new AccountDto(
+                    IncomeAccountId,
+                    "Salary",
+                    AccountNature.Income,
+                    AccountKind.IncomeSource,
+                    new DateOnly(2026, 1, 1),
+                    false,
+                    null),
+                new AccountDto(
+                    ExpenseAccountId,
+                    "Groceries",
+                    AccountNature.Expense,
+                    AccountKind.ExpenseCategory,
+                    new DateOnly(2026, 1, 1),
+                    false,
+                    null)
+            ]);
+
+        return mock;
+    }
+
+    private static MonthlyEvolutionReportDto BuildAccountsEvolutionPayload(int year)
+    {
+        return new MonthlyEvolutionReportDto(
+            year,
+            MonthlyEvolutionScope.Accounts,
+            [
+                new MonthlyEvolutionSeriesDto(
+                    "account:asset-main-bank",
+                    "Main Bank",
+                    AssetAccountId,
+                    "account",
+                    [
+                        new MonthlyEvolutionPointDto(1, new DateOnly(year, 1, 31), 100_000, 100_000, 100_000),
+                        new MonthlyEvolutionPointDto(2, new DateOnly(year, 2, DateTime.DaysInMonth(year, 2)), 120_000, 20_000, 120_000)
+                    ]),
+                new MonthlyEvolutionSeriesDto(
+                    "account:income-salary",
+                    "Salary",
+                    IncomeAccountId,
+                    "account",
+                    [
+                        new MonthlyEvolutionPointDto(1, new DateOnly(year, 1, 31), 50_000, 50_000, 50_000),
+                        new MonthlyEvolutionPointDto(2, new DateOnly(year, 2, DateTime.DaysInMonth(year, 2)), 60_000, 10_000, 60_000)
+                    ]),
+                new MonthlyEvolutionSeriesDto(
+                    "account:expense-groceries",
+                    "Groceries",
+                    ExpenseAccountId,
+                    "account",
+                    [
+                        new MonthlyEvolutionPointDto(1, new DateOnly(year, 1, 31), 30_000, 30_000, 30_000),
+                        new MonthlyEvolutionPointDto(2, new DateOnly(year, 2, DateTime.DaysInMonth(year, 2)), 32_000, 2_000, 32_000)
+                    ])
+            ]);
+    }
+
     private sealed class TestTokenStore : IApiTokenStore
     {
         private string? _token;
@@ -655,3 +846,6 @@ public sealed class EconomicStatePageTests : WebTestContext
         public Task<string?> WaitForTokenAsync(TimeSpan timeout, CancellationToken ct) => Task.FromResult(_token);
     }
 }
+
+
+

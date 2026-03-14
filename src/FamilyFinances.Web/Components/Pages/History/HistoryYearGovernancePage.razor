@@ -56,11 +56,11 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="ps-3" style="width: 100px;">@L["History_Year"]</th>
-                            <th style="width: 120px;">@L["HistoryYears_Table_Status"]</th>
-                            <th style="width: 220px;">@L["HistoryYears_Table_ClosedAtUtc"]</th>
-                            <th style="width: 220px;">@L["HistoryYears_Table_ReopenedAtUtc"]</th>
-                            <th class="text-end pe-3" style="width: 180px;">@L["HistoryYears_Table_Actions"]</th>
+                            <th class="ps-3 ff-w-100">@L["History_Year"]</th>
+                            <th class="ff-w-120">@L["HistoryYears_Table_Status"]</th>
+                            <th class="ff-w-220">@L["HistoryYears_Table_ClosedAtUtc"]</th>
+                            <th class="ff-w-220">@L["HistoryYears_Table_ReopenedAtUtc"]</th>
+                            <th class="text-end pe-3 ff-w-180">@L["HistoryYears_Table_Actions"]</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -109,7 +109,7 @@
 
 @if (_showConfirmModal)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal fade show d-block ff-modal-overlay" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
@@ -256,3 +256,5 @@
         _items.AddRange(items.OrderByDescending(x => x.Year));
     }
 }
+
+

@@ -77,7 +77,7 @@ public sealed class ReportResponsiveLayoutTests : WebTestContext
             cut.Find("[data-testid='economic-state-global-filters']");
             cut.Find("[data-testid='economic-state-global-year']");
             cut.Find("[data-testid='economic-state-global-focused-month']");
-            cut.Find("[data-testid='economic-state-global-load']");
+            cut.FindAll("[data-testid='economic-state-global-load']").Should().BeEmpty();
         });
     }
 
@@ -169,14 +169,11 @@ public sealed class ReportResponsiveLayoutTests : WebTestContext
         Services.AddSingleton(new JwtAuthStateProvider(tokenStore));
         Services.AddScoped<ReportsApi>();
 
-        if (accounts is not null)
-        {
-            var accountsApiMock = new Mock<IAccountsApi>(MockBehavior.Strict);
-            accountsApiMock
-                .Setup(x => x.ListAsync(It.IsAny<CancellationToken>()))
-                .ReturnsAsync(accounts);
-            Services.AddSingleton(accountsApiMock.Object);
-        }
+        var accountsApiMock = new Mock<IAccountsApi>(MockBehavior.Strict);
+        accountsApiMock
+            .Setup(x => x.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(accounts ?? []);
+        Services.AddSingleton(accountsApiMock.Object);
     }
 
     private sealed class TestTokenStore : IApiTokenStore

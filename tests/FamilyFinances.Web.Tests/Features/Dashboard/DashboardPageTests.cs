@@ -6,6 +6,7 @@ using FamilyFinances.Application.Reporting.Dtos;
 using FamilyFinances.Web.Api;
 using FamilyFinances.Web.Auth;
 using FamilyFinances.Web.Components.Pages.Dashboard;
+using FamilyFinances.Web.Features.Reports.Charts;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
@@ -77,6 +78,36 @@ public sealed class DashboardPageTests : WebTestContext
             var note = cut.Find("[data-testid='dashboard-data-sufficiency-state']");
             note.TextContent.Should().NotBeNullOrWhiteSpace();
         });
+    }
+
+    [Fact]
+    public void Dashboard_Chart_Payloads_Use_Shared_Semantic_Palette()
+    {
+        RegisterAuthorizedServices(BuildHttpClientFactory(CreateOverviewPayload()));
+        var lineCall = JSInterop.SetupVoid("familyFinancesCharts.renderAnnualLineChart", _ => true);
+        var barCall = JSInterop.SetupVoid("familyFinancesCharts.renderAnnualBarChart", _ => true);
+
+        RenderComponent<DashboardPage>();
+
+        lineCall.Invocations.Should().NotBeEmpty();
+        barCall.Invocations.Should().NotBeEmpty();
+
+        var allColors = new List<string>();
+        foreach (var invocation in lineCall.Invocations.Concat(barCall.Invocations))
+        {
+            var payloadJson = System.Text.Json.JsonSerializer.Serialize(invocation.Arguments[1]);
+            using var payload = System.Text.Json.JsonDocument.Parse(payloadJson);
+            var datasets = payload.RootElement.GetProperty("datasets");
+            allColors.AddRange(datasets.EnumerateArray()
+                .Select(dataset => dataset.GetProperty("colorHex").GetString())
+                .Where(color => !string.IsNullOrWhiteSpace(color))!
+                .Select(color => color!));
+        }
+
+        allColors.Should().Contain(ChartSemanticPalette.ResolveSemantic(ChartSemanticPalette.Income));
+        allColors.Should().Contain(ChartSemanticPalette.ResolveSemantic(ChartSemanticPalette.Expense));
+        allColors.Should().Contain(ChartSemanticPalette.ResolveSemantic(ChartSemanticPalette.Balance));
+        allColors.Should().Contain(ChartSemanticPalette.ResolveSemantic(ChartSemanticPalette.Neutral));
     }
 
     private void RegisterAuthorizedServices(Mock<IHttpClientFactory> httpClientFactory)

@@ -1,4 +1,4 @@
-﻿@page "/reports/monthly-summary"
+@page "/reports/monthly-summary"
 @rendermode InteractiveServer
 @using FamilyFinances.Application.Ledger.Accounts.Dtos
 @using FamilyFinances.Application.Ledger.Payees.Dtos
@@ -114,7 +114,7 @@
         {
             <div class="card shadow-sm">
                 <div class="card-body text-center py-5">
-                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                    <div class="spinner-border text-primary mb-3 ff-spinner-lg" role="status">
                         <span class="visually-hidden">@L["Common_Loading"]</span>
                     </div>
                     <p class="text-muted">@L["Reports_LoadingData"]</p>
@@ -220,12 +220,16 @@
                     }
                     else
                     {
-                        <MonthlyLineChart
+                        <EvolutionChart
+                            Mode="EvolutionChartMode.DailyInMonth"
                             Title="@L["MonthlySummary_MonthFocusedEvolution"]"
                             Subtitle="@L["MonthlySummary_DailyEndBalanceSubtitle", selectedAccountName, selectedMonthLabel]"
                             Year="@_accountMonthlyChart.Year"
                             Month="@_accountMonthlyChart.Month"
-                            Series="@selectedAccountChartSeries"
+                            DataUntilDay="@ResolveSelectedAccountChartCutoffDay()"
+                            YTickMaxTicks="5"
+                            ShowFullRange="true"
+                            DailySeries="@selectedAccountChartSeries"
                             TestId="monthly-summary-account-monthly-chart" />
                     }
                 </div>
@@ -639,6 +643,28 @@
             label: GetSelectedAccountName());
     }
 
+    private int? ResolveSelectedAccountChartCutoffDay()
+    {
+        if (_accountMonthlyChart is null || _toDate is null)
+            return null;
+
+        var daysInMonth = DateTime.DaysInMonth(_accountMonthlyChart.Year, _accountMonthlyChart.Month);
+        var monthStart = new DateOnly(_accountMonthlyChart.Year, _accountMonthlyChart.Month, 1);
+        var monthEnd = new DateOnly(_accountMonthlyChart.Year, _accountMonthlyChart.Month, daysInMonth);
+
+        var cutoff = _toDate.Value.AddDays(-1);
+        if (cutoff > monthEnd)
+            cutoff = monthEnd;
+        if (cutoff < monthStart)
+            return null;
+
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        if (monthStart.Year == today.Year && monthStart.Month == today.Month && cutoff > today)
+            cutoff = today;
+
+        return cutoff.Day;
+    }
+
     private string BuildAnomalyExplanation(AnomalyContributorDto contributor, int requiredHistoryMonths)
     {
         if (contributor.IsInsufficientHistory)
@@ -672,3 +698,4 @@
         _error = null;
     }
 }
+

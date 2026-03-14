@@ -1,0 +1,378 @@
+@using System.Globalization
+@using System.Text.Json
+@using FamilyFinances.Web
+@using FamilyFinances.Web.Features.Reports
+@using FamilyFinances.Web.Features.Reports.Export
+@using FamilyFinances.Web.Features.Reports.Charts
+@using Microsoft.Extensions.Localization
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject IStringLocalizer<SharedResource> L
+
+@if (GetSeriesCount() == 0 || !HasData())
+{
+    <ReportingChartEmptyState
+        Title="@Title"
+        Description="@GetEmptyDescription()" />
+}
+else
+{
+    var month = ResolveMonth();
+
+    <div class="card shadow-sm mb-4 annual-line-chart ff-panel ff-chart-panel"
+         data-testid="@TestId"
+         data-year="@Year"
+         data-month="@(Mode == EvolutionChartMode.DailyInMonth ? month : null)">
+        <div class="card-body">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 mb-3">
+                <div>
+                    <h6 class="mb-1">@Title</h6>
+                    @if (!string.IsNullOrWhiteSpace(Subtitle))
+                    {
+                        <small class="text-muted">@Subtitle</small>
+                    }
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    @if (EnableImageExport)
+                    {
+                        <button type="button"
+                                class="btn btn-sm btn-outline-secondary report-export-button ff-chart-export-button"
+                                @onclick="ExportChartAsync"
+                                data-testid="@($"{TestId}-export-image")"
+                                aria-label="@L["ReportingChart_AriaExportPng", Title]">
+                            <i class="bi bi-download me-1"></i>@L["Reports_Export"]
+                        </button>
+                    }
+                    <span class="badge bg-secondary-subtle text-secondary">@GetBadgeText(month)</span>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_exportError))
+            {
+                <div class="text-danger small mb-2">@_exportError</div>
+            }
+
+            <div class="annual-line-canvas-wrap">
+                <canvas id="@_canvasId" class="annual-line-canvas" role="img" tabindex="0" aria-label="@Title"></canvas>
+            </div>
+
+            <div class="visually-hidden">
+                @if (Mode == EvolutionChartMode.DailyInMonth)
+                {
+                    @foreach (var series in DailySeries)
+                    {
+                        <span data-series-key="@series.Key"
+                              data-points="@BuildDailyDataPointString(series)"></span>
+                    }
+                }
+                else
+                {
+                    @foreach (var series in AnnualSeries)
+                    {
+                        <span data-series-key="@series.Key"
+                              data-points="@BuildAnnualDataPointString(series)"></span>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter, EditorRequired] public EvolutionChartMode Mode { get; set; }
+    [Parameter, EditorRequired] public int Year { get; set; }
+    [Parameter] public int? Month { get; set; }
+    [Parameter] public IReadOnlyList<MonthlyChartSeries> DailySeries { get; set; } = Array.Empty<MonthlyChartSeries>();
+    [Parameter] public IReadOnlyList<AnnualChartSeries> AnnualSeries { get; set; } = Array.Empty<AnnualChartSeries>();
+    [Parameter] public string TestId { get; set; } = "evolution-chart";
+    [Parameter] public int? DataUntilDay { get; set; }
+    [Parameter] public int? DataUntilMonth { get; set; }
+    [Parameter] public int? YTickMaxTicks { get; set; }
+    [Parameter] public bool EnableImageExport { get; set; } = true;
+    [Parameter] public bool ShowFullRange { get; set; } = true;
+    [Parameter] public bool CarryForwardAfterMarker { get; set; }
+    [Parameter] public bool NormalizeDailySeriesToZero { get; set; } = true;
+
+    private readonly string _canvasId = $"evolution-line-{Guid.NewGuid():N}";
+    private string? _lastRenderedSignature;
+    private string? _exportError;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (GetSeriesCount() == 0 || !HasData())
+            return;
+
+        var payload = BuildChartPayload();
+        var signature = JsonSerializer.Serialize(payload);
+        if (string.Equals(_lastRenderedSignature, signature, StringComparison.Ordinal))
+            return;
+
+        try
+        {
+            await JS.InvokeVoidAsync(
+                "familyFinancesCharts.renderAnnualLineChart",
+                _canvasId,
+                payload);
+            _lastRenderedSignature = signature;
+        }
+        catch
+        {
+            // Non-browser renderers (e.g. tests/prerender) may not support JS interop.
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("familyFinancesCharts.disposeAnnualLineChart", _canvasId);
+            _lastRenderedSignature = null;
+        }
+        catch
+        {
+            // Ignore dispose failures for disconnected/non-interactive renderers.
+        }
+    }
+
+    private object BuildChartPayload()
+    {
+        return Mode == EvolutionChartMode.DailyInMonth
+            ? BuildDailyPayload(ResolveMonth())
+            : BuildAnnualPayload();
+    }
+
+    private object BuildDailyPayload(int month)
+    {
+        var daysInMonth = DateTime.DaysInMonth(Year, month);
+        var orderedDays = ShowFullRange
+            ? Enumerable.Range(1, daysInMonth).ToList()
+            : DailySeries
+                .SelectMany(s => s.Points.Select(p => p.Day))
+                .Distinct()
+                .OrderBy(d => d)
+                .ToList();
+
+        var labels = orderedDays
+            .Select(day => day.ToString(CultureInfo.InvariantCulture))
+            .ToList();
+
+        var markerDay = ResolveMarkerDay(daysInMonth);
+
+        var datasets = DailySeries
+            .Select(series =>
+            {
+                var orderedPoints = series.Points
+                    .OrderBy(point => point.Day)
+                    .ToList();
+                var pointsByDay = series.Points.ToDictionary(x => x.Day, x => x.Value);
+                var firstDayWithData = orderedPoints.Count == 0
+                    ? (int?)null
+                    : orderedPoints[0].Day;
+                var baselineValue = NormalizeDailySeriesToZero
+                    ? series.BaselineValue ?? 0m
+                    : (decimal?)null;
+                decimal? latestValue = null;
+
+                var values = orderedDays
+                    .Select(day =>
+                    {
+                        if (pointsByDay.TryGetValue(day, out var value))
+                        {
+                            if (NormalizeDailySeriesToZero && baselineValue is not null)
+                                value -= baselineValue.Value;
+
+                            latestValue = value;
+                            return Convert.ToDouble(value / 100m, CultureInfo.InvariantCulture);
+                        }
+
+                        if (ShowFullRange &&
+                            NormalizeDailySeriesToZero &&
+                            firstDayWithData is not null &&
+                            day < firstDayWithData.Value)
+                        {
+                            return 0d;
+                        }
+
+                        if (ShowFullRange &&
+                            firstDayWithData is not null &&
+                            day >= firstDayWithData.Value &&
+                            latestValue is not null)
+                        {
+                            return Convert.ToDouble(latestValue.Value / 100m, CultureInfo.InvariantCulture);
+                        }
+
+                        return (double?)null;
+                    })
+                    .ToList();
+
+                return new
+                {
+                    key = series.Key,
+                    label = series.Label,
+                    colorHex = series.ColorHex,
+                    values,
+                    yAxisId = "y"
+                };
+            })
+            .ToList();
+
+        return new
+        {
+            labels,
+            datasets,
+            useDualAxis = false,
+            xTickAutoSkip = true,
+            xTickMaxTicks = 12,
+            yTickMaxTicks = YTickMaxTicks,
+            markerDay,
+            totalDays = ShowFullRange ? daysInMonth : labels.Count
+        };
+    }
+
+    private object BuildAnnualPayload()
+    {
+        var orderedMonths = Enumerable.Range(1, 12).ToList();
+        var labels = orderedMonths
+            .Select(GetShortMonthLabel)
+            .ToList();
+        var useDualAxis = ShouldUseDualAxis();
+
+        var datasets = AnnualSeries
+            .Select(series =>
+            {
+                var pointsByMonth = series.Points.ToDictionary(x => x.Month, x => x.Value);
+                decimal? latestValue = null;
+                var values = orderedMonths
+                    .Select(month =>
+                    {
+                        if (DataUntilMonth is not null && month > DataUntilMonth.Value)
+                        {
+                            return CarryForwardAfterMarker && latestValue is not null
+                                ? Convert.ToDouble(latestValue.Value / 100m, CultureInfo.InvariantCulture)
+                                : (double?)null;
+                        }
+
+                        if (pointsByMonth.TryGetValue(month, out var value))
+                        {
+                            latestValue = value;
+                            return Convert.ToDouble(value / 100m, CultureInfo.InvariantCulture);
+                        }
+
+                        return (double?)null;
+                    })
+                    .ToList();
+
+                return new
+                {
+                    key = series.Key,
+                    label = series.Label,
+                    colorHex = series.ColorHex,
+                    values,
+                    yAxisId = useDualAxis && series.Key == "end-balance" ? "yBalance" : "yDelta"
+                };
+            })
+            .ToList();
+
+        return new
+        {
+            labels,
+            datasets,
+            useDualAxis,
+            yTickMaxTicks = YTickMaxTicks,
+            markerMonth = DataUntilMonth,
+            totalMonths = 12
+        };
+    }
+
+    private int ResolveMonth()
+    {
+        if (Month is >= 1 and <= 12)
+            return Month.Value;
+
+        return DateTime.Now.Month;
+    }
+
+    private int? ResolveMarkerDay(int daysInMonth)
+    {
+        if (!ShowFullRange)
+            return null;
+
+        if (DataUntilDay is >= 1 and <= 31)
+            return Math.Min(daysInMonth, DataUntilDay.Value);
+
+        var maxDay = DailySeries
+            .SelectMany(series => series.Points.Select(point => point.Day))
+            .Where(day => day >= 1 && day <= daysInMonth)
+            .DefaultIfEmpty()
+            .Max();
+
+        return maxDay > 0 ? maxDay : null;
+    }
+
+    private bool ShouldUseDualAxis()
+        => AnnualSeries.Any(s => s.Key == "end-balance") &&
+           AnnualSeries.Any(s => s.Key == "delta-prev-month");
+
+    private int GetSeriesCount()
+        => Mode == EvolutionChartMode.DailyInMonth
+            ? DailySeries.Count
+            : AnnualSeries.Count;
+
+    private bool HasData()
+        => Mode == EvolutionChartMode.DailyInMonth
+            ? DailySeries.Any(series => series.Points.Count > 0)
+            : AnnualSeries.Any(series => series.Points.Count > 0);
+
+    private string GetEmptyDescription()
+        => Mode == EvolutionChartMode.DailyInMonth
+            ? L["ReportingChart_Empty_NoPointsForMonth"]
+            : L["ReportingChart_Empty_NoPointsForFilters"];
+
+    private string GetBadgeText(int month)
+        => Mode == EvolutionChartMode.DailyInMonth
+            ? L["Reports_BadgePeriod", $"{Year:D4}-{month:00}"]
+            : L["Reports_BadgeYear", Year.ToString(CultureInfo.InvariantCulture)];
+
+    private async Task ExportChartAsync()
+    {
+        _exportError = null;
+
+        try
+        {
+            var fileName = Mode == EvolutionChartMode.DailyInMonth
+                ? $"{ReportExportInterop.BuildFileName("report-chart", Title, Year, ResolveMonth().ToString("00", CultureInfo.InvariantCulture))}.png"
+                : $"{ReportExportInterop.BuildFileName("report-chart", Title, Year)}.png";
+
+            await JS.DownloadChartImageAsync(_canvasId, fileName);
+        }
+        catch (Exception ex)
+        {
+            _exportError = L["ReportingChart_Error_ExportFailed", ex.Message];
+        }
+    }
+
+    private static string BuildDailyDataPointString(MonthlyChartSeries series)
+    {
+        return string.Join(";",
+            series.Points
+                .OrderBy(point => point.Day)
+                .Select(point => $"{point.Day}:{point.Value.ToString(CultureInfo.InvariantCulture)}"));
+    }
+
+    private static string BuildAnnualDataPointString(AnnualChartSeries series)
+    {
+        return string.Join(";",
+            series.Points
+                .OrderBy(point => point.Month)
+                .Select(point => $"{point.Month}:{point.Value.ToString(CultureInfo.InvariantCulture)}"));
+    }
+
+    private static string GetShortMonthLabel(int month)
+    {
+        var full = DateHelper.GetMonthName(month);
+        return full.Length <= 3 ? full : full[..3];
+    }
+}

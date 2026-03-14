@@ -24,7 +24,7 @@ public static class AnnualChartDatasetAdapter
             new AnnualChartSeries(
                 Key: key,
                 Label: label,
-                ColorHex: colorHex ?? AnnualChartPalette.Resolve(0),
+                ColorHex: colorHex ?? ChartSemanticPalette.ResolveForSeriesKey(key, fallbackIndex: 0),
                 Points: endBalancePoints)
         ];
     }
@@ -45,7 +45,7 @@ public static class AnnualChartDatasetAdapter
             .Select((series, idx) => new AnnualChartSeries(
                 Key: series.SeriesKey,
                 Label: series.DisplayName,
-                ColorHex: AnnualChartPalette.Resolve(idx),
+                ColorHex: ChartSemanticPalette.ResolveForSeriesKey(series.SeriesKey, idx),
                 Points: series.Points
                     .OrderBy(p => p.Month)
                     .Select(p => new AnnualChartPoint(p.Month, p.EndBalanceCents))
@@ -69,7 +69,7 @@ public static class AnnualChartDatasetAdapter
             .Select((series, idx) => new AnnualChartSeries(
                 Key: series.SeriesKey,
                 Label: series.DisplayName,
-                ColorHex: AnnualChartPalette.Resolve(idx),
+                ColorHex: ChartSemanticPalette.ResolveForSeriesKey(series.SeriesKey, idx),
                 Points: series.Points
                     .OrderBy(p => p.Month)
                     .Select(p => new AnnualChartPoint(p.Month, p.DeltaVsPreviousMonthCents))
@@ -113,7 +113,7 @@ public static class AnnualChartDatasetAdapter
                 Label: x.DisplayName,
                 RawValueCents: x.ValueCents,
                 Percentage: (x.ValueCents * 100m) / total,
-                ColorHex: AnnualChartPalette.Resolve(idx)))
+                ColorHex: ChartSemanticPalette.ResolveIndexed(idx)))
             .ToList();
     }
 
@@ -154,7 +154,7 @@ public static class AnnualChartDatasetAdapter
                 Label: x.DisplayName,
                 RawValueCents: x.ValueCents,
                 Percentage: (x.ValueCents * 100m) / total,
-                ColorHex: AnnualChartPalette.Resolve(idx)))
+                ColorHex: ChartSemanticPalette.ResolveIndexed(idx)))
             .ToList();
     }
 
@@ -191,7 +191,7 @@ public static class AnnualChartDatasetAdapter
                 Label: x.DisplayName,
                 RawValueCents: x.ValueCents,
                 Percentage: (x.ValueCents * 100m) / total,
-                ColorHex: AnnualChartPalette.Resolve(idx)))
+                ColorHex: ChartSemanticPalette.ResolveIndexed(idx)))
             .ToList();
     }
 
@@ -229,7 +229,7 @@ public static class AnnualChartDatasetAdapter
                 Label: x.DisplayName,
                 RawValueCents: x.ValueCents,
                 Percentage: (x.ValueCents * 100m) / total,
-                ColorHex: AnnualChartPalette.Resolve(idx)))
+                ColorHex: ChartSemanticPalette.ResolveIndexed(idx)))
             .ToList();
     }
 

@@ -3,7 +3,7 @@
     cursor: pointer;
     width: 3.2rem;
     height: 2.35rem;
-    color: #fff;
+    color: var(--ff-color-white);
     position: absolute;
     top: 0.55rem;
     right: 1rem;
@@ -37,7 +37,7 @@
 .ff-nav-settings-button:focus-visible {
     background-color: rgba(79, 164, 255, 0.2);
     border-color: rgba(79, 164, 255, 0.75);
-    color: #fff;
+    color: var(--ff-color-white);
 }
 
 .bi {
@@ -64,7 +64,7 @@
 }
 
 .nav-item ::deep .nav-link.ff-nav-link {
-    color: #c7d5ea;
+    color: var(--ff-text-muted);
     background: transparent;
     border: 1px solid transparent;
     border-radius: 12px;
@@ -80,7 +80,7 @@
 .nav-item ::deep a.nav-link.ff-nav-link.active {
     background: linear-gradient(180deg, rgba(79, 164, 255, 0.3), rgba(79, 164, 255, 0.12));
     border-color: rgba(79, 164, 255, 0.65);
-    color: #edf4ff;
+    color: var(--ff-text-strong);
 }
 
 .nav-quick-entry ::deep a.nav-link.ff-nav-link.active {
@@ -91,7 +91,7 @@
 .nav-item ::deep .nav-link.ff-nav-link:hover {
     background-color: rgba(79, 164, 255, 0.12);
     border-color: rgba(79, 164, 255, 0.35);
-    color: #edf4ff;
+    color: var(--ff-text-strong);
 }
 
 .nav-economic-state {
