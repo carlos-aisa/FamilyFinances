@@ -213,6 +213,7 @@ jobs:
           $version = "${{ steps.get_version.outputs.VERSION }}"
           $resultJson = ./tools/installer/windows/build-installer.ps1 -Version $version -Configuration Release
           $result = $resultJson | ConvertFrom-Json
+          $workspace = (Resolve-Path $env:GITHUB_WORKSPACE).Path
 
           if (-not (Test-Path $result.InstallerMsi)) {
             throw "MSI installer artifact not found: $($result.InstallerMsi)"
@@ -222,8 +223,35 @@ jobs:
             throw "Setup bootstrapper artifact not found: $($result.InstallerSetupExe)"
           }
 
-          echo "INSTALLER_SETUP_EXE=$($result.InstallerSetupExe)" >> $env:GITHUB_OUTPUT
-          echo "INSTALLER_MSI=$($result.InstallerMsi)" >> $env:GITHUB_OUTPUT
+          $setupAbsolute = (Resolve-Path $result.InstallerSetupExe).Path
+          $msiAbsolute = (Resolve-Path $result.InstallerMsi).Path
+          $setupRelative = [System.IO.Path]::GetRelativePath($workspace, $setupAbsolute).Replace('\', '/')
+          $msiRelative = [System.IO.Path]::GetRelativePath($workspace, $msiAbsolute).Replace('\', '/')
+
+          Write-Host "Release setup artifact: $setupRelative"
+          Write-Host "Release MSI artifact: $msiRelative"
+
+          echo "INSTALLER_SETUP_EXE=$setupRelative" >> $env:GITHUB_OUTPUT
+          echo "INSTALLER_MSI=$msiRelative" >> $env:GITHUB_OUTPUT
+
+      - name: Verify release artifact paths
+        shell: pwsh
+        run: |
+          $setup = "${{ steps.build_installer.outputs.INSTALLER_SETUP_EXE }}"
+          $msi = "${{ steps.build_installer.outputs.INSTALLER_MSI }}"
+          Write-Host "Setup artifact path: $setup"
+          Write-Host "MSI artifact path: $msi"
+
+          if (-not (Test-Path $setup)) {
+            throw "Setup artifact does not exist: $setup"
+          }
+
+          if (-not (Test-Path $msi)) {
+            throw "MSI artifact does not exist: $msi"
+          }
+
+          Write-Host "Artifacts found. Dist directory snapshot:"
+          Get-ChildItem dist -File | Select-Object Name, Length, LastWriteTime
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
