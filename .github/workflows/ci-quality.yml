@@ -43,7 +43,7 @@ jobs:
           reportgenerator \
             -reports:"**/TestResults/**/coverage.cobertura.xml" \
             -targetdir:"coveragereport" \
-            -reporttypes:"MarkdownSummaryGithub;TextSummary"
+            -reporttypes:"MarkdownSummaryGithub;TextSummary;Cobertura"
 
           if [ -f "coveragereport/SummaryGithub.md" ]; then
             cat coveragereport/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
@@ -54,29 +54,20 @@ jobs:
         shell: bash
         run: |
           python - <<'PY'
-          import glob
           import os
           import xml.etree.ElementTree as ET
 
-          report_paths = glob.glob("**/coverage.cobertura.xml", recursive=True)
+          merged_report = "coveragereport/Cobertura.xml"
           total_valid = 0
           total_covered = 0
 
-          for path in report_paths:
-              try:
-                  root = ET.parse(path).getroot()
-              except Exception:
-                  continue
-
-              try:
-                  total_valid += int(float(root.attrib.get("lines-valid", "0")))
-              except Exception:
-                  pass
-
-              try:
-                  total_covered += int(float(root.attrib.get("lines-covered", "0")))
-              except Exception:
-                  pass
+          try:
+              root = ET.parse(merged_report).getroot()
+              total_valid = int(float(root.attrib.get("lines-valid", "0")))
+              total_covered = int(float(root.attrib.get("lines-covered", "0")))
+          except Exception:
+              total_valid = 0
+              total_covered = 0
 
           percentage = (total_covered / total_valid * 100.0) if total_valid > 0 else 0.0
 
@@ -111,7 +102,7 @@ jobs:
             else
               echo "- Push run: artifact upload skipped to reduce storage usage."
             fi
-            echo "- Total line coverage: ${{ steps.coverage.outputs.percentage }}% (${{ steps.coverage.outputs.covered }}/${{ steps.coverage.outputs.valid }} lines)."
+            echo "- Total line coverage (merged): ${{ steps.coverage.outputs.percentage }}% (${{ steps.coverage.outputs.covered }}/${{ steps.coverage.outputs.valid }} lines)."
             echo "- Coverage summary is included above in this run summary."
           } >> "$GITHUB_STEP_SUMMARY"
 

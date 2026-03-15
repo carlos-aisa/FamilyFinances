@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+  <Bundle Name="FamilyFinances Setup"
+          Manufacturer="FamilyFinances"
+          Version="$(var.ProductVersion)"
+          UpgradeCode="3EA76174-5EA6-4745-8964-AC8B3BA1639B">
+    <BootstrapperApplication>
+      <bal:WixStandardBootstrapperApplication
+        Theme="hyperlinkLicense"
+        LicenseUrl="https://github.com/carlos-aisa/FamilyFinances/blob/main/LICENSE" />
+    </BootstrapperApplication>
+
+    <util:FileSearch
+      Id="AspNetCoreModuleV2Search"
+      Path="[ProgramFiles64Folder]IIS\Asp.Net Core Module\V2\aspnetcorev2.dll"
+      Result="exists"
+      Variable="AspNetCoreModuleV2Installed" />
+
+    <Chain>
+      <ExePackage
+        Id="DotNetHostingBundle90"
+        DisplayName=".NET 9 Hosting Bundle"
+        Name="dotnet-hosting-9.0-win.exe"
+        SourceFile="$(var.HostingBundleSourcePath)"
+        DownloadUrl="https://aka.ms/dotnet/9.0/dotnet-hosting-win.exe"
+        InstallArguments="/install /quiet /norestart"
+        RepairArguments="/repair /quiet /norestart"
+        Compressed="no"
+        PerMachine="yes"
+        Permanent="yes"
+        Vital="yes"
+        DetectCondition="AspNetCoreModuleV2Installed" />
+
+      <MsiPackage
+        Id="FamilyFinancesMsi"
+        SourceFile="$(var.InstallerMsiPath)"
+        Visible="no"
+        Vital="yes" />
+    </Chain>
+  </Bundle>
+</Wix>

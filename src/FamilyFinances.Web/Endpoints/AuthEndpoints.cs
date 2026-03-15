@@ -22,17 +22,22 @@ public static class AuthEndpoints
         CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request?.Email) || string.IsNullOrWhiteSpace(request?.Password))
-            return Results.BadRequest(new { error = "Email and password are required" });
+            return Results.BadRequest(new { error = "Login failed" });
 
         var api = factory.CreateClient("FamilyFinancesApi");
         var response = await api.PostAsJsonAsync("api/v1/auth/login", request, ct);
         
         if (!response.IsSuccessStatusCode)
         {
-            var errorContent = await response.Content.ReadAsStringAsync(ct);
+            var statusCode = (int)response.StatusCode;
+            if (statusCode is StatusCodes.Status400BadRequest or StatusCodes.Status401Unauthorized or StatusCodes.Status403Forbidden)
+            {
+                return Results.Json(new { error = "Login failed" }, statusCode: statusCode);
+            }
+
             return Results.Problem(
-                statusCode: (int)response.StatusCode,
-                detail: $"Authentication failed: {errorContent}");
+                statusCode: statusCode,
+                detail: "Authentication failed");
         }
 
         var payload = await response.Content.ReadFromJsonAsync<LoginResponse>(cancellationToken: ct);

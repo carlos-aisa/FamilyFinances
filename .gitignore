@@ -408,8 +408,6 @@ FodyWeavers.xsd
 # Windows distribution artifacts
 publish-temp/
 publish_compare*/
-dist/FamilyFinances-v*/
-dist/legacy-layout-*/
-dist/smoke-extract-*/
-dist/*.zip
+dist/*
+!dist/.gitkeep
 screenshots/Captura de pantalla 2026-03-01 151046.png

@@ -5,6 +5,7 @@ namespace FamilyFinances.Api.Features.Packaging;
 public static class PackagedConfiguration
 {
     public const string ConfigRootEnvironmentVariable = "FF_CONFIG_ROOT";
+    public const string RuntimeRootEnvironmentVariable = "FF_RUNTIME_ROOT";
 
     public static string? ResolveConfigRoot(string? configuredRoot = null)
     {
@@ -12,6 +13,15 @@ public static class PackagedConfiguration
         if (string.IsNullOrWhiteSpace(candidate))
         {
             candidate = Environment.GetEnvironmentVariable(ConfigRootEnvironmentVariable);
+        }
+
+        if (string.IsNullOrWhiteSpace(candidate))
+        {
+            var runtimeRoot = Environment.GetEnvironmentVariable(RuntimeRootEnvironmentVariable);
+            if (!string.IsNullOrWhiteSpace(runtimeRoot))
+            {
+                candidate = Path.Combine(runtimeRoot, "config", "api");
+            }
         }
 
         if (string.IsNullOrWhiteSpace(candidate))

@@ -1,0 +1,13 @@
+<Project Sdk="WixToolset.Sdk/4.0.5">
+  <PropertyGroup>
+    <OutputType>Bundle</OutputType>
+    <Platform>x64</Platform>
+    <Cultures>en-US</Cultures>
+    <DefineConstants>ProductVersion=$(ProductVersion);InstallerMsiPath=$(InstallerMsiPath);HostingBundleSourcePath=$(HostingBundleSourcePath)</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.Bal.wixext" Version="4.0.5" />
+    <PackageReference Include="WixToolset.Util.wixext" Version="4.0.5" />
+  </ItemGroup>
+</Project>

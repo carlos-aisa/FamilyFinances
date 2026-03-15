@@ -79,7 +79,7 @@ Rollback guidance for visual regressions:
 - bUnit (web component tests)
 - `Microsoft.AspNetCore.Mvc.Testing` (integration tests)
 - Coverlet collector
-- GitHub Actions (quality, security scanning, and tag-driven Windows release)
+- GitHub Actions (quality, security scanning, and auto-versioned Windows release)
 - Docker/PostgreSQL: not wired as default runtime in current codebase (see setup notes)
 - Cypress: not committed in the repository as of now (setup path provided below)
 
@@ -179,37 +179,28 @@ dotnet run --project src/FamilyFinances.Web
 Frontend URL:
 - `http://localhost:5019`
 
-### Windows ZIP Distribution (Shared Runtime Layout)
+### Windows Installer Distribution
 
-Build the portable Windows package:
+Build the installer-first package:
 
 ```bash
-powershell -ExecutionPolicy Bypass -File .\build-windows-dist.ps1 -Version 0.6.7 -Configuration Release
+powershell -ExecutionPolicy Bypass -File .\tools\installer\windows\build-installer.ps1 -Version 0.9.7 -Configuration Release
 ```
 
-The generated ZIP keeps a single shared runtime root for API and Web binaries:
+Outputs:
 
 ```text
-dist/FamilyFinances-v<version>-win-x64/
-  Start FamilyFinances.bat
-  Stop FamilyFinances.bat
-  FamilyFinances.Api.exe
-  FamilyFinances.Web.exe
-  *.dll / *.deps.json / *.runtimeconfig.json
-  config/api/appsettings*.json + web.config
-  config/web/appsettings*.json + web.config
-  wwwroot/
-  data/
-  logs/
+dist/FamilyFinances-v<version>-win-x64-msi-layout/
+dist/FamilyFinances-v<version>-win-x64-setup.exe       # primary installer (bootstrapper web)
+dist/FamilyFinances-v<version>-win-x64.msi             # raw MSI artifact
 ```
 
-Operational flow:
-- Start with `Start FamilyFinances.bat` (API first, Web second).
-- Stop with `Stop FamilyFinances.bat`.
-- Web endpoint remains `http://localhost:5019`; API remains `http://localhost:5084`.
-
-Maintainer rollback note:
-- To roll back to the legacy package layout, restore packaging scripts/workflow that publish separate full `api/` and `web/` runtime trees.
+Runtime behavior:
+- Web is provisioned under IIS.
+- API is provisioned as Windows Service.
+- Default exposure is local-only.
+- LAN access is opt-in and managed from Settings.
+- Setup bootstrapper installs .NET 9 Hosting Bundle automatically (web download) when ANCM is missing.
 
 6. Testing Setup
 
@@ -240,8 +231,9 @@ Current workflow split:
   - Triggers: PR to `main`, push to `main`/`develop`, weekly schedule
   - Publishes CodeQL results to repository code scanning (auto-skipped on private repos without Code Security/GHAS).
 - `.github/workflows/release-windows.yml`
-  - Triggers: push tags `v*.*.*` for release packaging/publish
-  - Includes pre-publish ZIP cleanup with keep count `2`.
+  - Triggers: push to `main` for release packaging/publish with automatic version/tag generation
+  - Publishes setup bootstrapper (`*-setup.exe`) and raw MSI
+  - Includes pre-publish cleanup with keep count `2` for managed asset patterns
   - Includes optional manual cleanup via `workflow_dispatch`.
 - `.github/workflows/actions-artifacts-cleanup.yml`
   - Triggers: daily schedule + manual dispatch

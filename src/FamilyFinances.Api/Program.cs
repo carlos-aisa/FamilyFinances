@@ -1,12 +1,19 @@
 // src/FamilyFinances.Api/Program.cs
 using Asp.Versioning;
+using FamilyFinances.Api.Features.HostOps;
 using FamilyFinances.Api.Features.Packaging;
 using FamilyFinances.Infrastructure;
 using FamilyFinances.Infrastructure.Persistence;
 using Serilog;
 using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.Hosting.WindowsServices;
 
 var builder = WebApplication.CreateBuilder(args);
+
+if (OperatingSystem.IsWindows())
+{
+    builder.Host.UseWindowsService();
+}
 
 PackagedConfiguration.Apply(builder.Configuration, builder.Environment.EnvironmentName);
 
@@ -39,6 +46,7 @@ builder.Services
 
 // Infrastructure services (DbContext, Identity, AuthN, AuthZ policies)
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddSingleton<ILanHostOperationsService, ScriptLanHostOperationsService>();
 
 // Health checks (include DB check)
 builder.Services.AddHealthChecks()

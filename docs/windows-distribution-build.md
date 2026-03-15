@@ -1,54 +1,87 @@
 # Windows Distribution Build Guide
 
-This document explains how to build and publish the Windows ZIP distribution for FamilyFinances.
+This document explains how to build and publish the Windows installer-first distribution for FamilyFinances.
 
 ## Overview
 
-The Windows ZIP distribution is a self-contained package that allows users to run the app without installing .NET separately.
+The release flow now publishes:
+- Primary artifact: setup bootstrapper (`*-setup.exe`) that installs Hosting Bundle if needed.
+- Secondary artifact: raw MSI package (`*.msi`) with interactive install defaults and elevated host provisioning.
 
-## Distribution Structure (Shared Runtime Layout)
-
-```text
-FamilyFinances-v<version>-win-x64/
-  Start FamilyFinances.bat
-  Stop FamilyFinances.bat
-  README.txt
-  FamilyFinances.Api.exe
-  FamilyFinances.Web.exe
-  *.dll / *.deps.json / *.runtimeconfig.json
-  config/
-    api/appsettings.json
-    api/appsettings.Production.json
-    web/appsettings.json
-    web/appsettings.Production.json
-  data/
-  logs/
-  wwwroot/
-```
+Installer mode provisions:
+- `FamilyFinances.Web` in IIS.
+- `FamilyFinances.Api` as Windows Service.
+- Local-only default exposure with LAN opt-in.
 
 ## Building Locally
 
 ### Prerequisites
 - .NET 9 SDK
 - PowerShell 5.1 or later
-- Windows 10/11
+- Windows 10/11 with administrative privileges for install actions
 
 ### Build command
 
 ```powershell
-.\build-windows-dist.ps1 -Version "0.6.7" -Configuration Release
+.\tools\installer\windows\build-installer.ps1 -Version "0.9.7" -Configuration Release
 ```
 
 Output:
-- Folder: `dist/FamilyFinances-v0.6.7-win-x64/`
-- ZIP: `dist/FamilyFinances-v0.6.7-win-x64.zip`
+- `dist/FamilyFinances-v0.9.7-win-x64-msi-layout/`
+- `dist/FamilyFinances-v0.9.7-win-x64-setup.exe`
+- `dist/FamilyFinances-v0.9.7-win-x64.msi`
 
-### Local smoke check
+## MSI Source Layout
 
-```cmd
-cd dist\FamilyFinances-v0.6.7-win-x64
-Start FamilyFinances.bat
-Stop FamilyFinances.bat
+```text
+FamilyFinances-v<version>-win-x64-msi-layout/
+  constants.ps1
+  FamilyFinances.Api.exe
+  FamilyFinances.Web.exe
+  config/api/*
+  config/web/*
+  ...
+  installer-scripts/
+    Assert-InstallerPreconditions.ps1
+    Invoke-MsiConfigureInstall.ps1
+    Invoke-MsiConfigureUninstall.ps1
+    Set-ManagedRuntimeConfig.ps1
+    Register-ApiService.ps1
+    Configure-WebIisSite.ps1
+    Set-LanAccess.ps1
+    ...
+```
+
+## Install and Uninstall
+
+### Install
+
+Install with defaults:
+
+```powershell
+.\dist\FamilyFinances-v0.9.7-win-x64-setup.exe
+```
+
+Install with parameter overrides:
+
+```powershell
+msiexec /i .\dist\FamilyFinances-v0.9.7-win-x64.msi INSTALLDIR="C:\Program Files\FamilyFinances" RUNTIMEROOT="C:\ProgramData\FamilyFinances" ENABLEIISIFMISSING=1
+```
+
+Notes:
+- The setup bootstrapper performs a web download of .NET 9 Hosting Bundle only when `AspNetCoreModuleV2` is missing.
+- Use raw MSI only for advanced/manual scenarios where prerequisites are already handled.
+
+Uninstall (data preserved by default):
+
+```powershell
+msiexec /x .\dist\FamilyFinances-v0.9.7-win-x64.msi
+```
+
+Uninstall with runtime data cleanup:
+
+```powershell
+msiexec /x .\dist\FamilyFinances-v0.9.7-win-x64.msi MSIREMOVEDATA=1
 ```
 
 ## GitHub Actions Release Flow
@@ -57,51 +90,51 @@ Windows release packaging is handled by:
 - `.github/workflows/release-windows.yml`
 
 Trigger policy:
-- Automatic packaging and release publish only on version tags `v*.*.*`.
+- Automatic packaging and release publish on push to `main`.
+- Workflow computes the next patch tag (`vX.Y.Z`) from existing semantic tags.
 - Optional manual cleanup path via `workflow_dispatch`.
 
 Release workflow behavior:
-1. Pre-clean old release ZIP assets before publishing (keep latest 2 historical ZIPs).
-2. Build and validate distribution.
-3. Run ZIP smoke test.
-4. Create/update GitHub Release and attach ZIP.
+1. Pre-clean old managed release assets before publishing.
+2. Build installer package (`tools/installer/windows/build-installer.ps1`).
+3. Validate setup bootstrapper and MSI artifacts exist.
+4. Publish setup bootstrapper first and MSI second.
 
 Retention behavior:
-- Cleanup targets ZIP assets matching `FamilyFinances-v*-win-x64.zip`.
-- Pre-clean keeps only 2 previous ZIP assets.
-- After publishing the new ZIP, the recent set is expected to be 3 total (new + two previous).
+- Cleanup targets managed installer assets:
+  - `FamilyFinances-v*-win-x64-setup.exe`
+  - `FamilyFinances-v*-win-x64.msi`
+- Pre-clean keeps only 2 previous releases for managed asset patterns.
+- Legacy ZIP cleanup pattern may remain for historical assets, but new releases are installer-only.
 
-## Creating a Release
+## Security Baseline
 
-```bash
-git tag v0.6.7
-git push origin v0.6.7
-```
+- API binding is loopback-only in production installer mode.
+- Local-only access is default.
+- LAN access is opt-in and HTTPS-only.
+- LAN firewall allowance is private profile only.
+- Runtime JWT signing key is generated per installation when missing/default.
 
-The release workflow will package and publish the ZIP automatically.
+## Rollback Guidance
 
-## Runtime Configuration Notes
-
-API production config:
-- `src/FamilyFinances.Api/appsettings.Production.json`
-
-Web production config:
-- `src/FamilyFinances.Web/appsettings.Production.json`
-
-Packaged runtime config files are isolated under:
-- `config/api/*`
-- `config/web/*`
+If installer rollout has issues:
+1. Keep runtime data path intact for continuity and backup validation.
+2. Run installer repair/reinstall using the same MSI line.
+3. Preserve runtime data path for recovery/migration.
 
 ## Troubleshooting
 
-### Build fails
-- Verify SDK: `dotnet --version`
-- Run `dotnet restore` before building.
+### Install fails on prerequisite checks
+- Run PowerShell as Administrator.
+- Ensure IIS features can be enabled on the host.
+- Verify `dotnet --info` works.
 
-### Distribution start issues
-- Check ports `5084` and `5019`.
-- Check logs under `logs/`.
-- Confirm executables are not blocked by local security policies.
+### Service or IIS startup failures
+- Verify Windows Service `FamilyFinances.Api` status.
+- Verify IIS site/app pool `FamilyFinances.Web` status.
+- Check runtime logs under managed runtime root.
 
-### Database path issues
-- Packaged mode writes runtime DB under `%LOCALAPPDATA%\FamilyFinances\data\` through startup script configuration.
+### LAN access issues
+- Confirm LAN mode is enabled in `/settings`.
+- Confirm private-profile firewall rule exists for configured HTTPS port.
+- Confirm mobile device trusts the locally generated root certificate.

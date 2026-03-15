@@ -4,11 +4,13 @@
 @using Microsoft.Extensions.Localization
 @using Microsoft.JSInterop
 @using FamilyFinances.Web.Features.Localization
+@using FamilyFinances.Web.Features.HostOps
 @using FamilyFinances.Web
 
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
 @inject IStringLocalizer<SharedResource> L
+@inject ILanHostOperationsService LanHostOps
 
 <AuthorizeView>
     <Authorized>
@@ -92,6 +94,93 @@
                     </div>
                 </div>
             </div>
+
+            <AuthorizeView Roles="Admin" Context="adminCtx">
+                <Authorized>
+                    <div class="col-12">
+                        <div class="card shadow-sm ff-panel ff-settings-card">
+                            <div class="card-body">
+                                <h5 class="card-title">@L["Settings_Network_Title"]</h5>
+                                <p class="text-muted mb-3">@L["Settings_Network_Desc"]</p>
+
+                                @if (!string.IsNullOrWhiteSpace(_networkMessage))
+                                {
+                                    <div class="alert @(_networkError ? "alert-danger" : "alert-info") mb-3" data-testid="settings-network-message">
+                                        @_networkMessage
+                                    </div>
+                                }
+
+                                <div class="form-check form-switch mb-3">
+                                    <input id="settings-lan-toggle"
+                                           class="form-check-input"
+                                           type="checkbox"
+                                           checked="@_lanEnabled"
+                                           @onchange="OnLanToggleChanged"
+                                           disabled="@(_isNetworkBusy || !_lanOperationsAllowed)"
+                                           data-testid="settings-lan-toggle" />
+                                    <label class="form-check-label" for="settings-lan-toggle">
+                                        @L["Settings_Network_EnableLan"]
+                                    </label>
+                                </div>
+
+                                <div class="row g-3">
+                                    <div class="col-12 col-md-4">
+                                        <label class="form-label fw-semibold" for="settings-lan-host">@L["Settings_Network_HostLabel"]</label>
+                                        <input id="settings-lan-host"
+                                               class="form-control"
+                                               value="@_lanHostName"
+                                               @onchange="OnLanHostChanged"
+                                               disabled="@(_isNetworkBusy || !_lanOperationsAllowed)"
+                                               data-testid="settings-lan-host" />
+                                    </div>
+                                    <div class="col-12 col-md-3">
+                                        <label class="form-label fw-semibold" for="settings-lan-port">@L["Settings_Network_PortLabel"]</label>
+                                        <input id="settings-lan-port"
+                                               class="form-control"
+                                               type="number"
+                                               min="1025"
+                                               max="65535"
+                                               value="@_lanPort"
+                                               @onchange="OnLanPortChanged"
+                                               disabled="@(_isNetworkBusy || !_lanOperationsAllowed)"
+                                               data-testid="settings-lan-port" />
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                        <label class="form-label fw-semibold">@L["Settings_Network_LanUrl"]</label>
+                                        <div class="form-control-plaintext" data-testid="settings-lan-url">
+                                            @LanUrl
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-3 d-flex gap-2 flex-wrap">
+                                    <button type="button"
+                                            class="btn btn-primary"
+                                            @onclick="ApplyLanSettingsAsync"
+                                            disabled="@(_isNetworkBusy || !_lanOperationsAllowed)"
+                                            data-testid="settings-network-apply">
+                                        @L["Settings_Network_Apply"]
+                                    </button>
+                                    <button type="button"
+                                            class="btn btn-outline-secondary"
+                                            @onclick="RegenerateCertificateAsync"
+                                            disabled="@(_isNetworkBusy || !_lanOperationsAllowed)"
+                                            data-testid="settings-network-regenerate">
+                                        @L["Settings_Network_RegenerateCert"]
+                                    </button>
+                                </div>
+
+                                <div class="small text-muted mt-3" data-testid="settings-network-cert">
+                                    @L["Settings_Network_CertThumb", _certificateThumb ?? L["Settings_Network_CertMissing"]]
+                                </div>
+                                <div class="small text-muted">
+                                    @L["Settings_Network_MobileGuide"]
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </Authorized>
+            </AuthorizeView>
         </div>
     </Authorized>
     <NotAuthorized>
@@ -106,22 +195,39 @@
     private string _theme = "dark";
     private bool _isThemeBusy = true;
     private bool _isCultureBusy = true;
+    private bool _isNetworkBusy = true;
+    private bool _networkError;
+    private string? _networkMessage;
+    private bool _lanEnabled;
+    private int _lanPort = 5443;
+    private string _lanHostName = Environment.MachineName;
+    private string? _certificateThumb;
+    private bool _lanOperationsAllowed = true;
     private string _selectedCulture = WebLocalizationOptions.DefaultCulture;
 
     private string CurrentThemeLabel => _theme == "light" ? L["Settings_Theme_Light"] : L["Settings_Theme_Dark"];
+    private string LanUrl => $"https://{_lanHostName}:{_lanPort}";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender)
             return;
 
+        await LoadThemeAsync();
+        await LoadCultureAsync();
+        await LoadLanStatusAsync();
+
+        StateHasChanged();
+    }
+
+    private async Task LoadThemeAsync()
+    {
         try
         {
             var theme = await JS.InvokeAsync<string>("themeHelper.getTheme");
-            if (string.Equals(theme, "light", StringComparison.OrdinalIgnoreCase))
-                _theme = "light";
-            else
-                _theme = "dark";
+            _theme = string.Equals(theme, "light", StringComparison.OrdinalIgnoreCase)
+                ? "light"
+                : "dark";
         }
         catch
         {
@@ -131,7 +237,10 @@
         {
             _isThemeBusy = false;
         }
+    }
 
+    private async Task LoadCultureAsync()
+    {
         try
         {
             var persistedCulture = await JS.InvokeAsync<string>("cultureHelper.getCulture");
@@ -145,8 +254,40 @@
         {
             _isCultureBusy = false;
         }
+    }
 
-        StateHasChanged();
+    private async Task LoadLanStatusAsync()
+    {
+        try
+        {
+            var status = await LanHostOps.GetStatusAsync();
+            _lanEnabled = status.Enabled;
+            _lanPort = status.HttpsPort;
+            _lanHostName = string.IsNullOrWhiteSpace(status.HostName) ? Environment.MachineName : status.HostName;
+            _certificateThumb = status.CertificateThumb;
+            _lanOperationsAllowed = !status.AccessLimited;
+
+            if (status.AccessLimited)
+            {
+                _networkError = true;
+                _networkMessage = L["Settings_Network_ElevationRequired"];
+            }
+            else
+            {
+                _networkMessage = null;
+                _networkError = false;
+            }
+        }
+        catch (Exception)
+        {
+            _lanOperationsAllowed = false;
+            _networkError = true;
+            _networkMessage = L["Settings_Network_LoadError"];
+        }
+        finally
+        {
+            _isNetworkBusy = false;
+        }
     }
 
     private async Task SetThemeAsync(string theme)
@@ -171,7 +312,6 @@
     }
 
     private Task SetDarkThemeAsync() => SetThemeAsync("dark");
-
     private Task SetLightThemeAsync() => SetThemeAsync("light");
 
     private async Task OnCultureChanged(ChangeEventArgs args)
@@ -196,6 +336,119 @@
         }
 
         Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
+    }
+
+    private Task OnLanToggleChanged(ChangeEventArgs args)
+    {
+        _lanEnabled = args.Value is bool value && value;
+        return Task.CompletedTask;
+    }
+
+    private Task OnLanHostChanged(ChangeEventArgs args)
+    {
+        _lanHostName = string.IsNullOrWhiteSpace(args.Value?.ToString())
+            ? Environment.MachineName
+            : args.Value!.ToString()!;
+        return Task.CompletedTask;
+    }
+
+    private Task OnLanPortChanged(ChangeEventArgs args)
+    {
+        if (int.TryParse(args.Value?.ToString(), out var port))
+        {
+            _lanPort = port;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private async Task ApplyLanSettingsAsync()
+    {
+        _isNetworkBusy = true;
+        _networkMessage = null;
+        _networkError = false;
+
+        try
+        {
+            if (!_lanOperationsAllowed)
+            {
+                _networkError = true;
+                _networkMessage = L["Settings_Network_ElevationRequired"];
+                return;
+            }
+
+            var result = await LanHostOps.ApplyAsync(
+                new LanAccessRequest(_lanEnabled, _lanPort, _lanHostName, false),
+                actor: "settings-ui");
+
+            if (!result.Succeeded)
+            {
+                _networkError = true;
+                _networkMessage = result.Message;
+                return;
+            }
+
+            if (result.Status is not null)
+            {
+                _lanEnabled = result.Status.Enabled;
+                _lanPort = result.Status.HttpsPort;
+                _lanHostName = string.IsNullOrWhiteSpace(result.Status.HostName) ? Environment.MachineName : result.Status.HostName;
+                _certificateThumb = result.Status.CertificateThumb;
+            }
+
+            _networkMessage = L["Settings_Network_ApplySuccess"];
+        }
+        catch (Exception)
+        {
+            _networkError = true;
+            _networkMessage = L["Settings_Network_ApplyError"];
+        }
+        finally
+        {
+            _isNetworkBusy = false;
+        }
+    }
+
+    private async Task RegenerateCertificateAsync()
+    {
+        _isNetworkBusy = true;
+        _networkMessage = null;
+        _networkError = false;
+
+        try
+        {
+            if (!_lanOperationsAllowed)
+            {
+                _networkError = true;
+                _networkMessage = L["Settings_Network_ElevationRequired"];
+                return;
+            }
+
+            var result = await LanHostOps.RegenerateCertificateAsync(_lanPort, _lanHostName, "settings-ui");
+            if (!result.Succeeded)
+            {
+                _networkError = true;
+                _networkMessage = result.Message;
+                return;
+            }
+
+            if (result.Status is not null)
+            {
+                _certificateThumb = result.Status.CertificateThumb;
+                _lanEnabled = result.Status.Enabled;
+            }
+
+            _networkMessage = L["Settings_Network_RegenerateSuccess"];
+        }
+        catch (Exception)
+        {
+            _networkError = true;
+            _networkMessage = L["Settings_Network_RegenerateError"];
+        }
+        finally
+        {
+            _isNetworkBusy = false;
+        }
     }
 
     private string GetThemeButtonClass(string theme)
