@@ -2091,6 +2091,57 @@
   <data name="Settings_Title" xml:space="preserve">
     <value>Configuración</value>
   </data>
+  <data name="Settings_Network_Title" xml:space="preserve">
+    <value>Acceso de red</value>
+  </data>
+  <data name="Settings_Network_Desc" xml:space="preserve">
+    <value>El modo por defecto es solo local. Habilita LAN solo cuando sea necesario.</value>
+  </data>
+  <data name="Settings_Network_EnableLan" xml:space="preserve">
+    <value>Habilitar acceso desde red local (LAN)</value>
+  </data>
+  <data name="Settings_Network_HostLabel" xml:space="preserve">
+    <value>Nombre de host LAN</value>
+  </data>
+  <data name="Settings_Network_PortLabel" xml:space="preserve">
+    <value>Puerto HTTPS</value>
+  </data>
+  <data name="Settings_Network_LanUrl" xml:space="preserve">
+    <value>URL LAN</value>
+  </data>
+  <data name="Settings_Network_Apply" xml:space="preserve">
+    <value>Aplicar ajustes LAN</value>
+  </data>
+  <data name="Settings_Network_RegenerateCert" xml:space="preserve">
+    <value>Regenerar certificado</value>
+  </data>
+  <data name="Settings_Network_CertThumb" xml:space="preserve">
+    <value>Huella del certificado: {0}</value>
+  </data>
+  <data name="Settings_Network_CertMissing" xml:space="preserve">
+    <value>no disponible</value>
+  </data>
+  <data name="Settings_Network_MobileGuide" xml:space="preserve">
+    <value>El acceso móvil requiere confiar el certificado raíz local en cada dispositivo.</value>
+  </data>
+  <data name="Settings_Network_LoadError" xml:space="preserve">
+    <value>No se pudo cargar el estado de red.</value>
+  </data>
+  <data name="Settings_Network_ElevationRequired" xml:space="preserve">
+    <value>Los cambios de acceso LAN requieren permisos de administrador en este equipo. Ejecuta la reparación del instalador como Administrador.</value>
+  </data>
+  <data name="Settings_Network_ApplySuccess" xml:space="preserve">
+    <value>Ajustes de red actualizados.</value>
+  </data>
+  <data name="Settings_Network_ApplyError" xml:space="preserve">
+    <value>Error al actualizar los ajustes de red.</value>
+  </data>
+  <data name="Settings_Network_RegenerateSuccess" xml:space="preserve">
+    <value>Certificado regenerado correctamente.</value>
+  </data>
+  <data name="Settings_Network_RegenerateError" xml:space="preserve">
+    <value>Error al regenerar el certificado.</value>
+  </data>
   <data name="TransactionCreate_Amount" xml:space="preserve">
     <value>Importe</value>
   </data>

@@ -1,4 +1,4 @@
-﻿# Build and Package FamilyFinances for Windows Distribution
+﻿# Build FamilyFinances runtime layout for Windows installer packaging
 # Shared-runtime layout (single runtime root, app-specific config directories)
 
 param(
@@ -10,7 +10,7 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "FamilyFinances Windows Distribution Builder" -ForegroundColor Cyan
+Write-Host "FamilyFinances Windows Runtime Layout Builder" -ForegroundColor Cyan
 Write-Host "Version: $Version" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
@@ -147,9 +147,6 @@ function Validate-Distribution {
     param([Parameter(Mandatory = $true)] [string]$DistRoot)
 
     $requiredFiles = @(
-        "Start FamilyFinances.bat",
-        "Stop FamilyFinances.bat",
-        "README.txt",
         "FamilyFinances.Api.exe",
         "FamilyFinances.Web.exe",
         "FamilyFinances.Api.deps.json",
@@ -198,12 +195,12 @@ function Validate-Distribution {
 
 # Clean previous distribution
 if (Test-Path $DistDir) {
-    Write-Host "[1/9] Cleaning previous distribution..." -ForegroundColor Yellow
+    Write-Host "[1/8] Cleaning previous distribution..." -ForegroundColor Yellow
     Remove-Item $DistDir -Recurse -Force
 }
 
 # Create distribution structure
-Write-Host "[2/9] Creating distribution folders..." -ForegroundColor Yellow
+Write-Host "[2/8] Creating distribution folders..." -ForegroundColor Yellow
 New-Item -ItemType Directory -Path $DistDir -Force | Out-Null
 New-Item -ItemType Directory -Path "$DistDir\data" -Force | Out-Null
 New-Item -ItemType Directory -Path "$DistDir\logs" -Force | Out-Null
@@ -211,7 +208,7 @@ New-Item -ItemType Directory -Path "$DistDir\config\api" -Force | Out-Null
 New-Item -ItemType Directory -Path "$DistDir\config\web" -Force | Out-Null
 
 # Publish API
-Write-Host "[3/9] Publishing API (win-x64, self-contained)..." -ForegroundColor Yellow
+Write-Host "[3/8] Publishing API (win-x64, self-contained)..." -ForegroundColor Yellow
 dotnet publish $ApiProject `
     --configuration $Configuration `
     --runtime win-x64 `
@@ -226,7 +223,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 # Publish Web
-Write-Host "[4/9] Publishing Web (win-x64, self-contained)..." -ForegroundColor Yellow
+Write-Host "[4/8] Publishing Web (win-x64, self-contained)..." -ForegroundColor Yellow
 dotnet publish $WebProject `
     --configuration $Configuration `
     --runtime win-x64 `
@@ -241,7 +238,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 # Merge publish files into shared runtime root
-Write-Host "[5/9] Merging publish outputs into shared runtime root..." -ForegroundColor Yellow
+Write-Host "[5/8] Merging publish outputs into shared runtime root..." -ForegroundColor Yellow
 $conflicts = New-Object 'System.Collections.Generic.List[string]'
 Merge-PublishTree -SourceRoot $ApiPublishDir -TargetRoot $DistDir -SourceTag "api" -Conflicts $conflicts
 Merge-PublishTree -SourceRoot $WebPublishDir -TargetRoot $DistDir -SourceTag "web" -Conflicts $conflicts
@@ -253,39 +250,28 @@ if ($conflicts.Count -gt 0) {
 }
 
 # Copy app-specific config files
-Write-Host "[6/9] Copying app-specific configuration files..." -ForegroundColor Yellow
+Write-Host "[6/8] Copying app-specific configuration files..." -ForegroundColor Yellow
 Copy-AppConfigFiles -SourceRoot $ApiPublishDir -DistRoot $DistDir -App "api"
 Copy-AppConfigFiles -SourceRoot $WebPublishDir -DistRoot $DistDir -App "web"
 
-# Copy scripts and documentation
-Write-Host "[7/9] Copying scripts and documentation..." -ForegroundColor Yellow
-Copy-Item -Path "$DistBaseDir\Start FamilyFinances.bat" -Destination $DistDir -Force
-Copy-Item -Path "$DistBaseDir\Stop FamilyFinances.bat" -Destination $DistDir -Force
-Copy-Item -Path "$DistBaseDir\README.txt" -Destination $DistDir -Force
-
-# Validate output and cleanup temporary folders
-Write-Host "[8/9] Validating distribution contents and cleaning temporary files..." -ForegroundColor Yellow
-Validate-Distribution -DistRoot $DistDir
-Remove-Item (Join-Path $RootDir "publish-temp") -Recurse -Force -ErrorAction SilentlyContinue
-
-# Create ZIP archive
-Write-Host "[9/9] Creating ZIP archive..." -ForegroundColor Yellow
+# Ensure stale fallback ZIP is not carried forward
+Write-Host "[7/8] Removing stale ZIP fallback artifact (if present)..." -ForegroundColor Yellow
 $ZipPath = Join-Path $DistBaseDir "FamilyFinances-v$Version-win-x64.zip"
 if (Test-Path $ZipPath) {
     Remove-Item $ZipPath -Force
 }
 
-Compress-Archive -Path $DistDir -DestinationPath $ZipPath -Force
+# Validate output and cleanup temporary folders
+Write-Host "[8/8] Validating distribution contents and cleaning temporary files..." -ForegroundColor Yellow
+Validate-Distribution -DistRoot $DistDir
+Remove-Item (Join-Path $RootDir "publish-temp") -Recurse -Force -ErrorAction SilentlyContinue
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Green
 Write-Host "Build Complete!" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "Distribution folder: $DistDir" -ForegroundColor White
-Write-Host "ZIP archive:         $ZipPath" -ForegroundColor White
+Write-Host "Runtime layout folder: $DistDir" -ForegroundColor White
 Write-Host ""
-Write-Host "To test locally, navigate to:" -ForegroundColor Yellow
-Write-Host "  $DistDir" -ForegroundColor Yellow
-Write-Host "And run: Start FamilyFinances.bat" -ForegroundColor Yellow
+Write-Host "This layout is consumed by the MSI build pipeline." -ForegroundColor Yellow
 Write-Host ""

@@ -61,13 +61,8 @@
 </div>
 
 @code {
-#if DEBUG
-    private string _email = "admin@familyfinances.local";
-    private string _password = "Admin123!";
-#else
     private string _email = "";
     private string _password = "";
-#endif
     private bool _isBusy;
     private bool _jsLoaded;
     private string? _error;

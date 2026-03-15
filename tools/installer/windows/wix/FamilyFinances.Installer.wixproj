@@ -1,0 +1,25 @@
+<Project Sdk="WixToolset.Sdk/4.0.5">
+  <PropertyGroup>
+    <OutputType>Package</OutputType>
+    <Platform>x64</Platform>
+    <Cultures>en-US</Cultures>
+    <DefineConstants>ProductVersion=$(ProductVersion);MsiSourceDir=$(MsiSourceDir)</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.Heat" Version="4.0.5" />
+    <PackageReference Include="WixToolset.UI.wixext" Version="4.0.5" />
+    <PackageReference Include="WixToolset.Util.wixext" Version="4.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <HarvestDirectory Include="$(MsiSourceDir)">
+      <DirectoryRefId>INSTALLDIR</DirectoryRefId>
+      <ComponentGroupName>HarvestedPayload</ComponentGroupName>
+      <PreprocessorVariable>MsiSourceDir</PreprocessorVariable>
+      <SuppressCom>true</SuppressCom>
+      <SuppressRegistry>true</SuppressRegistry>
+      <SuppressRootDirectory>true</SuppressRootDirectory>
+    </HarvestDirectory>
+  </ItemGroup>
+</Project>

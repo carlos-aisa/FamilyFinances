@@ -27,10 +27,22 @@
     font-size: 1.03rem;
     font-weight: 650;
     letter-spacing: 0.02em;
+    color: var(--ff-text-strong);
 }
 
 .ff-nav-settings-button {
+    width: 2.25rem;
+    height: 2.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border-radius: 10px;
+    border-width: 1px;
+    border-style: solid;
     border-color: rgba(166, 182, 207, 0.45);
+    color: var(--ff-text-strong);
+    background-color: rgba(12, 24, 38, 0.28);
 }
 
 .ff-nav-settings-button:hover,
@@ -112,6 +124,10 @@
     border: 1px solid rgba(166, 182, 207, 0.18);
 }
 
+.nav-economic-state-preview .text-muted {
+    color: rgba(214, 226, 245, 0.84) !important;
+}
+
 .nav-economic-state-preview strong {
     display: block;
     font-size: 0.95rem;
@@ -124,6 +140,75 @@
 
 .navbar-toggler:checked ~ .nav-scrollable {
     display: block;
+}
+
+[data-bs-theme="light"] .navbar-toggler {
+    color: rgb(34, 55, 84);
+    border-color: rgba(70, 97, 136, 0.42);
+    background: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%2834, 55, 84, 0.86%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2.2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") no-repeat center/1.6rem rgba(255, 255, 255, 0.88);
+}
+
+[data-bs-theme="light"] .navbar-toggler:checked {
+    background-color: rgba(79, 164, 255, 0.28);
+}
+
+[data-bs-theme="light"] .top-row.ff-nav-top {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(245, 248, 252, 0.86));
+    border-bottom-color: rgba(124, 141, 167, 0.32);
+}
+
+[data-bs-theme="light"] .navbar-brand.ff-nav-brand {
+    color: rgb(31, 47, 69);
+}
+
+[data-bs-theme="light"] .ff-nav-settings-button {
+    border-color: rgba(70, 97, 136, 0.35);
+    background-color: rgba(255, 255, 255, 0.72);
+    color: rgb(34, 55, 84);
+}
+
+[data-bs-theme="light"] .ff-nav-settings-button:hover,
+[data-bs-theme="light"] .ff-nav-settings-button:focus-visible {
+    background-color: rgba(79, 164, 255, 0.18);
+    border-color: rgba(50, 112, 192, 0.6);
+    color: rgb(26, 44, 69);
+}
+
+[data-bs-theme="light"] .nav-item ::deep .nav-link.ff-nav-link {
+    color: rgb(49, 68, 95);
+}
+
+[data-bs-theme="light"] .nav-item ::deep a.nav-link.ff-nav-link.active {
+    background: linear-gradient(180deg, rgba(79, 164, 255, 0.22), rgba(79, 164, 255, 0.09));
+    border-color: rgba(54, 121, 204, 0.45);
+    color: rgb(28, 44, 64);
+}
+
+[data-bs-theme="light"] .nav-item ::deep .nav-link.ff-nav-link:hover {
+    background-color: rgba(40, 98, 184, 0.09);
+    border-color: rgba(40, 98, 184, 0.3);
+    color: rgb(31, 47, 69);
+}
+
+[data-bs-theme="light"] .nav-economic-state {
+    border-top-color: rgba(124, 141, 167, 0.35);
+}
+
+[data-bs-theme="light"] .nav-economic-state-preview {
+    background: linear-gradient(180deg, rgba(233, 239, 247, 0.95), rgba(221, 229, 240, 0.96));
+    border-color: rgba(126, 145, 173, 0.48);
+}
+
+[data-bs-theme="light"] .nav-economic-state-preview .text-muted {
+    color: rgb(49, 70, 97) !important;
+}
+
+[data-bs-theme="light"] .nav-economic-state-preview .text-success {
+    color: rgb(15, 122, 69) !important;
+}
+
+[data-bs-theme="light"] .nav-economic-state-preview .text-danger {
+    color: rgb(184, 51, 72) !important;
 }
 
 @media (min-width: 641px) {

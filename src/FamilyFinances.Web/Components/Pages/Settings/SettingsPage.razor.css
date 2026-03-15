@@ -11,3 +11,10 @@
 .ff-settings-grid .btn-group .btn {
     min-width: 7rem;
 }
+
+.ff-settings-grid .form-control-plaintext {
+    border: 1px dashed rgba(255, 255, 255, 0.16);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    min-height: 2.5rem;
+}

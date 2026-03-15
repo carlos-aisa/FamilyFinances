@@ -2064,6 +2064,57 @@
   <data name="Settings_Title" xml:space="preserve">
     <value>Settings</value>
   </data>
+  <data name="Settings_Network_Title" xml:space="preserve">
+    <value>Network Access</value>
+  </data>
+  <data name="Settings_Network_Desc" xml:space="preserve">
+    <value>Default mode is local-only. Enable LAN access only when required.</value>
+  </data>
+  <data name="Settings_Network_EnableLan" xml:space="preserve">
+    <value>Enable access from local network (LAN)</value>
+  </data>
+  <data name="Settings_Network_HostLabel" xml:space="preserve">
+    <value>LAN host name</value>
+  </data>
+  <data name="Settings_Network_PortLabel" xml:space="preserve">
+    <value>HTTPS port</value>
+  </data>
+  <data name="Settings_Network_LanUrl" xml:space="preserve">
+    <value>LAN URL</value>
+  </data>
+  <data name="Settings_Network_Apply" xml:space="preserve">
+    <value>Apply LAN settings</value>
+  </data>
+  <data name="Settings_Network_RegenerateCert" xml:space="preserve">
+    <value>Regenerate certificate</value>
+  </data>
+  <data name="Settings_Network_CertThumb" xml:space="preserve">
+    <value>Certificate thumbprint: {0}</value>
+  </data>
+  <data name="Settings_Network_CertMissing" xml:space="preserve">
+    <value>not available</value>
+  </data>
+  <data name="Settings_Network_MobileGuide" xml:space="preserve">
+    <value>Mobile access requires trusting the local root certificate on each device.</value>
+  </data>
+  <data name="Settings_Network_LoadError" xml:space="preserve">
+    <value>Could not load network state.</value>
+  </data>
+  <data name="Settings_Network_ElevationRequired" xml:space="preserve">
+    <value>LAN changes require administrator permissions on this machine. Run installer repair as Administrator.</value>
+  </data>
+  <data name="Settings_Network_ApplySuccess" xml:space="preserve">
+    <value>Network settings updated.</value>
+  </data>
+  <data name="Settings_Network_ApplyError" xml:space="preserve">
+    <value>Failed to update network settings.</value>
+  </data>
+  <data name="Settings_Network_RegenerateSuccess" xml:space="preserve">
+    <value>Certificate regenerated successfully.</value>
+  </data>
+  <data name="Settings_Network_RegenerateError" xml:space="preserve">
+    <value>Failed to regenerate certificate.</value>
+  </data>
   <data name="TransactionCreate_Amount" xml:space="preserve">
     <value>Amount</value>
   </data>

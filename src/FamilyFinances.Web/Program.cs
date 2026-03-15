@@ -6,6 +6,7 @@ using FamilyFinances.Web.Auth;
 using FamilyFinances.Web.Components;
 using FamilyFinances.Web.Endpoints;
 using FamilyFinances.Web.Features.Localization;
+using FamilyFinances.Web.Features.HostOps;
 using FamilyFinances.Web.Features.Packaging;
 using FamilyFinances.Web.State;
 using Microsoft.AspNetCore.Localization;
@@ -15,6 +16,8 @@ using System.Net.Http.Headers;
 
 var builder = WebApplication.CreateBuilder(args);
 
+const string DefaultApiBaseUrl = "http://127.0.0.1:5084/";
+
 PackagedConfiguration.Apply(builder.Configuration, builder.Environment.EnvironmentName);
 
 builder.Services.AddRazorComponents()
@@ -22,12 +25,20 @@ builder.Services.AddRazorComponents()
 builder.Services.AddLocalization();
 
 builder.Services.Configure<ApiClientOptions>(builder.Configuration.GetSection("Api"));
+builder.Services.PostConfigure<ApiClientOptions>(options =>
+{
+    if (string.IsNullOrWhiteSpace(options.BaseUrl))
+    {
+        options.BaseUrl = DefaultApiBaseUrl;
+    }
+});
 
 builder.Services.AddAuthorizationCore();
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddScoped<IApiTokenStore, ApiTokenStore>();
 builder.Services.AddScoped<ISessionInitializationService, SessionInitializationService>();
+builder.Services.AddScoped<ILanHostOperationsService, ApiLanHostOperationsService>();
 
 // API clients
 builder.Services.AddScoped<IAccountsApi, AccountsApi>();
@@ -47,7 +58,15 @@ builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
 builder.Services.AddHttpClient("FamilyFinancesApi", (sp, client) =>
 {
     var options = sp.GetRequiredService<IOptions<ApiClientOptions>>().Value;
-    client.BaseAddress = new Uri(options.BaseUrl);
+    var baseUrl = options.BaseUrl?.Trim();
+    if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var baseUri))
+    {
+        throw new InvalidOperationException(
+            $"Invalid Api:BaseUrl value '{baseUrl ?? "<null>"}'. " +
+            $"Expected an absolute URI such as '{DefaultApiBaseUrl}'.");
+    }
+
+    client.BaseAddress = baseUri;
     client.DefaultRequestHeaders.Accept.Add(
         new MediaTypeWithQualityHeaderValue("application/json"));
 });
@@ -86,6 +105,7 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.MapAuthEndpoints();
+app.MapLanHostOperationsEndpoints();
 
 app.Run();
 

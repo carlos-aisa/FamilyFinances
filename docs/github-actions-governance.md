@@ -19,8 +19,8 @@ The repository uses a split workflow model:
   - Trigger: PR (`main`), push (`main`, `develop`), weekly schedule.
   - Note: auto-skips on private repositories where Code Security/GHAS is not enabled.
 - `release-windows.yml`
-  - Purpose: tag-driven Windows ZIP packaging and release publishing.
-  - Trigger: push tags `v*.*.*` and optional manual ZIP cleanup via `workflow_dispatch`.
+  - Purpose: Windows installer-first packaging and release publishing with automatic release versioning.
+  - Trigger: push to `main` (auto-compute next `vX.Y.Z` patch tag) and optional manual managed-asset cleanup via `workflow_dispatch`.
 - `actions-artifacts-cleanup.yml`
   - Purpose: delete old Actions artifacts to control storage growth.
   - Trigger: daily schedule and optional manual cleanup via `workflow_dispatch`.
@@ -41,10 +41,14 @@ The repository uses a split workflow model:
 
 ## Storage and Retention Policy
 
-- Windows release packaging is tag-only to avoid unnecessary ZIP generation on branch pushes.
-- Release ZIP cleanup runs before publish in `release-windows.yml`.
-- ZIP retention policy keeps only 2 historical matching ZIP assets (`FamilyFinances-v*-win-x64.zip`).
-- Release ZIP is attached directly to GitHub Release (no duplicate Actions artifact upload).
+- Windows release packaging runs only on `main` pushes to avoid unnecessary installer generation on other branches.
+- Release asset cleanup runs before publish in `release-windows.yml`.
+- Retention policy keeps only 2 historical managed assets for:
+  - `FamilyFinances-v*-win-x64-setup.exe`
+  - `FamilyFinances-v*-win-x64.msi`
+- Setup bootstrapper (`*-setup.exe`) is attached as primary release artifact; MSI remains secondary raw artifact.
+- Runtime ZIP is not published by the active release flow (installer-only policy).
+- Legacy ZIP cleanup pattern may remain in cleanup scripts to remove historical assets.
 - CI artifact retention is intentionally low and PR-scoped for test/coverage evidence.
 - `actions-artifacts-cleanup.yml` performs scheduled/manual cleanup of old Actions artifacts.
 
