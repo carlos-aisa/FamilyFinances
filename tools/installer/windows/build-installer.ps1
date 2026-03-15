@@ -36,7 +36,7 @@ function Convert-ToMsiVersion {
 
 Push-Location $repoRoot
 try {
-    & ".\build-windows-dist.ps1" -Version $Version -Configuration $Configuration
+    & ".\build-windows-dist.ps1" -Version $Version -Configuration $Configuration | Out-Null
 
     & (Join-Path $PSScriptRoot "scripts\Publish-MsiLayout.ps1") `
         -Version $Version `
@@ -94,7 +94,7 @@ try {
 
     if (-not (Test-Path $hostingBundleSource)) {
         Write-Host "Downloading .NET 9 Hosting Bundle for web bootstrapper build..."
-        Invoke-WebRequest -Uri $hostingBundleUrl -OutFile $hostingBundleSource
+        Invoke-WebRequest -Uri $hostingBundleUrl -OutFile $hostingBundleSource | Out-Null
     }
 
     $setupOutputName = "FamilyFinances-v{0}-win-x64-setup" -f $Version
