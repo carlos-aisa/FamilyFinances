@@ -128,3 +128,10 @@ A change is done only when all items below are true:
 - Documentation impacted by the change is updated in English.
 - No secrets/sensitive data are introduced in code or logs.
 - Scope is limited to requested behavior; no speculative or unrelated changes remain.
+
+## 10. Optional OpenSpec + GStack Workflow Integration
+- OpenSpec remains the source of truth for artifact governance (`proposal/specs/design/tasks`).
+- GStack integration is optional and policy-driven via `.codex/opsx-gstack-policy.json`.
+- If policy is missing or invalid, baseline OpenSpec behavior must continue.
+- Release/deploy gstack skills are forbidden inside `opsx:*` orchestration.
+- See `openspec/OPSX_GSTACK_INTEGRATION.md` for activation, modes, mappings, evidence, and troubleshooting.
