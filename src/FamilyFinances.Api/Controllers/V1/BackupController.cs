@@ -2,6 +2,7 @@ using Asp.Versioning;
 using FamilyFinances.Application.Operations.BackupRestore.Dtos;
 using FamilyFinances.Application.Operations.BackupRestore.Exceptions;
 using FamilyFinances.Application.Operations.BackupRestore.Handlers;
+using Microsoft.Data.Sqlite;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using static FamilyFinances.Infrastructure.Identity.AuthConstants;
@@ -30,6 +31,16 @@ public sealed class BackupController : ControllerBase
         {
             return Conflict(new { error = ex.Message, reason = "OperationInProgress" });
         }
+    }
+
+    [HttpGet("database-info")]
+    public ActionResult<BackupDatabaseInfoDto> GetDatabaseInfo(
+        [FromServices] IConfiguration configuration,
+        [FromServices] IWebHostEnvironment hostEnvironment)
+    {
+        var connectionString = configuration.GetConnectionString("Default");
+        var databaseFilePath = ResolveDatabaseFilePath(connectionString, hostEnvironment.ContentRootPath);
+        return Ok(new BackupDatabaseInfoDto(databaseFilePath));
     }
 
     [HttpPost("restore/precheck")]
@@ -108,4 +119,35 @@ public sealed class BackupController : ControllerBase
 
         return null;
     }
+
+    private static string? ResolveDatabaseFilePath(string? connectionString, string contentRootPath)
+    {
+        if (string.IsNullOrWhiteSpace(connectionString))
+            return null;
+
+        try
+        {
+            var builder = new SqliteConnectionStringBuilder(connectionString);
+            if (string.IsNullOrWhiteSpace(builder.DataSource))
+                return null;
+
+            var dataSource = builder.DataSource.Trim();
+            if (string.Equals(dataSource, ":memory:", StringComparison.OrdinalIgnoreCase))
+                return dataSource;
+
+            if (Uri.TryCreate(dataSource, UriKind.Absolute, out var uri) && uri.IsFile)
+                return Path.GetFullPath(uri.LocalPath);
+
+            if (Path.IsPathRooted(dataSource))
+                return Path.GetFullPath(dataSource);
+
+            return Path.GetFullPath(Path.Combine(contentRootPath, dataSource));
+        }
+        catch (ArgumentException)
+        {
+            return null;
+        }
+    }
 }
+
+public sealed record BackupDatabaseInfoDto(string? DatabaseFilePath);

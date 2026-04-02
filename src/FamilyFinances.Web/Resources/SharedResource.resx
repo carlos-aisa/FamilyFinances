@@ -810,6 +810,15 @@
   <data name="BackupRestore_Subtitle" xml:space="preserve">
     <value>Export current data or restore from a validated backup package.</value>
   </data>
+  <data name="BackupRestore_DatabasePath_Title" xml:space="preserve">
+    <value>Database location</value>
+  </data>
+  <data name="BackupRestore_DatabasePath_Description" xml:space="preserve">
+    <value>Active SQLite file path used by the application.</value>
+  </data>
+  <data name="BackupRestore_DatabasePath_Unavailable" xml:space="preserve">
+    <value>Database path not available.</value>
+  </data>
   <data name="BackupRestore_Success_ApplySucceeded" xml:space="preserve">
     <value>Restore applied successfully at {0}.</value>
   </data>

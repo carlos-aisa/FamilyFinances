@@ -10,6 +10,12 @@ using Microsoft.Extensions.Hosting.WindowsServices;
 
 var builder = WebApplication.CreateBuilder(args);
 
+if (builder.Environment.IsDevelopment())
+{
+    // Keep local development endpoints stable regardless of selected launch profile.
+    builder.WebHost.UseUrls("http://localhost:5084", "https://localhost:7249");
+}
+
 if (OperatingSystem.IsWindows())
 {
     builder.Host.UseWindowsService();

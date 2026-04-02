@@ -269,16 +269,15 @@
 
         try
         {
-            _overview = await ReportsApi.GetDashboardOverviewAsync();
+            _overview = await ExecuteApiAsync(ct => ReportsApi.GetDashboardOverviewAsync(ct: ct));
+            if (_overview is null)
+                return;
+
             _monthlyIncomeVsExpenseSeries = BuildMonthlyIncomeExpenseSeries(_overview);
             _annualIncomeVsExpenseSeries = BuildAnnualIncomeExpenseSeries(_overview);
             _monthlyNetTrendSeries = BuildMonthlyNetTrendSeries(_overview);
             await LoadAnnualEvolutionSeriesAsync(_overview.AsOf.Year);
             _expenseCompositionSlices = BuildExpenseCompositionSlices(_overview);
-        }
-        catch (UnauthorizedAccessException)
-        {
-            _error = L["Reports_Error_Unauthorized"];
         }
         catch (Exception ex)
         {
@@ -408,8 +407,15 @@
 
     private async Task LoadAnnualEvolutionSeriesAsync(int year)
     {
-        var assetEvolution = await ReportsApi.GetStateEvolutionAsync(year, MonthlyEvolutionScope.AssetTotal);
-        var groupEvolution = await ReportsApi.GetStateEvolutionAsync(year, MonthlyEvolutionScope.AccountGroups);
+        var assetEvolution = await ExecuteApiAsync(
+            ct => ReportsApi.GetStateEvolutionAsync(year, MonthlyEvolutionScope.AssetTotal, ct));
+        if (assetEvolution is null)
+            return;
+
+        var groupEvolution = await ExecuteApiAsync(
+            ct => ReportsApi.GetStateEvolutionAsync(year, MonthlyEvolutionScope.AccountGroups, ct));
+        if (groupEvolution is null)
+            return;
 
         _assetAnnualEvolutionSeries = AnnualChartDatasetAdapter.BuildEndBalanceSeries(
             assetEvolution,
