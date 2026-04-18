@@ -82,7 +82,7 @@
 
                     <div class="col-md-2">
                         <label class="form-label">&nbsp;</label>
-                        <button class="btn btn-primary w-100" @onclick="LoadMovementsAsync" disabled="@_isBusy">
+                        <button class="btn btn-primary w-100" @onclick="ApplyFiltersAsync" disabled="@_isBusy">
                             @if (_isBusy)
                             {
                                 <span class="spinner-border spinner-border-sm me-1" role="status"></span>
@@ -143,9 +143,19 @@
                         <h5 class="mb-0">
                             <i class="bi bi-list-ul me-2"></i>@L["AccountMovements_Movements"]
                         </h5>
-                        <span class="badge bg-primary">
-                            @L["AccountMovements_ShowingOfTotal", _movements.Items.Count, _movements.TotalCount]
-                        </span>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-primary">
+                                @L["AccountMovements_ShowingRangeOfTotal", VisibleFromOrdinal, VisibleToOrdinal, _movements.TotalCount]
+                            </span>
+                            <div class="btn-group btn-group-sm" role="group" aria-label="@L["AccountMovements_PaginationActions"]">
+                                <button class="btn btn-outline-secondary" @onclick="LoadPreviousPageAsync" disabled="@(!CanGoPrevious)">
+                                    <i class="bi bi-chevron-left me-1"></i>@L["AccountMovements_PreviousPage"]
+                                </button>
+                                <button class="btn btn-outline-secondary" @onclick="LoadNextPageAsync" disabled="@(!CanGoNext)">
+                                    @L["AccountMovements_NextPage"]<i class="bi bi-chevron-right ms-1"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="card-body p-0">
@@ -228,13 +238,28 @@
                 </div>
 
                 <div class="card-footer bg-light">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <small class="text-muted">
-                            @L["AccountMovements_FooterShowing", _movements.Items.Count, _movements.TotalCount]
-                        </small>
-                        <small class="text-muted">
-                            <i class="bi bi-info-circle me-1"></i>@L["AccountMovements_ClickMovementHint"]
-                        </small>
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+                        <div class="d-flex align-items-center gap-3">
+                            <small class="text-muted">
+                                @L["AccountMovements_ShowingRangeOfTotal", VisibleFromOrdinal, VisibleToOrdinal, _movements.TotalCount]
+                            </small>
+                            <small class="text-muted">
+                                @L["AccountMovements_PageOf", _currentPage, TotalPages]
+                            </small>
+                        </div>
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="btn-group btn-group-sm" role="group" aria-label="@L["AccountMovements_PaginationActions"]">
+                                <button class="btn btn-outline-secondary" @onclick="LoadPreviousPageAsync" disabled="@(!CanGoPrevious)">
+                                    <i class="bi bi-chevron-left me-1"></i>@L["AccountMovements_PreviousPage"]
+                                </button>
+                                <button class="btn btn-outline-secondary" @onclick="LoadNextPageAsync" disabled="@(!CanGoNext)">
+                                    @L["AccountMovements_NextPage"]<i class="bi bi-chevron-right ms-1"></i>
+                                </button>
+                            </div>
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle me-1"></i>@L["AccountMovements_ClickMovementHint"]
+                            </small>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -348,12 +373,19 @@
     private DateOnly _toDate = DateHelper.GetCurrentMonthEnd();
     private string _searchQuery = string.Empty;
     private string? _activePreset = "this-month";
+    private int _currentPage = 1;
+    private readonly int _pageSize = 50;
 
     private bool _showReconcileModal;
     private bool _isReconciling;
     private string? _reconcileError;
     private readonly ReconcileModel _reconcileModel = new();
     private TransactionOriginContext _originContext = new(TransactionOrigin.AccountsMovements);
+    private bool CanGoPrevious => !_isBusy && _currentPage > 1;
+    private bool CanGoNext => !_isBusy && _movements is not null && VisibleToOrdinal < _movements.TotalCount;
+    private int VisibleFromOrdinal => _movements is null || _movements.Items.Count == 0 ? 0 : ((_currentPage - 1) * _pageSize) + 1;
+    private int VisibleToOrdinal => _movements is null || _movements.Items.Count == 0 ? 0 : ((_currentPage - 1) * _pageSize) + _movements.Items.Count;
+    private int TotalPages => _movements is null || _movements.TotalCount == 0 ? 1 : (int)Math.Ceiling(_movements.TotalCount / (double)_pageSize);
 
     private async Task HandlePresetSelected(DateRangePresets.DateRangePreset preset)
     {
@@ -362,7 +394,7 @@
         _toDate = to;
         _activePreset = preset.Type.ToString().ToLowerInvariant().Replace("_", "-");
 
-        await LoadMovementsAsync();
+        await ApplyFiltersAsync();
     }
 
     private void OnDateChanged()
@@ -373,6 +405,30 @@
     protected override async Task OnInitializedAsync()
     {
         _originContext = TransactionOriginContext.FromNavigation(Nav);
+        await LoadMovementsAsync();
+    }
+
+    private async Task ApplyFiltersAsync()
+    {
+        _currentPage = 1;
+        await LoadMovementsAsync();
+    }
+
+    private async Task LoadPreviousPageAsync()
+    {
+        if (!CanGoPrevious)
+            return;
+
+        _currentPage--;
+        await LoadMovementsAsync();
+    }
+
+    private async Task LoadNextPageAsync()
+    {
+        if (!CanGoNext)
+            return;
+
+        _currentPage++;
         await LoadMovementsAsync();
     }
 
@@ -390,8 +446,25 @@
             await ExecuteApiAsync(async ct =>
             {
                 var search = string.IsNullOrWhiteSpace(_searchQuery) ? null : _searchQuery.Trim();
+                while (true)
+                {
+                    _movements = await AccountsApi.GetMovementsAsync(
+                        Id,
+                        _fromDate,
+                        _toDate,
+                        search,
+                        _currentPage,
+                        _pageSize,
+                        ct);
 
-                _movements = await AccountsApi.GetMovementsAsync(Id, _fromDate, _toDate, search, 1, 50, ct);
+                    if (_movements.Items.Count == 0 && _movements.TotalCount > 0 && _currentPage > 1)
+                    {
+                        _currentPage--;
+                        continue;
+                    }
+
+                    break;
+                }
             });
         }
         catch (KeyNotFoundException)

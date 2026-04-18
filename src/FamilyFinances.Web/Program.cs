@@ -18,7 +18,10 @@ using System.Net.Sockets;
 var builder = WebApplication.CreateBuilder(args);
 
 const string DefaultApiBaseUrl = "http://127.0.0.1:5084/";
-const string DevelopmentApiHttpsBaseUrl = "https://localhost:7249/";
+const string DevelopmentApiHttpBaseUrl = "http://localhost:5184/";
+const string DevelopmentApiHttpsBaseUrl = "https://localhost:7349/";
+const int DevelopmentApiHttpPort = 5184;
+const int DevelopmentApiHttpsPort = 7349;
 
 PackagedConfiguration.Apply(builder.Configuration, builder.Environment.EnvironmentName);
 
@@ -31,7 +34,9 @@ builder.Services.PostConfigure<ApiClientOptions>(options =>
 {
     if (string.IsNullOrWhiteSpace(options.BaseUrl))
     {
-        options.BaseUrl = DefaultApiBaseUrl;
+        options.BaseUrl = builder.Environment.IsDevelopment()
+            ? DevelopmentApiHttpsBaseUrl
+            : DefaultApiBaseUrl;
     }
 
     if (!builder.Environment.IsDevelopment())
@@ -45,9 +50,9 @@ builder.Services.PostConfigure<ApiClientOptions>(options =>
     if (!isLocalHost)
         return;
 
-    var httpsAvailable = ApiClientEndpointProbe.CanReachTcpPort("127.0.0.1", 7249);
+    var httpsAvailable = ApiClientEndpointProbe.CanReachTcpPort("127.0.0.1", DevelopmentApiHttpsPort);
     if (string.Equals(configuredUri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
-        configuredUri.Port == 5084 &&
+        configuredUri.Port == DevelopmentApiHttpPort &&
         httpsAvailable)
     {
         options.BaseUrl = DevelopmentApiHttpsBaseUrl;
@@ -55,10 +60,10 @@ builder.Services.PostConfigure<ApiClientOptions>(options =>
     }
 
     if (string.Equals(configuredUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) &&
-        configuredUri.Port == 7249 &&
+        configuredUri.Port == DevelopmentApiHttpsPort &&
         !httpsAvailable)
     {
-        options.BaseUrl = DefaultApiBaseUrl;
+        options.BaseUrl = DevelopmentApiHttpBaseUrl;
     }
 });
 

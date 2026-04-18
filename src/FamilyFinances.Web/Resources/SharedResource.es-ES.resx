@@ -351,6 +351,21 @@
   <data name="AccountMovements_ShowingOfTotal" xml:space="preserve">
     <value>{0} de {1} total</value>
   </data>
+  <data name="AccountMovements_ShowingRangeOfTotal" xml:space="preserve">
+    <value>{0}-{1} de {2} total</value>
+  </data>
+  <data name="AccountMovements_PageOf" xml:space="preserve">
+    <value>Página {0} de {1}</value>
+  </data>
+  <data name="AccountMovements_PaginationActions" xml:space="preserve">
+    <value>Acciones de paginación</value>
+  </data>
+  <data name="AccountMovements_PreviousPage" xml:space="preserve">
+    <value>Anterior</value>
+  </data>
+  <data name="AccountMovements_NextPage" xml:space="preserve">
+    <value>Siguiente</value>
+  </data>
   <data name="AccountMovements_TableAmount" xml:space="preserve">
     <value>Importe</value>
   </data>

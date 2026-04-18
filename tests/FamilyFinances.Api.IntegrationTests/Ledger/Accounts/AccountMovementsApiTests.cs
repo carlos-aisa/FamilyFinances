@@ -170,6 +170,96 @@ public sealed class AccountMovementsApiTests
         // Should be ordered by date descending (newest first)
         result.Items[0].Description.Should().Be("Transaction 5");
         result.Items[1].Description.Should().Be("Transaction 4");
+        result.Items[0].RunningBalance.Should().Be(150.00m);
+        result.Items[1].RunningBalance.Should().Be(100.00m);
+    }
+
+    [Fact]
+    public async Task GetMovements_Pagination_MoreThanFiftyRows_KeepsRunningBalanceCorrectAcrossPages()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var bank = await TestHelpers.CreateAccountAsync(client, "Bank Account", "Asset", "Checking");
+        var expense = await TestHelpers.CreateAccountAsync(client, "Expenses", "Expense", "Other");
+
+        var start = new DateOnly(2026, 1, 1);
+        for (int i = 1; i <= 55; i++)
+        {
+            await CreateTransactionAsync(client, start.AddDays(i - 1).ToString("yyyy-MM-dd"), $"Movement {i:D2}", new[]
+            {
+                new { accountId = bank.Id, amountCents = 100, memo = $"Payment {i:D2}" },
+                new { accountId = expense.Id, amountCents = -100, memo = $"Expense {i:D2}" }
+            });
+        }
+
+        var firstPageResponse = await client.GetAsync(
+            $"/api/v1/accounts/{bank.Id}/movements?from=2026-01-01&to=2026-04-01&page=1&pageSize=50");
+        firstPageResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var firstPage = await firstPageResponse.Content.ReadFromJsonAsync<AccountMovementsDto>();
+
+        firstPage.Should().NotBeNull();
+        firstPage!.Items.Should().HaveCount(50);
+        firstPage.TotalCount.Should().Be(55);
+        firstPage.Items[0].Description.Should().Be("Movement 55");
+        firstPage.Items[0].RunningBalance.Should().Be(55.00m);
+        firstPage.Items[^1].Description.Should().Be("Movement 06");
+        firstPage.Items[^1].RunningBalance.Should().Be(6.00m);
+
+        var secondPageResponse = await client.GetAsync(
+            $"/api/v1/accounts/{bank.Id}/movements?from=2026-01-01&to=2026-04-01&page=2&pageSize=50");
+        secondPageResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var secondPage = await secondPageResponse.Content.ReadFromJsonAsync<AccountMovementsDto>();
+
+        secondPage.Should().NotBeNull();
+        secondPage!.Items.Should().HaveCount(5);
+        secondPage.TotalCount.Should().Be(55);
+        secondPage.Items[0].Description.Should().Be("Movement 05");
+        secondPage.Items[0].RunningBalance.Should().Be(5.00m);
+        secondPage.Items[^1].Description.Should().Be("Movement 01");
+        secondPage.Items[^1].RunningBalance.Should().Be(1.00m);
+    }
+
+    [Fact]
+    public async Task GetMovements_Pagination_WithFilters_KeepsRunningBalanceIndependentOfPageSize()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var bank = await TestHelpers.CreateAccountAsync(client, "Bank Account", "Asset", "Checking");
+        var expense = await TestHelpers.CreateAccountAsync(client, "Expenses", "Expense", "Other");
+
+        var start = new DateOnly(2026, 1, 1);
+        for (int i = 1; i <= 30; i++)
+        {
+            await CreateTransactionAsync(client, start.AddDays(i - 1).ToString("yyyy-MM-dd"), $"Filter movement {i:D2}", new[]
+            {
+                new { accountId = bank.Id, amountCents = 100, memo = $"Payment {i:D2}" },
+                new { accountId = expense.Id, amountCents = -100, memo = $"Expense {i:D2}" }
+            });
+        }
+
+        var page1Size20Response = await client.GetAsync(
+            $"/api/v1/accounts/{bank.Id}/movements?from=2026-01-01&to=2026-03-01&q=filter&page=1&pageSize=20");
+        page1Size20Response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var page1Size20 = await page1Size20Response.Content.ReadFromJsonAsync<AccountMovementsDto>();
+
+        var page2Size10Response = await client.GetAsync(
+            $"/api/v1/accounts/{bank.Id}/movements?from=2026-01-01&to=2026-03-01&q=filter&page=2&pageSize=10");
+        page2Size10Response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var page2Size10 = await page2Size10Response.Content.ReadFromJsonAsync<AccountMovementsDto>();
+
+        page1Size20.Should().NotBeNull();
+        page2Size10.Should().NotBeNull();
+        page1Size20!.TotalCount.Should().Be(30);
+        page2Size10!.TotalCount.Should().Be(30);
+
+        var movement15From20 = page1Size20.Items.Single(x => x.Description == "Filter movement 15");
+        var movement15From10 = page2Size10.Items.Single(x => x.Description == "Filter movement 15");
+
+        movement15From20.RunningBalance.Should().Be(15.00m);
+        movement15From10.RunningBalance.Should().Be(15.00m);
+        movement15From10.RunningBalance.Should().Be(movement15From20.RunningBalance);
     }
 
     [Fact]
@@ -227,6 +317,7 @@ public sealed class AccountMovementsApiTests
         string Description,
         string? PayeeName,
         decimal SignedAmount,
-        string? CounterpartyAccountName
+        string? CounterpartyAccountName,
+        decimal RunningBalance
     );
 }
