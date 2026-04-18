@@ -4,7 +4,10 @@ description: Archive multiple completed changes at once
 
 Archive multiple completed changes in a single operation.
 
-This skill allows you to batch-archive changes, handling spec conflicts intelligently by checking the codebase to determine what's actually implemented.
+This flow supports automated release handoff after bulk archive:
+- create or reuse a pull request
+- generate and push one semantic tag
+- choose tag bump using the highest release impact among archived changes
 
 **Input**: None required (prompts for selection)
 
@@ -12,228 +15,177 @@ This skill allows you to batch-archive changes, handling spec conflicts intellig
 
 1. **Get active changes**
 
-   Run `openspec list --json` to get all active changes.
+   Run `openspec list --json`.
 
    If no active changes exist, inform user and stop.
 
 2. **Prompt for change selection**
 
-   Use **AskUserQuestion tool** with multi-select to let user choose changes:
-   - Show each change with its schema
-   - Include an option for "All changes"
-   - Allow any number of selections (1+ works, 2+ is the typical use case)
+   Use **AskUserQuestion tool** with multi-select:
+   - Show each change with schema
+   - Include "All changes"
+   - Allow 1+ selections
 
-   **IMPORTANT**: Do NOT auto-select. Always let the user choose.
+   **IMPORTANT**: Do NOT auto-select.
 
-3. **Batch validation - gather status for all selected changes**
+3. **Batch validation for all selected changes**
 
    For each selected change, collect:
 
-   a. **Artifact status** - Run `openspec status --change "<name>" --json`
-      - Parse `schemaName` and `artifacts` list
-      - Note which artifacts are `done` vs other states
+   a. **Artifact status** via `openspec status --change "<name>" --json`
 
-   b. **Task completion** - Read `openspec/changes/<name>/tasks.md`
-      - Count `- [ ]` (incomplete) vs `- [x]` (complete)
-      - If no tasks file exists, note as "No tasks"
+   b. **Task completion** from `openspec/changes/<name>/tasks.md`
 
-   c. **Delta specs** - Check `openspec/changes/<name>/specs/` directory
-      - List which capability specs exist
-      - For each, extract requirement names (lines matching `### Requirement: <name>`)
+   c. **Delta specs** from `openspec/changes/<name>/specs/`
+
+   d. **Release impact type** from `openspec/changes/<name>/proposal.md`:
+
+   ```markdown
+   ## Release Impact
+
+   Type: <patch|minor|major>
+   Rationale: <short reason>
+   ```
+
+   Rules:
+   - If `Type` is present and valid, use it
+   - If missing/invalid, ask user explicitly for that change
+   - Never guess
 
 4. **Detect spec conflicts**
 
-   Build a map of `capability -> [changes that touch it]`:
-
-   ```
-   auth -> [change-a, change-b]  <- CONFLICT (2+ changes)
-   api  -> [change-c]            <- OK (only 1 change)
-   ```
-
-   A conflict exists when 2+ selected changes have delta specs for the same capability.
+   Build `capability -> [changes]` map.
+   Conflict exists when 2+ selected changes touch the same capability spec.
 
 5. **Resolve conflicts agentically**
 
-   **For each conflict**, investigate the codebase:
-
-   a. **Read the delta specs** from each conflicting change to understand what each claims to add/modify
-
-   b. **Search the codebase** for implementation evidence:
-      - Look for code implementing requirements from each delta spec
-      - Check for related files, functions, or tests
-
-   c. **Determine resolution**:
-      - If only one change is actually implemented -> sync that one's specs
-      - If both implemented -> apply in chronological order (older first, newer overwrites)
-      - If neither implemented -> skip spec sync, warn user
-
-   d. **Record resolution** for each conflict:
-      - Which change's specs to apply
-      - In what order (if both)
-      - Rationale (what was found in codebase)
+   For each conflict:
+   - Read conflicting delta specs
+   - Verify implementation evidence in codebase
+   - Decide sync order:
+     - one implemented -> sync that one
+     - both implemented -> chronological order (older first)
+     - neither implemented -> skip sync with warning
 
 6. **Show consolidated status table**
 
-   Display a table summarizing all changes:
-
-   ```
-   | Change               | Artifacts | Tasks | Specs   | Conflicts | Status |
-   |---------------------|-----------|-------|---------|-----------|--------|
-   | schema-management   | Done      | 5/5   | 2 delta | None      | Ready  |
-   | project-config      | Done      | 3/3   | 1 delta | None      | Ready  |
-   | add-oauth           | Done      | 4/4   | 1 delta | auth (!)  | Ready* |
-   | add-verify-skill    | 1 left    | 2/5   | None    | None      | Warn   |
-   ```
-
-   For conflicts, show the resolution:
-   ```
-   * Conflict resolution:
-     - auth spec: Will apply add-oauth then add-jwt (both implemented, chronological order)
-   ```
-
-   For incomplete changes, show warnings:
-   ```
-   Warnings:
-   - add-verify-skill: 1 incomplete artifact, 3 incomplete tasks
-   ```
+   Include at least:
+   - Change
+   - Artifacts
+   - Tasks
+   - Specs/conflicts
+   - Release impact (`patch|minor|major`)
+   - Status
 
 7. **Confirm batch operation**
 
-   Use **AskUserQuestion tool** with a single confirmation:
+   Ask once using **AskUserQuestion tool**:
+   - Archive all selected
+   - Archive only ready changes
+   - Cancel
 
-   - "Archive N changes?" with options based on status
-   - Options might include:
-     - "Archive all N changes"
-     - "Archive only N ready changes (skip incomplete)"
-     - "Cancel"
+8. **Execute archive per confirmed change**
 
-   If there are incomplete changes, make clear they'll be archived with warnings.
+   For each confirmed change:
+   - Sync specs when applicable
+   - Move to `openspec/changes/archive/YYYY-MM-DD-<name>`
+   - Track per-change result (success/failed/skipped)
 
-8. **Execute archive for each confirmed change**
+9. **Compute aggregate release bump**
 
-   Process changes in the determined order (respecting conflict resolution):
+   Use only successfully archived changes.
 
-   a. **Sync specs** if delta specs exist:
-      - Use the openspec-sync-specs approach (agent-driven intelligent merge)
-      - For conflicts, apply in resolved order
-      - Track if sync was done
+   Aggregate rule (highest wins):
+   - any `major` -> aggregate `major`
+   - else any `minor` -> aggregate `minor`
+   - else aggregate `patch`
 
-   b. **Perform the archive**:
-      ```bash
-      mkdir -p openspec/changes/archive
-      mv openspec/changes/<name> openspec/changes/archive/YYYY-MM-DD-<name>
-      ```
+   If no successful archives, skip release automation.
 
-   c. **Track outcome** for each change:
-      - Success: archived successfully
-      - Failed: error during archive (record error)
-      - Skipped: user chose not to archive (if applicable)
+10. **Create or reuse PR automatically**
 
-9. **Display summary**
+   - Ensure archive changes are committed
+   - Push current branch
+   - Resolve base from repository default branch
+   - Reuse existing open PR for `<head> -> <base>` when present
+   - Else create PR automatically
 
-   Show final results:
+   PR recommendations:
+   - Title: `release: <next-tag> - bulk archive`
+   - Body includes:
+     - archived changes list
+     - per-change release impact
+     - aggregate release impact
+     - sync/conflict summary
+     - warnings/failures
 
-   ```
-   ## Bulk Archive Complete
+11. **Create and push semantic tag automatically**
 
-   Archived 3 changes:
-   - schema-management-cli -> archive/2026-01-19-schema-management-cli/
-   - project-config -> archive/2026-01-19-project-config/
-   - add-oauth -> archive/2026-01-19-add-oauth/
+   - Compute next tag from latest `v*.*.*` using aggregate release impact
+   - Create annotated tag on current `HEAD`
+   - Push to `origin`
 
-   Skipped 1 change:
-   - add-verify-skill (user chose not to archive incomplete)
+   Collision handling:
+   - Refetch tags
+   - Recompute once
+   - Retry once
+   - Stop and report if still colliding
 
-   Spec sync summary:
-   - 4 delta specs synced to main specs
-   - 1 conflict resolved (auth: applied both in chronological order)
-   ```
+12. **Display summary**
 
-   If any failures:
-   ```
-   Failed 1 change:
-   - some-change: Archive directory already exists
-   ```
-
-**Conflict Resolution Examples**
-
-Example 1: Only one implemented
-```
-Conflict: specs/auth/spec.md touched by [add-oauth, add-jwt]
-
-Checking add-oauth:
-- Delta adds "OAuth Provider Integration" requirement
-- Searching codebase... found src/auth/oauth.ts implementing OAuth flow
-
-Checking add-jwt:
-- Delta adds "JWT Token Handling" requirement
-- Searching codebase... no JWT implementation found
-
-Resolution: Only add-oauth is implemented. Will sync add-oauth specs only.
-```
-
-Example 2: Both implemented
-```
-Conflict: specs/api/spec.md touched by [add-rest-api, add-graphql]
-
-Checking add-rest-api (created 2026-01-10):
-- Delta adds "REST Endpoints" requirement
-- Searching codebase... found src/api/rest.ts
-
-Checking add-graphql (created 2026-01-15):
-- Delta adds "GraphQL Schema" requirement
-- Searching codebase... found src/api/graphql.ts
-
-Resolution: Both implemented. Will apply add-rest-api specs first,
-then add-graphql specs (chronological order, newer takes precedence).
-```
+   Include:
+   - Archived changes
+   - Skipped/failed changes
+   - Spec sync/conflict summary
+   - Aggregate release impact
+   - Created tag
+   - PR URL
 
 **Output On Success**
 
-```
+```markdown
 ## Bulk Archive Complete
 
 Archived N changes:
 - <change-1> -> archive/YYYY-MM-DD-<change-1>/
 - <change-2> -> archive/YYYY-MM-DD-<change-2>/
 
-Spec sync summary:
-- N delta specs synced to main specs
-- No conflicts (or: M conflicts resolved)
+Release impact (aggregate): <patch|minor|major>
+Tag: <vX.Y.Z>
+Pull request: <url>
 ```
 
 **Output On Partial Success**
 
-```
+```markdown
 ## Bulk Archive Complete (partial)
 
 Archived N changes:
 - <change-1> -> archive/YYYY-MM-DD-<change-1>/
 
 Skipped M changes:
-- <change-2> (user chose not to archive incomplete)
+- <change-2> (reason)
 
 Failed K changes:
-- <change-3>: Archive directory already exists
+- <change-3>: <error>
+
+Release impact (aggregate): <patch|minor|major>
+Tag: <vX.Y.Z>
+Pull request: <url>
 ```
 
 **Output When No Changes**
 
-```
+```markdown
 ## No Changes to Archive
 
 No active changes found. Use `/opsx:new` to create a new change.
 ```
 
 **Guardrails**
-- Allow any number of changes (1+ is fine, 2+ is the typical use case)
-- Always prompt for selection, never auto-select
-- Detect spec conflicts early and resolve by checking codebase
-- When both changes are implemented, apply specs in chronological order
-- Skip spec sync only when implementation is missing (warn user)
-- Show clear per-change status before confirming
-- Use single confirmation for entire batch
-- Track and report all outcomes (success/skip/fail)
-- Preserve .openspec.yaml when moving to archive
-- Archive directory target uses current date: YYYY-MM-DD-<name>
-- If archive target exists, fail that change but continue with others
+- Always prompt for selection
+- Never guess release impact type for any change
+- Use highest impact rule (`major > minor > patch`) for bulk tag
+- Do not create tag if PR creation failed
+- If zero changes were archived successfully, skip PR/tag automation
+- Preserve `.openspec.yaml` when moving change directories

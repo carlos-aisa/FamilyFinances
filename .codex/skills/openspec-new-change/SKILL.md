@@ -20,117 +20,130 @@ Start a new change using the experimental artifact-driven approach.
    Use the **AskUserQuestion tool** (open-ended, no preset options) to ask:
    > "What change do you want to work on? Describe what you want to build or fix."
 
-   From their description, derive a kebab-case name (e.g., "add user authentication" → `add-user-auth`).
+   From their description, derive a kebab-case name (for example, "add user authentication" -> `add-user-auth`).
 
    **IMPORTANT**: Do NOT proceed without understanding what the user wants to build.
 
-2. **CRITICAL: Ask Detailed, In-Depth Questions**
+2. **CRITICAL: Ask detailed, in-depth questions**
 
-   **⚠️ The quality of future artifacts depends on the depth of information gathered now ⚠️**
+   The quality of future artifacts depends on the depth of information gathered now.
 
-   Before proceeding to create the change, you MUST ask thorough, detailed questions to gather ALL necessary information. The goal is to eliminate ambiguity and ensure future artifacts (proposal, design, specs, tasks) can be extremely explicit.
-
-   **Questions to Ask (adapt based on change type):**
+   Before proceeding to create the change, ask thorough questions to gather all necessary information.
 
    **UI/Frontend Changes:**
    - "Where exactly in the UI should this appear?" (specific page, exact location)
-   - "What's the navigation flow?" (from where → to where, with what parameters)
+   - "What is the navigation flow?" (from where -> to where, with what parameters)
    - "Should we reuse any existing pages/components? Which ones?"
-   - "What's the user interaction pattern?" (tap, swipe, modal, full-page)
+   - "What is the user interaction pattern?" (tap, swipe, modal, full-page)
    - "How should it look visually?" (describe or reference existing patterns)
-   - "Are there similar existing features we should maintain consistency with?"
+   - "Are there similar existing features we should stay consistent with?"
 
    **Data/Backend Changes:**
    - "What data needs to be stored?" (tables, columns, relationships)
    - "Are we extending existing tables or creating new ones?"
    - "What are the entities and their relationships?"
-   - "What calculations or business logic is involved?" (exact formulas)
+   - "What calculations or business logic are involved?" (exact formulas)
    - "What happens to existing data?" (migration strategy)
 
    **Feature Behavior:**
-   - "What's the expected behavior when the user does X?"
+   - "What is the expected behavior when the user does X?"
    - "What are the edge cases?" (empty states, errors, conflicts)
    - "What validations are needed?" (required fields, unique constraints, ranges)
    - "Should values be inferred automatically? Based on what logic?"
 
    **Integration Points:**
    - "Does this integrate with existing services/features? How?"
-   - "What existing code needs to be modified vs what's new?"
+   - "What existing code should be modified vs what is new?"
    - "Are there dependencies on other changes or features?"
 
-   **UX Consistency:**
-   - "How do similar features work in the app?"
-   - "What patterns should we follow for consistency?"
-   - "How do users currently accomplish similar tasks?"
+   **Release impact (mandatory):**
+   - Ask explicitly: "What release impact should this change have: `patch`, `minor`, or `major`?"
+   - Confirm the meaning:
+     - `patch`: bug fix or internal change, backward compatible
+     - `minor`: new backward-compatible functionality
+     - `major`: breaking or behaviorally incompatible change
 
-   **DO NOT accept vague answers.** If the user says "add a button", ask:
+   **DO NOT accept vague answers.**
+
+   If the user says "add a button", ask:
    - "Where exactly? Which page?"
    - "Where on that page? After what element?"
    - "What should it say?"
    - "What happens when the user taps it?"
 
    If the user says "make it like X", verify:
-   - "So we're reusing X component? Or creating something similar?"
-   - "What specifically are we keeping from X? What's different?"
+   - "So we are reusing X component? Or creating something similar?"
+   - "What specifically are we keeping from X? What is different?"
 
    **Goal**: By the end of this questioning, you should be able to mentally sketch:
-   - ✅ Complete navigation flows (page-by-page with parameters)
-   - ✅ Exact UI component locations and layouts
-   - ✅ Complete data model (tables, columns, relationships)
-   - ✅ All component reuse decisions (reuse vs modify vs create new)
-   - ✅ All behavior and inference logic (formulas, rules, defaults)
-   - ✅ Edge cases and error handling patterns
+   - Complete navigation flows
+   - Exact UI component locations and layouts
+   - Complete data model
+   - Component reuse decisions
+   - Behavior/inference logic
+   - Edge cases and error handling
 
-   **If you can't mentally sketch these, ask more questions.**
+   If you cannot mentally sketch these, ask more questions.
 
-   Suggest going to explore mode for complex changes:
-   > "This sounds like it might need some exploration to work through the details. Would you like to use explore mode first to think through the design before creating the change?"
+   Suggest explore mode for complex changes:
+   > "This sounds like it may need exploration to work through details. Want to use `opsx:explore` first?"
 
 3. **Determine the workflow schema**
 
    Use the default schema (omit `--schema`) unless the user explicitly requests a different workflow.
 
    **Use a different schema only if the user mentions:**
-   - A specific schema name → use `--schema <name>`
-   - "show workflows" or "what workflows" → run `openspec schemas --json` and let them choose
+   - A specific schema name -> use `--schema <name>`
+   - "show workflows" or "what workflows" -> run `openspec schemas --json` and let them choose
 
-   **Otherwise**: Omit `--schema` to use the default.
+   Otherwise, omit `--schema` to use the default.
 
-3. **Create the change directory**
+4. **Create the change directory**
    ```bash
    openspec new change "<name>"
    ```
    Add `--schema <name>` only if the user requested a specific workflow.
-   This creates a scaffolded change at `openspec/changes/<name>/` with the selected schema.
 
-4. **Show the artifact status**
+5. **Show the artifact status**
    ```bash
    openspec status --change "<name>"
    ```
-   This shows which artifacts need to be created and which are ready (dependencies satisfied).
 
-5. **Get instructions for the first artifact**
-   The first artifact depends on the schema (e.g., `proposal` for spec-driven).
+6. **Get instructions for the first artifact**
    Check the status output to find the first artifact with status "ready".
    ```bash
    openspec instructions <first-artifact-id> --change "<name>"
    ```
-   This outputs the template and context for creating the first artifact.
 
-6. **STOP and wait for user direction**
+7. **Require release impact metadata in proposal markdown**
+
+   Tell the user that `proposal.md` must include:
+
+   ```markdown
+   ## Release Impact
+
+   Type: <patch|minor|major>
+   Rationale: <short reason>
+   ```
+
+   `/opsx:archive` uses this section to auto-create PR and semantic tag.
+
+8. **STOP and wait for user direction**
 
 **Output**
 
 After completing the steps, summarize:
 - Change name and location
-- Schema/workflow being used and its artifact sequence
+- Schema/workflow and artifact sequence
 - Current status (0/N artifacts complete)
 - The template for the first artifact
-- Prompt: "Ready to create the first artifact? Just describe what this change is about and I'll draft it, or ask me to continue."
+- The required markdown block for `Release Impact`
+- Prompt: "Ready to create the first artifact? Just describe what this change is about and I will draft it, or ask me to continue."
 
 **Guardrails**
-- Do NOT create any artifacts yet - just show the instructions
+- Do NOT create artifacts yet
 - Do NOT advance beyond showing the first artifact template
-- If the name is invalid (not kebab-case), ask for a valid name
-- If a change with that name already exists, suggest continuing that change instead
-- Pass --schema if using a non-default workflow
+- If name is invalid (not kebab-case), ask for a valid name
+- If change already exists, suggest continuing that change instead
+- Pass `--schema` only when using a non-default workflow
+- Do NOT continue if release impact (`patch|minor|major`) is undefined
