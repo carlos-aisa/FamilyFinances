@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "mode": "off",
+  "allowlist": {
+    "explore": [
+      "gstack-office-hours",
+      "gstack-plan-ceo-review",
+      "gstack-plan-eng-review",
+      "gstack-plan-design-review"
+    ],
+    "apply": [
+      "gstack-review",
+      "gstack-qa",
+      "gstack-qa-only",
+      "gstack-design-review",
+      "gstack-cso",
+      "gstack-investigate",
+      "gstack-browse"
+    ],
+    "verify": [
+      "gstack-review",
+      "gstack-qa-only",
+      "gstack-cso",
+      "gstack-benchmark"
+    ]
+  },
+  "blocklist": [
+    "gstack-ship",
+    "gstack-land-and-deploy",
+    "gstack-setup-deploy"
+  ],
+  "strict": {
+    "requiredVerifyGates": [
+      "gstack-review",
+      "gstack-qa-only",
+      "gstack-cso"
+    ]
+  },
+  "browse": {
+    "enabled": true,
+    "allowedInPhases": [
+      "apply"
+    ],
+    "assistOnly": true,
+    "requiresExplicitRequest": true,
+    "advisoryOnly": true
+  },
+  "confirmation": {
+    "enabled": true,
+    "mode": "ask-per-invocation",
+    "promptTemplate": "Se va a ejecutar '{skill}' en fase '{phase}'. ¿Quieres que lo ejecute ahora?"
+  }
+}

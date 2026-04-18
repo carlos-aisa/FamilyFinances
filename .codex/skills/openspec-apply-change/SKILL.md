@@ -64,6 +64,42 @@ Implement tasks from an OpenSpec change.
    - Remaining tasks overview
    - Dynamic instruction from CLI
 
+5.5 **Optional GStack checkpoints (policy-driven)**
+
+   Use this only when `.codex/opsx-gstack-policy.json` enables it.
+
+   - If policy is missing: assume `mode=off`, run baseline OpenSpec apply flow.
+   - If policy is invalid or gstack is unavailable: warn and continue baseline OpenSpec apply flow.
+   - If mode is `assist` or `strict`:
+     - Only use `allowlist.apply`.
+     - Never run any `blocklist` skill.
+     - Before each gstack invocation:
+       - Notify user which skill is about to run and why.
+       - Request explicit confirmation when policy `confirmation.enabled=true` and `confirmation.mode=ask-per-invocation`.
+       - If confirmation is denied, skip that checkpoint and continue apply flow.
+     - Persist checkpoint output to:
+       - `openspec/changes/<name>/gstack-evidence.md`
+     - Keep task progression unchanged (`- [ ]` -> `- [x]`) regardless of checkpoint tooling.
+
+   **Apply phase default allowlist contract**
+   - `gstack-review`
+   - `gstack-qa`
+   - `gstack-qa-only`
+   - `gstack-design-review`
+   - `gstack-cso`
+   - `gstack-investigate`
+   - `gstack-browse`
+
+   **Hard blocklist contract**
+   - `gstack-ship`
+   - `gstack-land-and-deploy`
+   - `gstack-setup-deploy`
+
+   **Browse profile rule**
+   - `gstack-browse` is allowed only in apply flow.
+   - Treat browse as advisory diagnostics, never as a strict blocking gate.
+   - Use browse only for explicit UI automation/inspection requests.
+
 6. **CRITICAL: Trust the Documentation - DO NOT INVENT**
 
    **⚠️ Implementation Rule #1: Follow artifacts EXACTLY - do not improvise or "improve" ⚠️**

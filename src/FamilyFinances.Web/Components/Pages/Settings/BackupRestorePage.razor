@@ -40,6 +40,18 @@
             </div>
         </div>
 
+        <div class="card shadow-sm mb-4" data-testid="backup-restore-database-path-card">
+            <div class="card-header fw-semibold">@L["BackupRestore_DatabasePath_Title"]</div>
+            <div class="card-body">
+                <p class="text-muted mb-2">@L["BackupRestore_DatabasePath_Description"]</p>
+                <div class="font-monospace small text-break" data-testid="backup-restore-database-path">
+                    @(string.IsNullOrWhiteSpace(_databaseFilePath)
+                        ? L["BackupRestore_DatabasePath_Unavailable"]
+                        : _databaseFilePath)
+                </div>
+            </div>
+        </div>
+
         @if (!string.IsNullOrWhiteSpace(_successMessage))
         {
             <div class="alert alert-success" role="alert" data-testid="backup-restore-success">
@@ -230,6 +242,7 @@
     private string _restoreConfirmationText = string.Empty;
     private string? _successMessage;
     private string? _errorMessage;
+    private string? _databaseFilePath;
     private DateTimeOffset? _lastBackupCreatedAtUtc;
     private bool _isExporting;
     private bool _isPrechecking;
@@ -242,6 +255,12 @@
         _selectedFile is not null &&
         _precheckResult?.IsCompatible == true &&
         string.Equals(_restoreConfirmationText, "RESTORE", StringComparison.Ordinal);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var databaseInfo = await ExecuteApiAsync(ct => BackupApi.GetDatabaseInfoAsync(ct));
+        _databaseFilePath = databaseInfo?.DatabaseFilePath;
+    }
 
     private async Task CreateBackupAsync()
     {

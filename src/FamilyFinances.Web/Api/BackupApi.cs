@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using FamilyFinances.Application.Operations.BackupRestore.Dtos;
 using FamilyFinances.Web.Auth;
 using Microsoft.AspNetCore.Components.Forms;
@@ -10,6 +11,7 @@ namespace FamilyFinances.Web.Api;
 public sealed class BackupApi
 {
     private const long MaxUploadSizeBytes = 209_715_200; // 200 MB
+    private static readonly JsonSerializerOptions JsonReadOptions = new(JsonSerializerDefaults.Web);
 
     private readonly HttpClient _http;
     private readonly IApiTokenStore _tokenStore;
@@ -83,6 +85,19 @@ public sealed class BackupApi
         return dto ?? throw new InvalidOperationException("Failed to deserialize restore apply response.");
     }
 
+    public async Task<BackupDatabaseInfoDto?> GetDatabaseInfoAsync(CancellationToken ct = default)
+    {
+        var token = await GetRequiredTokenAsync(ct);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "api/v1/backup/database-info");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        using var response = await _http.SendAsync(request, ct);
+        await EnsureSuccessStatusAsync(response, ct);
+
+        return await TryReadJsonAsync<BackupDatabaseInfoDto>(response, ct);
+    }
+
     private async Task<string> GetRequiredTokenAsync(CancellationToken ct)
     {
         var token = _tokenStore.GetAccessToken();
@@ -149,6 +164,22 @@ public sealed class BackupApi
             return null;
         }
     }
+
+    private static async Task<T?> TryReadJsonAsync<T>(HttpResponseMessage response, CancellationToken ct)
+    {
+        var content = await response.Content.ReadAsStringAsync(ct);
+        if (string.IsNullOrWhiteSpace(content))
+            return default;
+
+        try
+        {
+            return JsonSerializer.Deserialize<T>(content, JsonReadOptions);
+        }
+        catch (JsonException)
+        {
+            return default;
+        }
+    }
 }
 
 public sealed record DownloadedBackupFileDto(
@@ -170,3 +201,5 @@ public sealed class BackupApiException : Exception
 }
 
 public sealed record BackupApiErrorDto(string? Error, string? Reason);
+
+public sealed record BackupDatabaseInfoDto(string? DatabaseFilePath);

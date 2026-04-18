@@ -398,6 +398,55 @@ But this summary is optional. Sometimes the thinking IS the value.
 
 ---
 
+## Optional GStack Orchestration (Policy-Driven)
+
+Use this integration only when project policy enables it. OpenSpec artifacts remain the source of truth.
+
+1. **Load integration policy**
+   - Preferred path: `.codex/opsx-gstack-policy.json`
+   - If file is missing, assume `mode=off` and continue baseline explore behavior.
+   - If file exists but appears invalid, warn once and continue baseline behavior.
+   - Never auto-fail explore because gstack is unavailable.
+
+2. **Respect mode and phase allowlist**
+   - If `mode=off`: do not invoke gstack skills.
+   - If `mode=assist` or `mode=strict`:
+     - Use only `allowlist.explore`.
+     - Never invoke any skill from policy `blocklist`.
+     - Treat gstack findings as advisory until reflected in OpenSpec artifacts.
+
+3. **Run challenge skills only when relevant**
+   - Do not run every allowlisted skill by default.
+   - Select the minimal set that adds value for the current exploration topic.
+   - Before running each selected gstack skill:
+     - Notify user which skill and phase is about to run.
+     - Ask explicit confirmation when policy `confirmation.enabled=true` and `confirmation.mode=ask-per-invocation`.
+     - If user declines, skip that skill and continue explore flow.
+   - If a gstack skill call fails, add a non-fatal warning and continue.
+
+4. **Produce structured explore evidence**
+   - Include a short structured section in your response when gstack is used:
+
+```markdown
+## GStack Explore Summary
+- Mode: <off|assist|strict>
+- Skills used: <comma-separated list>
+- Key findings:
+  - <finding 1>
+  - <finding 2>
+- Open questions:
+  - <question 1>
+  - <question 2>
+- Proposed artifact updates:
+  - <proposal/design/spec/tasks updates>
+```
+
+5. **Browse profile rule**
+   - `gstack-browse` is not part of explore flow.
+   - Reserve browse usage for apply-phase UI diagnostics only.
+
+---
+
 ## Guardrails
 
 - **Don't implement** - Never write code or implement features. Creating OpenSpec artifacts is fine, writing application code is not.

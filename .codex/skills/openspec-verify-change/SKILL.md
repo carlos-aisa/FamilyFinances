@@ -41,6 +41,19 @@ Verify that an implementation matches the change artifacts (specs, tasks, design
 
    This returns the change directory and context files. Read all available artifacts from `contextFiles`.
 
+3.5 **Load optional gstack integration policy and evidence**
+
+   - Policy path: `.codex/opsx-gstack-policy.json`
+   - Evidence path: `openspec/changes/<name>/gstack-evidence.md`
+   - If policy is missing, invalid, or gstack evidence does not exist:
+     - Continue baseline OpenSpec verification
+     - Add explicit note: "No gstack evidence available; verify ran in OpenSpec baseline mode."
+   - Always enforce policy blocklist semantics if policy exists.
+   - Before each gstack verification gate invocation:
+     - Notify user which gate is about to run.
+     - Request explicit confirmation when policy `confirmation.enabled=true` and `confirmation.mode=ask-per-invocation`.
+     - If user declines, mark the gate as `skipped-by-user` and continue.
+
 4. **Initialize verification report structure**
 
    Create a report structure with three dimensions:
@@ -142,6 +155,27 @@ Verify that an implementation matches the change artifacts (specs, tasks, design
    - If CRITICAL issues: "X critical issue(s) found. Fix before archiving."
    - If only warnings: "No critical issues. Y warning(s) to consider. Ready for archive (with noted improvements)."
    - If all clear: "All checks passed. Ready for archive."
+
+9. **Merge optional gstack gates and apply mode semantics**
+
+   If policy mode is `assist` or `strict` and evidence exists:
+   - Parse recorded gate outcomes from `gstack-evidence.md`.
+   - Add a dedicated gstack scorecard section:
+     - Gate name
+     - Status (`pass|warn|fail`)
+     - Severity (`advisory|critical`)
+     - Remediation
+
+   **Mode behavior**
+   - `assist`: gstack failures are advisory, never block readiness by themselves.
+   - `strict`: critical failures on `strict.requiredVerifyGates` block readiness.
+   - `off`: ignore gstack gates for readiness decisions.
+   - `gstack-browse` must not be treated as a verify gate and must be ignored if present in evidence.
+
+   **Strict blocking rules**
+   - Missing result for a required strict gate => blocking issue.
+   - Gate result with `status=fail` and `severity=critical` for required strict gate => blocking issue.
+   - Blocking issues must include concrete remediation steps.
 
 **Verification Heuristics**
 
