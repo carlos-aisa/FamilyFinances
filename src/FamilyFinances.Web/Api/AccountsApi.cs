@@ -2,6 +2,7 @@
 using FamilyFinances.Application.Ledger.Accounts.Requests;
 using FamilyFinances.Application.Reporting.Dtos;
 using FamilyFinances.Web.Auth;
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 
@@ -65,6 +66,8 @@ public sealed class AccountsApi : IAccountsApi
         DateOnly? fromInclusive = null, 
         DateOnly? toExclusive = null, 
         string? searchQuery = null, 
+        decimal? minAmount = null,
+        decimal? maxAmount = null,
         int page = 1, 
         int pageSize = 50, 
         CancellationToken ct = default)
@@ -82,6 +85,10 @@ public sealed class AccountsApi : IAccountsApi
             queryParams.Add($"to={toExclusive.Value:yyyy-MM-dd}");
         if (!string.IsNullOrWhiteSpace(searchQuery))
             queryParams.Add($"q={Uri.EscapeDataString(searchQuery)}");
+        if (minAmount.HasValue)
+            queryParams.Add($"minAmount={minAmount.Value.ToString(CultureInfo.InvariantCulture)}");
+        if (maxAmount.HasValue)
+            queryParams.Add($"maxAmount={maxAmount.Value.ToString(CultureInfo.InvariantCulture)}");
         if (page != 1)
             queryParams.Add($"page={page}");
         if (pageSize != 50)

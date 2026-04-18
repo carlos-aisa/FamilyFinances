@@ -13,6 +13,8 @@ public interface IAccountsApi
         DateOnly? fromInclusive = null, 
         DateOnly? toExclusive = null, 
         string? searchQuery = null, 
+        decimal? minAmount = null,
+        decimal? maxAmount = null,
         int page = 1, 
         int pageSize = 50, 
         CancellationToken ct = default);

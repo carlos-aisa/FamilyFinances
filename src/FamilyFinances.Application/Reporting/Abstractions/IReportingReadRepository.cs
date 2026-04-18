@@ -90,6 +90,8 @@ public interface IReportingReadRepository
         DateOnly fromInclusive,
         DateOnly toExclusive,
         string? searchQuery = null,
+        decimal? minAmount = null,
+        decimal? maxAmount = null,
         int skip = 0,
         int take = 50,
         CancellationToken ct = default);

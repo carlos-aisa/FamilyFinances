@@ -137,6 +137,162 @@ public sealed class AccountMovementsApiTests
     }
 
     [Fact]
+    public async Task GetMovements_AppliesMinAmountFilter_OnAbsoluteAmount()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var bank = await TestHelpers.CreateAccountAsync(client, "Bank Account", "Asset", "Checking");
+        var expense = await TestHelpers.CreateAccountAsync(client, "Expenses", "Expense", "Other");
+
+        await CreateTransactionAsync(client, "2026-01-10", "Small movement", new[]
+        {
+            new { accountId = bank.Id, amountCents = 5_00, memo = "Small payment" },
+            new { accountId = expense.Id, amountCents = -5_00, memo = "Expense" }
+        });
+
+        await CreateTransactionAsync(client, "2026-01-11", "Medium movement", new[]
+        {
+            new { accountId = bank.Id, amountCents = 20_00, memo = "Medium payment" },
+            new { accountId = expense.Id, amountCents = -20_00, memo = "Expense" }
+        });
+
+        await CreateTransactionAsync(client, "2026-01-12", "Large movement", new[]
+        {
+            new { accountId = bank.Id, amountCents = 80_00, memo = "Large payment" },
+            new { accountId = expense.Id, amountCents = -80_00, memo = "Expense" }
+        });
+
+        var response = await client.GetAsync(
+            $"/api/v1/accounts/{bank.Id}/movements?from=2026-01-01&to=2026-02-01&minAmount=20");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<AccountMovementsDto>();
+
+        result.Should().NotBeNull();
+        result!.Items.Select(x => x.Description).Should().BeEquivalentTo(["Large movement", "Medium movement"]);
+    }
+
+    [Fact]
+    public async Task GetMovements_AppliesMaxAmountFilter_OnAbsoluteAmount()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var bank = await TestHelpers.CreateAccountAsync(client, "Bank Account", "Asset", "Checking");
+        var expense = await TestHelpers.CreateAccountAsync(client, "Expenses", "Expense", "Other");
+
+        await CreateTransactionAsync(client, "2026-01-10", "Small movement", new[]
+        {
+            new { accountId = bank.Id, amountCents = 5_00, memo = "Small payment" },
+            new { accountId = expense.Id, amountCents = -5_00, memo = "Expense" }
+        });
+
+        await CreateTransactionAsync(client, "2026-01-11", "Medium movement", new[]
+        {
+            new { accountId = bank.Id, amountCents = 20_00, memo = "Medium payment" },
+            new { accountId = expense.Id, amountCents = -20_00, memo = "Expense" }
+        });
+
+        await CreateTransactionAsync(client, "2026-01-12", "Large movement", new[]
+        {
+            new { accountId = bank.Id, amountCents = 80_00, memo = "Large payment" },
+            new { accountId = expense.Id, amountCents = -80_00, memo = "Expense" }
+        });
+
+        var response = await client.GetAsync(
+            $"/api/v1/accounts/{bank.Id}/movements?from=2026-01-01&to=2026-02-01&maxAmount=20");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<AccountMovementsDto>();
+
+        result.Should().NotBeNull();
+        result!.Items.Select(x => x.Description).Should().BeEquivalentTo(["Medium movement", "Small movement"]);
+    }
+
+    [Fact]
+    public async Task GetMovements_AppliesInclusiveBoundedAmountFilter()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var bank = await TestHelpers.CreateAccountAsync(client, "Bank Account", "Asset", "Checking");
+        var expense = await TestHelpers.CreateAccountAsync(client, "Expenses", "Expense", "Other");
+
+        await CreateTransactionAsync(client, "2026-01-10", "Edge low", new[]
+        {
+            new { accountId = bank.Id, amountCents = 20_00, memo = "Low edge" },
+            new { accountId = expense.Id, amountCents = -20_00, memo = "Expense" }
+        });
+
+        await CreateTransactionAsync(client, "2026-01-11", "Inside", new[]
+        {
+            new { accountId = bank.Id, amountCents = 35_00, memo = "Inside" },
+            new { accountId = expense.Id, amountCents = -35_00, memo = "Expense" }
+        });
+
+        await CreateTransactionAsync(client, "2026-01-12", "Edge high", new[]
+        {
+            new { accountId = bank.Id, amountCents = 50_00, memo = "High edge" },
+            new { accountId = expense.Id, amountCents = -50_00, memo = "Expense" }
+        });
+
+        await CreateTransactionAsync(client, "2026-01-13", "Outside high", new[]
+        {
+            new { accountId = bank.Id, amountCents = 51_00, memo = "Outside" },
+            new { accountId = expense.Id, amountCents = -51_00, memo = "Expense" }
+        });
+
+        var response = await client.GetAsync(
+            $"/api/v1/accounts/{bank.Id}/movements?from=2026-01-01&to=2026-02-01&minAmount=20&maxAmount=50");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<AccountMovementsDto>();
+
+        result.Should().NotBeNull();
+        result!.Items.Select(x => x.Description).Should().BeEquivalentTo(["Edge high", "Inside", "Edge low"]);
+    }
+
+    [Fact]
+    public async Task GetMovements_AmountRange_UsesAbsoluteValue_ForBothSignedDirections()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var bank = await TestHelpers.CreateAccountAsync(client, "Bank Account", "Asset", "Checking");
+        var groceries = await TestHelpers.CreateAccountAsync(client, "Groceries", "Expense", "Other");
+        var salary = await TestHelpers.CreateAccountAsync(client, "Salary", "Income", "Other");
+
+        await CreateTransactionAsync(client, "2026-01-10", "Income thirty", new[]
+        {
+            new { accountId = salary.Id, amountCents = 30_00, memo = "Salary" },
+            new { accountId = bank.Id, amountCents = -30_00, memo = "Into bank" }
+        });
+
+        await CreateTransactionAsync(client, "2026-01-11", "Expense thirty", new[]
+        {
+            new { accountId = bank.Id, amountCents = 30_00, memo = "Payment" },
+            new { accountId = groceries.Id, amountCents = -30_00, memo = "Groceries" }
+        });
+
+        await CreateTransactionAsync(client, "2026-01-12", "Outside sixty", new[]
+        {
+            new { accountId = bank.Id, amountCents = 60_00, memo = "Outside" },
+            new { accountId = groceries.Id, amountCents = -60_00, memo = "Groceries" }
+        });
+
+        var response = await client.GetAsync(
+            $"/api/v1/accounts/{bank.Id}/movements?from=2026-01-01&to=2026-02-01&minAmount=10&maxAmount=50");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<AccountMovementsDto>();
+
+        result.Should().NotBeNull();
+        result!.Items.Select(x => x.Description).Should().BeEquivalentTo(["Expense thirty", "Income thirty"]);
+        result.Items.Should().NotContain(x => x.Description == "Outside sixty");
+    }
+
+    [Fact]
     public async Task GetMovements_SupportsPagination()
     {
         using var factory = TestClient.CreateFactoryWithFreshDb(out _);

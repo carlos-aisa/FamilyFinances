@@ -1440,6 +1440,8 @@ public sealed class ReportingReadRepository : IReportingReadRepository
         DateOnly fromInclusive,
         DateOnly toExclusive,
         string? searchQuery = null,
+        decimal? minAmount = null,
+        decimal? maxAmount = null,
         int skip = 0,
         int take = 50,
         CancellationToken ct = default)
@@ -1468,33 +1470,58 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             where t.BookedOn >= fromInclusive && t.BookedOn < toExclusive
             select new
             {
-                TransactionId = t.Id,
-                BookedOn = t.BookedOn,
-                CreatedAt = t.CreatedAt,
-                Description = t.Description,
+                Transaction = t,
+                Split = s,
                 PayeeName = payee != null ? payee.Name : null,
-                SignedAmount = s.Amount // This is the signed amount relative to this account
             };
 
         // Apply search filter if provided
         if (!string.IsNullOrWhiteSpace(searchQuery))
         {
             var searchLower = searchQuery.Trim().ToLower();
-            q = q.Where(x => 
-                x.Description.ToLower().Contains(searchLower) ||
+            q = q.Where(x =>
+                x.Transaction.Description.ToLower().Contains(searchLower) ||
                 (x.PayeeName != null && x.PayeeName.ToLower().Contains(searchLower)));
         }
 
-        // Get total count first (before pagination)
+        if (minAmount.HasValue || maxAmount.HasValue)
+        {
+            var transactionIdsInAmountRange = await GetTransactionIdsInAmountRangeAsync(
+                accountIdVo,
+                minAmount,
+                maxAmount,
+                ct);
+
+            if (transactionIdsInAmountRange.Count == 0)
+            {
+                return new AccountMovementsDto(
+                    accountId,
+                    account,
+                    fromInclusive,
+                    toExclusive,
+                    [],
+                    0);
+            }
+
+            q = q.Where(x => transactionIdsInAmountRange.Contains(x.Transaction.Id));
+        }
+
         var totalCount = await q.CountAsync(ct);
 
-        // Apply ordering and pagination
         var movements = await q
-            .OrderByDescending(x => x.BookedOn)
-            .ThenByDescending(x => x.CreatedAt)
-            .ThenByDescending(x => x.TransactionId)
+            .OrderByDescending(x => x.Transaction.BookedOn)
+            .ThenByDescending(x => x.Transaction.CreatedAt)
+            .ThenByDescending(x => x.Transaction.Id)
             .Skip(skip)
             .Take(take)
+            .Select(x => new
+            {
+                TransactionId = x.Transaction.Id,
+                BookedOn = x.Transaction.BookedOn,
+                Description = x.Transaction.Description,
+                x.PayeeName,
+                SignedAmount = x.Split.Amount
+            })
             .ToListAsync(ct);
 
         var movementItems = new List<AccountMovementDto>();
@@ -1571,6 +1598,79 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             movementItems,
             totalCount
         );
+    }
+
+    private async Task<IReadOnlyList<TransactionId>> GetTransactionIdsInAmountRangeAsync(
+        AccountId accountId,
+        decimal? minAmount,
+        decimal? maxAmount,
+        CancellationToken ct)
+    {
+        var sql = "SELECT DISTINCT TransactionId FROM TransactionSplits WHERE AccountId = @accountId";
+        var minCents = minAmount.HasValue ? Money.FromEuros(minAmount.Value).Cents : (long?)null;
+        var maxCents = maxAmount.HasValue ? Money.FromEuros(maxAmount.Value).Cents : (long?)null;
+
+        if (minCents.HasValue)
+            sql += " AND ABS(AmountCents) >= @minCents";
+
+        if (maxCents.HasValue)
+            sql += " AND ABS(AmountCents) <= @maxCents";
+
+        var connection = _db.Database.GetDbConnection();
+        var shouldCloseConnection = connection.State != System.Data.ConnectionState.Open;
+
+        if (shouldCloseConnection)
+            await connection.OpenAsync(ct);
+
+        try
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = sql;
+
+            var accountParam = command.CreateParameter();
+            accountParam.ParameterName = "@accountId";
+            accountParam.Value = accountId.Value;
+            command.Parameters.Add(accountParam);
+
+            if (minCents.HasValue)
+            {
+                var minParam = command.CreateParameter();
+                minParam.ParameterName = "@minCents";
+                minParam.Value = minCents.Value;
+                command.Parameters.Add(minParam);
+            }
+
+            if (maxCents.HasValue)
+            {
+                var maxParam = command.CreateParameter();
+                maxParam.ParameterName = "@maxCents";
+                maxParam.Value = maxCents.Value;
+                command.Parameters.Add(maxParam);
+            }
+
+            var transactionIds = new List<TransactionId>();
+            await using var reader = await command.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+            {
+                var raw = reader.GetValue(0);
+                var id = raw switch
+                {
+                    Guid g => g,
+                    string s => Guid.Parse(s),
+                    byte[] bytes when bytes.Length == 16 => new Guid(bytes),
+                    _ => Guid.Parse(raw.ToString() ?? string.Empty)
+                };
+
+                transactionIds.Add(new TransactionId(id));
+            }
+
+            return transactionIds;
+        }
+        finally
+        {
+            if (shouldCloseConnection)
+                await connection.CloseAsync();
+        }
     }
 
     private async Task<long> GetStartingBalanceCentsAsync(

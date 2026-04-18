@@ -7,6 +7,7 @@
 @using FamilyFinances.Web.Components.Shared
 @using FamilyFinances.Web.Features.Reports
 @using FamilyFinances.Web
+@using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.Extensions.Localization
 @inject TransactionsApi TransactionsApi
 @inject IStringLocalizer<SharedResource> L
@@ -98,6 +99,20 @@
                 </label>
                 <input type="text" class="form-control" placeholder="@L["Transactions_SearchPlaceholder"]"
                        @bind="_searchQuery" @bind:event="oninput" />
+            </div>
+
+            <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-currency-euro me-1"></i>@L["Transactions_AmountFrom"]
+                </label>
+                <InputNumber @bind-Value="_amountFrom" class="form-control" step="0.01" />
+            </div>
+
+            <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-currency-euro me-1"></i>@L["Transactions_AmountTo"]
+                </label>
+                <InputNumber @bind-Value="_amountTo" class="form-control" step="0.01" />
             </div>
         </div>
 
@@ -271,6 +286,8 @@ else
     private DateOnly? _fromDate;
     private DateOnly? _toDate;
     private string _searchQuery = "";
+    private decimal? _amountFrom;
+    private decimal? _amountTo;
     private string? _activePreset;
 
     protected override async Task OnInitializedAsync()
@@ -298,6 +315,12 @@ else
 
     private async Task ApplyFilters()
     {
+        if (HasInvalidAmountRange())
+        {
+            _error = L["Filter_AmountRangeInvalid"];
+            return;
+        }
+
         _error = null;
         _items = null;
 
@@ -310,7 +333,8 @@ else
                     _allItems = await TransactionsApi.ListAsync(take: 1000, ct);
                 }
 
-                _items = FilterTransactions(_allItems);
+                var filtered = FilterTransactions(_allItems);
+                _items = filtered.Take(_pageSize).ToList();
             });
         }
         catch (Exception ex)
@@ -325,6 +349,8 @@ else
         _fromDate = null;
         _toDate = null;
         _searchQuery = "";
+        _amountFrom = null;
+        _amountTo = null;
         _activePreset = null;
         await LoadAsync();
     }
@@ -347,6 +373,12 @@ else
                     (t.Subheadline?.ToLowerInvariant().Contains(query) ?? false) ||
                     (t.PayeeName?.ToLowerInvariant().Contains(query) ?? false));
         }
+
+        if (_amountFrom.HasValue)
+            filtered = filtered.Where(t => t.Amount >= _amountFrom.Value);
+
+        if (_amountTo.HasValue)
+            filtered = filtered.Where(t => t.Amount <= _amountTo.Value);
 
         return filtered.ToList();
     }
@@ -383,7 +415,12 @@ else
         {
             await Task.Delay(300);
             var currentCount = _items.Count;
-            var hasFilters = _fromDate.HasValue || _toDate.HasValue || !string.IsNullOrWhiteSpace(_searchQuery);
+            var hasFilters =
+                _fromDate.HasValue ||
+                _toDate.HasValue ||
+                !string.IsNullOrWhiteSpace(_searchQuery) ||
+                _amountFrom.HasValue ||
+                _amountTo.HasValue;
 
             if (hasFilters)
             {
@@ -416,6 +453,9 @@ else
 
         return null;
     }
+
+    private bool HasInvalidAmountRange()
+        => _amountFrom.HasValue && _amountTo.HasValue && _amountFrom.Value > _amountTo.Value;
 
     private void NavigateToDetail(Guid transactionId)
     {

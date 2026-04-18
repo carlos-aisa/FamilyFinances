@@ -139,6 +139,65 @@ public sealed class AccountMovementsPageTests : WebTestContext
         requests.Select(x => x.Page).Should().ContainInOrder(1, 2, 3, 2);
     }
 
+    [Fact]
+    public void Applying_Valid_AmountRange_PassesValues_ToApi()
+    {
+        var accountId = Guid.Parse("3f93c8c7-7df0-457d-b3ee-1621361f4112");
+        var requests = new List<MovementsRequest>();
+        var accountsApiMock = CreateMovementsApiMock(
+            accountId,
+            (_, _, _) => 20,
+            requests);
+
+        RegisterAuthorizedServices(accountsApiMock.Object);
+
+        var cut = RenderComponent<AccountMovementsPage>(parameters => parameters.Add(x => x.Id, accountId));
+        cut.WaitForAssertion(() => requests.Should().NotBeEmpty());
+
+        var numericInputs = cut.FindAll("input[type='number']");
+        numericInputs.Should().HaveCount(2);
+        numericInputs[0].Change("10");
+        cut.FindAll("input[type='number']")[1].Change("50");
+        cut.Find("button.btn.btn-primary.w-100").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            var latestRequest = requests.Last();
+            latestRequest.MinAmount.Should().Be(10m);
+            latestRequest.MaxAmount.Should().Be(50m);
+            latestRequest.Page.Should().Be(1);
+        });
+    }
+
+    [Fact]
+    public void Applying_Invalid_AmountRange_ShowsError_AndSkipsApiRequest()
+    {
+        var accountId = Guid.Parse("8f4720fb-608f-44d8-aa4d-5457204247d4");
+        var requests = new List<MovementsRequest>();
+        var accountsApiMock = CreateMovementsApiMock(
+            accountId,
+            (_, _, _) => 20,
+            requests);
+
+        RegisterAuthorizedServices(accountsApiMock.Object);
+
+        var cut = RenderComponent<AccountMovementsPage>(parameters => parameters.Add(x => x.Id, accountId));
+        cut.WaitForAssertion(() => requests.Should().NotBeEmpty());
+        var initialCalls = requests.Count;
+
+        var numericInputs = cut.FindAll("input[type='number']");
+        numericInputs.Should().HaveCount(2);
+        numericInputs[0].Change("100");
+        cut.FindAll("input[type='number']")[1].Change("50");
+        cut.Find("button.btn.btn-primary.w-100").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Markup.Should().Contain("Amount From must be less than or equal to Amount To.");
+            requests.Count.Should().Be(initialCalls);
+        });
+    }
+
     private static Mock<IAccountsApi> CreateMovementsApiMock(
         Guid accountId,
         Func<int, int, string?, int> totalCountResolver,
@@ -151,12 +210,14 @@ public sealed class AccountMovementsPageTests : WebTestContext
                 It.IsAny<DateOnly?>(),
                 It.IsAny<DateOnly?>(),
                 It.IsAny<string?>(),
+                It.IsAny<decimal?>(),
+                It.IsAny<decimal?>(),
                 It.IsAny<int>(),
                 It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Guid _, DateOnly? from, DateOnly? to, string? query, int page, int pageSize, CancellationToken _) =>
+            .ReturnsAsync((Guid _, DateOnly? from, DateOnly? to, string? query, decimal? minAmount, decimal? maxAmount, int page, int pageSize, CancellationToken _) =>
             {
-                requests.Add(new MovementsRequest(page, pageSize, query));
+                requests.Add(new MovementsRequest(page, pageSize, query, minAmount, maxAmount));
                 var totalCount = totalCountResolver(page, pageSize, query);
                 return BuildPage(accountId, from, to, query, page, pageSize, totalCount);
             });
@@ -229,7 +290,7 @@ public sealed class AccountMovementsPageTests : WebTestContext
         return new Guid(bytes);
     }
 
-    private sealed record MovementsRequest(int Page, int PageSize, string? Query);
+    private sealed record MovementsRequest(int Page, int PageSize, string? Query, decimal? MinAmount, decimal? MaxAmount);
 
     private sealed class EmptyHttpClientFactory : IHttpClientFactory
     {
