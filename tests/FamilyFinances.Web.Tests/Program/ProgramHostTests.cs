@@ -51,7 +51,7 @@ public sealed class ProgramHostTests
         client.BaseAddress.Should().NotBeNull();
         client.BaseAddress!.Scheme.Should().Be(Uri.UriSchemeHttp);
         client.BaseAddress.Host.Should().BeOneOf("localhost", "127.0.0.1");
-        client.BaseAddress.Port.Should().Be(5084);
+        client.BaseAddress.Port.Should().Be(5184);
     }
 
     [Fact]
