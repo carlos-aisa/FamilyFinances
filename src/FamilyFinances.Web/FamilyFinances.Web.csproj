@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="FamilyFinances.Web.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\FamilyFinances.Application\FamilyFinances.Application.csproj" />
     <ProjectReference Include="..\FamilyFinances.Infrastructure\FamilyFinances.Infrastructure.csproj" />
   </ItemGroup>

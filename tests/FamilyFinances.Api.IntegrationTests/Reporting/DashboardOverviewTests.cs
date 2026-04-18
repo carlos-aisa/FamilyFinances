@@ -87,6 +87,105 @@ public sealed class DashboardOverviewTests
             .StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
+    [Fact]
+    public async Task DashboardOverview_Returns_YTD_Summary_WithMonthlyPoints()
+    {
+        var year = DateTime.UtcNow.Year - 1;
+
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var bank = await TestHelpers.CreateAccountAsync(client, "Main Bank", "Asset", "Checking");
+        var salary = await TestHelpers.CreateAccountAsync(client, "Salary", "Income", "Other");
+
+        await PostTransactionAsync(
+            client,
+            new DateOnly(year, 1, 15),
+            "January salary",
+            new Split(bank.Id, 100_000, "Asset increase"),
+            new Split(salary.Id, -100_000, "Income credit"));
+
+        await PostTransactionAsync(
+            client,
+            new DateOnly(year, 2, 15),
+            "February salary",
+            new Split(bank.Id, 120_000, "Asset increase"),
+            new Split(salary.Id, -120_000, "Income credit"));
+
+        await PostTransactionAsync(
+            client,
+            new DateOnly(year, 3, 15),
+            "March salary",
+            new Split(bank.Id, 150_000, "Asset increase"),
+            new Split(salary.Id, -150_000, "Income credit"));
+
+        var response = await client.GetAsync($"/api/v1/reports/dashboard-overview?year={year}&month=3");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var content = await response.Content.ReadAsStringAsync();
+        using var json = JsonDocument.Parse(content);
+        var root = json.RootElement;
+
+        root.TryGetProperty("ytdSummary", out var ytdSummary).Should().BeTrue("response should contain ytdSummary");
+        ytdSummary.TryGetProperty("accumulatedNetCents", out var accumulated).Should().BeTrue("ytdSummary should contain accumulatedNetCents");
+        ytdSummary.TryGetProperty("monthlyNetPoints", out var monthlyPoints).Should().BeTrue("ytdSummary should contain monthlyNetPoints");
+
+        monthlyPoints.ValueKind.Should().Be(JsonValueKind.Array, "monthlyNetPoints should be an array");
+        monthlyPoints.GetArrayLength().Should().BeGreaterThan(0, "monthlyNetPoints should contain data");
+
+        accumulated.GetInt64().Should().BeGreaterThan(0, "accumulatedNetCents should be calculated");
+    }
+
+    [Fact]
+    public async Task DashboardOverview_YTD_Calculation_Matches_Expected()
+    {
+        var year = DateTime.UtcNow.Year - 1;
+
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var bank = await TestHelpers.CreateAccountAsync(client, "Main Bank", "Asset", "Checking");
+        var salary = await TestHelpers.CreateAccountAsync(client, "Salary", "Income", "Other");
+        var groceries = await TestHelpers.CreateAccountAsync(client, "Groceries", "Expense", "Other");
+
+        // +200k in January
+        await PostTransactionAsync(
+            client,
+            new DateOnly(year, 1, 15),
+            "January salary",
+            new Split(bank.Id, 200_000, "Asset increase"),
+            new Split(salary.Id, -200_000, "Income credit"));
+
+        // +150k in February
+        await PostTransactionAsync(
+            client,
+            new DateOnly(year, 2, 15),
+            "February salary",
+            new Split(bank.Id, 150_000, "Asset increase"),
+            new Split(salary.Id, -150_000, "Income credit"));
+
+        // -50k in March
+        await PostTransactionAsync(
+            client,
+            new DateOnly(year, 3, 10),
+            "March groceries",
+            new Split(bank.Id, -50_000, "Asset decrease"),
+            new Split(groceries.Id, 50_000, "Expense debit"));
+
+        var response = await client.GetAsync($"/api/v1/reports/dashboard-overview?year={year}&month=3");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var content = await response.Content.ReadAsStringAsync();
+        using var json = JsonDocument.Parse(content);
+        var root = json.RootElement;
+
+        root.TryGetProperty("ytdSummary", out var ytdSummary).Should().BeTrue();
+        ytdSummary.TryGetProperty("accumulatedNetCents", out var accumulated).Should().BeTrue();
+
+        // Expected: +200k (Jan) +150k (Feb) -50k (Mar) = 300k
+        accumulated.GetInt64().Should().Be(300_000, "YTD accumulated net should be 200k + 150k - 50k = 300k");
+    }
+
     private static async Task PostTransactionAsync(
         HttpClient client,
         DateOnly bookedOn,

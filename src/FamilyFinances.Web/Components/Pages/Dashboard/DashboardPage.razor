@@ -58,7 +58,7 @@
             }
 
             <div class="row g-3 mb-3" data-testid="dashboard-kpi-strip">
-                <div class="col-12 col-md-6 col-xl-3">
+                <div class="col-12 col-md-6 col-xl">
                     <div class="card shadow-sm border-start border-success border-4 h-100 ff-kpi-card ff-panel">
                         <div class="card-body">
                             <h6 class="text-muted text-uppercase mb-2 ff-kpi-label">@L["Dashboard_Kpi_Income"]</h6>
@@ -69,7 +69,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-12 col-md-6 col-xl-3">
+                <div class="col-12 col-md-6 col-xl">
                     <div class="card shadow-sm border-start border-danger border-4 h-100 ff-kpi-card ff-panel">
                         <div class="card-body">
                             <h6 class="text-muted text-uppercase mb-2 ff-kpi-label">@L["Dashboard_Kpi_Expense"]</h6>
@@ -80,7 +80,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-12 col-md-6 col-xl-3">
+                <div class="col-12 col-md-6 col-xl">
                     <div class="card shadow-sm border-start border-info border-4 h-100 ff-kpi-card ff-panel">
                         <div class="card-body">
                             <h6 class="text-muted text-uppercase mb-2 ff-kpi-label">@L["Dashboard_Kpi_NetResult"]</h6>
@@ -93,7 +93,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-12 col-md-6 col-xl-3">
+                <div class="col-12 col-md-6 col-xl">
                     <div class="card shadow-sm border-start border-primary border-4 h-100 ff-kpi-card ff-panel">
                         <div class="card-body">
                             <h6 class="text-muted text-uppercase mb-2 ff-kpi-label">@L["Dashboard_Kpi_NetWorth"]</h6>
@@ -106,6 +106,22 @@
                         </div>
                     </div>
                 </div>
+                @if (_overview.AssetTotal is not null)
+                {
+                    <div class="col-12 col-md-6 col-xl">
+                        <div class="card shadow-sm border-start border-warning border-4 h-100 ff-kpi-card ff-panel">
+                            <div class="card-body">
+                                <h6 class="text-muted text-uppercase mb-2 ff-kpi-label">@L["Dashboard_Kpi_YtdNet"]</h6>
+                                <h4 class="mb-1 @MoneyFormatter.GetColorClass(_ytdNetValue)">
+                                    @MoneyFormatter.FormatCentsWithSign(_ytdNetValue)
+                                </h4>
+                                <small class="@MoneyFormatter.GetColorClass(_ytdNetDelta)">
+                                    @L["Dashboard_DeltaVsPreviousMonth"] @MoneyFormatter.FormatCentsWithSign(_ytdNetDelta)
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                }
             </div>
 
             <div class="ff-dashboard-cockpit">
@@ -242,6 +258,8 @@
     private DashboardOverviewDto? _overview;
     private string? _error;
     private bool _isLoading = true;
+    private long _ytdNetValue;
+    private long _ytdNetDelta;
     private IReadOnlyList<MonthlyChartSeries> _monthlyIncomeVsExpenseSeries = Array.Empty<MonthlyChartSeries>();
     private IReadOnlyList<AnnualChartSeries> _annualIncomeVsExpenseSeries = Array.Empty<AnnualChartSeries>();
     private IReadOnlyList<AnnualChartSeries> _monthlyNetTrendSeries = Array.Empty<AnnualChartSeries>();
@@ -278,6 +296,7 @@
             _monthlyNetTrendSeries = BuildMonthlyNetTrendSeries(_overview);
             await LoadAnnualEvolutionSeriesAsync(_overview.AsOf.Year);
             _expenseCompositionSlices = BuildExpenseCompositionSlices(_overview);
+            await CalculateYtdKpiAsync();
         }
         catch (Exception ex)
         {
@@ -436,6 +455,23 @@
             DashboardDataSufficiencyState.Partial => L["Dashboard_DataState_Partial"],
             _ => L["Dashboard_DataState_InsufficientHistory"]
         };
+    }
+
+    private async Task CalculateYtdKpiAsync()
+    {
+        if (_overview is null || _overview.AssetTotal is null)
+            return;
+
+        var previousYearEnd = new DateOnly(_overview.AsOf.Year - 1, 12, 31);
+        var previousYearAssetTotal = await ExecuteApiAsync(
+            ct => ReportsApi.GetAssetTotalBalanceAsync(previousYearEnd, ct));
+
+        if (previousYearAssetTotal is null)
+            return;
+
+        // YTD KPI: current assets minus asset balance at previous year-end (31/12).
+        _ytdNetValue = _overview.AssetTotal.ValueCents - previousYearAssetTotal.TotalCents;
+        _ytdNetDelta = _overview.AssetTotal.DeltaVsPreviousMonthCents;
     }
 }
 

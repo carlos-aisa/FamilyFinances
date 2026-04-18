@@ -224,6 +224,7 @@ public sealed class ReportsApiTests
             Expense: new DashboardKpiDto(100_000, 5_000),
             NetResult: new DashboardKpiDto(100_000, 5_000),
             NetWorth: new DashboardKpiDto(900_000, 20_000),
+            AssetTotal: new DashboardKpiDto(1_000_000, 25_000),
             NetResultDeltaVsSameMonthLastYearCents: 15_000,
             DataSufficiencyState: DashboardDataSufficiencyState.Partial,
             DailyIncomeVsExpense:

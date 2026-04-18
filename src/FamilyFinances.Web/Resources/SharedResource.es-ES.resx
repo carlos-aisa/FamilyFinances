@@ -2637,6 +2637,9 @@
   <data name="Dashboard_Kpi_NetWorth" xml:space="preserve">
     <value>Patrimonio neto</value>
   </data>
+  <data name="Dashboard_Kpi_YtdNet" xml:space="preserve">
+    <value>Neto YTD</value>
+  </data>
   <data name="Dashboard_CompactInsights_Status_Anomaly" xml:space="preserve">
     <value>Anomalia</value>
   </data>

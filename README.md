@@ -310,7 +310,7 @@ Schema source:
 ### Reporting Map (Current UI)
 - `Dashboard` (`/`)
   - analytics-first overview (no tabs, no report shortcut cards)
-  - KPI strip: `Income`, `Expense`, `Net Result`, `Net Worth` with delta vs previous month
+  - KPI strip: `Income`, `Expense`, `Net Result`, `Net Worth`, `YTD Net` with delta vs previous month
   - monthly `Income vs Expense` chart
   - account-group current-state chart
   - YTD accumulated net summary with compact monthly trend

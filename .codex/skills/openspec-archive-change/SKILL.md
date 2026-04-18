@@ -11,111 +11,158 @@ metadata:
 
 Archive a completed change in the experimental workflow.
 
-**Input**: Optionally specify a change name. If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
+**Input**: Optionally specify a change name. If omitted, infer from context only when unambiguous; otherwise prompt for selection.
 
 **Steps**
 
 1. **If no change name provided, prompt for selection**
 
-   Run `openspec list --json` to get available changes. Use the **AskUserQuestion tool** to let the user select.
+   Run `openspec list --json` and use the **AskUserQuestion tool** to select a change.
 
-   Show only active changes (not already archived).
-   Include the schema used for each change if available.
+   Show only active changes (not archived).
+   Include schema used for each change when available.
 
-   **IMPORTANT**: Do NOT guess or auto-select a change. Always let the user choose.
+   **IMPORTANT**: Do NOT auto-select.
 
 2. **Check artifact completion status**
 
-   Run `openspec status --change "<name>" --json` to check artifact completion.
+   Run `openspec status --change "<name>" --json`.
 
-   Parse the JSON to understand:
-   - `schemaName`: The workflow being used
-   - `artifacts`: List of artifacts with their status (`done` or other)
+   Parse:
+   - `schemaName`
+   - `artifacts` list (`done` or other)
 
-   **If any artifacts are not `done`:**
-   - Display warning listing incomplete artifacts
-   - Use **AskUserQuestion tool** to confirm user wants to proceed
-   - Proceed if user confirms
+   If any artifacts are not `done`:
+   - Show warning listing incomplete artifacts
+   - Ask for confirmation
+   - Continue only if confirmed
 
 3. **Check task completion status**
 
-   Read the tasks file (typically `tasks.md`) to check for incomplete tasks.
+   Read tasks file (`openspec/changes/<name>/tasks.md` when present).
 
-   Count tasks marked with `- [ ]` (incomplete) vs `- [x]` (complete).
+   Count:
+   - Incomplete: `- [ ]`
+   - Complete: `- [x]`
 
-   **If incomplete tasks found:**
-   - Display warning showing count of incomplete tasks
-   - Use **AskUserQuestion tool** to confirm user wants to proceed
-   - Proceed if user confirms
-
-   **If no tasks file exists:** Proceed without task-related warning.
+   If incomplete tasks exist:
+   - Show warning
+   - Ask for confirmation
+   - Continue only if confirmed
 
 4. **Assess delta spec sync state**
 
-   Check for delta specs at `openspec/changes/<name>/specs/`. If none exist, proceed without sync prompt.
+   Check delta specs at `openspec/changes/<name>/specs/`.
 
-   **If delta specs exist:**
-   - Compare each delta spec with its corresponding main spec at `openspec/specs/<capability>/spec.md`
-   - Determine what changes would be applied (adds, modifications, removals, renames)
-   - Show a combined summary before prompting
+   If delta specs exist:
+   - Compare with `openspec/specs/<capability>/spec.md`
+   - Summarize changes before prompting
 
-   **Prompt options:**
+   Prompt options:
    - If changes needed: "Sync now (recommended)", "Archive without syncing"
    - If already synced: "Archive now", "Sync anyway", "Cancel"
 
-   If user chooses sync, execute /opsx:sync logic (use the openspec-sync-specs skill). Proceed to archive regardless of choice.
+   If user chooses sync, execute `/opsx:sync` logic (openspec-sync-specs skill).
 
 5. **Perform the archive**
 
-   Create the archive directory if it doesn't exist:
+   Create archive directory when needed:
    ```bash
    mkdir -p openspec/changes/archive
    ```
 
-   Generate target name using current date: `YYYY-MM-DD-<change-name>`
+   Target format: `YYYY-MM-DD-<change-name>`.
 
-   **Check if target already exists:**
-   - If yes: Fail with error, suggest renaming existing archive or using different date
-   - If no: Move the change directory to archive
-
+   If target exists, stop with error.
+   Otherwise move:
    ```bash
    mv openspec/changes/<name> openspec/changes/archive/YYYY-MM-DD-<name>
    ```
 
-6. **Display summary**
+6. **Determine release impact from proposal markdown**
 
-   Show archive completion summary including:
+   Read `openspec/changes/archive/YYYY-MM-DD-<name>/proposal.md` and require:
+
+   ```markdown
+   ## Release Impact
+
+   Type: <patch|minor|major>
+   Rationale: <short reason>
+   ```
+
+   Rules:
+   - Accept only `patch`, `minor`, or `major`
+   - If missing/invalid, ask user explicitly
+   - Do not guess
+
+7. **Compute next semantic tag**
+
+   Read latest tag matching `v*.*.*` and apply bump:
+   - `major`: `vX.Y.Z` -> `v(X+1).0.0`
+   - `minor`: `vX.Y.Z` -> `vX.(Y+1).0`
+   - `patch`: `vX.Y.Z` -> `vX.Y.(Z+1)`
+
+   If no prior tags exist:
+   - `major` -> `v1.0.0`
+   - `minor` -> `v0.1.0`
+   - `patch` -> `v0.0.1`
+
+8. **Prepare git branch and create PR automatically**
+
+   - Ensure archive changes are committed
+   - Push current branch
+   - Resolve base branch from repository default branch
+   - Reuse existing open PR for `<head> -> <base>` when present
+   - Otherwise create PR automatically
+
+   PR recommendation:
+   - Title: `release: <next-tag> - <change-name>`
+   - Body includes archive path, release impact, sync status, and warnings
+
+9. **Create and push tag automatically**
+
+   Only after PR exists:
+   - Create annotated tag on current `HEAD`
+   - Push tag to `origin`
+
+   If tag collision occurs remotely:
+   - Refetch tags
+   - Recompute once
+   - Retry once
+   - If still collides, stop and report
+
+10. **Display summary**
+
+   Include:
    - Change name
-   - Schema that was used
+   - Schema
    - Archive location
-   - Whether specs were synced (if applicable)
-   - Note about any warnings (incomplete artifacts/tasks)
-   - 2-3 bullets in English summarizing what the change implemented functionally (from tasks/spec deltas)
+   - Spec sync status
+   - Release impact type
+   - Created tag
+   - PR URL
+   - Warnings
 
 **Output On Success**
 
-```
+```markdown
 ## Archive Complete
 
 **Change:** <change-name>
 **Schema:** <schema-name>
 **Archived to:** openspec/changes/archive/YYYY-MM-DD-<name>/
-**Specs:** ✓ Synced to main specs (or "No delta specs" or "Sync skipped")
-
-All artifacts complete. All tasks complete.
-
-Implemented summary (English):
-- <point 1>
-- <point 2>
-- <point 3 (optional)>
+**Specs:** Synced to main specs (or No delta specs / Sync skipped)
+**Release impact:** <patch|minor|major>
+**Tag:** <vX.Y.Z>
+**Pull request:** <url>
 ```
 
 **Guardrails**
-- Always prompt for change selection if not provided
-- Use artifact graph (openspec status --json) for completion checking
-- Don't block archive on warnings - just inform and confirm
-- Preserve .openspec.yaml when moving to archive (it moves with the directory)
-- Show clear summary of what happened
-- The implemented-summary bullets MUST be written in English
-- If sync is requested, use openspec-sync-specs approach (agent-driven)
-- If delta specs exist, always run the sync assessment and show the combined summary before prompting
+- Always prompt for selection when change name is missing
+- Use artifact graph (`openspec status --json`) for completion checks
+- Do not block archive on warnings unless user cancels
+- Preserve `.openspec.yaml` by moving the whole change directory
+- Release type must come from markdown or explicit user choice
+- Do not guess release type
+- Do not create tag if PR creation failed
+- Final summary must include PR URL and tag
