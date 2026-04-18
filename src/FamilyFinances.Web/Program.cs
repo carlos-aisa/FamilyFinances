@@ -148,6 +148,9 @@ app.MapLanHostOperationsEndpoints();
 
 app.Run();
 
+// Make the implicit Program class accessible to tests.
+public partial class Program { }
+
 public sealed class ApiClientOptions
 {
     public string BaseUrl { get; set; } = "";
