@@ -137,6 +137,72 @@ public sealed class AccountMovementsApiTests
     }
 
     [Fact]
+    public async Task GetMovements_SearchByDescription_IsAccentInsensitive()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var bank = await TestHelpers.CreateAccountAsync(client, "Bank Account", "Asset", "Checking");
+        var groceries = await TestHelpers.CreateAccountAsync(client, "Groceries", "Expense", "Other");
+
+        await CreateTransactionAsync(client, "2026-01-10", "Pago José mensual", new[]
+        {
+            new { accountId = bank.Id, amountCents = 20_00, memo = "Payment" },
+            new { accountId = groceries.Id, amountCents = -20_00, memo = "Groceries" }
+        });
+
+        await CreateTransactionAsync(client, "2026-01-15", "Gas station", new[]
+        {
+            new { accountId = bank.Id, amountCents = 30_00, memo = "Payment" },
+            new { accountId = groceries.Id, amountCents = -30_00, memo = "Fuel" }
+        });
+
+        var response = await client.GetAsync(
+            $"/api/v1/accounts/{bank.Id}/movements?from=2026-01-01&to=2026-02-01&q=jose");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<AccountMovementsDto>();
+
+        result.Should().NotBeNull();
+        result!.Items.Should().ContainSingle(m => m.Description == "Pago José mensual");
+        result.Items.Should().NotContain(m => m.Description == "Gas station");
+    }
+
+    [Fact]
+    public async Task GetMovements_SearchByPayee_IsAccentInsensitive()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var bank = await TestHelpers.CreateAccountAsync(client, "Bank Account", "Asset", "Checking");
+        var groceries = await TestHelpers.CreateAccountAsync(client, "Groceries", "Expense", "Other");
+        var mariaPayee = await CreatePayeeAsync(client, "María Market");
+        var otherPayee = await CreatePayeeAsync(client, "Other Store");
+
+        await CreateTransactionAsync(client, "2026-01-10", "Weekly food", new[]
+        {
+            new { accountId = bank.Id, amountCents = 20_00, memo = "Payment" },
+            new { accountId = groceries.Id, amountCents = -20_00, memo = "Groceries" }
+        }, mariaPayee.Id);
+
+        await CreateTransactionAsync(client, "2026-01-15", "Gas station", new[]
+        {
+            new { accountId = bank.Id, amountCents = 30_00, memo = "Payment" },
+            new { accountId = groceries.Id, amountCents = -30_00, memo = "Fuel" }
+        }, otherPayee.Id);
+
+        var response = await client.GetAsync(
+            $"/api/v1/accounts/{bank.Id}/movements?from=2026-01-01&to=2026-02-01&q=maria");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<AccountMovementsDto>();
+
+        result.Should().NotBeNull();
+        result!.Items.Should().ContainSingle(m => m.PayeeName == "María Market");
+        result.Items.Should().NotContain(m => m.PayeeName == "Other Store");
+    }
+
+    [Fact]
     public async Task GetMovements_AppliesMinAmountFilter_OnAbsoluteAmount()
     {
         using var factory = TestClient.CreateFactoryWithFreshDb(out _);
@@ -446,16 +512,35 @@ public sealed class AccountMovementsApiTests
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
-    private static async Task CreateTransactionAsync(HttpClient client, string bookedOn, string description, object[] splits)
+    private static async Task CreateTransactionAsync(
+        HttpClient client,
+        string bookedOn,
+        string description,
+        object[] splits,
+        Guid? payeeId = null)
     {
         var response = await client.PostAsJsonAsync("/api/v1/transactions", new
         {
             bookedOn,
             description,
-            splits
+            splits,
+            payeeId
         });
 
         response.EnsureSuccessStatusCode();
+    }
+
+    private static async Task<PayeeDto> CreatePayeeAsync(HttpClient client, string name)
+    {
+        var response = await client.PostAsJsonAsync("/api/v1/payees", new
+        {
+            name
+        });
+
+        response.EnsureSuccessStatusCode();
+        var payee = await response.Content.ReadFromJsonAsync<PayeeDto>();
+        payee.Should().NotBeNull();
+        return payee!;
     }
 
     public sealed record AccountMovementsDto(
@@ -476,4 +561,6 @@ public sealed class AccountMovementsApiTests
         string? CounterpartyAccountName,
         decimal RunningBalance
     );
+
+    public sealed record PayeeDto(Guid Id, string Name);
 }

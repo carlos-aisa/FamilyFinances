@@ -2,6 +2,7 @@ using FamilyFinances.Application.Reporting.Abstractions;
 using FamilyFinances.Application.Reporting.Dtos;
 using FamilyFinances.Application.Reporting.Internal;
 using FamilyFinances.Application.Ledger.FiscalYears.Abstractions;
+using FamilyFinances.Application.Common;
 using FamilyFinances.Domain.Common;
 using FamilyFinances.Domain.Ledger.AccountGroups;
 using FamilyFinances.Domain.Ledger.Accounts;
@@ -15,6 +16,12 @@ public sealed class ReportingReadRepository : IReportingReadRepository
 {
     private const string UngroupedAccountsLabel = "Ungrouped accounts";
     private const string UnknownPayeeLabel = "Unknown/Unassigned payee";
+    private sealed record AccountMovementRow(
+        TransactionId TransactionId,
+        DateOnly BookedOn,
+        string Description,
+        string? PayeeName,
+        Money SignedAmount);
 
     private readonly LedgerDbContext _db;
     private readonly IFiscalYearGovernanceRepository _governance;
@@ -1475,15 +1482,6 @@ public sealed class ReportingReadRepository : IReportingReadRepository
                 PayeeName = payee != null ? payee.Name : null,
             };
 
-        // Apply search filter if provided
-        if (!string.IsNullOrWhiteSpace(searchQuery))
-        {
-            var searchLower = searchQuery.Trim().ToLower();
-            q = q.Where(x =>
-                x.Transaction.Description.ToLower().Contains(searchLower) ||
-                (x.PayeeName != null && x.PayeeName.ToLower().Contains(searchLower)));
-        }
-
         if (minAmount.HasValue || maxAmount.HasValue)
         {
             var transactionIdsInAmountRange = await GetTransactionIdsInAmountRangeAsync(
@@ -1506,23 +1504,45 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             q = q.Where(x => transactionIdsInAmountRange.Contains(x.Transaction.Id));
         }
 
-        var totalCount = await q.CountAsync(ct);
-
-        var movements = await q
+        var hasSearchQuery = !string.IsNullOrWhiteSpace(searchQuery);
+        var orderedMovementsQuery = q
             .OrderByDescending(x => x.Transaction.BookedOn)
             .ThenByDescending(x => x.Transaction.CreatedAt)
             .ThenByDescending(x => x.Transaction.Id)
-            .Skip(skip)
-            .Take(take)
-            .Select(x => new
-            {
-                TransactionId = x.Transaction.Id,
-                BookedOn = x.Transaction.BookedOn,
-                Description = x.Transaction.Description,
+            .Select(x => new AccountMovementRow(
+                x.Transaction.Id,
+                x.Transaction.BookedOn,
+                x.Transaction.Description,
                 x.PayeeName,
-                SignedAmount = x.Split.Amount
-            })
-            .ToListAsync(ct);
+                x.Split.Amount));
+
+        int totalCount;
+        List<AccountMovementRow> movements;
+
+        if (!hasSearchQuery)
+        {
+            totalCount = await q.CountAsync(ct);
+            movements = await orderedMovementsQuery
+                .Skip(skip)
+                .Take(take)
+                .ToListAsync(ct);
+        }
+        else
+        {
+            var normalizedQuery = SearchTextNormalizer.NormalizeForSearch(searchQuery);
+            var allCandidates = await orderedMovementsQuery.ToListAsync(ct);
+            var filteredCandidates = allCandidates
+                .Where(m =>
+                    SearchTextNormalizer.NormalizeForSearch(m.Description).Contains(normalizedQuery) ||
+                    SearchTextNormalizer.NormalizeForSearch(m.PayeeName).Contains(normalizedQuery))
+                .ToList();
+
+            totalCount = filteredCandidates.Count;
+            movements = filteredCandidates
+                .Skip(skip)
+                .Take(take)
+                .ToList();
+        }
 
         var movementItems = new List<AccountMovementDto>();
         var startingBalanceCents = await GetStartingBalanceCentsAsync(accountIdVo, fromInclusive, ct);

@@ -1,3 +1,4 @@
+@using FamilyFinances.Application.Common
 @using FamilyFinances.Application.Ledger.Accounts.Dtos
 @using FamilyFinances.Domain.Ledger.Accounts
 @using FamilyFinances.Web
@@ -87,10 +88,10 @@
             // Filter by search query
             if (!string.IsNullOrWhiteSpace(_searchQuery))
             {
-                var query = _searchQuery.ToLowerInvariant();
+                var query = SearchTextNormalizer.NormalizeForSearch(_searchQuery);
                 accounts = accounts.Where(a => 
-                    a.Name.ToLowerInvariant().Contains(query) ||
-                    a.Nature.ToString().ToLowerInvariant().Contains(query));
+                    SearchTextNormalizer.NormalizeForSearch(a.Name).Contains(query) ||
+                    SearchTextNormalizer.NormalizeForSearch(a.Nature.ToString()).Contains(query));
             }
             
             return accounts.ToList();
