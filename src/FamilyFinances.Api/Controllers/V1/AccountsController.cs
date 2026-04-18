@@ -45,6 +45,8 @@ public sealed class AccountsController : ControllerBase
         [FromQuery] string? from = null,
         [FromQuery] string? to = null,
         [FromQuery] string? q = null,
+        [FromQuery] decimal? minAmount = null,
+        [FromQuery] decimal? maxAmount = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50,
         CancellationToken ct = default)
@@ -68,7 +70,7 @@ public sealed class AccountsController : ControllerBase
         try
         {
             var result = await reportingRepo.GetAccountMovementsAsync(
-                id, fromDate, toDate, q, skip, pageSize, ct);
+                id, fromDate, toDate, q, minAmount, maxAmount, skip, pageSize, ct);
             return Ok(result);
         }
         catch (KeyNotFoundException)

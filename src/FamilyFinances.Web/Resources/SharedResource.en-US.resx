@@ -348,6 +348,12 @@
   <data name="AccountMovements_SearchPlaceholder" xml:space="preserve">
     <value>Search by description or payee...</value>
   </data>
+  <data name="AccountMovements_AmountFrom" xml:space="preserve">
+    <value>Amount From</value>
+  </data>
+  <data name="AccountMovements_AmountTo" xml:space="preserve">
+    <value>Amount To</value>
+  </data>
   <data name="AccountMovements_ShowingOfTotal" xml:space="preserve">
     <value>{0} of {1} total</value>
   </data>
@@ -386,6 +392,9 @@
   </data>
   <data name="AccountMovements_ToDate" xml:space="preserve">
     <value>To Date</value>
+  </data>
+  <data name="Filter_AmountRangeInvalid" xml:space="preserve">
+    <value>Amount From must be less than or equal to Amount To.</value>
   </data>
   <data name="Accounts_Action_Close" xml:space="preserve">
     <value>Close</value>
@@ -2378,6 +2387,12 @@
   </data>
   <data name="Transactions_SearchPlaceholder" xml:space="preserve">
     <value>Description or payee...</value>
+  </data>
+  <data name="Transactions_AmountFrom" xml:space="preserve">
+    <value>Amount From</value>
+  </data>
+  <data name="Transactions_AmountTo" xml:space="preserve">
+    <value>Amount To</value>
   </data>
   <data name="Transactions_ShowingCount_Plural" xml:space="preserve">
     <value>Showing {0} transactions</value>

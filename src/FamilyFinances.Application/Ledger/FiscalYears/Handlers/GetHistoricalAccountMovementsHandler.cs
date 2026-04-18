@@ -28,6 +28,8 @@ public sealed class GetHistoricalAccountMovementsHandler
             fromInclusive,
             toExclusive,
             request.SearchQuery,
+            null,
+            null,
             skip,
             safePageSize,
             ct);

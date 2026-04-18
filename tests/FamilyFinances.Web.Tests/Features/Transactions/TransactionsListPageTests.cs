@@ -87,6 +87,212 @@ public sealed class TransactionsListPageTests : WebTestContext
         });
     }
 
+    [Fact]
+    public void Transactions_AmountRange_Filters_WithInclusiveBounds()
+    {
+        RegisterServices(
+        [
+            new TransactionListItemDto(Guid.NewGuid(), new DateOnly(2026, 2, 10), "A", "A", "Payee A", 9.99m, TransactionListItemType.Expense),
+            new TransactionListItemDto(Guid.NewGuid(), new DateOnly(2026, 2, 11), "B", "B", "Payee B", 10.00m, TransactionListItemType.Expense),
+            new TransactionListItemDto(Guid.NewGuid(), new DateOnly(2026, 2, 12), "C", "C", "Payee C", 25.00m, TransactionListItemType.Expense),
+            new TransactionListItemDto(Guid.NewGuid(), new DateOnly(2026, 2, 13), "D", "D", "Payee D", 50.00m, TransactionListItemType.Expense),
+            new TransactionListItemDto(Guid.NewGuid(), new DateOnly(2026, 2, 14), "E", "E", "Payee E", 50.01m, TransactionListItemType.Expense)
+        ]);
+
+        var cut = RenderComponent<TransactionsListPage>();
+        cut.WaitForAssertion(() => cut.FindAll("tbody tr").Should().HaveCount(5));
+
+        var numericInputs = cut.FindAll("input[type='number']");
+        numericInputs.Should().HaveCount(2);
+        numericInputs[0].Change("10");
+        cut.FindAll("input[type='number']")[1].Change("50");
+
+        cut.FindAll("button")
+            .First(button => button.TextContent.Contains("Apply Filters", StringComparison.OrdinalIgnoreCase))
+            .Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            var rows = cut.FindAll("tbody tr");
+            rows.Should().HaveCount(3);
+            rows.Select(r => r.TextContent).Should().Contain(text => text.Contains("Payee B", StringComparison.Ordinal));
+            rows.Select(r => r.TextContent).Should().Contain(text => text.Contains("Payee C", StringComparison.Ordinal));
+            rows.Select(r => r.TextContent).Should().Contain(text => text.Contains("Payee D", StringComparison.Ordinal));
+            rows.Select(r => r.TextContent).Should().NotContain(text => text.Contains("Payee A", StringComparison.Ordinal));
+            rows.Select(r => r.TextContent).Should().NotContain(text => text.Contains("Payee E", StringComparison.Ordinal));
+        });
+    }
+
+    [Fact]
+    public void Transactions_AmountRange_SupportsMinOnly_AndMaxOnly()
+    {
+        RegisterServices(
+        [
+            new TransactionListItemDto(Guid.NewGuid(), new DateOnly(2026, 2, 10), "Low", "Low", "Payee A", 5.00m, TransactionListItemType.Expense),
+            new TransactionListItemDto(Guid.NewGuid(), new DateOnly(2026, 2, 11), "Mid", "Mid", "Payee B", 25.00m, TransactionListItemType.Expense),
+            new TransactionListItemDto(Guid.NewGuid(), new DateOnly(2026, 2, 12), "High", "High", "Payee C", 60.00m, TransactionListItemType.Expense)
+        ]);
+
+        var cut = RenderComponent<TransactionsListPage>();
+        cut.WaitForAssertion(() => cut.FindAll("tbody tr").Should().HaveCount(3));
+
+        var numericInputs = cut.FindAll("input[type='number']");
+        numericInputs[0].Change("20");
+        cut.FindAll("button")
+            .First(button => button.TextContent.Contains("Apply Filters", StringComparison.OrdinalIgnoreCase))
+            .Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            var rows = cut.FindAll("tbody tr");
+            rows.Should().HaveCount(2);
+            rows.Select(r => r.TextContent).Should().Contain(text => text.Contains("Payee B", StringComparison.Ordinal));
+            rows.Select(r => r.TextContent).Should().Contain(text => text.Contains("Payee C", StringComparison.Ordinal));
+            rows.Select(r => r.TextContent).Should().NotContain(text => text.Contains("Payee A", StringComparison.Ordinal));
+        });
+
+        cut.FindAll("button")
+            .First(button => button.TextContent.Contains("Reset", StringComparison.OrdinalIgnoreCase))
+            .Click();
+        cut.WaitForAssertion(() => cut.FindAll("tbody tr").Should().HaveCount(3));
+
+        numericInputs = cut.FindAll("input[type='number']");
+        numericInputs[1].Change("30");
+        cut.FindAll("button")
+            .First(button => button.TextContent.Contains("Apply Filters", StringComparison.OrdinalIgnoreCase))
+            .Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            var rows = cut.FindAll("tbody tr");
+            rows.Should().HaveCount(2);
+            rows.Select(r => r.TextContent).Should().Contain(text => text.Contains("Payee A", StringComparison.Ordinal));
+            rows.Select(r => r.TextContent).Should().Contain(text => text.Contains("Payee B", StringComparison.Ordinal));
+            rows.Select(r => r.TextContent).Should().NotContain(text => text.Contains("Payee C", StringComparison.Ordinal));
+        });
+    }
+
+    [Fact]
+    public void Transactions_AmountRange_InvalidRange_ShowsError_AndKeepsCurrentResults()
+    {
+        RegisterServices(
+        [
+            new TransactionListItemDto(Guid.NewGuid(), new DateOnly(2026, 2, 10), "First", "First", "Payee A", 10.00m, TransactionListItemType.Expense),
+            new TransactionListItemDto(Guid.NewGuid(), new DateOnly(2026, 2, 11), "Second", "Second", "Payee B", 20.00m, TransactionListItemType.Expense)
+        ]);
+
+        var cut = RenderComponent<TransactionsListPage>();
+        cut.WaitForAssertion(() => cut.FindAll("tbody tr").Should().HaveCount(2));
+
+        var numericInputs = cut.FindAll("input[type='number']");
+        numericInputs[0].Change("100");
+        cut.FindAll("input[type='number']")[1].Change("50");
+
+        cut.FindAll("button")
+            .First(button => button.TextContent.Contains("Apply Filters", StringComparison.OrdinalIgnoreCase))
+            .Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Markup.Should().Contain("Amount From must be less than or equal to Amount To.");
+            cut.FindAll("tbody tr").Should().HaveCount(2);
+        });
+    }
+
+    [Fact]
+    public void Transactions_AmountRange_ValidRange_ClearsPreviousValidationError()
+    {
+        RegisterServices(
+        [
+            new TransactionListItemDto(Guid.NewGuid(), new DateOnly(2026, 2, 10), "First", "First", "Payee A", 10.00m, TransactionListItemType.Expense),
+            new TransactionListItemDto(Guid.NewGuid(), new DateOnly(2026, 2, 11), "Second", "Second", "Payee B", 20.00m, TransactionListItemType.Expense),
+            new TransactionListItemDto(Guid.NewGuid(), new DateOnly(2026, 2, 12), "Third", "Third", "Payee C", 60.00m, TransactionListItemType.Expense)
+        ]);
+
+        var cut = RenderComponent<TransactionsListPage>();
+        cut.WaitForAssertion(() => cut.FindAll("tbody tr").Should().HaveCount(3));
+
+        var numericInputs = cut.FindAll("input[type='number']");
+        numericInputs[0].Change("100");
+        cut.FindAll("input[type='number']")[1].Change("50");
+        cut.FindAll("button")
+            .First(button => button.TextContent.Contains("Apply Filters", StringComparison.OrdinalIgnoreCase))
+            .Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Markup.Should().Contain("Amount From must be less than or equal to Amount To.");
+            cut.FindAll("tbody tr").Should().HaveCount(3);
+        });
+
+        numericInputs = cut.FindAll("input[type='number']");
+        numericInputs[0].Change("10");
+        cut.FindAll("input[type='number']")[1].Change("50");
+        cut.FindAll("button")
+            .First(button => button.TextContent.Contains("Apply Filters", StringComparison.OrdinalIgnoreCase))
+            .Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Markup.Should().NotContain("Amount From must be less than or equal to Amount To.");
+            var rows = cut.FindAll("tbody tr");
+            rows.Should().HaveCount(2);
+            rows.Select(r => r.TextContent).Should().Contain(text => text.Contains("Payee A", StringComparison.Ordinal));
+            rows.Select(r => r.TextContent).Should().Contain(text => text.Contains("Payee B", StringComparison.Ordinal));
+            rows.Select(r => r.TextContent).Should().NotContain(text => text.Contains("Payee C", StringComparison.Ordinal));
+        });
+    }
+
+    [Fact]
+    public void Transactions_AmountRange_LoadMore_AppendsFilteredRowsOnly()
+    {
+        var items = Enumerable.Range(1, 120)
+            .Select(i => new TransactionListItemDto(
+                Guid.NewGuid(),
+                new DateOnly(2026, 2, 1).AddDays(i - 1),
+                $"Headline {i:D3}",
+                $"Subheadline {i:D3}",
+                $"Payee {i:D3}",
+                i,
+                TransactionListItemType.Expense))
+            .ToList();
+
+        RegisterServices(items);
+
+        var cut = RenderComponent<TransactionsListPage>();
+        cut.WaitForAssertion(() => cut.FindAll("tbody tr").Should().HaveCount(50));
+
+        var numericInputs = cut.FindAll("input[type='number']");
+        numericInputs[0].Change("20");
+        cut.FindAll("input[type='number']")[1].Change("100");
+        cut.FindAll("button")
+            .First(button => button.TextContent.Contains("Apply Filters", StringComparison.OrdinalIgnoreCase))
+            .Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            var rows = cut.FindAll("tbody tr");
+            rows.Should().HaveCount(50);
+            cut.Markup.Should().Contain("Payee 020");
+            cut.Markup.Should().Contain("Payee 069");
+            cut.Markup.Should().NotContain("Payee 019");
+            cut.Markup.Should().NotContain("Payee 070");
+        });
+
+        cut.FindAll("button")
+            .First(button => button.TextContent.Contains("Load More", StringComparison.OrdinalIgnoreCase))
+            .Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            var rows = cut.FindAll("tbody tr");
+            rows.Should().HaveCount(81);
+            cut.Markup.Should().Contain("Payee 100");
+            cut.Markup.Should().NotContain("Payee 019");
+            cut.Markup.Should().NotContain("Payee 101");
+        });
+    }
+
     private void RegisterServices(IReadOnlyList<TransactionListItemDto> items)
     {
         var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);

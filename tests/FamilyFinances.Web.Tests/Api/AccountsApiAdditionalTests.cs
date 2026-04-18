@@ -122,6 +122,8 @@ public sealed class AccountsApiAdditionalTests
             fromInclusive: new DateOnly(2026, 1, 1),
             toExclusive: new DateOnly(2026, 2, 1),
             searchQuery: "rent home",
+            minAmount: 10.5m,
+            maxAmount: 2000.75m,
             page: 2,
             pageSize: 25,
             ct: CancellationToken.None);
@@ -134,8 +136,50 @@ public sealed class AccountsApiAdditionalTests
         url.Should().Contain("to=2026-02-01");
         (url.Contains("q=rent%20home", StringComparison.Ordinal) ||
          url.Contains("q=rent home", StringComparison.Ordinal)).Should().BeTrue();
+        url.Should().Contain("minAmount=10.5");
+        url.Should().Contain("maxAmount=2000.75");
         url.Should().Contain("page=2");
         url.Should().Contain("pageSize=25");
+    }
+
+    [Fact]
+    public async Task GetMovementsAsync_OmitsAmountQueryParameters_WhenNotProvided()
+    {
+        var accountId = Guid.NewGuid();
+        HttpRequestMessage? capturedRequest = null;
+        var payload = new AccountMovementsDto(
+            accountId,
+            "Checking",
+            new DateOnly(2026, 1, 1),
+            new DateOnly(2026, 2, 1),
+            [],
+            0);
+
+        _httpMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>((req, _) => capturedRequest = req)
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(payload)
+            });
+
+        _ = await _sut.GetMovementsAsync(
+            accountId,
+            fromInclusive: new DateOnly(2026, 1, 1),
+            toExclusive: new DateOnly(2026, 2, 1),
+            searchQuery: "rent home",
+            page: 1,
+            pageSize: 50,
+            ct: CancellationToken.None);
+
+        capturedRequest.Should().NotBeNull();
+        var url = capturedRequest!.RequestUri!.ToString();
+        url.Should().NotContain("minAmount=");
+        url.Should().NotContain("maxAmount=");
     }
 
     [Fact]

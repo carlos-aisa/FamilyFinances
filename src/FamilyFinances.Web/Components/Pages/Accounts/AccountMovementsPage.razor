@@ -95,6 +95,22 @@
                         </button>
                     </div>
                 </div>
+
+                <div class="row g-3 mt-1">
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-currency-euro me-1"></i>@L["AccountMovements_AmountFrom"]
+                        </label>
+                        <InputNumber @bind-Value="_amountFrom" class="form-control" step="0.01" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-currency-euro me-1"></i>@L["AccountMovements_AmountTo"]
+                        </label>
+                        <InputNumber @bind-Value="_amountTo" class="form-control" step="0.01" />
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -372,6 +388,8 @@
     private DateOnly _fromDate = DateHelper.GetCurrentMonthStart();
     private DateOnly _toDate = DateHelper.GetCurrentMonthEnd();
     private string _searchQuery = string.Empty;
+    private decimal? _amountFrom;
+    private decimal? _amountTo;
     private string? _activePreset = "this-month";
     private int _currentPage = 1;
     private readonly int _pageSize = 50;
@@ -410,6 +428,12 @@
 
     private async Task ApplyFiltersAsync()
     {
+        if (HasInvalidAmountRange())
+        {
+            _error = L["Filter_AmountRangeInvalid"];
+            return;
+        }
+
         _currentPage = 1;
         await LoadMovementsAsync();
     }
@@ -453,6 +477,8 @@
                         _fromDate,
                         _toDate,
                         search,
+                        _amountFrom,
+                        _amountTo,
                         _currentPage,
                         _pageSize,
                         ct);
@@ -509,6 +535,9 @@
     {
         return amount < 0 ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger";
     }
+
+    private bool HasInvalidAmountRange()
+        => _amountFrom.HasValue && _amountTo.HasValue && _amountFrom.Value > _amountTo.Value;
 
     private string GetRunningBalanceClass(decimal runningBalance)
     {
