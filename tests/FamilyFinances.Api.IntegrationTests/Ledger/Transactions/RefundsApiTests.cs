@@ -194,6 +194,55 @@ public sealed class RefundsApiTests
     }
 
     [Fact]
+    public async Task Search_Expenses_IsAccentInsensitive_ForDescriptionAndPayee()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var bank = await TestHelpers.CreateAccountAsync(client, "Main Bank", "Asset", "Checking");
+        var groceries = await TestHelpers.CreateAccountAsync(client, "Groceries", "Expense", "Other");
+        var mariaPayee = await CreatePayeeAsync(client, "María Market");
+        var otherPayee = await CreatePayeeAsync(client, "Other Store");
+
+        await client.PostAsJsonAsync("/api/v1/transactions", new
+        {
+            bookedOn = "2026-01-05",
+            description = "Compra Café semanal",
+            payeeId = mariaPayee.Id,
+            splits = new[]
+            {
+                new { accountId = bank.Id, amountCents = -5000, memo = "Payment" },
+                new { accountId = groceries.Id, amountCents = 5000, memo = "Expense" }
+            }
+        });
+
+        await client.PostAsJsonAsync("/api/v1/transactions", new
+        {
+            bookedOn = "2026-01-06",
+            description = "Gas station",
+            payeeId = otherPayee.Id,
+            splits = new[]
+            {
+                new { accountId = bank.Id, amountCents = -1200, memo = "Payment" },
+                new { accountId = groceries.Id, amountCents = 1200, memo = "Expense" }
+            }
+        });
+
+        var byDescription = await client.GetAsync("/api/v1/transactions/search-expenses?q=cafe&limit=20");
+        byDescription.StatusCode.Should().Be(HttpStatusCode.OK);
+        var descriptionResults = await byDescription.Content.ReadFromJsonAsync<List<ExpenseSearchResultDto>>();
+        descriptionResults.Should().NotBeNull();
+        descriptionResults!.Should().ContainSingle(r => r.Description == "Compra Café semanal");
+
+        var byPayee = await client.GetAsync("/api/v1/transactions/search-expenses?q=maria&limit=20");
+        byPayee.StatusCode.Should().Be(HttpStatusCode.OK);
+        var payeeResults = await byPayee.Content.ReadFromJsonAsync<List<ExpenseSearchResultDto>>();
+        payeeResults.Should().NotBeNull();
+        payeeResults!.Should().ContainSingle(r => r.PayeeName == "María Market");
+        payeeResults.Should().NotContain(r => r.PayeeName == "Other Store");
+    }
+
+    [Fact]
     public async Task Search_Expenses_Respects_Limit()
     {
         // Arrange
@@ -338,4 +387,19 @@ public sealed class RefundsApiTests
         string ExpenseAccountName);
 
     public sealed record ErrorResponse(string Error);
+
+    private static async Task<PayeeDto> CreatePayeeAsync(HttpClient client, string name)
+    {
+        var response = await client.PostAsJsonAsync("/api/v1/payees", new
+        {
+            name
+        });
+
+        response.EnsureSuccessStatusCode();
+        var payee = await response.Content.ReadFromJsonAsync<PayeeDto>();
+        payee.Should().NotBeNull();
+        return payee!;
+    }
+
+    public sealed record PayeeDto(Guid Id, string Name);
 }

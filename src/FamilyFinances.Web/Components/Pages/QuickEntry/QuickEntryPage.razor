@@ -1,6 +1,7 @@
 @page "/quick-entry"
 @rendermode InteractiveServer
 @using System.Globalization
+@using FamilyFinances.Application.Common
 @using FamilyFinances.Application.Ledger.Accounts.Dtos
 @using FamilyFinances.Application.Ledger.Payees.Dtos
 @using FamilyFinances.Domain.Ledger.Accounts
@@ -579,14 +580,17 @@
         if (string.IsNullOrWhiteSpace(_globalAccountSearchQuery))
             return accounts;
 
-        var query = _globalAccountSearchQuery.Trim();
-        var natureLabel = GetNatureLabel(nature);
+        var query = SearchTextNormalizer.NormalizeForSearch(_globalAccountSearchQuery);
+        if (string.IsNullOrEmpty(query))
+            return accounts;
+
+        var normalizedNatureLabel = SearchTextNormalizer.NormalizeForSearch(GetNatureLabel(nature));
 
         return accounts
             .Where(a =>
-                a.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                natureLabel.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                GetKindLabel(a.Kind).Contains(query, StringComparison.OrdinalIgnoreCase))
+                SearchTextNormalizer.NormalizeForSearch(a.Name).Contains(query) ||
+                normalizedNatureLabel.Contains(query) ||
+                SearchTextNormalizer.NormalizeForSearch(GetKindLabel(a.Kind)).Contains(query))
             .ToList();
     }
 

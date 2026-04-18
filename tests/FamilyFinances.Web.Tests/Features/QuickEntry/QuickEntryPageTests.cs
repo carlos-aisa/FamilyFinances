@@ -85,6 +85,37 @@ public sealed class QuickEntryPageTests : WebTestContext
     }
 
     [Fact]
+    public void QuickEntry_GlobalSearch_Matches_Accented_Account_Name_With_Unaccented_Query()
+    {
+        RegisterAuthorizedServices(CreateAccountsApiMock(
+        [
+            BuildAccount("María Account", AccountNature.Asset, AccountKind.Checking),
+            BuildAccount("Salary", AccountNature.Income, AccountKind.IncomeSource)
+        ]));
+
+        var cut = RenderComponent<QuickEntryPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("input[placeholder='Search accounts by name or type']");
+            cut.FindAll(".ff-dashboard-account-item").Should().NotBeEmpty();
+        });
+
+        var search = cut.Find("input[placeholder='Search accounts by name or type']");
+        search.Input("maria");
+
+        cut.WaitForAssertion(() =>
+        {
+            var visibleItems = cut.FindAll(".ff-dashboard-account-item")
+                .Select(item => item.TextContent)
+                .ToList();
+
+            visibleItems.Should().Contain(text => text.Contains("María Account", StringComparison.OrdinalIgnoreCase));
+            visibleItems.Should().NotContain(text => text.Contains("Salary", StringComparison.OrdinalIgnoreCase));
+        });
+    }
+
+    [Fact]
     public void QuickEntry_Shows_Mode_Guidance_And_Persists_Selected_Date_Across_Mode_Switch()
     {
         RegisterAuthorizedServices(CreateAccountsApiMock(

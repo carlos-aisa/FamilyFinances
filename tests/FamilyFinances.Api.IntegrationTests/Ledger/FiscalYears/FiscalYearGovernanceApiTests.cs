@@ -192,6 +192,37 @@ public sealed class FiscalYearGovernanceApiTests
     }
 
     [Fact]
+    public async Task HistoricalMovements_Search_IsAccentInsensitive()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var bank = await TestHelpers.CreateAccountAsync(client, "Bank", "Asset", "Checking");
+        var groceries = await TestHelpers.CreateAccountAsync(client, "Groceries", "Expense", "Other");
+
+        await CreateTransactionAsync(client, "2025-01-10", "Pago José mensual", new[]
+        {
+            new { accountId = bank.Id, amountCents = 3_000, memo = "Payment" },
+            new { accountId = groceries.Id, amountCents = -3_000, memo = "Expense" }
+        });
+
+        await CreateTransactionAsync(client, "2025-01-11", "Gas station", new[]
+        {
+            new { accountId = bank.Id, amountCents = 2_000, memo = "Payment" },
+            new { accountId = groceries.Id, amountCents = -2_000, memo = "Expense" }
+        });
+
+        var movementsHistory = await client.GetAsync($"/api/v1/history/movements?accountId={bank.Id}&year=2025&q=jose&page=1&pageSize=50");
+        movementsHistory.StatusCode.Should().Be(HttpStatusCode.OK);
+        var movements = await movementsHistory.Content.ReadFromJsonAsync<AccountMovementsDto>();
+
+        movements.Should().NotBeNull();
+        movements!.Items.Should().ContainSingle(x => x.Description == "Pago José mensual");
+        movements.Items.Should().NotContain(x => x.Description == "Gas station");
+        movements.Items.Should().OnlyContain(x => x.BookedOn.Year == 2025);
+    }
+
+    [Fact]
     public async Task AccountMovements_ParityIsMaintained_BeforeAndAfterSnapshotClose()
     {
         using var factory = TestClient.CreateFactoryWithFreshDb(out _);

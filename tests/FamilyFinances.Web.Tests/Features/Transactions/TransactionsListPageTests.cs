@@ -88,6 +88,88 @@ public sealed class TransactionsListPageTests : WebTestContext
     }
 
     [Fact]
+    public void Transactions_Search_IsAccentInsensitive_ForHeadlineSubheadlineAndPayee()
+    {
+        RegisterServices(
+        [
+            new TransactionListItemDto(
+                Guid.NewGuid(),
+                new DateOnly(2026, 2, 10),
+                "José transfer",
+                "Standard movement",
+                "Alpha",
+                -40m,
+                TransactionListItemType.Expense),
+            new TransactionListItemDto(
+                Guid.NewGuid(),
+                new DateOnly(2026, 2, 11),
+                "Utilities",
+                "Comisión de luz",
+                "Beta",
+                -65m,
+                TransactionListItemType.Expense),
+            new TransactionListItemDto(
+                Guid.NewGuid(),
+                new DateOnly(2026, 2, 12),
+                "Groceries",
+                "Weekly food",
+                "María Market",
+                -30m,
+                TransactionListItemType.Expense)
+        ]);
+
+        var cut = RenderComponent<TransactionsListPage>();
+        cut.WaitForAssertion(() => cut.FindAll("tbody tr").Should().HaveCount(3));
+
+        var searchInput = cut.Find("input[placeholder='Description or payee...']");
+        var applyButton = cut.FindAll("button")
+            .First(button => button.TextContent.Contains("Apply Filters", StringComparison.OrdinalIgnoreCase));
+        var resetButton = cut.FindAll("button")
+            .First(button => button.TextContent.Contains("Reset", StringComparison.OrdinalIgnoreCase));
+
+        searchInput.Input("jose");
+        applyButton.Click();
+        cut.WaitForAssertion(() =>
+        {
+            var rows = cut.FindAll("tbody tr");
+            rows.Should().HaveCount(1);
+            rows[0].TextContent.Should().Contain("José transfer");
+        });
+
+        resetButton.Click();
+        cut.WaitForAssertion(() => cut.FindAll("tbody tr").Should().HaveCount(3));
+
+        searchInput = cut.Find("input[placeholder='Description or payee...']");
+        searchInput.Input("comision");
+        applyButton = cut.FindAll("button")
+            .First(button => button.TextContent.Contains("Apply Filters", StringComparison.OrdinalIgnoreCase));
+        applyButton.Click();
+        cut.WaitForAssertion(() =>
+        {
+            var rows = cut.FindAll("tbody tr");
+            rows.Should().HaveCount(1);
+            rows[0].TextContent.Should().Contain("Comisión de luz");
+        });
+
+        resetButton = cut.FindAll("button")
+            .First(button => button.TextContent.Contains("Reset", StringComparison.OrdinalIgnoreCase));
+        resetButton.Click();
+        cut.WaitForAssertion(() => cut.FindAll("tbody tr").Should().HaveCount(3));
+
+        searchInput = cut.Find("input[placeholder='Description or payee...']");
+        searchInput.Input("maria");
+        applyButton = cut.FindAll("button")
+            .First(button => button.TextContent.Contains("Apply Filters", StringComparison.OrdinalIgnoreCase));
+        applyButton.Click();
+        cut.WaitForAssertion(() =>
+        {
+            var rows = cut.FindAll("tbody tr");
+            rows.Should().HaveCount(1);
+            rows[0].TextContent.Should().Contain("María Market");
+        });
+    }
+
+    [Fact]
     public void Transactions_AmountRange_Filters_WithInclusiveBounds()
     {
         RegisterServices(

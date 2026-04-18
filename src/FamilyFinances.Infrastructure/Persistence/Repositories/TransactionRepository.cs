@@ -1,6 +1,7 @@
 using FamilyFinances.Application.Ledger.Transactions.Abstractions;
 using FamilyFinances.Application.Ledger.Transactions.Dtos;
 using FamilyFinances.Application.Ledger.Transactions.Requests;
+using FamilyFinances.Application.Common;
 using FamilyFinances.Domain.Common;
 using FamilyFinances.Domain.Ledger.Accounts;
 using FamilyFinances.Domain.Ledger.Payees;
@@ -154,7 +155,7 @@ public sealed class TransactionRepository : ITransactionRepository
         int limit,
         CancellationToken ct)
     {
-        var queryLower = query.ToLowerInvariant();
+        var normalizedQuery = SearchTextNormalizer.NormalizeForSearch(query);
 
         var expenseTransactions = _db.Transactions
             .AsNoTracking()
@@ -170,33 +171,30 @@ public sealed class TransactionRepository : ITransactionRepository
                 .Where(t => t.Splits.Any(s => s.AccountId == new AccountId(expenseAccountId.Value)));
         }
 
-        // Search by description, payee name, or expense account name
-        var results = await expenseTransactions
-            .Where(t =>
-                t.Description.ToLower().Contains(queryLower) ||
-                (t.Payee != null && t.Payee.Name.ToLower().Contains(queryLower)) ||
-                t.Splits.Any(s => s.Account.Nature == AccountNature.Expense 
-                    && s.Account.Name.ToLower().Contains(queryLower)))
+        var candidateTransactions = await expenseTransactions
             .OrderByDescending(t => t.BookedOn)
             .ThenByDescending(t => t.Id)
-            .Take(limit)
-            .Select(t => new
-            {
-                t.Id,
-                t.Description,
-                t.BookedOn,
-                PayeeName = t.Payee != null ? t.Payee.Name : null,
-                ExpenseSplit = t.Splits.First(s => s.Account.Nature == AccountNature.Expense)
-            })
             .ToListAsync(ct);
 
-        return results.Select(r => new ExpenseSearchResultDto(
-            r.Id.Value,
-            r.Description,
-            r.BookedOn,
-            r.PayeeName,
-            Math.Abs(r.ExpenseSplit.Amount.ToEuros()),
-            r.ExpenseSplit.Account.Name
-        )).ToList();
+        return candidateTransactions
+            .Where(t =>
+                SearchTextNormalizer.NormalizeForSearch(t.Description).Contains(normalizedQuery) ||
+                SearchTextNormalizer.NormalizeForSearch(t.Payee?.Name).Contains(normalizedQuery) ||
+                t.Splits.Any(s =>
+                    s.Account.Nature == AccountNature.Expense &&
+                    SearchTextNormalizer.NormalizeForSearch(s.Account.Name).Contains(normalizedQuery)))
+            .Take(limit)
+            .Select(t =>
+            {
+                var expenseSplit = t.Splits.First(s => s.Account.Nature == AccountNature.Expense);
+                return new ExpenseSearchResultDto(
+                    t.Id.Value,
+                    t.Description,
+                    t.BookedOn,
+                    t.Payee?.Name,
+                    Math.Abs(expenseSplit.Amount.ToEuros()),
+                    expenseSplit.Account.Name);
+            })
+            .ToList();
     }
 }

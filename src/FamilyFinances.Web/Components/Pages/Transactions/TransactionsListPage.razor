@@ -1,6 +1,7 @@
 @page "/transactions"
 @inherits ApiPageBase
 @using System.Globalization
+@using FamilyFinances.Application.Common
 @using FamilyFinances.Application.Ledger.Transactions.Dtos
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
@@ -367,11 +368,11 @@ else
 
         if (!string.IsNullOrWhiteSpace(_searchQuery))
         {
-                var query = _searchQuery.ToLowerInvariant();
-                filtered = filtered.Where(t =>
-                    t.Headline.ToLowerInvariant().Contains(query) ||
-                    (t.Subheadline?.ToLowerInvariant().Contains(query) ?? false) ||
-                    (t.PayeeName?.ToLowerInvariant().Contains(query) ?? false));
+            var query = SearchTextNormalizer.NormalizeForSearch(_searchQuery);
+            filtered = filtered.Where(t =>
+                SearchTextNormalizer.NormalizeForSearch(t.Headline).Contains(query) ||
+                SearchTextNormalizer.NormalizeForSearch(t.Subheadline).Contains(query) ||
+                SearchTextNormalizer.NormalizeForSearch(t.PayeeName).Contains(query));
         }
 
         if (_amountFrom.HasValue)
