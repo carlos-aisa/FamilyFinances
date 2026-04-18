@@ -6,6 +6,7 @@ using FamilyFinances.Application.Reporting.Dtos;
 using FamilyFinances.Web.Api;
 using FamilyFinances.Web.Auth;
 using FamilyFinances.Web.Components.Pages.Dashboard;
+using FamilyFinances.Web.Features.Reports;
 using FamilyFinances.Web.Features.Reports.Charts;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
@@ -110,6 +111,39 @@ public sealed class DashboardPageTests : WebTestContext
         allColors.Should().Contain(ChartSemanticPalette.ResolveSemantic(ChartSemanticPalette.Neutral));
     }
 
+    [Fact]
+    public void Dashboard_Displays_YTD_Net_KPI()
+    {
+        RegisterAuthorizedServices(BuildHttpClientFactory(CreateOverviewPayload(), previousYearAssetTotalCents: 1_200_000));
+
+        var cut = RenderComponent<DashboardPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var kpiStrip = cut.Find("[data-testid='dashboard-kpi-strip']");
+            var kpiCards = kpiStrip.QuerySelectorAll(".card");
+            
+            kpiCards.Should().HaveCount(5, "dashboard should display 5 KPI cards");
+            
+            var fifthKpi = kpiCards[4];
+            fifthKpi.ClassList.Should().Contain("border-warning", "fifth KPI should have yellow/orange border");
+            
+            var label = fifthKpi.QuerySelector("h6");
+            label.Should().NotBeNull();
+            label!.TextContent.Should().MatchRegex("YTD Net|Neto YTD", "label should be localized");
+            
+            var value = fifthKpi.QuerySelector("h4");
+            value.Should().NotBeNull();
+            value!.TextContent.Should().Contain(
+                MoneyFormatter.FormatCentsWithSign(300_000),
+                "YTD value should be current assets minus asset total at 31/12 of previous year");
+            
+            var delta = fifthKpi.QuerySelector("small");
+            delta.Should().NotBeNull();
+            delta!.TextContent.Should().NotBeNullOrWhiteSpace("delta should be displayed");
+        });
+    }
+
     private void RegisterAuthorizedServices(Mock<IHttpClientFactory> httpClientFactory)
     {
         var tokenStore = new TestTokenStore("test-token");
@@ -122,7 +156,9 @@ public sealed class DashboardPageTests : WebTestContext
         Services.AddScoped<ReportsApi>();
     }
 
-    private static Mock<IHttpClientFactory> BuildHttpClientFactory(DashboardOverviewDto payload)
+    private static Mock<IHttpClientFactory> BuildHttpClientFactory(
+        DashboardOverviewDto payload,
+        long previousYearAssetTotalCents = 1_220_000)
     {
         var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
         var httpClient = new HttpClient(handlerMock.Object)
@@ -168,6 +204,17 @@ public sealed class DashboardPageTests : WebTestContext
                     });
                 }
 
+                if (uri.Contains("api/v1/reports/asset-total-balance", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(new AssetTotalBalanceDto(
+                            AsOf: new DateOnly(payload.AsOf.Year - 1, 12, 31),
+                            TotalCents: previousYearAssetTotalCents,
+                            AssetAccountsCount: 2))
+                    });
+                }
+
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
             });
 
@@ -194,6 +241,7 @@ public sealed class DashboardPageTests : WebTestContext
             Expense: new DashboardKpiDto(120_000, 10_000),
             NetResult: new DashboardKpiDto(180_000, 40_000),
             NetWorth: new DashboardKpiDto(1_250_000, 75_000),
+            AssetTotal: new DashboardKpiDto(1_500_000, 80_000),
             NetResultDeltaVsSameMonthLastYearCents: 25_000,
             DataSufficiencyState: dataState,
             DailyIncomeVsExpense:

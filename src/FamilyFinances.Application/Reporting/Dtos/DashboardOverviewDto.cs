@@ -58,6 +58,7 @@ public sealed record DashboardOverviewDto(
     DashboardKpiDto Expense,
     DashboardKpiDto NetResult,
     DashboardKpiDto NetWorth,
+    DashboardKpiDto? AssetTotal,
     long? NetResultDeltaVsSameMonthLastYearCents,
     DashboardDataSufficiencyState DataSufficiencyState,
     IReadOnlyList<DashboardDailyIncomeExpensePointDto> DailyIncomeVsExpense,

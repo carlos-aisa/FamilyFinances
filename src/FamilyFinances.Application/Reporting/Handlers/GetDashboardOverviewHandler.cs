@@ -40,6 +40,10 @@ public sealed class GetDashboardOverviewHandler
             ValueCents: core.CurrentState.NetWorthCents,
             DeltaVsPreviousMonthCents: core.CurrentState.NetWorthCents - core.PreviousState.NetWorthCents);
 
+        var assetTotal = new DashboardKpiDto(
+            ValueCents: core.CurrentState.AssetsTotalCents,
+            DeltaVsPreviousMonthCents: core.CurrentState.AssetsTotalCents - core.PreviousState.AssetsTotalCents);
+
         var dailyIncomeVsExpense = BuildDailyIncomeVsExpense(core.IncomeDailyPoints, core.ExpenseDailyPoints);
         var compactInsights = await BuildExpenseCompositionRowsAsync(core.AsOf, ct);
 
@@ -57,6 +61,7 @@ public sealed class GetDashboardOverviewHandler
             Expense: expense,
             NetResult: netResult,
             NetWorth: netWorth,
+            AssetTotal: assetTotal,
             NetResultDeltaVsSameMonthLastYearCents: sameMonthDelta,
             DataSufficiencyState: ResolveDataSufficiency(core),
             DailyIncomeVsExpense: dailyIncomeVsExpense,

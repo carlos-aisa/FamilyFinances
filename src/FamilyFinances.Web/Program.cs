@@ -13,15 +13,11 @@ using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Options;
 using System.Net.Http.Headers;
-using System.Net.Sockets;
 
 var builder = WebApplication.CreateBuilder(args);
 
 const string DefaultApiBaseUrl = "http://127.0.0.1:5084/";
 const string DevelopmentApiHttpBaseUrl = "http://localhost:5184/";
-const string DevelopmentApiHttpsBaseUrl = "https://localhost:7349/";
-const int DevelopmentApiHttpPort = 5184;
-const int DevelopmentApiHttpsPort = 7349;
 
 PackagedConfiguration.Apply(builder.Configuration, builder.Environment.EnvironmentName);
 
@@ -35,35 +31,8 @@ builder.Services.PostConfigure<ApiClientOptions>(options =>
     if (string.IsNullOrWhiteSpace(options.BaseUrl))
     {
         options.BaseUrl = builder.Environment.IsDevelopment()
-            ? DevelopmentApiHttpsBaseUrl
+            ? DevelopmentApiHttpBaseUrl
             : DefaultApiBaseUrl;
-    }
-
-    if (!builder.Environment.IsDevelopment())
-        return;
-
-    if (!Uri.TryCreate(options.BaseUrl, UriKind.Absolute, out var configuredUri))
-        return;
-
-    var isLocalHost = string.Equals(configuredUri.Host, "localhost", StringComparison.OrdinalIgnoreCase) ||
-                      string.Equals(configuredUri.Host, "127.0.0.1", StringComparison.OrdinalIgnoreCase);
-    if (!isLocalHost)
-        return;
-
-    var httpsAvailable = ApiClientEndpointProbe.CanReachTcpPort("127.0.0.1", DevelopmentApiHttpsPort);
-    if (string.Equals(configuredUri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
-        configuredUri.Port == DevelopmentApiHttpPort &&
-        httpsAvailable)
-    {
-        options.BaseUrl = DevelopmentApiHttpsBaseUrl;
-        return;
-    }
-
-    if (string.Equals(configuredUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) &&
-        configuredUri.Port == DevelopmentApiHttpsPort &&
-        !httpsAvailable)
-    {
-        options.BaseUrl = DevelopmentApiHttpBaseUrl;
     }
 });
 
@@ -106,7 +75,7 @@ builder.Services.AddHttpClient("FamilyFinancesApi", (sp, client) =>
 })
 .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
 {
-    // Keep redirects explicit so config mistakes are visible instead of turning into 401 loops.
+    // Keep redirects explicit so config mistakes are visible instead of turning into auth/header loss.
     AllowAutoRedirect = false
 });
 
@@ -154,22 +123,4 @@ public partial class Program { }
 public sealed class ApiClientOptions
 {
     public string BaseUrl { get; set; } = "";
-}
-
-internal static class ApiClientEndpointProbe
-{
-    public static bool CanReachTcpPort(string host, int port)
-    {
-        try
-        {
-            using var client = new TcpClient();
-            var connectTask = client.ConnectAsync(host, port);
-            var completed = connectTask.Wait(TimeSpan.FromMilliseconds(250));
-            return completed && client.Connected;
-        }
-        catch
-        {
-            return false;
-        }
-    }
 }

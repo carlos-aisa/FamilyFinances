@@ -52,6 +52,21 @@ public sealed class ProgramHostTests
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
+    [Fact]
+    public async Task HealthEndpoint_ReturnsOk_InDevelopmentEnvironment_WithHttpBaseAddress()
+    {
+        await using var factory = CreateFactory("Development");
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            BaseAddress = new Uri("http://localhost"),
+            AllowAutoRedirect = false
+        });
+
+        var response = await client.GetAsync("/health");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
     private static WebApplicationFactory<Program> CreateFactory(string environment)
     {
         var baseFactory = TestClient.CreateFactoryWithFreshDb(out _);

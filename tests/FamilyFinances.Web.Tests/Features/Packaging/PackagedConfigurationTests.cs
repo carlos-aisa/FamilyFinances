@@ -74,6 +74,43 @@ public sealed class PackagedConfigurationTests
         }
     }
 
+    [Fact]
+    public void Apply_DoesNotLoad_RuntimeRoot_Config_InDevelopment_WhenNoExplicitConfigRoot()
+    {
+        var runtimeRoot = Path.Combine(Path.GetTempPath(), $"ff-web-runtime-{Guid.NewGuid():N}");
+        var packagedRoot = Path.Combine(runtimeRoot, "config", "web");
+        Directory.CreateDirectory(packagedRoot);
+
+        try
+        {
+            File.WriteAllText(Path.Combine(packagedRoot, "appsettings.json"), "{\"Ui\":{\"Name\":\"packaged\"}}");
+            File.WriteAllText(Path.Combine(packagedRoot, "appsettings.Development.json"), "{\"Ui\":{\"Name\":\"packaged-development\"}}");
+
+            var configuration = new ConfigurationManager();
+            configuration.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Ui:Name"] = "local-development"
+            });
+
+            using var _ = new EnvironmentVariableScope(new Dictionary<string, string?>
+            {
+                [PackagedConfiguration.ConfigRootEnvironmentVariable] = null,
+                [PackagedConfiguration.RuntimeRootEnvironmentVariable] = runtimeRoot
+            });
+
+            PackagedConfiguration.Apply(configuration, "Development");
+
+            configuration["Ui:Name"].Should().Be("local-development");
+        }
+        finally
+        {
+            if (Directory.Exists(runtimeRoot))
+            {
+                Directory.Delete(runtimeRoot, recursive: true);
+            }
+        }
+    }
+
     private static string CreateTempConfigRoot()
     {
         var tempRoot = Path.Combine(Path.GetTempPath(), $"ff-web-config-{Guid.NewGuid():N}");

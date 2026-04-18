@@ -34,6 +34,17 @@ public static class PackagedConfiguration
 
     public static void Apply(ConfigurationManager configuration, string environmentName, string? configuredRoot = null)
     {
+        var isDevelopment = string.Equals(environmentName, "Development", StringComparison.OrdinalIgnoreCase);
+        var hasExplicitConfigRoot = !string.IsNullOrWhiteSpace(configuredRoot) ||
+                                    !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(ConfigRootEnvironmentVariable));
+
+        // When working from source, ignore machine-wide packaged runtime roots to avoid
+        // mixing production-installed config with local development settings.
+        if (isDevelopment && !hasExplicitConfigRoot)
+        {
+            return;
+        }
+
         var configRoot = ResolveConfigRoot(configuredRoot);
         if (configRoot is null)
         {

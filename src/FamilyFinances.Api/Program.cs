@@ -12,8 +12,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 if (builder.Environment.IsDevelopment())
 {
-    // Keep local development endpoints stable regardless of selected launch profile.
-    builder.WebHost.UseUrls("http://localhost:5184", "https://localhost:7349");
+    // Keep local development endpoint deterministic.
+    // Using only HTTP avoids cross-scheme redirects that can invalidate auth flows in local setups.
+    builder.WebHost.UseUrls("http://localhost:5184");
 }
 
 if (OperatingSystem.IsWindows())
@@ -107,12 +108,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// Only use HTTPS redirection in Development (when we have proper HTTPS setup)
-// Skip in Testing and Production (ZIP distribution uses HTTP-only for local access)
-if (app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
-}
+// Keep HTTP endpoint behavior stable across environments.
+// The desktop/local workflow uses HTTP by default and API clients send bearer tokens directly.
+// Redirecting to HTTPS can drop Authorization headers across scheme/port changes and cause false 401s.
 
 // AuthN/AuthZ must be before MapControllers
 app.UseAuthentication();
