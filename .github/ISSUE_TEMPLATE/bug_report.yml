@@ -1,0 +1,68 @@
+name: Bug report
+description: Report a reproducible defect
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please provide enough detail to reproduce and triage quickly.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Short description of the issue.
+      placeholder: What is happening and what did you expect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Exact steps to reproduce.
+      placeholder: |
+        1. Go to ...
+        2. Click ...
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs and traces
+      description: Include stack traces, API errors, browser console output, or screenshots.
+      render: shell
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Domain
+        - Application
+        - API
+        - Web
+        - Infrastructure
+        - CI/CD
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+      description: Release tag or commit SHA.
+      placeholder: v0.9.7 or 1a2b3c4
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-checks
+      options:
+        - label: I searched for existing issues.
+          required: true
+        - label: I can reproduce this on the latest code/release.
+          required: true
