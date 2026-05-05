@@ -36,7 +36,7 @@ function Convert-ToMsiVersion {
 
 Push-Location $repoRoot
 try {
-    & ".\build-windows-dist.ps1" -Version $Version -Configuration $Configuration | Out-Null
+    & ".\tools\installer\windows\build-windows-dist.ps1" -Version $Version -Configuration $Configuration | Out-Null
 
     & (Join-Path $PSScriptRoot "scripts\Publish-MsiLayout.ps1") `
         -Version $Version `

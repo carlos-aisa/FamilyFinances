@@ -1,4 +1,4 @@
-# Architecture (arch.md)
+# Architecture
 
 ## 1. Overview
 
