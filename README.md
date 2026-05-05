@@ -10,7 +10,7 @@
 
 Ledger-first personal finance platform built as a modular monolith in .NET, focused on accounting correctness, deterministic reporting, and production-grade engineering practices.
 
-## Why This Repository Is Portfolio-Grade
+## Project Highlights
 
 - Domain-driven architecture with explicit boundaries (`Domain`, `Application`, `Infrastructure`, `Api`, `Web`).
 - Ledger correctness rules (balanced splits, adjustment-first behavior for historical integrity).
@@ -186,9 +186,9 @@ powershell -ExecutionPolicy Bypass -File .\tools\installer\windows\build-install
 - Issue templates: [.github/ISSUE_TEMPLATE](.github/ISSUE_TEMPLATE)
 - Release notes categories: [.github/release.yml](.github/release.yml)
 
-## Portfolio Notes for Recruiters
+## Implementation Notes
 
-This repository demonstrates senior-level ownership across architecture, delivery, and operations:
+This repository emphasizes clarity across architecture, delivery, and operations:
 
 - business-domain modeling with long-term maintainability,
 - quality-first CI with measurable gates,
