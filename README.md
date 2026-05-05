@@ -1,18 +1,24 @@
 # FamilyFinances
-![Coverage](docs/badges/coverage.svg)
 
-## Overview
+[![CI Quality](https://github.com/carlos-aisa/FamilyFinances/actions/workflows/ci-quality.yml/badge.svg?branch=main)](https://github.com/carlos-aisa/FamilyFinances/actions/workflows/ci-quality.yml)
+[![CodeQL](https://github.com/carlos-aisa/FamilyFinances/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/carlos-aisa/FamilyFinances/actions/workflows/codeql.yml)
+[![Dependency Review](https://github.com/carlos-aisa/FamilyFinances/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/carlos-aisa/FamilyFinances/actions/workflows/dependency-review.yml)
+[![Coverage](docs/badges/coverage.svg)](docs/badges/coverage.svg)
+[![Latest Release](https://img.shields.io/github/v/release/carlos-aisa/FamilyFinances?sort=semver)](https://github.com/carlos-aisa/FamilyFinances/releases)
+[![.NET](https://img.shields.io/badge/.NET-9-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-### Purpose
-FamilyFinances is a ledger-first personal finance application built as a modular monolith in .NET.
+Ledger-first personal finance platform built as a modular monolith in .NET, focused on accounting correctness, deterministic reporting, and production-grade engineering practices.
 
-Its goals are:
-- Manage real family/personal finances with double-entry style transactions.
-- Keep accounting correctness (balanced splits, immutable historical behavior through adjustment transactions).
-- Provide a practical architecture playground for clean layering, testing, and operational practices.
+## Why This Repository Is Portfolio-Grade
 
-### Architecture
-The solution follows a layered modular monolith:
+- Domain-driven architecture with explicit boundaries (`Domain`, `Application`, `Infrastructure`, `Api`, `Web`).
+- Ledger correctness rules (balanced splits, adjustment-first behavior for historical integrity).
+- Real testing strategy across unit, integration, and web component layers.
+- CI quality gates, dependency risk controls, CodeQL scanning, and automated release pipeline.
+- Installer-first Windows distribution flow (setup bootstrapper + MSI artifacts).
+
+## Architecture
 
 ```text
 [FamilyFinances.Web (Blazor UI)]
@@ -28,62 +34,10 @@ The solution follows a layered modular monolith:
              ^
              |
    [Infrastructure Layer]
-    (EF Core, Identity, SQLite)
+ (EF Core, Identity, SQLite)
 ```
 
-Main architectural characteristics:
-- `Domain`: entities, value objects, and business rules.
-- `Application`: use-case handlers and application orchestration.
-- `Infrastructure`: repositories, EF Core contexts/configuration/migrations, Identity, JWT wiring.
-- `Api`: REST controllers, auth/authz, versioning, health checks, Swagger.
-- `Web`: Blazor Web App (Interactive Server) that consumes the API.
-
-## Technologies
-
-### Backend
-- .NET 9 (`net9.0`)
-- ASP.NET Core Web API
-- ASP.NET Core Identity
-- JWT Bearer authentication
-- EF Core 9
-- SQLite (current runtime persistence)
-- Serilog
-- Swagger / OpenAPI (Swashbuckle)
-- API Versioning (`Asp.Versioning.Mvc`)
-
-### Frontend
-- ASP.NET Core Blazor Web App (Interactive Server)
-- Razor Components
-- Bootstrap (static assets)
-
-### Frontend Design Governance (Premium, Dark-First)
-- The UI uses a shared premium token layer for Dashboard and Reports:
-  - color surfaces and semantic accents,
-  - typography hierarchy,
-  - spacing/radius/elevation primitives,
-  - chart theme tokens (axis/grid/tooltip).
-- Dark mode is the default startup baseline when no theme preference exists.
-- Language selection remains scoped to `Settings` (`/settings`), not main navigation.
-- Canonical shared stylesheet is `src/FamilyFinances.Web/wwwroot/css/app.css`.
-- Premium token file is `src/FamilyFinances.Web/wwwroot/css/premium-theme.css`.
-
-Rollback guidance for visual regressions:
-1. Remove premium shell marker class (`ff-premium`) from `MainLayout.razor`.
-2. Disable premium token stylesheet include (`css/premium-theme.css`) in `Components/App.razor`.
-3. Re-run Web and reporting test suites before releasing rollback build.
-
-### DevOps & Testing
-- xUnit
-- FluentAssertions
-- Moq
-- bUnit (web component tests)
-- `Microsoft.AspNetCore.Mvc.Testing` (integration tests)
-- Coverlet collector
-- GitHub Actions (quality, security scanning, and auto-versioned Windows release)
-- Docker/PostgreSQL: not wired as default runtime in current codebase (see setup notes)
-- Cypress: not committed in the repository as of now (setup path provided below)
-
-## Folder Structure
+### Solution layout
 
 ```text
 FamilyFinances/
@@ -99,76 +53,69 @@ FamilyFinances/
 |   |-- FamilyFinances.Api.IntegrationTests/
 |   `-- FamilyFinances.Web.Tests/
 |-- docs/
-|-- dist/
 |-- openspec/
-|-- FamilyFinances.sln
-`-- README.md
+|-- tools/
+`-- .github/workflows/
 ```
 
-## Setup Instructions
+## Technology Stack
+
+- Runtime: .NET 9 (`net9.0`)
+- Backend: ASP.NET Core Web API, Identity, JWT, EF Core 9, API Versioning
+- Frontend: Blazor Web App (Interactive Server), Razor Components
+- Persistence: SQLite (current runtime provider)
+- Observability and docs: Serilog, Swagger/OpenAPI
+- Testing: xUnit, FluentAssertions, Moq, bUnit, ASP.NET Core integration testing
+- CI/CD: GitHub Actions (quality, security, releases, artifact hygiene)
+
+## Engineering Quality Gates
+
+| Area | Mechanism | Signal |
+| --- | --- | --- |
+| Build + tests | `ci-quality.yml` | Required on `main` |
+| Coverage visibility | Auto-generated badge + run summary | Continuous trend tracking |
+| Dependency risk | `dependency-review.yml` | PR-level dependency diff checks |
+| Security analysis | `codeql.yml` | Code scanning alerts |
+| Release control | `release-windows.yml` | Versioned, reproducible installer artifacts |
+
+## Product Surface (Current)
+
+- Dashboard: KPI strip, monthly trends, group-state charts, compact insights.
+- Quick Entry: dedicated workspace for expense/income/transfer/refund flows.
+- Reporting Suite: Economic State, Period Summary, Account Totals, Account Group Totals.
+- Backup & Restore: admin-only deterministic backup package with restore precheck/apply flow.
+
+Detailed implementation notes are in the [docs](docs) folder, including reporting evolution and accessibility closeout notes.
+
+## Local Run (Fast Path)
 
 ### Prerequisites
+
 - .NET 9 SDK
 - Git
-- Docker Desktop (for PostgreSQL container workflow)
-- Node.js 20+ (only if you want Cypress E2E locally)
+- Optional: Docker Desktop (for local PostgreSQL experiments)
+- Optional: Node.js 20+ (if you run Cypress locally)
 
-1. Clone the Repository
+### 1) Clone
 
 ```bash
 git clone https://github.com/carlos-aisa/FamilyFinances.git
 cd FamilyFinances
 ```
 
-2. Environment Configuration
-
-Backend and frontend run with default local settings:
-- API defaults to `http://localhost:5084`
-- Web defaults to `http://localhost:5019`
-
-Relevant files:
-- `src/FamilyFinances.Api/appsettings.json`
-- `src/FamilyFinances.Api/appsettings.Development.json`
-- `src/FamilyFinances.Web/appsettings.json`
-
-Default seeded admin account (created on startup):
-- Email: `admin@familyfinances.local`
-- Password: `Admin123!`
-
-3. Database Setup
-
-Current implementation:
-- The app uses SQLite through EF Core (`UseSqlite`) and creates/migrates DB on startup.
-- Default development connection string: `Data Source=familyfinances.db`.
-
-PostgreSQL via Docker (optional environment bootstrap):
-
-```bash
-docker run --name familyfinances-postgres \
-  -e POSTGRES_DB=familyfinances \
-  -e POSTGRES_USER=familyfinances \
-  -e POSTGRES_PASSWORD=familyfinances \
-  -p 5432:5432 \
-  -d postgres:16-alpine
-```
-
-Important:
-- PostgreSQL is not the active runtime provider in current code.
-- To run the app on PostgreSQL, code changes are required (EF provider/wiring currently targets SQLite).
-
-4. Backend Setup
+### 2) Start API
 
 ```bash
 dotnet restore
 dotnet run --project src/FamilyFinances.Api
 ```
 
-Backend endpoints:
-- API base URL: `http://localhost:5084`
-- Health check: `http://localhost:5084/health`
-- Swagger UI (Development): `http://localhost:5084/swagger`
+API endpoints:
 
-5. Frontend Setup
+- `http://localhost:5084/health`
+- `http://localhost:5084/swagger` (Development)
+
+### 3) Start Web
 
 In a second terminal:
 
@@ -176,239 +123,80 @@ In a second terminal:
 dotnet run --project src/FamilyFinances.Web
 ```
 
-Frontend URL:
+Web app:
+
 - `http://localhost:5019`
 
-### Windows Installer Distribution
+### 4) Default seeded admin
 
-Build the installer-first package:
+- Email: `admin@familyfinances.local`
+- Password: `Admin123!`
 
-```bash
-powershell -ExecutionPolicy Bypass -File .\tools\installer\windows\build-installer.ps1 -Version 0.9.7 -Configuration Release
-```
+## Testing Matrix
 
-Outputs:
-
-```text
-dist/FamilyFinances-v<version>-win-x64-msi-layout/
-dist/FamilyFinances-v<version>-win-x64-setup.exe       # primary installer (bootstrapper web)
-dist/FamilyFinances-v<version>-win-x64.msi             # raw MSI artifact
-```
-
-Runtime behavior:
-- Web is provisioned under IIS.
-- API is provisioned as Windows Service.
-- Default exposure is local-only.
-- LAN access is opt-in and managed from Settings.
-- Setup bootstrapper installs .NET 9 Hosting Bundle automatically (web download) when ANCM is missing.
-
-6. Testing Setup
-
-Backend and web test projects are included in the solution and run with `dotnet test`.
-
-Cypress testing suite setup (optional, not committed in repo yet):
-
-```bash
-npm init -y
-npm install --save-dev cypress
-npx cypress open
-```
-
-Recommended Cypress base URL:
-- `http://localhost:5019`
-
-## GitHub Actions Workflows
-
-Current workflow split:
-- `.github/workflows/ci-quality.yml`
-  - Triggers: PR to `main`, push to `main`/`develop`
-  - Runs restore/build/test and publishes coverage summary in the run UI.
-  - PR runs also attempt TRX + coverage artifact upload (best effort, short retention).
-- `.github/workflows/dependency-review.yml`
-  - Triggers: PR to `main`
-  - Runs dependency diff risk checks (auto-skipped on private repos without Code Security/GHAS).
-- `.github/workflows/codeql.yml`
-  - Triggers: PR to `main`, push to `main`/`develop`, weekly schedule
-  - Publishes CodeQL results to repository code scanning (auto-skipped on private repos without Code Security/GHAS).
-- `.github/workflows/release-windows.yml`
-  - Triggers: push to `main` for release packaging/publish with automatic version/tag generation
-  - Publishes setup bootstrapper (`*-setup.exe`) and raw MSI
-  - Includes pre-publish cleanup with keep count `2` for managed asset patterns
-  - Includes optional manual cleanup via `workflow_dispatch`.
-- `.github/workflows/actions-artifacts-cleanup.yml`
-  - Triggers: daily schedule + manual dispatch
-  - Deletes old Actions artifacts to keep storage usage under control.
-
-Branch policy intent:
-- `main` (public repo with Code Security/GHAS): required checks for `ci-quality`, `dependency-review`, and CodeQL analyze job.
-- `main` (private repo without Code Security/GHAS): require only `ci-quality` until security features are enabled.
-- `develop`: checks run on branch pushes as informational signal (not required for merge) in this phase.
-
-Coverage visibility:
-- Coverage badge is published in this README (`docs/badges/coverage.svg`) and auto-updated from `main` CI runs.
-- Coverage summary is shown directly in each `ci-quality` run summary.
-- On PR runs, raw coverage (`coverage.cobertura.xml`) and TRX files are uploaded as short-lived artifacts (best effort).
-- Rich external coverage SaaS integrations (Codecov/Coveralls) are intentionally deferred.
-
-## Testing
-
-### Backend Tests
 Run all tests:
+
 ```bash
 dotnet test
 ```
 
-Run specific suites:
+Run key suites:
+
 ```bash
 dotnet test tests/FamilyFinances.Domain.Tests
 dotnet test tests/FamilyFinances.Application.Tests
 dotnet test tests/FamilyFinances.Api.IntegrationTests
-```
-
-### Frontend Tests
-Web/component tests:
-```bash
 dotnet test tests/FamilyFinances.Web.Tests
 ```
 
-E2E tests:
-- Cypress suite is not currently versioned in this repository.
-- If initialized locally, run with your Cypress commands (`npx cypress open` / `npx cypress run`).
+## Releases and Distribution
 
-## Database schema
-The system uses two EF Core contexts:
+### Automated Windows release
 
-- `AppIdentityDbContext` (Identity)
-  - ASP.NET Core Identity tables for users, roles, claims, logins, tokens.
+Pushes to `main` trigger `.github/workflows/release-windows.yml`, which:
 
-- `LedgerDbContext` (finance domain)
-  - `Accounts`
-  - `Payees`
-  - `Transactions`
-  - `TransactionSplits`
-  - `TransactionLinks`
-  - `AccountGroups`
-  - `AccountGroupMembers`
+- computes the next SemVer tag (`vX.Y.Z`) if needed,
+- runs critical reporting test gates,
+- builds installer assets,
+- publishes GitHub Release artifacts.
 
-Schema source:
-- EF Core migrations under `src/FamilyFinances.Infrastructure/Persistence/Migrations/Ledger`
-- Identity migrations under `src/FamilyFinances.Infrastructure/Migrations`
+Primary assets:
 
-## API Documentation
-- Route versioning format: `/api/v1/...`
-- Swagger/OpenAPI is enabled in Development mode.
-- Primary endpoint groups include:
-  - Auth
-  - Accounts
-  - Payees
-  - Transactions
-  - Account Groups
-  - Reports
-  - Backup
-  - Health
+- `FamilyFinances-v<version>-win-x64-setup.exe` (bootstrapper)
+- `FamilyFinances-v<version>-win-x64.msi`
 
-### Reporting Map (Current UI)
-- `Dashboard` (`/`)
-  - analytics-first overview (no tabs, no report shortcut cards)
-  - KPI strip: `Income`, `Expense`, `Net Result`, `Net Worth`, `YTD Net` with delta vs previous month
-  - monthly `Income vs Expense` chart
-  - account-group current-state chart
-  - YTD accumulated net summary with compact monthly trend
-  - compact insights list with explicit data-sufficiency state (`Complete`, `Partial`, `Insufficient history`)
-- `Quick Entry` (`/quick-entry`)
-  - dedicated transaction capture workspace (expense, income, transfer, refund)
-  - hosts quick-entry widgets (`MortgagePaymentWidget`, `MultiSplitWidget`) moved out of dashboard
-- `Economic State` (`/reports/economic-state`)
-  - `Snapshot` tab: current stock + period flow KPIs, monthly net list (`Income - Expense`), month-focused income vs expense chart, annual month-by-month income vs expense bars
-  - `Asset Evolution` tab: annual asset-total evolution (table + chart) + focused-month daily asset chart + CSV/PNG export actions
-  - `Income Evolution` tab: annual income-total evolution (table + chart) + focused-month daily income chart + CSV/PNG export actions
-  - `Expense Evolution` tab: annual expense-total evolution (table + chart) + focused-month daily expense chart + CSV/PNG export actions
-- `Period Summary` (`/reports/monthly-summary`)
-  - period flow KPIs (`Income`, `Expense`, `Period Net Result`, `Transactions Count`)
-  - account-focused month chart (when an account is selected)
-  - insight panel with `Groups/Payees` toggle:
-    - expense and income Pareto rankings
-    - top-N concentration percentages with explicit denominator
-    - monthly anomaly badges (`Anomaly` / `Normal` / `Insufficient history`) with explanation
-- `Account Totals` (`/reports/account-totals`)
-  - `Period Totals` tab + CSV export
-  - `State Evolution` tab: annual account evolution and composition + overview CSV export + chart PNG export
-  - period totals rows are sortable by header click (default order: net change descending within each nature group)
-- `Account Group Totals` (`/reports/account-group-totals`)
-  - `Period Totals` tab + CSV export
-  - `State Evolution` tab: annual month-result bar evolution (non-cumulative), expense-oriented composition, focused-month daily group-evolution chart + overview CSV export + chart PNG export
-  - list context uses exact selected-month balance semantics
+### Manual local installer build
 
-### Reporting Exports & Accessibility (`0.9.6`)
-- CSV exports are available on table-based report views and include active filter context.
-- Chart cards provide `Export PNG` actions for current visible chart state.
-- Reporting controls/charts include accessibility baseline improvements (explicit labels, focusable chart surfaces).
-- See detailed notes:
-  - `docs/reporting-export-accessibility.md`
-  - `docs/v0.9-reporting-regression-checklist.md`
-  - `docs/v0.9.6-closeout-notes.md`
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\installer\windows\build-installer.ps1 -Version 0.9.7 -Configuration Release
+```
 
-### Settings Map (Current UI)
-- `Settings` (`/settings`)
-  - Entry point for operational preferences and maintenance features.
-- `Backup & Restore` (`/settings/backup-restore`) - admin only
-  - `Create Backup`: downloads deterministic `.ffbackup` package.
-  - `Restore from File`: upload + pre-check + explicit `RESTORE` confirmation + apply.
-  - Successful restore enforces reauthentication flow.
+## Documentation Map
 
-### Backup API Endpoints
-- `GET /api/v1/backup/export`
-  - Admin-only binary export (`application/octet-stream`).
-  - Response filename format: `familyfinances-backup-YYYYMMDD-HHmmss.ffbackup`.
-- `POST /api/v1/backup/restore/precheck`
-  - Admin-only multipart upload.
-  - Returns compatibility payload (`IsCompatible`, metadata, `Errors`, `Warnings`).
-- `POST /api/v1/backup/restore/apply`
-  - Admin-only multipart upload.
-  - Re-validates package before apply.
-  - Returns `Applied`, `AppliedAtUtc`, `RequiresReauthentication`, `Errors`, `Warnings`.
-  - Concurrent operation conflict: `409` with `reason=OperationInProgress`.
+- Architecture and standards: [openspec](openspec)
+- Feature and sprint notes: [docs](docs)
+- Release and operational details: [docs/windows-installer-lan-operations.md](docs/windows-installer-lan-operations.md)
+- Reporting regression checklist: [docs/v0.9-reporting-regression-checklist.md](docs/v0.9-reporting-regression-checklist.md)
 
-### Reporting API Evolution Endpoint
-- Primary endpoint: `GET /api/v1/reports/state-evolution?year=YYYY&scope=<accounts|asset-total|account-groups|income-total|expense-total>`
-- Backward-compatible alias: `GET /api/v1/reports/monthly-evolution?year=YYYY&scope=<accounts|asset-total|account-groups|income-total|expense-total>`
+## Contributing and Governance
 
-### Reporting API Dashboard Endpoint
-- `GET /api/v1/reports/dashboard-overview`
-  - default behavior (no query): uses current date as `asOf`.
-  - optional query: `year` and `month` must be provided together.
-  - returns dashboard KPI comparison, daily income-vs-expense points, account-group state points, YTD summary, compact insights, and data-sufficiency state.
+- Contribution guide: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Security policy: [SECURITY.md](SECURITY.md)
+- Pull request template: [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md)
+- Issue templates: [.github/ISSUE_TEMPLATE](.github/ISSUE_TEMPLATE)
+- Release notes categories: [.github/release.yml](.github/release.yml)
 
-### Reporting API Monthly Chart Endpoints (`0.9.4`)
-- `GET /api/v1/reports/monthly-charts/balance?year=YYYY&month=MM`
-  - Returns day-bucket `Asset Total` end-balance points for the selected month.
-  - Optional: `accountId=<GUID>` returns day-bucket end-balance points for the selected account (used by `Period Summary` account-focused chart).
-  - No-activity days use deterministic carry-forward values.
-- `GET /api/v1/reports/monthly-charts/group-evolution?year=YYYY&month=MM`
-  - Returns one `Asset Total` series plus one series per account group (liability accounts excluded from group aggregation).
-  - All returned series are aligned on the same day buckets (`1..daysInMonth`).
-  - Legacy alias still available: `GET /api/v1/reports/monthly-charts/balance-vs-groups?year=YYYY&month=MM`.
+## Portfolio Notes for Recruiters
 
-### Reporting API Insight Endpoints (`0.9.5`)
-- `GET /api/v1/reports/insights/pareto?from=YYYY-MM-DD&to=YYYY-MM-DD&dimension=<group|payee>&topN=<1..20>`
-  - Returns deterministic Pareto and concentration payload for both `Expense` and `Income` in one response.
-  - Optional filters: `accountId=<GUID>`, `payeeId=<GUID>` (except `payeeId` is rejected when `dimension=payee`).
-- `GET /api/v1/reports/insights/anomalies?year=YYYY&month=MM&nature=<Expense|Income>&dimension=<group|payee>&lookbackMonths=<3..36>&requiredHistoryMonths=<2..12>`
-  - Returns deterministic anomaly evaluation for the requested month and dimension.
-  - Contributor rows include baseline mean, threshold, z-score (when available), and explanation text.
-  - Contributors with sparse history are returned as `Insufficient history` and are never flagged as anomaly.
+This repository demonstrates senior-level ownership across architecture, delivery, and operations:
 
-## Contributing
-Suggested workflow:
-- Create a feature branch from `main`.
-- Keep changes aligned with layered architecture boundaries.
-- Add/adjust tests in the corresponding test project.
-- Use conventional commit messages (`feat`, `fix`, `refactor`, `test`, `docs`, `chore`).
-- Open a pull request with scope, rationale, and testing evidence.
+- business-domain modeling with long-term maintainability,
+- quality-first CI with measurable gates,
+- security and dependency governance,
+- release automation and installer distribution,
+- documentation discipline for team scalability.
 
 ## License
-No `LICENSE` file is currently present in the repository.
 
-## Support
-- Open an issue in the GitHub repository for bugs or feature requests.
-- Include environment details, reproduction steps, and logs when reporting runtime problems.
+This project is licensed under the MIT License.
+See [LICENSE](LICENSE) for details.

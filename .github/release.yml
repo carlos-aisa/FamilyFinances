@@ -1,0 +1,34 @@
+changelog:
+  categories:
+    - title: "Core Domain and Application"
+      labels:
+        - "domain"
+        - "application"
+        - "business-rules"
+    - title: "API and Integration"
+      labels:
+        - "api"
+        - "integration"
+    - title: "Web and UX"
+      labels:
+        - "web"
+        - "frontend"
+        - "ux"
+    - title: "Quality and Testing"
+      labels:
+        - "test"
+        - "quality"
+        - "ci"
+    - title: "Security"
+      labels:
+        - "security"
+    - title: "Documentation"
+      labels:
+        - "docs"
+        - "documentation"
+      
+  exclude:
+    labels:
+      - "skip-changelog"
+    authors:
+      - "dependabot"
