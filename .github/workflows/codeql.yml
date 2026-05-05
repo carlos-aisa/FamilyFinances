@@ -7,10 +7,10 @@ on:
     branches: ["main", "develop"]
   schedule:
     - cron: "0 5 * * 1"
+  workflow_dispatch:
 
 jobs:
   analyze:
-    if: ${{ !github.event.repository.private }}
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -18,16 +18,41 @@ jobs:
       security-events: write
 
     steps:
+      - name: Check CodeQL capability
+        id: capability
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const response = await github.rest.repos.get({ owner, repo });
+
+            const isPrivate = Boolean(response.data?.private);
+            const advancedSecurityStatus = response.data?.security_and_analysis?.advanced_security?.status;
+            const canRunCodeql = !isPrivate || advancedSecurityStatus === 'enabled';
+
+            core.info(`Repository private: ${isPrivate}`);
+            core.info(`Advanced Security status: ${advancedSecurityStatus ?? 'unknown'}`);
+            core.setOutput('can_run_codeql', canRunCodeql ? 'true' : 'false');
+
       - name: Checkout repository
+        if: ${{ steps.capability.outputs.can_run_codeql == 'true' }}
         uses: actions/checkout@v5
 
       - name: Initialize CodeQL
+        if: ${{ steps.capability.outputs.can_run_codeql == 'true' }}
         uses: github/codeql-action/init@v4
         with:
           languages: csharp
 
       - name: Autobuild
+        if: ${{ steps.capability.outputs.can_run_codeql == 'true' }}
         uses: github/codeql-action/autobuild@v4
 
       - name: Perform CodeQL Analysis
+        if: ${{ steps.capability.outputs.can_run_codeql == 'true' }}
         uses: github/codeql-action/analyze@v4
+
+      - name: CodeQL skipped
+        if: ${{ steps.capability.outputs.can_run_codeql != 'true' }}
+        run: |
+          echo "CodeQL skipped: private repository without Advanced Security enabled."
