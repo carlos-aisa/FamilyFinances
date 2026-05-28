@@ -15,15 +15,18 @@ Write-Host "Version: $Version" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
+$InstallerToolsDir = $PSScriptRoot
+$RepoRoot = (Resolve-Path (Join-Path $InstallerToolsDir "..\..\..")).Path
+
 # Paths
-$RootDir = $PSScriptRoot
-$SrcDir = Join-Path $RootDir "src"
-$DistBaseDir = Join-Path $RootDir "dist"
+$RootDir = $RepoRoot
+$SrcDir = Join-Path $RepoRoot "src"
+$DistBaseDir = Join-Path $RepoRoot "dist"
 $DistDir = Join-Path $DistBaseDir "FamilyFinances-v$Version-win-x64"
 $ApiProject = Join-Path $SrcDir "FamilyFinances.Api\FamilyFinances.Api.csproj"
 $WebProject = Join-Path $SrcDir "FamilyFinances.Web\FamilyFinances.Web.csproj"
-$ApiPublishDir = Join-Path $RootDir "publish-temp\api"
-$WebPublishDir = Join-Path $RootDir "publish-temp\web"
+$ApiPublishDir = Join-Path $InstallerToolsDir "publish-temp\api"
+$WebPublishDir = Join-Path $InstallerToolsDir "publish-temp\web"
 
 $configFileNames = @(
     "appsettings.json",
@@ -219,7 +222,7 @@ dotnet publish $ApiProject `
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "ERROR: API publish failed" -ForegroundColor Red
-    exit 1
+    throw "API publish failed"
 }
 
 # Publish Web
@@ -234,7 +237,7 @@ dotnet publish $WebProject `
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "ERROR: Web publish failed" -ForegroundColor Red
-    exit 1
+    throw "Web publish failed"
 }
 
 # Merge publish files into shared runtime root
@@ -246,7 +249,7 @@ Merge-PublishTree -SourceRoot $WebPublishDir -TargetRoot $DistDir -SourceTag "we
 if ($conflicts.Count -gt 0) {
     Write-Host "ERROR: Unresolved merge conflicts detected:" -ForegroundColor Red
     $conflicts | Sort-Object -Unique | ForEach-Object { Write-Host "  - $_" -ForegroundColor Red }
-    exit 1
+    throw "Unresolved merge conflicts detected in runtime layout"
 }
 
 # Copy app-specific config files
@@ -264,7 +267,7 @@ if (Test-Path $ZipPath) {
 # Validate output and cleanup temporary folders
 Write-Host "[8/8] Validating distribution contents and cleaning temporary files..." -ForegroundColor Yellow
 Validate-Distribution -DistRoot $DistDir
-Remove-Item (Join-Path $RootDir "publish-temp") -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item (Join-Path $InstallerToolsDir "publish-temp") -Recurse -Force -ErrorAction SilentlyContinue
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Green
