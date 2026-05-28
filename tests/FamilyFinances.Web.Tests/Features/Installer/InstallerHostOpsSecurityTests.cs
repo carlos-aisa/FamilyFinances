@@ -46,4 +46,32 @@ public sealed class InstallerHostOpsSecurityTests
         var normalized = LanAccessCommandValidator.NormalizeHostName(" ");
         normalized.Should().Be(Environment.MachineName);
     }
+
+    [Theory]
+    [InlineData("familyfinances.local")]
+    [InlineData("192.168.1.10")]
+    [InlineData("localhost")]
+    public void LanAccessCommandValidator_IsSafeHostName_ReturnsTrue_ForValidHosts(string host)
+    {
+        LanAccessCommandValidator.IsSafeHostName(host).Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData("host;whoami")]
+    [InlineData("host | whoami")]
+    [InlineData("host && whoami")]
+    [InlineData("$env:Path")]
+    [InlineData("\"")]
+    public void LanAccessCommandValidator_IsSafeHostName_ReturnsFalse_ForUnsafeHosts(string host)
+    {
+        LanAccessCommandValidator.IsSafeHostName(host).Should().BeFalse();
+    }
+
+    [Fact]
+    public void LanAccessCommandValidator_NormalizeHostName_ThrowsForUnsafeHost()
+    {
+        var act = () => LanAccessCommandValidator.NormalizeHostName("host;whoami");
+
+        act.Should().Throw<ArgumentException>();
+    }
 }

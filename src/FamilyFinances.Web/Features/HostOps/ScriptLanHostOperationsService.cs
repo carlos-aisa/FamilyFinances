@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Text.Json;
 
 namespace FamilyFinances.Web.Features.HostOps;
@@ -18,7 +19,7 @@ public sealed class ScriptLanHostOperationsService : ILanHostOperationsService
 
     public async Task<LanAccessStatus> GetStatusAsync(CancellationToken ct = default)
     {
-        var output = await RunScriptAsync("Get-LanAccessStatus.ps1", "-AsJson", ct);
+        var output = await RunScriptAsync("Get-LanAccessStatus.ps1", ["-AsJson"], ct);
         var parsed = JsonSerializer.Deserialize<LanAccessStatus>(output, JsonOptions());
         if (parsed is null)
         {
@@ -35,26 +36,27 @@ public sealed class ScriptLanHostOperationsService : ILanHostOperationsService
             return new LanOperationResult(false, $"Invalid HTTPS port: {request.HttpsPort}.");
         }
 
-        var host = LanAccessCommandValidator.NormalizeHostName(request.HostName);
-        var enabledArg = request.Enabled ? "1" : "0";
-        var regenerateArg = request.RegenerateCertificate ? "1" : "0";
-        var args = string.Join(" ", new[]
-        {
-            $"-Enabled {enabledArg}",
-            $"-HttpsPort {request.HttpsPort}",
-            $"-HostName \"{host}\"",
-            $"-RegenerateCertificate {regenerateArg}",
-            "-AsJson"
-        });
-
         try
         {
-            var output = await RunScriptAsync("Set-LanAccess.ps1", args, ct);
+            var host = LanAccessCommandValidator.NormalizeHostName(request.HostName);
+            var enabledArg = request.Enabled ? "1" : "0";
+            var regenerateArg = request.RegenerateCertificate ? "1" : "0";
+
+            var output = await RunScriptAsync(
+                "Set-LanAccess.ps1",
+                [
+                    "-Enabled", enabledArg,
+                    "-HttpsPort", request.HttpsPort.ToString(CultureInfo.InvariantCulture),
+                    "-HostName", host,
+                    "-RegenerateCertificate", regenerateArg,
+                    "-AsJson"
+                ],
+                ct);
+
             var status = JsonSerializer.Deserialize<LanAccessStatus>(output, JsonOptions());
             _logger.LogInformation(
-                "LAN host operation applied at {TimestampUtc}. Actor={Actor}. Enabled={Enabled}. Port={Port}.",
+                "LAN host operation applied at {TimestampUtc}. Enabled={Enabled}. Port={Port}.",
                 DateTime.UtcNow,
-                actor,
                 request.Enabled,
                 request.HttpsPort);
 
@@ -62,7 +64,7 @@ public sealed class ScriptLanHostOperationsService : ILanHostOperationsService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "LAN host operation failed at {TimestampUtc}. Actor={Actor}.", DateTime.UtcNow, actor);
+            _logger.LogWarning(ex, "LAN host operation failed at {TimestampUtc}.", DateTime.UtcNow);
             return new LanOperationResult(false, BuildOperationFailureMessage(ex));
         }
     }
@@ -79,7 +81,7 @@ public sealed class ScriptLanHostOperationsService : ILanHostOperationsService
             ct);
     }
 
-    private async Task<string> RunScriptAsync(string scriptName, string args, CancellationToken ct)
+    private async Task<string> RunScriptAsync(string scriptName, IEnumerable<string> arguments, CancellationToken ct)
     {
         var scriptsRoot = ResolveScriptsRoot();
         var scriptPath = Path.Combine(scriptsRoot, scriptName);
@@ -91,12 +93,22 @@ public sealed class ScriptLanHostOperationsService : ILanHostOperationsService
         var startInfo = new ProcessStartInfo
         {
             FileName = "powershell",
-            Arguments = $"-NoProfile -ExecutionPolicy Bypass -File \"{scriptPath}\" {args}",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true
         };
+
+        startInfo.ArgumentList.Add("-NoProfile");
+        startInfo.ArgumentList.Add("-ExecutionPolicy");
+        startInfo.ArgumentList.Add("Bypass");
+        startInfo.ArgumentList.Add("-File");
+        startInfo.ArgumentList.Add(scriptPath);
+
+        foreach (var argument in arguments)
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
 
         using var process = new Process { StartInfo = startInfo };
         process.Start();
