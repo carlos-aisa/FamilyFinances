@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Globalization;
 using Bunit;
 using FamilyFinances.Application.Ledger.Transactions.Dtos;
 using FamilyFinances.Web.Api;
@@ -17,6 +18,13 @@ public sealed class TransactionsListPageTests : WebTestContext
     [Fact]
     public void Transactions_List_Shows_Dedicated_Payee_Column_Without_Description_Duplication()
     {
+        var previousCulture = CultureInfo.CurrentCulture;
+        var previousUICulture = CultureInfo.CurrentUICulture;
+        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
+        CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("en-US");
+
+        try
+        {
         RegisterServices(
         [
             new TransactionListItemDto(
@@ -41,6 +49,14 @@ public sealed class TransactionsListPageTests : WebTestContext
         firstRowCells[2].TextContent.Should().Contain("Weekly food");
         firstRowCells[2].TextContent.Should().NotContain("Supermarket X");
         firstRowCells[3].TextContent.Should().Contain("Supermarket X");
+        cut.Markup.Should().Contain("€");
+        cut.Markup.Should().NotContain("$");
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previousCulture;
+            CultureInfo.CurrentUICulture = previousUICulture;
+        }
     }
 
     [Fact]

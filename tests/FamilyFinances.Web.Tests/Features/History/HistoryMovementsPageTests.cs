@@ -9,6 +9,7 @@ using FamilyFinances.Domain.Ledger.Accounts;
 using FamilyFinances.Web.Api;
 using FamilyFinances.Web.Auth;
 using FamilyFinances.Web.Components.Pages.History;
+using FamilyFinances.Web.Features.Reports;
 using FamilyFinances.Web.State;
 using FluentAssertions;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -129,6 +130,9 @@ public sealed class HistoryMovementsPageTests : WebTestContext
         cut.WaitForAssertion(() =>
         {
             cut.Markup.Should().Contain("Historical payment");
+            cut.Markup.Should().Contain(MoneyFormatter.FormatEuros(-25m));
+            cut.Markup.Should().Contain(MoneyFormatter.FormatEuros(975m));
+            cut.Markup.Should().NotContain("$");
         });
 
         requestedUris.Should().Contain(uri =>

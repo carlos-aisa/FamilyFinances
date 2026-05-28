@@ -238,6 +238,7 @@ public sealed class AccountTotalsPageTests : WebTestContext
         {
             cut.Find("[data-testid='account-totals-export-csv']");
             cut.Markup.Should().Contain(MoneyFormatter.FormatCentsWithSign(123_456));
+            cut.Markup.Should().NotContain("$");
         });
 
         cut.Find("[data-testid='account-totals-export-csv']").Click();

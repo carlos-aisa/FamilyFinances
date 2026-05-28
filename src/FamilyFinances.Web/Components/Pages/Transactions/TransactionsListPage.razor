@@ -225,7 +225,7 @@ else
                                 </td>
                                 <td class="text-end pe-3">
                                     <span class="badge @GetAmountBadgeClass(t.Type) fs-6 px-3 py-2">
-                                        @t.Amount.ToString("C", CultureInfo.CurrentCulture)
+                                        @MoneyFormatter.FormatEuros(t.Amount)
                                     </span>
                                 </td>
                             </tr>

@@ -20,6 +20,7 @@ public sealed class MoneyFormatterTests
         var result = MoneyFormatter.FormatCents(cents, showCurrency: true, culture);
 
         NormalizeSpaces(result).Should().Be(expected);
+        result.Should().NotContain("$");
     }
 
     [Theory]
@@ -64,6 +65,7 @@ public sealed class MoneyFormatterTests
         var result = MoneyFormatter.FormatEuros(euros, showCurrency: true, culture);
 
         NormalizeSpaces(result).Should().Be(expected);
+        result.Should().NotContain("$");
     }
 
     [Theory]

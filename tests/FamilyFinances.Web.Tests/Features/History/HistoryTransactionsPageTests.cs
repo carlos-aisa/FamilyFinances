@@ -7,6 +7,7 @@ using FamilyFinances.Application.Ledger.Transactions.Dtos;
 using FamilyFinances.Web.Api;
 using FamilyFinances.Web.Auth;
 using FamilyFinances.Web.Components.Pages.History;
+using FamilyFinances.Web.Features.Reports;
 using FamilyFinances.Web.State;
 using FluentAssertions;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -95,6 +96,8 @@ public sealed class HistoryTransactionsPageTests : WebTestContext
         cut.WaitForAssertion(() =>
         {
             cut.Markup.Should().Contain("Year-end movement");
+            cut.Markup.Should().Contain(MoneyFormatter.FormatEuros(25m));
+            cut.Markup.Should().NotContain("$");
         });
 
         requestedUris.Should().Contain(uri => uri.Contains("api/v1/history/transactions?year=2024&take=1000", StringComparison.OrdinalIgnoreCase));

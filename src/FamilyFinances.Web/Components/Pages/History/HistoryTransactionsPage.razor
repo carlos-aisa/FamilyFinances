@@ -7,6 +7,7 @@
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
 @using FamilyFinances.Web.Components.Pages.Transactions
+@using FamilyFinances.Web.Features.Reports
 @using FamilyFinances.Web.State
 @using Microsoft.AspNetCore.WebUtilities
 @using Microsoft.Extensions.Localization
@@ -96,7 +97,7 @@ else
                                 </td>
                                 <td class="text-end pe-3">
                                     <span class="badge @GetAmountBadgeClass(item.Type) fs-6 px-3 py-2">
-                                        @item.Amount.ToString("C", CultureInfo.CurrentCulture)
+                                        @MoneyFormatter.FormatEuros(item.Amount)
                                     </span>
                                 </td>
                             </tr>

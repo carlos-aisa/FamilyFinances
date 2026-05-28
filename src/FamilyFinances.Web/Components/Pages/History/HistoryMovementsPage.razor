@@ -8,6 +8,7 @@
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
 @using FamilyFinances.Web.Components.Pages.Transactions
+@using FamilyFinances.Web.Features.Reports
 @using FamilyFinances.Web.State
 @using Microsoft.AspNetCore.WebUtilities
 @using Microsoft.Extensions.Localization
@@ -113,8 +114,8 @@ else
                                 </td>
                                 <td>@(string.IsNullOrWhiteSpace(movement.PayeeName) ? "-" : movement.PayeeName)</td>
                                 <td>@(string.IsNullOrWhiteSpace(movement.CounterpartyAccountName) ? "-" : movement.CounterpartyAccountName)</td>
-                                <td class="text-end pe-3">@movement.SignedAmount.ToString("C", CultureInfo.CurrentCulture)</td>
-                                <td class="text-end pe-3 fw-semibold">@movement.RunningBalance.ToString("C", CultureInfo.CurrentCulture)</td>
+                                <td class="text-end pe-3">@MoneyFormatter.FormatEuros(movement.SignedAmount)</td>
+                                <td class="text-end pe-3 fw-semibold">@MoneyFormatter.FormatEuros(movement.RunningBalance)</td>
                             </tr>
                         }
                     </tbody>
