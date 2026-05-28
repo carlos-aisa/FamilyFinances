@@ -46,7 +46,7 @@ The targeted shared and page-level UI elements MUST use localization resources i
 - **THEN** user-facing labels and messages in those components MUST be served through localization resources for both supported cultures
 
 ### Requirement: User-Facing Formatting SHALL Follow Active Culture
-Date and currency presentation in targeted components MUST follow active `CurrentCulture`/`CurrentUICulture` semantics.
+Date and currency presentation in targeted components MUST follow active `CurrentCulture`/`CurrentUICulture` semantics, with EUR as the fixed currency identity for monetary amounts.
 
 #### Scenario: Date formatting follows selected language
 - **WHEN** the user language is `es-ES`
@@ -56,9 +56,23 @@ Date and currency presentation in targeted components MUST follow active `Curren
 - **WHEN** the user switches language to `en-US`
 - **THEN** month/day names in targeted pages MUST render in English after immediate refresh
 
-#### Scenario: Currency formatting follows selected language
-- **WHEN** amounts are displayed in targeted pages/components
-- **THEN** formatting MUST reflect selected culture conventions for separators and currency placement
+#### Scenario: Currency formatting keeps culture separators and EUR identity
+- **WHEN** amounts are displayed in targeted pages/components under any supported culture
+- **THEN** formatting MUST reflect selected culture conventions for numeric separators and placement
+- **AND** the rendered currency symbol identity MUST be EUR (`€`) rather than culture-default foreign symbols
+
+### Requirement: Localization Changes SHALL NOT Introduce Foreign Currency Symbols In Monetary UI
+Localization behavior MUST NOT render "$" or other foreign currency symbols for domain monetary values because ledger currency is single-currency EUR.
+
+#### Scenario: English UI still renders EUR currency symbol
+- **WHEN** active culture is `en-US`
+- **THEN** monetary values in targeted components MUST still render with `€`
+- **AND** only language text and numeric separators MAY vary per culture
+
+#### Scenario: Spanish UI renders EUR currency symbol
+- **WHEN** active culture is `es-ES`
+- **THEN** monetary values in targeted components MUST render with `€`
+- **AND** no culture fallback path MUST render `$` for domain monetary amounts
 
 ### Requirement: Unsupported Culture Values SHALL Fallback Safely
 The Web UI MUST normalize unsupported persisted culture values to a supported default.

@@ -33,6 +33,8 @@ public sealed class AccountMovementsPageTests : WebTestContext
             cut.Markup.Should().Contain("1-50 of 120 total");
             cut.Markup.Should().Contain("Page 1 of 3");
             cut.Markup.Should().Contain(MoneyFormatter.FormatEuros(50m));
+            cut.Markup.Should().Contain("€");
+            cut.Markup.Should().NotContain("$");
         });
 
         var previous = FindButton(cut, "Previous");
