@@ -13,8 +13,43 @@ public static class LanAccessCommandValidator
 
     public static string NormalizeHostName(string? hostName)
     {
-        return string.IsNullOrWhiteSpace(hostName)
+        var normalized = string.IsNullOrWhiteSpace(hostName)
             ? Environment.MachineName
             : hostName.Trim();
+
+        if (!IsSafeHostName(normalized))
+        {
+            throw new ArgumentException("Invalid host name. Use a valid DNS name or IP address.", nameof(hostName));
+        }
+
+        return normalized;
+    }
+
+    public static bool IsSafeHostName(string? hostName)
+    {
+        if (string.IsNullOrWhiteSpace(hostName))
+        {
+            return false;
+        }
+
+        var candidate = hostName.Trim();
+        if (candidate.Length > 253)
+        {
+            return false;
+        }
+
+        if (candidate.StartsWith('-') || candidate.StartsWith('.') ||
+            candidate.EndsWith('-') || candidate.EndsWith('.'))
+        {
+            return false;
+        }
+
+        if (candidate.IndexOfAny(['"', '\'', '`', ';', '|', '&', '$']) >= 0)
+        {
+            return false;
+        }
+
+        var hostType = Uri.CheckHostName(candidate);
+        return hostType is UriHostNameType.Dns or UriHostNameType.IPv4 or UriHostNameType.IPv6;
     }
 }

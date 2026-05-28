@@ -35,4 +35,32 @@ public sealed class LanAccessCommandValidatorTests
             .Should()
             .Be("familyfinances.local");
     }
+
+    [Theory]
+    [InlineData("familyfinances.local")]
+    [InlineData("192.168.1.10")]
+    [InlineData("localhost")]
+    public void IsSafeHostName_ReturnsTrue_ForValidHosts(string host)
+    {
+        LanAccessCommandValidator.IsSafeHostName(host).Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData("host;whoami")]
+    [InlineData("host | whoami")]
+    [InlineData("host && whoami")]
+    [InlineData("$env:Path")]
+    [InlineData("\"")]
+    public void IsSafeHostName_ReturnsFalse_ForUnsafeHosts(string host)
+    {
+        LanAccessCommandValidator.IsSafeHostName(host).Should().BeFalse();
+    }
+
+    [Fact]
+    public void NormalizeHostName_ThrowsForUnsafeHost()
+    {
+        var act = () => LanAccessCommandValidator.NormalizeHostName("host;whoami");
+
+        act.Should().Throw<ArgumentException>();
+    }
 }
