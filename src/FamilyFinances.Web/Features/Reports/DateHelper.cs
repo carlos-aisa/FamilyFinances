@@ -60,8 +60,8 @@ public static class DateHelper
     /// </summary>
     public static string FormatShortDate(DateOnly date, CultureInfo? culture = null)
     {
-        var targetCulture = culture ?? CultureInfo.CurrentUICulture ?? CultureInfo.CurrentCulture;
-        return date.ToDateTime(TimeOnly.MinValue).ToString("d", targetCulture);
+        _ = culture;
+        return date.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
     }
 
     /// <summary>

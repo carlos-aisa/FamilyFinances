@@ -106,4 +106,12 @@ public sealed class DateHelperTests
         result.Month.Should().Be(expectedMonth);
         result.Day.Should().Be(expectedDay);
     }
+
+    [Fact]
+    public void FormatShortDate_UsesDeterministicDayMonthYear()
+    {
+        var result = DateHelper.FormatShortDate(new DateOnly(2026, 6, 13));
+
+        result.Should().Be("13/06/2026");
+    }
 }

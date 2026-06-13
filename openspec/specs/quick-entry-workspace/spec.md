@@ -29,6 +29,12 @@ Quick-entry flows moved to `/quick-entry` MUST preserve existing operational beh
 - **THEN** widget expand/collapse and submission behavior MUST remain equivalent to baseline
 - **AND** no additional ledger-side side effects MUST be introduced by relocation
 
+#### Scenario: Refund original-expense picker uses deterministic display formatting
+- **WHEN** a user opens Refund quick entry and searches original expenses
+- **THEN** each listed expense date MUST be rendered as `dd/MM/yyyy`
+- **AND** each listed amount MUST be rendered with EUR suffix format (`XXX,XX €`)
+- **AND** selecting or clearing linked expenses MUST preserve existing workflow semantics
+
 ### Requirement: Quick Entry Global Account Search SHALL Ignore Diacritics and Case
 The Quick Entry account search input MUST match candidate values independent of accent marks and character casing.
 
