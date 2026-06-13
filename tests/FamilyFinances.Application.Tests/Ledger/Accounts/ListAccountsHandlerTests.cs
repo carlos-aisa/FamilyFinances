@@ -13,8 +13,11 @@ public sealed class ListAccountsHandlerTests
     {
         var repo = new Mock<IAccountRepository>(MockBehavior.Strict);
 
-        var a1 = Account.Create("Bank", AccountNature.Asset, AccountKind.Checking, new DateOnly(2026, 1, 1));
-        var a2 = Account.Create("Cash", AccountNature.Asset, AccountKind.Cash, new DateOnly(2026, 1, 1));
+        var checkingKind = AccountKindCatalog.CreateSystem("checking", "Checking", 10, AccountNature.Asset, AccountKind.Checking);
+        var cashKind = AccountKindCatalog.CreateSystem("cash", "Cash", 40, AccountNature.Asset, AccountKind.Cash);
+
+        var a1 = CreateAccountWithKindCatalog("Bank", AccountNature.Asset, checkingKind, new DateOnly(2026, 1, 1));
+        var a2 = CreateAccountWithKindCatalog("Cash", AccountNature.Asset, cashKind, new DateOnly(2026, 1, 1));
 
         repo.Setup(r => r.ListAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Account> { a1, a2 });
@@ -28,5 +31,16 @@ public sealed class ListAccountsHandlerTests
 
         repo.Verify(r => r.ListAsync(It.IsAny<CancellationToken>()), Times.Once);
         repo.VerifyNoOtherCalls();
+    }
+
+    private static Account CreateAccountWithKindCatalog(
+        string name,
+        AccountNature nature,
+        AccountKindCatalog kind,
+        DateOnly openedOn)
+    {
+        var account = Account.Create(name, nature, kind.Id, kind.LegacyKind, openedOn);
+        typeof(Account).GetProperty(nameof(Account.KindCatalog))!.SetValue(account, kind);
+        return account;
     }
 }
