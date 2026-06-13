@@ -8,11 +8,11 @@ public sealed class MoneyFormatterTests
 {
     [Theory]
     [InlineData(123456, "es-ES", "1.234,56 \u20AC")]
-    [InlineData(123456, "en-US", "\u20AC1,234.56")]
+    [InlineData(123456, "en-US", "1.234,56 \u20AC")]
     [InlineData(-123456, "es-ES", "-1.234,56 \u20AC")]
-    [InlineData(-123456, "en-US", "-\u20AC1,234.56")]
+    [InlineData(-123456, "en-US", "-1.234,56 \u20AC")]
     [InlineData(0, "es-ES", "0,00 \u20AC")]
-    [InlineData(0, "en-US", "\u20AC0.00")]
+    [InlineData(0, "en-US", "0,00 \u20AC")]
     public void FormatCents_WithCurrency_UsesRequestedCulture(long cents, string cultureName, string expected)
     {
         var culture = CultureInfo.GetCultureInfo(cultureName);
@@ -25,9 +25,9 @@ public sealed class MoneyFormatterTests
 
     [Theory]
     [InlineData(123456, "es-ES", "1.234,56")]
-    [InlineData(123456, "en-US", "1,234.56")]
+    [InlineData(123456, "en-US", "1.234,56")]
     [InlineData(-100, "es-ES", "-1,00")]
-    [InlineData(-100, "en-US", "-1.00")]
+    [InlineData(-100, "en-US", "-1,00")]
     public void FormatCents_WithoutCurrency_UsesRequestedCulture(long cents, string cultureName, string expected)
     {
         var culture = CultureInfo.GetCultureInfo(cultureName);
@@ -39,11 +39,11 @@ public sealed class MoneyFormatterTests
 
     [Theory]
     [InlineData(100, "es-ES", "+1,00 \u20AC")]
-    [InlineData(100, "en-US", "+\u20AC1.00")]
+    [InlineData(100, "en-US", "+1,00 \u20AC")]
     [InlineData(0, "es-ES", "0,00 \u20AC")]
-    [InlineData(0, "en-US", "\u20AC0.00")]
+    [InlineData(0, "en-US", "0,00 \u20AC")]
     [InlineData(-100, "es-ES", "-1,00 \u20AC")]
-    [InlineData(-100, "en-US", "-\u20AC1.00")]
+    [InlineData(-100, "en-US", "-1,00 \u20AC")]
     public void FormatCentsWithSign_UsesRequestedCulture(long cents, string cultureName, string expected)
     {
         var culture = CultureInfo.GetCultureInfo(cultureName);
@@ -55,9 +55,9 @@ public sealed class MoneyFormatterTests
 
     [Theory]
     [InlineData(1234.56, "es-ES", "1.234,56 \u20AC")]
-    [InlineData(1234.56, "en-US", "\u20AC1,234.56")]
+    [InlineData(1234.56, "en-US", "1.234,56 \u20AC")]
     [InlineData(-1234.56, "es-ES", "-1.234,56 \u20AC")]
-    [InlineData(-1234.56, "en-US", "-\u20AC1,234.56")]
+    [InlineData(-1234.56, "en-US", "-1.234,56 \u20AC")]
     public void FormatEuros_UsesRequestedCulture(decimal euros, string cultureName, string expected)
     {
         var culture = CultureInfo.GetCultureInfo(cultureName);

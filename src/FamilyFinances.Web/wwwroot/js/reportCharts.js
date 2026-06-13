@@ -1,6 +1,7 @@
 window.familyFinancesCharts = window.familyFinancesCharts || (function () {
     const chartByCanvasId = new Map();
     const formatterCache = new Map();
+    const chartNumberCulture = "es-ES";
     const themeColorDefaults = {
         tickColor: { token: "--ff-chart-tick-color", fallback: "#adb5bd" },
         gridColor: { token: "--ff-chart-grid-color", fallback: "rgba(173, 181, 189, 0.15)" },
@@ -41,17 +42,32 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
     }
 
     function formatEuro(value) {
-        const culture = resolveCulture();
-        if (!formatterCache.has(culture)) {
-            formatterCache.set(culture, new Intl.NumberFormat(culture, {
-                style: "currency",
-                currency: "EUR",
+        const normalized = Number(value);
+        const safeValue = Number.isFinite(normalized) ? normalized : 0;
+
+        if (!formatterCache.has(chartNumberCulture)) {
+            formatterCache.set(chartNumberCulture, new Intl.NumberFormat(chartNumberCulture, {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             }));
         }
 
-        return formatterCache.get(culture).format(value);
+        const sign = safeValue < 0 ? "-" : "";
+        const magnitude = formatterCache.get(chartNumberCulture).format(Math.abs(safeValue));
+        return `${sign}${magnitude} €`;
+    }
+
+    function buildYAxisGridOptions(theme) {
+        const isZeroTick = (context) => {
+            const tickValue = Number(context?.tick?.value);
+            return Number.isFinite(tickValue) && tickValue === 0;
+        };
+
+        return {
+            color: (context) => isZeroTick(context) ? toRgba(theme.tickColor, 0.9) : theme.gridColor,
+            lineWidth: (context) => isZeroTick(context) ? 1.75 : 1,
+            borderDash: (context) => isZeroTick(context) ? [] : [4, 4]
+        };
     }
 
     function resolveChartTheme() {
@@ -426,10 +442,7 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
                     maxTicksLimit: yTickMaxTicks,
                     callback: (value) => formatEuro(value)
                 },
-                grid: {
-                    color: theme.gridColor,
-                    borderDash: [4, 4]
-                }
+                grid: buildYAxisGridOptions(theme)
             };
         } else {
             datasets = datasets.map((dataset) => ({
@@ -445,10 +458,7 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
                     maxTicksLimit: yTickMaxTicks,
                     callback: (value) => formatEuro(value)
                 },
-                grid: {
-                    color: theme.gridColor,
-                    borderDash: [4, 4]
-                }
+                grid: buildYAxisGridOptions(theme)
             };
         }
 
@@ -570,10 +580,7 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
                             maxTicksLimit: yTickMaxTicks,
                             callback: (value) => formatEuro(value)
                         },
-                        grid: {
-                            color: theme.gridColor,
-                            borderDash: [4, 4]
-                        }
+                        grid: buildYAxisGridOptions(theme)
                     }
                 }
             }

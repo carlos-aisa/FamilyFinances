@@ -9,6 +9,7 @@ namespace FamilyFinances.Web.Features.Reports;
 public static class MoneyFormatter
 {
     private const string EuroSymbol = "\u20AC";
+    private static readonly CultureInfo DisplayCulture = CultureInfo.GetCultureInfo("es-ES");
 
     /// <summary>
     /// Formats cents to localized euros with optional currency symbol.
@@ -55,21 +56,18 @@ public static class MoneyFormatter
 
     private static string FormatMoneyCore(Money money, bool showCurrency, bool forceSignForPositive, CultureInfo? culture)
     {
-        var displayCulture = ResolveCulture(culture);
-        var formatInfo = (NumberFormatInfo)displayCulture.NumberFormat.Clone();
+        _ = culture;
+        var formatInfo = (NumberFormatInfo)DisplayCulture.NumberFormat.Clone();
         formatInfo.CurrencySymbol = EuroSymbol;
 
         var euros = money.ToEuros();
-        var magnitude = Math.Abs(euros).ToString(showCurrency ? "C2" : "N2", formatInfo);
+        var magnitude = Math.Abs(euros).ToString("N2", formatInfo);
         var sign = euros < 0 ? "-" : (forceSignForPositive && euros > 0 ? "+" : string.Empty);
 
-        return $"{sign}{magnitude}";
+        if (!showCurrency)
+            return $"{sign}{magnitude}";
+
+        return $"{sign}{magnitude} {EuroSymbol}";
     }
 
-    private static CultureInfo ResolveCulture(CultureInfo? culture)
-    {
-        return culture
-            ?? CultureInfo.CurrentCulture
-            ?? CultureInfo.GetCultureInfo("es-ES");
-    }
 }

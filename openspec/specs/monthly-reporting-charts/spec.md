@@ -47,6 +47,16 @@ Month-level charts MUST render with a shared premium visual contract for chart c
 - **AND** style choices MUST preserve readability in dark mode by default
 - **AND** runtime fallback values MUST be sourced through shared semantic chart mappings
 
+#### Scenario: Monthly chart Y-axis zero baseline is visually emphasized
+- **WHEN** a monthly chart Y axis includes tick value `0`
+- **THEN** the grid line at `0` MUST be rendered with stronger emphasis than non-zero Y-grid lines
+- **AND** non-zero Y-grid lines MUST preserve baseline readability style
+
+#### Scenario: Monthly chart money labels use EUR suffix format
+- **WHEN** Y-axis ticks or tooltip values render monetary values
+- **THEN** values MUST use European numeric formatting and trailing euro symbol (`XXX,XX €`)
+- **AND** sign semantics MUST remain unchanged
+
 ### Requirement: Monthly Chart Styling SHALL Preserve Existing Data Semantics
 Visual upgrades to monthly charts MUST NOT alter the dataset semantics, day ordering, or sign interpretation provided by existing monthly chart endpoints.
 
