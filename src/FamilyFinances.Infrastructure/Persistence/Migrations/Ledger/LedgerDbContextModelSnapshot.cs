@@ -70,8 +70,8 @@ namespace FamilyFinances.Infrastructure.Persistence.Migrations.Ledger
                     b.Property<bool>("IsClosed")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("Kind")
-                        .HasColumnType("INTEGER");
+                    b.Property<Guid>("KindId")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -91,11 +91,53 @@ namespace FamilyFinances.Infrastructure.Persistence.Migrations.Ledger
 
                     b.HasKey("Id");
 
+                    b.HasIndex("KindId");
+
                     b.HasIndex("NormalizedName")
                         .IsUnique()
                         .HasFilter("\"IsClosed\" = 0");
 
                     b.ToTable("Accounts", (string)null);
+                });
+
+            modelBuilder.Entity("FamilyFinances.Domain.Ledger.Accounts.AccountKindCatalog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsSystem")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("LegacyKind")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Nature")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.HasIndex("IsActive", "SortOrder", "Name");
+
+                    b.ToTable("AccountKinds", (string)null);
                 });
 
             modelBuilder.Entity("FamilyFinances.Domain.Ledger.Payees.Payee", b =>
@@ -276,6 +318,17 @@ namespace FamilyFinances.Infrastructure.Persistence.Migrations.Ledger
                         .HasForeignKey("GroupId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("FamilyFinances.Domain.Ledger.Accounts.Account", b =>
+                {
+                    b.HasOne("FamilyFinances.Domain.Ledger.Accounts.AccountKindCatalog", "KindCatalog")
+                        .WithMany()
+                        .HasForeignKey("KindId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("KindCatalog");
                 });
 
             modelBuilder.Entity("FamilyFinances.Domain.Ledger.Transactions.Transaction", b =>

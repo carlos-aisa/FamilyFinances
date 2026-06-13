@@ -9,4 +9,17 @@ public sealed record AccountDto(
     AccountKind Kind,
     DateOnly OpenedOn,
     bool IsClosed,
-    DateOnly? ClosedOn);
+    DateOnly? ClosedOn,
+    Guid KindId = default,
+    string KindKey = "",
+    string KindName = "");
+
+public sealed record AccountKindCatalogDto(
+    Guid Id,
+    string Key,
+    string Name,
+    bool IsSystem,
+    bool IsActive,
+    int SortOrder,
+    AccountKind LegacyKind,
+    AccountNature Nature = AccountNature.Expense);

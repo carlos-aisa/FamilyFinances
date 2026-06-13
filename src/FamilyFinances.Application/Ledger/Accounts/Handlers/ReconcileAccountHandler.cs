@@ -209,12 +209,18 @@ public sealed class ReconcileAccountHandler
             return existing;
 
         // Create new adjustment account
+        var fallbackLegacyKind = nature == AccountNature.Income
+            ? AccountKind.IncomeSource
+            : AccountKind.ExpenseCategory;
+        var selectedKind = await _accounts.GetKindByLegacyAndNatureAsync(fallbackLegacyKind, nature, ct)
+            ?? await _accounts.GetKindByLegacyAsync(fallbackLegacyKind, ct)
+            ?? throw new DomainException("Adjustment account kind is not configured.");
+
         var newAccount = Account.Create(
             name: accountName,
             nature: nature,
-            kind: nature == AccountNature.Income
-                ? AccountKind.IncomeSource
-                : AccountKind.ExpenseCategory,
+            kindId: selectedKind.Id,
+            legacyKind: selectedKind.LegacyKind,
             openedOn: DateOnly.FromDateTime(DateTime.Today)
         );
 

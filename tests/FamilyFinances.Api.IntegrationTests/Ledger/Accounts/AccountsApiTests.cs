@@ -260,5 +260,189 @@ public sealed class AccountsApiTests
         res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
+    [Fact]
+    public async Task Create_Account_ReturnsBadRequest_WhenKindIdDoesNotExist()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var res = await client.PostAsJsonAsync("/api/v1/accounts", new
+        {
+            name = "Main Bank",
+            nature = 1,
+            kind = 99,
+            kindId = Guid.NewGuid(),
+            openedOn = "2026-01-02"
+        });
+
+        res.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Create_Account_ReturnsBadRequest_WhenKindIdIsInactive()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var createKindRes = await client.PostAsJsonAsync("/api/v1/accounts/kinds", new { name = "Travel", nature = 1 });
+        createKindRes.StatusCode.Should().Be(HttpStatusCode.OK);
+        var kind = await createKindRes.Content.ReadFromJsonAsync<AccountKindCatalogDto>();
+        kind.Should().NotBeNull();
+
+        var deactivateRes = await client.PatchAsJsonAsync($"/api/v1/accounts/kinds/{kind!.Id}/active", new { isActive = false });
+        deactivateRes.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var createAccountRes = await client.PostAsJsonAsync("/api/v1/accounts", new
+        {
+            name = "Travel Cash",
+            nature = 1,
+            kind = 99,
+            kindId = kind.Id,
+            openedOn = "2026-01-02"
+        });
+
+        createAccountRes.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Can_List_And_Create_AccountKinds_WhenAuthorized()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var listBefore = await client.GetFromJsonAsync<List<AccountKindCatalogDto>>("/api/v1/accounts/kinds");
+        listBefore.Should().NotBeNull();
+        listBefore!.Should().Contain(x => x.IsSystem);
+
+        var createRes = await client.PostAsJsonAsync("/api/v1/accounts/kinds", new { name = "Broker", nature = 1 });
+        createRes.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var created = await createRes.Content.ReadFromJsonAsync<AccountKindCatalogDto>();
+        created.Should().NotBeNull();
+        created!.IsSystem.Should().BeFalse();
+        created.Name.Should().Be("Broker");
+        created.Nature.Should().Be(1);
+
+        var listAfter = await client.GetFromJsonAsync<List<AccountKindCatalogDto>>("/api/v1/accounts/kinds?includeInactive=true");
+        listAfter.Should().NotBeNull();
+        listAfter!.Should().Contain(x => x.Id == created.Id);
+    }
+
+    [Fact]
+    public async Task Can_Set_Account_Kind_WhenAuthorized()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var createKindRes = await client.PostAsJsonAsync("/api/v1/accounts/kinds", new { name = "Broker", nature = 1 });
+        createKindRes.StatusCode.Should().Be(HttpStatusCode.OK);
+        var kind = await createKindRes.Content.ReadFromJsonAsync<AccountKindCatalogDto>();
+        kind.Should().NotBeNull();
+
+        var createAccountRes = await client.PostAsJsonAsync("/api/v1/accounts", new
+        {
+            name = "Main Bank",
+            nature = 1,
+            kind = 1,
+            openedOn = "2026-01-02"
+        });
+        createAccountRes.StatusCode.Should().Be(HttpStatusCode.OK);
+        var account = await createAccountRes.Content.ReadFromJsonAsync<AccountDetailDto>();
+        account.Should().NotBeNull();
+
+        var setKindRes = await client.PatchAsJsonAsync($"/api/v1/accounts/{account!.Id}/kind", new { kindId = kind!.Id });
+        setKindRes.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var list = await client.GetFromJsonAsync<List<AccountDetailDto>>("/api/v1/accounts");
+        list.Should().NotBeNull();
+        list!.Should().Contain(x => x.Id == account.Id && x.KindId == kind.Id);
+    }
+
+    [Fact]
+    public async Task Set_Account_Kind_ReturnsBadRequest_WhenKindNatureIsIncompatible()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var createKindRes = await client.PostAsJsonAsync("/api/v1/accounts/kinds", new { name = "Salary Bucket", nature = 3 });
+        createKindRes.StatusCode.Should().Be(HttpStatusCode.OK);
+        var kind = await createKindRes.Content.ReadFromJsonAsync<AccountKindCatalogDto>();
+        kind.Should().NotBeNull();
+
+        var createAccountRes = await client.PostAsJsonAsync("/api/v1/accounts", new
+        {
+            name = "Main Bank",
+            nature = 1,
+            kind = 1,
+            openedOn = "2026-01-02"
+        });
+        createAccountRes.StatusCode.Should().Be(HttpStatusCode.OK);
+        var account = await createAccountRes.Content.ReadFromJsonAsync<AccountDetailDto>();
+        account.Should().NotBeNull();
+
+        var setKindRes = await client.PatchAsJsonAsync($"/api/v1/accounts/{account!.Id}/kind", new { kindId = kind!.Id });
+        setKindRes.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Delete_Kind_ReturnsNoContent_WhenCustomKindIsUnused()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var createKindRes = await client.PostAsJsonAsync("/api/v1/accounts/kinds", new { name = "Travel", nature = 4 });
+        createKindRes.StatusCode.Should().Be(HttpStatusCode.OK);
+        var kind = await createKindRes.Content.ReadFromJsonAsync<AccountKindCatalogDto>();
+        kind.Should().NotBeNull();
+
+        var deleteRes = await client.DeleteAsync($"/api/v1/accounts/kinds/{kind!.Id}");
+        deleteRes.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var listAfter = await client.GetFromJsonAsync<List<AccountKindCatalogDto>>("/api/v1/accounts/kinds?includeInactive=true");
+        listAfter.Should().NotBeNull();
+        listAfter!.Should().NotContain(x => x.Id == kind.Id);
+    }
+
+    [Fact]
+    public async Task Delete_Kind_ReturnsBadRequest_WhenCustomKindIsInUse()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var createKindRes = await client.PostAsJsonAsync("/api/v1/accounts/kinds", new { name = "Travel", nature = 4 });
+        createKindRes.StatusCode.Should().Be(HttpStatusCode.OK);
+        var kind = await createKindRes.Content.ReadFromJsonAsync<AccountKindCatalogDto>();
+        kind.Should().NotBeNull();
+
+        var createAccountRes = await client.PostAsJsonAsync("/api/v1/accounts", new
+        {
+            name = "Travel Expense",
+            nature = 4,
+            kind = 99,
+            kindId = kind!.Id,
+            openedOn = "2026-01-02"
+        });
+        createAccountRes.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var deleteRes = await client.DeleteAsync($"/api/v1/accounts/kinds/{kind.Id}");
+        deleteRes.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Delete_Kind_ReturnsBadRequest_WhenSystemKind()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var listKindsRes = await client.GetFromJsonAsync<List<AccountKindCatalogDto>>("/api/v1/accounts/kinds?includeInactive=true");
+        listKindsRes.Should().NotBeNull();
+        var systemKind = listKindsRes!.First(x => x.IsSystem);
+
+        var deleteRes = await client.DeleteAsync($"/api/v1/accounts/kinds/{systemKind.Id}");
+        deleteRes.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
     public sealed record AccountDto(Guid Id, string Name);
+    public sealed record AccountKindCatalogDto(Guid Id, string Key, string Name, bool IsSystem, bool IsActive, int SortOrder, int LegacyKind, int Nature);
+    public sealed record AccountDetailDto(Guid Id, string Name, Guid KindId);
 }

@@ -237,6 +237,8 @@ public sealed class ReportingReadRepository : IReportingReadRepository
                 on t.Id equals EF.Property<TransactionId>(s, "TransactionId")
             join a in _db.Accounts.AsNoTracking()
                 on s.AccountId equals a.Id
+            join k in _db.AccountKinds.AsNoTracking()
+                on a.KindId equals k.Id
             where t.BookedOn >= fromInclusive && t.BookedOn < toExclusive
             select new
             {
@@ -244,7 +246,7 @@ public sealed class ReportingReadRepository : IReportingReadRepository
                 AccountId = a.Id,
                 AccountName = a.Name,
                 AccountNature = a.Nature,
-                AccountKind = a.Kind,
+                AccountKind = k.LegacyKind,
                 Amount = s.Amount
             };
 

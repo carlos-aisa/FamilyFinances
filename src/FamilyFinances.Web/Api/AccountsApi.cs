@@ -1,6 +1,7 @@
 ﻿using FamilyFinances.Application.Ledger.Accounts.Dtos;
 using FamilyFinances.Application.Ledger.Accounts.Requests;
 using FamilyFinances.Application.Reporting.Dtos;
+using FamilyFinances.Domain.Ledger.Accounts;
 using FamilyFinances.Web.Auth;
 using System.Globalization;
 using System.Net;
@@ -39,6 +40,119 @@ public sealed class AccountsApi : IAccountsApi
 
         var items = await response.Content.ReadFromJsonAsync<IReadOnlyList<AccountDto>>(cancellationToken: ct);
         return items ?? Array.Empty<AccountDto>();
+    }
+
+    public async Task<IReadOnlyList<AccountKindCatalogDto>> ListKindsAsync(bool includeInactive, CancellationToken ct)
+    {
+        var token = _tokenStore.GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("No access token available.");
+
+        var path = includeInactive ? "api/v1/accounts/kinds?includeInactive=true" : "api/v1/accounts/kinds";
+        using var request = new HttpRequestMessage(HttpMethod.Get, path);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _http.SendAsync(request, ct);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
+
+        response.EnsureSuccessStatusCode();
+
+        var items = await response.Content.ReadFromJsonAsync<IReadOnlyList<AccountKindCatalogDto>>(cancellationToken: ct);
+        return items ?? Array.Empty<AccountKindCatalogDto>();
+    }
+
+    public async Task<AccountKindCatalogDto> CreateKindAsync(string name, AccountNature nature, CancellationToken ct)
+    {
+        var token = _tokenStore.GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("No access token available.");
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "api/v1/accounts/kinds")
+        {
+            Content = JsonContent.Create(new { name, nature })
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _http.SendAsync(request, ct);
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorMessage = await TryReadErrorMessageAsync(response, ct);
+            throw new HttpRequestException(errorMessage, null, response.StatusCode);
+        }
+
+        var dto = await response.Content.ReadFromJsonAsync<AccountKindCatalogDto>(cancellationToken: ct);
+        return dto ?? throw new InvalidOperationException("Empty response payload.");
+    }
+
+    public async Task SetAccountKindAsync(Guid accountId, Guid kindId, CancellationToken ct)
+    {
+        var token = _tokenStore.GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("No access token available.");
+
+        using var request = new HttpRequestMessage(HttpMethod.Patch, $"api/v1/accounts/{accountId}/kind")
+        {
+            Content = JsonContent.Create(new { kindId })
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _http.SendAsync(request, ct);
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorMessage = await TryReadErrorMessageAsync(response, ct);
+            throw new HttpRequestException(errorMessage, null, response.StatusCode);
+        }
+    }
+
+    public async Task SetKindActiveAsync(Guid kindId, bool isActive, CancellationToken ct)
+    {
+        var token = _tokenStore.GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("No access token available.");
+
+        using var request = new HttpRequestMessage(HttpMethod.Patch, $"api/v1/accounts/kinds/{kindId}/active")
+        {
+            Content = JsonContent.Create(new { isActive })
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _http.SendAsync(request, ct);
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorMessage = await TryReadErrorMessageAsync(response, ct);
+            throw new HttpRequestException(errorMessage, null, response.StatusCode);
+        }
+    }
+
+    public async Task DeleteKindAsync(Guid kindId, CancellationToken ct)
+    {
+        var token = _tokenStore.GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("No access token available.");
+
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"api/v1/accounts/kinds/{kindId}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _http.SendAsync(request, ct);
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorMessage = await TryReadErrorMessageAsync(response, ct);
+            throw new HttpRequestException(errorMessage, null, response.StatusCode);
+        }
     }
 
     public async Task<IReadOnlyList<AccountBalanceDto>> GetBalancesAsync(CancellationToken ct)

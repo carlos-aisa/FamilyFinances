@@ -8,6 +8,7 @@
 @using FamilyFinances.Domain.Ledger.Accounts
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Shared
+@using FamilyFinances.Web.Features.Accounts
 @using FamilyFinances.Web.Features.Reports
 @using Microsoft.Extensions.Localization
 @using Microsoft.AspNetCore.Components.Authorization
@@ -110,12 +111,63 @@
                                 <label class="form-label">
                                     <i class="bi bi-tag me-1"></i>@L["Accounts_Field_Kind"]
                                 </label>
-                                <InputSelect class="form-select" @bind-Value="_createModel.Kind">
+                                <InputSelect class="form-select ff-account-kind-select" @bind-Value="_createModel.KindId">
                                     @foreach (var k in GetAllowedKinds(_createModel.Nature))
                                     {
-                                        <option value="@k">@GetKindLabel(k)</option>
+                                        <option value="@k.Id">@GetKindLabel(k)</option>
                                     }
                                 </InputSelect>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mt-2">
+                            <div class="col-12 col-md-8">
+                                <label class="form-label">
+                                    <i class="bi bi-plus-square me-1"></i>@L["Accounts_Field_Kind_Custom"]
+                                </label>
+                                <div class="input-group">
+                                    <InputSelect class="form-select ff-kind-nature-select" @bind-Value="_newKindNature">
+                                        @foreach (var n in _natureOrder)
+                                        {
+                                            <option value="@n">@GetNatureLabel(n)</option>
+                                        }
+                                    </InputSelect>
+                                    <InputText class="form-control" @bind-Value="_newKindName" placeholder="@L["Accounts_Field_Kind_Custom_Placeholder"]" />
+                                    <button class="btn btn-outline-primary" type="button" @onclick="CreateKindAsync" disabled="@_isBusy">
+                                        <i class="bi bi-plus-circle me-1"></i>@L["Accounts_Create"]
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">
+                                    <i class="bi bi-list-ul me-1"></i>@L["Accounts_CustomKinds_Title"]
+                                </label>
+                                <div class="d-flex flex-column gap-1 small border rounded p-2 ff-kind-list-scroll">
+                                    @foreach (var kind in _kinds.Where(k => !k.IsSystem).OrderBy(k => GetKindLabel(k), StringComparer.CurrentCultureIgnoreCase))
+                                    {
+                                        var isKindInUse = _accounts?.Any(a => a.KindId == kind.Id) == true;
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <span class="@(kind.IsActive ? "" : "text-muted text-decoration-line-through")">
+                                                @GetKindLabel(kind)
+                                                <span class="text-muted">(@GetNatureLabel(kind.Nature))</span>
+                                            </span>
+                                            <div class="d-flex gap-1">
+                                                <button type="button"
+                                                        class="btn btn-sm @(kind.IsActive ? "btn-outline-warning" : "btn-outline-success")"
+                                                        @onclick="() => ToggleKindActiveAsync(kind)">
+                                                    @(kind.IsActive ? L["Accounts_Action_Disable"] : L["Accounts_Action_Enable"])
+                                                </button>
+                                                <button type="button"
+                                                        class="btn btn-sm btn-outline-danger"
+                                                        @onclick="() => DeleteKindAsync(kind)"
+                                                        disabled="@(_isBusy || isKindInUse)"
+                                                        title="@(isKindInUse ? L["Accounts_CustomKinds_CannotDeleteUsed"] : L["Accounts_Action_Delete"])">
+                                                    @L["Accounts_Action_Delete"]
+                                                </button>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
                             </div>
                         </div>
 
@@ -219,7 +271,7 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <span class="badge bg-secondary-subtle text-secondary">@GetKindLabel(a.Kind)</span>
+                                            <span class="badge bg-secondary-subtle text-secondary">@GetKindLabel(a)</span>
                                         </td>
                                         <td class="text-end">
                                             @if (currentMonthBalanceText is null)
@@ -275,11 +327,32 @@
                                                     </div>
                                                 </EditForm>
                                             }
+                                            else if (_editingKindAccountId == a.Id)
+                                            {
+                                                <div class="d-flex justify-content-end gap-2 align-items-center">
+                                                    <InputSelect class="form-select form-select-sm ff-input-min-w-200 ff-account-kind-edit-select" @bind-Value="_editKindId">
+                                                        @foreach (var k in GetAllowedKinds(a.Nature))
+                                                        {
+                                                            <option value="@k.Id">@GetKindLabel(k)</option>
+                                                        }
+                                                    </InputSelect>
+                                                    <button class="btn btn-sm btn-success" type="button" @onclick="() => SaveKindAsync(a)" disabled="@_isBusy">
+                                                        <i class="bi bi-check me-1"></i>@L["Accounts_Save"]
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-secondary" type="button" @onclick="CancelKindEdit" disabled="@_isBusy">
+                                                        <i class="bi bi-x me-1"></i>@L["Accounts_Cancel"]
+                                                    </button>
+                                                </div>
+                                            }
                                             else
                                             {
                                                 <div class="d-flex justify-content-end gap-1">
                                                     <button class="btn btn-sm btn-outline-primary" type="button" @onclick="@(() => StartRename(a))" disabled="@_isBusy" title="@L["Accounts_Action_Rename"]">
                                                         <i class="bi bi-pencil"></i>
+                                                    </button>
+
+                                                    <button class="btn btn-sm btn-outline-info" type="button" @onclick="@(() => StartKindEdit(a))" disabled="@_isBusy" title="@L["Accounts_Field_Kind"]">
+                                                        <i class="bi bi-tags"></i>
                                                     </button>
 
                                                     <button class="btn btn-sm btn-outline-secondary" type="button" @onclick="@(() => ViewMovements(a.Id))" title="@L["Accounts_Action_ViewMovements"]">
@@ -344,14 +417,19 @@
 
 @code {
     private IReadOnlyList<AccountDto>? _accounts;
+    private IReadOnlyList<AccountKindCatalogDto> _kinds = Array.Empty<AccountKindCatalogDto>();
     private string? _error;
     private string? _info;
+    private string _newKindName = string.Empty;
+    private AccountNature _newKindNature = AccountNature.Expense;
     private bool _hasLoaded;
 
     private bool _showClosed;
     private bool _isCreating;
     private bool _isBusy;
     private Guid? _editingAccountId;
+    private Guid? _editingKindAccountId;
+    private Guid _editKindId;
     private readonly RenameAccountModel _renameModel = new();
 
     private readonly CreateAccountModel _createModel = new();
@@ -422,6 +500,7 @@
         await ExecuteApiAsync(async ct =>
         {
             _accounts = await AccountsApi.ListAsync(ct);
+            _kinds = await AccountsApi.ListKindsAsync(includeInactive: true, ct);
 
             // Try to load balances; keep UI resilient if API client / endpoint is not available yet
             try
@@ -453,12 +532,14 @@
     {
         _createModel.Name = "";
         _createModel.Nature = AccountNature.Expense;
-        _createModel.Kind = AccountKind.ExpenseCategory;
+        _newKindNature = _createModel.Nature;
+        _createModel.KindId = GetDefaultKind(_createModel.Nature)?.Id ?? Guid.Empty;
     }
 
     private Task OnNatureChanged()
     {
-        _createModel.Kind = GetDefaultKind(_createModel.Nature);
+        _createModel.KindId = GetDefaultKind(_createModel.Nature)?.Id ?? Guid.Empty;
+        _newKindNature = _createModel.Nature;
         return Task.CompletedTask;
     }
 
@@ -478,8 +559,9 @@
                 var request = new CreateAccountRequest(
                     Name: _createModel.Name.Trim(),
                     Nature: _createModel.Nature,
-                    Kind: _createModel.Kind,
-                    OpenedOn: DateOnly.FromDateTime(DateTime.Today));
+                    Kind: AccountKind.Other,
+                    OpenedOn: DateOnly.FromDateTime(DateTime.Today),
+                    KindId: _createModel.KindId);
 
                 await AccountsApi.CreateAsync(request, ct);
 
@@ -500,49 +582,40 @@
         _isBusy = false;
     }
 
-    private static AccountKind GetDefaultKind(AccountNature nature) => nature switch
+    private AccountKindCatalogDto? GetDefaultKind(AccountNature nature)
     {
-        AccountNature.Asset => AccountKind.Checking,
-        AccountNature.Liability => AccountKind.CreditCard,
-        AccountNature.Expense => AccountKind.ExpenseCategory,
-        AccountNature.Income => AccountKind.IncomeSource,
-        AccountNature.Equity => AccountKind.Other,
-        _ => AccountKind.Other
-    };
+        var allowed = GetAllowedKinds(nature);
+        return nature switch
+        {
+            AccountNature.Asset => allowed.FirstOrDefault(x => x.LegacyKind == AccountKind.Checking) ?? allowed.FirstOrDefault(),
+            AccountNature.Liability => allowed.FirstOrDefault(x => x.LegacyKind == AccountKind.CreditCard) ?? allowed.FirstOrDefault(),
+            AccountNature.Expense => allowed.FirstOrDefault(x => x.LegacyKind == AccountKind.ExpenseCategory) ?? allowed.FirstOrDefault(),
+            AccountNature.Income => allowed.FirstOrDefault(x => x.LegacyKind == AccountKind.IncomeSource) ?? allowed.FirstOrDefault(),
+            _ => allowed.FirstOrDefault()
+        };
+    }
 
-    private static IReadOnlyList<AccountKind> GetAllowedKinds(AccountNature nature) => nature switch
+    private IReadOnlyList<AccountKindCatalogDto> GetAllowedKinds(AccountNature nature)
     {
-        AccountNature.Asset =>
-        [
-            AccountKind.Cash,
-            AccountKind.Checking,
-            AccountKind.Savings,
-            AccountKind.Investment,
-            AccountKind.Other
-        ],
-        AccountNature.Liability =>
-        [
-            AccountKind.CreditCard,
-            AccountKind.Loan,
-            AccountKind.Mortgage,
-            AccountKind.Other
-        ],
-        AccountNature.Expense =>
-        [
-            AccountKind.ExpenseCategory,
-            AccountKind.Other
-        ],
-        AccountNature.Income =>
-        [
-            AccountKind.IncomeSource,
-            AccountKind.Other
-        ],
-        AccountNature.Equity =>
-        [
-            AccountKind.Other
-        ],
-        _ => [AccountKind.Other]
-    };
+        var allowedSystemKinds = nature switch
+        {
+            AccountNature.Asset => new HashSet<AccountKind> { AccountKind.Cash, AccountKind.Checking, AccountKind.Savings, AccountKind.Investment, AccountKind.Other },
+            AccountNature.Liability => new HashSet<AccountKind> { AccountKind.CreditCard, AccountKind.Loan, AccountKind.Mortgage, AccountKind.Other },
+            AccountNature.Expense => new HashSet<AccountKind> { AccountKind.ExpenseCategory, AccountKind.Other },
+            AccountNature.Income => new HashSet<AccountKind> { AccountKind.IncomeSource, AccountKind.Other },
+            AccountNature.Equity => new HashSet<AccountKind> { AccountKind.Other },
+            _ => new HashSet<AccountKind> { AccountKind.Other }
+        };
+
+        return _kinds
+            .Where(x => x.IsActive)
+            .Where(x => x.IsSystem
+                ? allowedSystemKinds.Contains(x.LegacyKind)
+                : x.Nature == nature)
+            .OrderBy(x => GetKindLabel(x), StringComparer.CurrentCultureIgnoreCase)
+            .ThenBy(x => x.IsSystem ? 0 : 1)
+            .ToList();
+    }
 
     private string GetNatureLabel(AccountNature nature) => nature switch
     {
@@ -554,20 +627,52 @@
         _ => nature.ToString()
     };
 
-    private string GetKindLabel(AccountKind kind) => kind switch
+    private string GetKindLabel(AccountDto account) => AccountKindLabelResolver.Resolve(account, L);
+
+    private string GetKindLabel(AccountKindCatalogDto kind) => AccountKindLabelResolver.Resolve(kind, L);
+
+    private async Task CreateKindAsync()
     {
-        AccountKind.Cash => L["Accounts_Kind_Cash"],
-        AccountKind.Checking => L["Accounts_Kind_Checking"],
-        AccountKind.Savings => L["Accounts_Kind_Savings"],
-        AccountKind.Investment => L["Accounts_Kind_Investment"],
-        AccountKind.CreditCard => L["Accounts_Kind_CreditCard"],
-        AccountKind.Loan => L["Accounts_Kind_Loan"],
-        AccountKind.Mortgage => L["Accounts_Kind_Mortgage"],
-        AccountKind.ExpenseCategory => L["Accounts_Kind_ExpenseCategory"],
-        AccountKind.IncomeSource => L["Accounts_Kind_IncomeSource"],
-        AccountKind.Other => L["Accounts_Kind_Other"],
-        _ => kind.ToString()
-    };
+        var name = _newKindName.Trim();
+        if (string.IsNullOrWhiteSpace(name))
+            return;
+
+        await ExecuteApiAsync(async ct =>
+        {
+            await AccountsApi.CreateKindAsync(name, _newKindNature, ct);
+            _newKindName = string.Empty;
+            _kinds = await AccountsApi.ListKindsAsync(includeInactive: true, ct);
+
+            if (_isCreating && _createModel.KindId == Guid.Empty)
+                _createModel.KindId = GetDefaultKind(_createModel.Nature)?.Id ?? Guid.Empty;
+        });
+    }
+
+    private async Task ToggleKindActiveAsync(AccountKindCatalogDto kind)
+    {
+        await ExecuteApiAsync(async ct =>
+        {
+            await AccountsApi.SetKindActiveAsync(kind.Id, !kind.IsActive, ct);
+            _kinds = await AccountsApi.ListKindsAsync(includeInactive: true, ct);
+
+            var allowedIds = GetAllowedKinds(_createModel.Nature).Select(x => x.Id).ToHashSet();
+            if (!allowedIds.Contains(_createModel.KindId))
+                _createModel.KindId = GetDefaultKind(_createModel.Nature)?.Id ?? Guid.Empty;
+        });
+    }
+
+    private async Task DeleteKindAsync(AccountKindCatalogDto kind)
+    {
+        await ExecuteApiAsync(async ct =>
+        {
+            await AccountsApi.DeleteKindAsync(kind.Id, ct);
+            _kinds = await AccountsApi.ListKindsAsync(includeInactive: true, ct);
+
+            var allowedIds = GetAllowedKinds(_createModel.Nature).Select(x => x.Id).ToHashSet();
+            if (!allowedIds.Contains(_createModel.KindId))
+                _createModel.KindId = GetDefaultKind(_createModel.Nature)?.Id ?? Guid.Empty;
+        });
+    }
 
     private static string GetNatureBorderClass(AccountNature nature) => nature switch
     {
@@ -625,6 +730,7 @@
         _info = null;
 
         _editingAccountId = account.Id;
+        _editingKindAccountId = null;
         _renameModel.Name = account.Name;
     }
 
@@ -632,6 +738,54 @@
     {
         _editingAccountId = null;
         _renameModel.Name = "";
+    }
+
+    private void StartKindEdit(AccountDto account)
+    {
+        _error = null;
+        _info = null;
+        _editingAccountId = null;
+        _editingKindAccountId = account.Id;
+        _editKindId = account.KindId;
+    }
+
+    private void CancelKindEdit()
+    {
+        _editingKindAccountId = null;
+        _editKindId = Guid.Empty;
+    }
+
+    private async Task SaveKindAsync(AccountDto account)
+    {
+        if (_isBusy)
+            return;
+
+        _isBusy = true;
+        _error = null;
+        _info = null;
+
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                await AccountsApi.SetAccountKindAsync(account.Id, _editKindId, ct);
+                _editingKindAccountId = null;
+                _info = null;
+                await LoadAsync();
+            });
+        }
+        catch (HttpRequestException ex)
+        {
+            _error = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
     }
 
     private async Task SaveRenameAsync(Guid accountId)
@@ -805,7 +959,7 @@
         public AccountNature Nature { get; set; } = AccountNature.Expense;
 
         [Required]
-        public AccountKind Kind { get; set; } = AccountKind.ExpenseCategory;
+        public Guid KindId { get; set; }
     }
 
     private sealed class RenameAccountModel

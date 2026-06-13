@@ -6,4 +6,5 @@ public sealed record CreateAccountRequest(
     string Name,
     AccountNature Nature,
     AccountKind Kind,
-    DateOnly OpenedOn);
+    DateOnly OpenedOn,
+    Guid? KindId = null);

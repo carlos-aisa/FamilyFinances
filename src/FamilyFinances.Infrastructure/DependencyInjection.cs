@@ -65,6 +65,11 @@ public static class DependencyInjection
         services.AddScoped<CreateAccountHandler>();
         services.AddScoped<DeleteAccountHandler>();
         services.AddScoped<ListAccountsHandler>();
+        services.AddScoped<ListAccountKindsHandler>();
+        services.AddScoped<CreateAccountKindHandler>();
+        services.AddScoped<SetAccountKindActiveHandler>();
+        services.AddScoped<DeleteAccountKindHandler>();
+        services.AddScoped<SetAccountKindHandler>();
         services.AddScoped<ReconcileAccountHandler>();
         services.AddScoped<RenameAccountHandler>();
         services.AddScoped<ReopenAccountHandler>();
@@ -226,6 +231,9 @@ public static class DependencyInjection
 
         // Seed roles + default admin user
         await Infrastructure.Identity.IdentitySeeder.SeedAsync(scope.ServiceProvider);
+
+        // Ensure account kind catalog is available before account seeding flows.
+        await Infrastructure.Ledger.LedgerSeeder.EnsureAccountKindsAsync(ledgerDb);
         
         // Ensure Opening Balance equity account exists
         await Infrastructure.Ledger.LedgerSeeder.EnsureOpeningBalanceAccountAsync(ledgerDb);
