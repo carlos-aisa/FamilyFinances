@@ -26,8 +26,10 @@ public sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
             .HasConversion<int>()
             .IsRequired();
 
-        builder.Property(x => x.Kind)
-            .HasConversion<int>()
+        builder.Property(x => x.KindId)
+            .HasConversion(
+                id => id.Value,
+                value => new AccountKindCatalogId(value))
             .IsRequired();
 
         builder.Property(x => x.OpenedOn)
@@ -45,5 +47,10 @@ public sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
         builder.HasIndex(x => x.NormalizedName)
             .IsUnique()
             .HasFilter("\"IsClosed\" = 0");
+
+        builder.HasOne(x => x.KindCatalog)
+            .WithMany()
+            .HasForeignKey(x => x.KindId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

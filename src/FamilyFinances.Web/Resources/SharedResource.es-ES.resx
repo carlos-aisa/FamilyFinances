@@ -450,6 +450,12 @@
   <data name="Accounts_Field_Kind" xml:space="preserve">
     <value>Tipo</value>
   </data>
+  <data name="Accounts_Field_Kind_Custom" xml:space="preserve">
+    <value>Tipo (personalizado)</value>
+  </data>
+  <data name="Accounts_Field_Kind_Custom_Placeholder" xml:space="preserve">
+    <value>Añadir tipo personalizado</value>
+  </data>
   <data name="Accounts_Field_Name" xml:space="preserve">
     <value>Nombre</value>
   </data>
@@ -498,6 +504,12 @@
   <data name="Accounts_Message_Created" xml:space="preserve">
     <value>Creado</value>
   </data>
+  <data name="Accounts_Action_Disable" xml:space="preserve">
+    <value>Desactivar</value>
+  </data>
+  <data name="Accounts_Action_Enable" xml:space="preserve">
+    <value>Activar</value>
+  </data>
   <data name="Accounts_Message_Deleted" xml:space="preserve">
     <value>Eliminada</value>
   </data>
@@ -509,6 +521,12 @@
   </data>
   <data name="Accounts_Nature_Equity" xml:space="preserve">
     <value>Patrimonio</value>
+  </data>
+  <data name="Accounts_CustomKinds_Title" xml:space="preserve">
+    <value>Tipos personalizados</value>
+  </data>
+  <data name="Accounts_CustomKinds_CannotDeleteUsed" xml:space="preserve">
+    <value>Este tipo está en uso y no se puede eliminar.</value>
   </data>
   <data name="Accounts_NewAccount" xml:space="preserve">
     <value>Nueva cuenta</value>

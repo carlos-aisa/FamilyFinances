@@ -45,6 +45,7 @@ public sealed class AccountGroupMembershipRepository : IAccountGroupMembershipRe
 
         return await _db.Accounts
             .AsNoTracking()
+            .Include(a => a.KindCatalog)
             .Where(a => accountIds.Contains(a.Id))
             .OrderBy(a => a.Name)
             .ToListAsync(ct);

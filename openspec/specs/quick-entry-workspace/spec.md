@@ -45,7 +45,7 @@ Implementation scope:
 - Candidate fields:
   - account name (`AccountDto.Name`)
   - nature label (`GetNatureLabel(...)`)
-  - kind label (`GetKindLabel(...)`)
+  - catalog-driven kind label (resolved from unified kind catalog, including system and custom kinds)
 - The same normalization algorithm MUST be applied to query and candidate fields before `Contains` checks.
 - Empty or whitespace query MUST preserve current unfiltered behavior.
 
@@ -63,6 +63,11 @@ Implementation scope:
 - **WHEN** user query matches normalized nature or kind labels
 - **THEN** accounts MUST still be filtered by those labels as before
 - **AND** existing accordion section and auto-expand behavior MUST remain unchanged
+
+#### Scenario: Custom kind labels are searchable in quick entry
+- **WHEN** an account uses a custom catalog kind and user query matches that kind label
+- **THEN** the account MUST be included in search results
+- **AND** search behavior MUST be equivalent to predefined kind labels
 
 ### Requirement: Shared Account Selector Search SHALL Ignore Diacritics and Case
 The reusable `AccountSelector` component MUST apply accent-insensitive, case-insensitive text matching for account-selection workflows.

@@ -116,6 +116,68 @@ public sealed class QuickEntryPageTests : WebTestContext
     }
 
     [Fact]
+    public void QuickEntry_GlobalSearch_Matches_NonAccented_Account_Name_With_Accented_Query()
+    {
+        RegisterAuthorizedServices(CreateAccountsApiMock(
+        [
+            BuildAccount("Jose Account", AccountNature.Asset, AccountKind.Checking),
+            BuildAccount("Salary", AccountNature.Income, AccountKind.IncomeSource)
+        ]));
+
+        var cut = RenderComponent<QuickEntryPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("input[placeholder='Search accounts by name or type']");
+            cut.FindAll(".ff-dashboard-account-item").Should().NotBeEmpty();
+        });
+
+        var search = cut.Find("input[placeholder='Search accounts by name or type']");
+        search.Input("Jos\u00E9");
+
+        cut.WaitForAssertion(() =>
+        {
+            var visibleItems = cut.FindAll(".ff-dashboard-account-item")
+                .Select(item => item.TextContent)
+                .ToList();
+
+            visibleItems.Should().Contain(text => text.Contains("Jose Account", StringComparison.OrdinalIgnoreCase));
+            visibleItems.Should().NotContain(text => text.Contains("Salary", StringComparison.OrdinalIgnoreCase));
+        });
+    }
+
+    [Fact]
+    public void QuickEntry_GlobalSearch_Matches_Custom_Kind_Label()
+    {
+        RegisterAuthorizedServices(CreateAccountsApiMock(
+        [
+            BuildAccount("Travel Wallet", AccountNature.Asset, AccountKind.Other, kindName: "Travel"),
+            BuildAccount("Main Bank", AccountNature.Asset, AccountKind.Checking)
+        ]));
+
+        var cut = RenderComponent<QuickEntryPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("input[placeholder='Search accounts by name or type']");
+            cut.FindAll(".ff-dashboard-account-item").Should().NotBeEmpty();
+        });
+
+        var search = cut.Find("input[placeholder='Search accounts by name or type']");
+        search.Input("travel");
+
+        cut.WaitForAssertion(() =>
+        {
+            var visibleItems = cut.FindAll(".ff-dashboard-account-item")
+                .Select(item => item.TextContent)
+                .ToList();
+
+            visibleItems.Should().Contain(text => text.Contains("Travel Wallet", StringComparison.OrdinalIgnoreCase));
+            visibleItems.Should().NotContain(text => text.Contains("Main Bank", StringComparison.OrdinalIgnoreCase));
+        });
+    }
+
+    [Fact]
     public void QuickEntry_Shows_Mode_Guidance_And_Persists_Selected_Date_Across_Mode_Switch()
     {
         RegisterAuthorizedServices(CreateAccountsApiMock(
@@ -221,7 +283,7 @@ public sealed class QuickEntryPageTests : WebTestContext
         return mock.Object;
     }
 
-    private static AccountDto BuildAccount(string name, AccountNature nature, AccountKind kind)
+    private static AccountDto BuildAccount(string name, AccountNature nature, AccountKind kind, string? kindName = null)
     {
         return new AccountDto(
             Guid.NewGuid(),
@@ -230,7 +292,10 @@ public sealed class QuickEntryPageTests : WebTestContext
             kind,
             new DateOnly(2026, 1, 1),
             false,
-            null);
+            null,
+            Guid.NewGuid(),
+            kind.ToString().ToLowerInvariant(),
+            kindName ?? kind.ToString());
     }
 
     private static void ClickCardHeader(IRenderedComponent<QuickEntryPage> cut, string title)

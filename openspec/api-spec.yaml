@@ -133,6 +133,117 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
+  /api/v1/accounts/kinds:
+    get:
+      tags: [Accounts]
+      summary: List account kinds
+      operationId: Accounts_ListKinds
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: includeInactive
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Account kind catalog entries.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountKindCatalogDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [Accounts]
+      summary: Create custom account kind
+      operationId: Accounts_CreateKind
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAccountKindRequest'
+      responses:
+        '200':
+          description: Custom account kind created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountKindCatalogDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/accounts/kinds/{kindId}/active:
+    patch:
+      tags: [Accounts]
+      summary: Activate or deactivate account kind
+      operationId: Accounts_SetKindActive
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: kindId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetAccountKindActiveRequest'
+      responses:
+        '204':
+          description: Kind active state updated.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/accounts/kinds/{kindId}:
+    delete:
+      tags: [Accounts]
+      summary: Delete account kind
+      operationId: Accounts_DeleteKind
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: kindId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Kind deleted.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /api/v1/accounts/balances:
     get:
       tags: [Accounts]
@@ -271,6 +382,33 @@ paths:
           description: Account not found (response body may be empty).
         '409':
           $ref: '#/components/responses/Conflict'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/accounts/{id}/kind:
+    patch:
+      tags: [Accounts]
+      summary: Change account kind
+      operationId: Accounts_SetKind
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AccountIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetAccountKindRequest'
+      responses:
+        '204':
+          description: Account kind updated.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: Account not found (response body may be empty).
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -1510,10 +1648,38 @@ components:
           $ref: '#/components/schemas/AccountNature'
         kind:
           $ref: '#/components/schemas/AccountKind'
+        kindId:
+          type: string
+          format: uuid
+          nullable: true
         openedOn:
           type: string
           format: date
       required: [name, nature, kind, openedOn]
+
+    CreateAccountKindRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        nature:
+          $ref: '#/components/schemas/AccountNature'
+      required: [name, nature]
+
+    SetAccountKindActiveRequest:
+      type: object
+      properties:
+        isActive:
+          type: boolean
+      required: [isActive]
+
+    SetAccountKindRequest:
+      type: object
+      properties:
+        kindId:
+          type: string
+          format: uuid
+      required: [kindId]
 
     RenameAccountRequest:
       type: object
@@ -1566,6 +1732,13 @@ components:
           $ref: '#/components/schemas/AccountNature'
         kind:
           $ref: '#/components/schemas/AccountKind'
+        kindId:
+          type: string
+          format: uuid
+        kindKey:
+          type: string
+        kindName:
+          type: string
         openedOn:
           type: string
           format: date
@@ -1575,7 +1748,30 @@ components:
           type: string
           format: date
           nullable: true
-      required: [id, name, nature, kind, openedOn, isClosed, closedOn]
+      required: [id, name, nature, kind, kindId, kindKey, kindName, openedOn, isClosed, closedOn]
+
+    AccountKindCatalogDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        key:
+          type: string
+        name:
+          type: string
+        isSystem:
+          type: boolean
+        isActive:
+          type: boolean
+        sortOrder:
+          type: integer
+          format: int32
+        legacyKind:
+          $ref: '#/components/schemas/AccountKind'
+        nature:
+          $ref: '#/components/schemas/AccountNature'
+      required: [id, key, name, isSystem, isActive, sortOrder, legacyKind, nature]
 
     AccountBalanceDto:
       type: object

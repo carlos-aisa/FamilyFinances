@@ -9,6 +9,7 @@
 @using FamilyFinances.Web.Components.Pages.Dashboard
 @using FamilyFinances.Web.Components.QuickEntry
 @using FamilyFinances.Web.Components.Shared
+@using FamilyFinances.Web.Features.Accounts
 @using FamilyFinances.Web
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.Extensions.Localization
@@ -590,7 +591,7 @@
             .Where(a =>
                 SearchTextNormalizer.NormalizeForSearch(a.Name).Contains(query) ||
                 normalizedNatureLabel.Contains(query) ||
-                SearchTextNormalizer.NormalizeForSearch(GetKindLabel(a.Kind)).Contains(query))
+                SearchTextNormalizer.NormalizeForSearch(GetKindLabel(a)).Contains(query))
             .ToList();
     }
 
@@ -643,20 +644,8 @@
         };
     }
 
-    private string GetKindLabel(AccountKind kind) => kind switch
-    {
-        AccountKind.Cash => L["Accounts_Kind_Cash"],
-        AccountKind.Checking => L["Accounts_Kind_Checking"],
-        AccountKind.Savings => L["Accounts_Kind_Savings"],
-        AccountKind.Investment => L["Accounts_Kind_Investment"],
-        AccountKind.CreditCard => L["Accounts_Kind_CreditCard"],
-        AccountKind.Loan => L["Accounts_Kind_Loan"],
-        AccountKind.Mortgage => L["Accounts_Kind_Mortgage"],
-        AccountKind.ExpenseCategory => L["Accounts_Kind_ExpenseCategory"],
-        AccountKind.IncomeSource => L["Accounts_Kind_IncomeSource"],
-        AccountKind.Other => L["Accounts_Kind_Other"],
-        _ => kind.ToString()
-    };
+    private string GetKindLabel(AccountDto account)
+        => AccountKindLabelResolver.Resolve(account, L);
 
     private static AccountNature ParseNature(string key)
         => Enum.TryParse<AccountNature>(key, out var nature) ? nature : AccountNature.Expense;

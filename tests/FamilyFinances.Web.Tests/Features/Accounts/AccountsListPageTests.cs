@@ -40,6 +40,11 @@ public sealed class AccountsListPageTests : WebTestContext
             [
                 new AccountBalanceDto(accountId, 1234.56m, 345.67m)
             ]);
+        accountsApiMock
+            .Setup(x => x.ListKindsAsync(true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([
+                new AccountKindCatalogDto(Guid.NewGuid(), "checking", "Checking", true, true, 10, AccountKind.Checking)
+            ]);
 
         RegisterAuthorizedServices(accountsApiMock.Object);
 
@@ -62,6 +67,7 @@ public sealed class AccountsListPageTests : WebTestContext
 
         accountsApiMock.Verify(x => x.ListAsync(It.IsAny<CancellationToken>()), Times.Once);
         accountsApiMock.Verify(x => x.GetBalancesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        accountsApiMock.Verify(x => x.ListKindsAsync(true, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -90,6 +96,11 @@ public sealed class AccountsListPageTests : WebTestContext
                     50m,
                     10m)
             ]);
+        accountsApiMock
+            .Setup(x => x.ListKindsAsync(true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([
+                new AccountKindCatalogDto(Guid.NewGuid(), "cash", "Cash", true, true, 10, AccountKind.Cash)
+            ]);
 
         RegisterAuthorizedServices(accountsApiMock.Object);
 
@@ -99,6 +110,62 @@ public sealed class AccountsListPageTests : WebTestContext
         {
             cut.Markup.Should().Contain("Accounts updated as of");
             cut.Markup.Should().Contain(DateTime.Today.ToString("yyyy-MM-dd"));
+        });
+    }
+
+    [Fact]
+    public void Accounts_List_KindSelector_IsOrderedByVisibleLabel()
+    {
+        var accountsApiMock = new Mock<IAccountsApi>(MockBehavior.Strict);
+
+        accountsApiMock
+            .Setup(x => x.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new AccountDto(
+                    Guid.Parse("a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1"),
+                    "Groceries",
+                    AccountNature.Expense,
+                    AccountKind.ExpenseCategory,
+                    new DateOnly(2026, 1, 1),
+                    false,
+                    null)
+            ]);
+
+        accountsApiMock
+            .Setup(x => x.GetBalancesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        accountsApiMock
+            .Setup(x => x.ListKindsAsync(true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new AccountKindCatalogDto(Guid.Parse("10000000-0000-0000-0000-000000000001"), "zoo", "Zoo", false, true, 1000, AccountKind.Other, AccountNature.Expense),
+                new AccountKindCatalogDto(Guid.Parse("10000000-0000-0000-0000-000000000002"), "expense-category", "Expense Category", true, true, 60, AccountKind.ExpenseCategory, AccountNature.Expense),
+                new AccountKindCatalogDto(Guid.Parse("10000000-0000-0000-0000-000000000003"), "alpha", "Alpha", false, true, 1010, AccountKind.Other, AccountNature.Expense),
+                new AccountKindCatalogDto(Guid.Parse("10000000-0000-0000-0000-000000000004"), "other", "Other", true, true, 100, AccountKind.Other, AccountNature.Equity)
+            ]);
+
+        RegisterAuthorizedServices(accountsApiMock.Object);
+
+        var cut = RenderComponent<AccountsListPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Markup.Should().Contain("New Account");
+        });
+
+        cut.FindAll("button")
+            .First(button => button.TextContent.Contains("New Account", StringComparison.OrdinalIgnoreCase))
+            .Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            var optionTexts = cut.FindAll("select.ff-account-kind-select option")
+                .Select(option => option.TextContent.Trim())
+                .ToList();
+
+            optionTexts.Should().ContainInOrder("Alpha", "Expense category", "Other", "Zoo");
         });
     }
 
