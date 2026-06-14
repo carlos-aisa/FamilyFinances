@@ -178,6 +178,12 @@ powershell -ExecutionPolicy Bypass -File .\tools\installer\windows\build-install
 - Release and operational details: [docs/windows-installer-lan-operations.md](docs/windows-installer-lan-operations.md)
 - Reporting regression checklist: [docs/v0.9-reporting-regression-checklist.md](docs/v0.9-reporting-regression-checklist.md)
 
+## Local Agent Tooling
+
+- Repository-shared OpenSpec skill definitions live under `.github/skills/`.
+- Local agent artifacts such as `.codex/` and `.gstack/` are machine-specific and must not be committed.
+- Optional local agent policies may exist on a contributor machine, but repository workflows must remain understandable without them.
+
 ## Contributing and Governance
 
 - Contribution guide: [CONTRIBUTING.md](CONTRIBUTING.md)

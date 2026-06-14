@@ -411,3 +411,7 @@ publish_compare*/
 dist/*
 !dist/.gitkeep
 screenshots/Captura de pantalla 2026-03-01 151046.png
+
+# Local agent tooling artifacts
+.codex/
+.gstack/
