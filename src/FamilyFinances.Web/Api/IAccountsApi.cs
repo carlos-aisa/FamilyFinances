@@ -1,12 +1,18 @@
 using FamilyFinances.Application.Ledger.Accounts.Dtos;
 using FamilyFinances.Application.Ledger.Accounts.Requests;
 using FamilyFinances.Application.Reporting.Dtos;
+using FamilyFinances.Domain.Ledger.Accounts;
 
 namespace FamilyFinances.Web.Api;
 
 public interface IAccountsApi
 {
     Task<IReadOnlyList<AccountDto>> ListAsync(CancellationToken ct);
+    Task<IReadOnlyList<AccountKindCatalogDto>> ListKindsAsync(bool includeInactive, CancellationToken ct);
+    Task<AccountKindCatalogDto> CreateKindAsync(string name, AccountNature nature, CancellationToken ct);
+    Task SetKindActiveAsync(Guid kindId, bool isActive, CancellationToken ct);
+    Task DeleteKindAsync(Guid kindId, CancellationToken ct);
+    Task SetAccountKindAsync(Guid accountId, Guid kindId, CancellationToken ct);
     Task<IReadOnlyList<AccountBalanceDto>> GetBalancesAsync(CancellationToken ct);
     Task<AccountMovementsDto> GetMovementsAsync(
         Guid accountId, 

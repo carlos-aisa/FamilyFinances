@@ -7,6 +7,7 @@
 @using FamilyFinances.Web.Components.Base
 @using FamilyFinances.Web.Components.Pages.Transactions
 @using FamilyFinances.Web.Components.Shared
+@using FamilyFinances.Web.Features.Accounts
 @using FamilyFinances.Web.Features.Reports
 @using FamilyFinances.Web.Features.Reports.Export
 @using Microsoft.Extensions.Localization
@@ -415,22 +416,7 @@
     }
 
     private string GetKindLabel(AccountKind kind)
-    {
-        return kind switch
-        {
-            AccountKind.Cash => L["Accounts_Kind_Cash"],
-            AccountKind.Checking => L["Accounts_Kind_Checking"],
-            AccountKind.Savings => L["Accounts_Kind_Savings"],
-            AccountKind.Investment => L["Accounts_Kind_Investment"],
-            AccountKind.CreditCard => L["Accounts_Kind_CreditCard"],
-            AccountKind.Loan => L["Accounts_Kind_Loan"],
-            AccountKind.Mortgage => L["Accounts_Kind_Mortgage"],
-            AccountKind.ExpenseCategory => L["Accounts_Kind_ExpenseCategory"],
-            AccountKind.IncomeSource => L["Accounts_Kind_IncomeSource"],
-            AccountKind.Other => L["Accounts_Kind_Other"],
-            _ => kind.ToString()
-        };
-    }
+        => AccountKindLabelResolver.ResolveLegacy(kind, L);
 
     private void SetActiveTab(AccountTotalsReportTab tab)
     {

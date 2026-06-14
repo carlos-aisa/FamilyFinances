@@ -15,6 +15,7 @@ public sealed class LedgerDbContext : DbContext
     }
 
     public DbSet<Account> Accounts => Set<Account>();
+    public DbSet<AccountKindCatalog> AccountKinds => Set<AccountKindCatalog>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<TransactionSplit> TransactionSplits => Set<TransactionSplit>();
     public DbSet<TransactionLink> TransactionLinks => Set<TransactionLink>();

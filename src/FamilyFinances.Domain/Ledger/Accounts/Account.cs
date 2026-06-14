@@ -4,6 +4,8 @@ namespace FamilyFinances.Domain.Ledger.Accounts;
 
 public sealed class Account
 {
+    private AccountKind _legacyKind = AccountKind.Other;
+
     public AccountId Id { get; }
     public string Name { get; private set; }
     public string NormalizedName { get; private set; }
@@ -12,7 +14,11 @@ public sealed class Account
     public AccountNature Nature { get; }
 
     // User-facing classification
-    public AccountKind Kind { get; }
+    public AccountKindCatalogId KindId { get; private set; }
+    public AccountKindCatalog KindCatalog { get; private set; } = null!;
+
+    // Backward-compatible projection used by existing read surfaces.
+    public AccountKind Kind => KindCatalog?.LegacyKind ?? _legacyKind;
 
     public DateOnly OpenedOn { get; }
     public bool IsClosed { get; private set; }
@@ -30,21 +36,24 @@ public sealed class Account
         string name,
         string normalized,
         AccountNature nature,
-        AccountKind kind,
+        AccountKindCatalogId kindId,
+        AccountKind legacyKind,
         DateOnly openedOn)
     {
         Id = id;
         Name = name;
         NormalizedName = normalized;
         Nature = nature;
-        Kind = kind;
+        KindId = kindId;
+        _legacyKind = legacyKind;
         OpenedOn = openedOn;
     }
 
     public static Account Create(
         string name,
         AccountNature nature,
-        AccountKind kind,
+        AccountKindCatalogId kindId,
+        AccountKind legacyKind,
         DateOnly openedOn)
     {
         name = (name ?? string.Empty).Trim();
@@ -59,13 +68,42 @@ public sealed class Account
         if (openedOn == default)
             throw new DomainException("OpenedOn date is required.");
 
+        if (kindId == default)
+            throw new DomainException("Account kind is required.");
+
        return new Account(
             AccountId.New(),
             name,
             normalized,
             nature,
-            kind,
+            kindId,
+            legacyKind,
             openedOn);
+    }
+
+    public static Account Create(
+        string name,
+        AccountNature nature,
+        AccountKind kind,
+        DateOnly openedOn)
+    {
+        var syntheticKindId = new AccountKindCatalogId(
+            Guid.Parse($"00000000-0000-0000-0000-{((int)kind).ToString("D12")}"));
+
+        return Create(name, nature, syntheticKindId, kind, openedOn);
+    }
+
+    public void AssignKind(AccountKindCatalogId kindId)
+    {
+        if (kindId == default)
+            throw new DomainException("Account kind is required.");
+
+        KindId = kindId;
+    }
+
+    public void SetLegacyKind(AccountKind legacyKind)
+    {
+        _legacyKind = legacyKind;
     }
 
     public void Rename(string newName)

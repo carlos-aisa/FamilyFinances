@@ -30,6 +30,57 @@ public sealed class AccountsController : ControllerBase
         CancellationToken ct)
         => Ok(await handler.HandleAsync(ct));
 
+    [HttpGet("kinds")]
+    [Authorize(Policy = Policies.CanRead)]
+    public async Task<ActionResult<IReadOnlyList<AccountKindCatalogDto>>> ListKinds(
+        [FromServices] ListAccountKindsHandler handler,
+        [FromQuery] bool includeInactive = false,
+        CancellationToken ct = default)
+        => Ok(await handler.HandleAsync(includeInactive, ct));
+
+    [HttpPost("kinds")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<ActionResult<AccountKindCatalogDto>> CreateKind(
+        [FromServices] CreateAccountKindHandler handler,
+        [FromBody] CreateAccountKindRequest request,
+        CancellationToken ct)
+        => Ok(await handler.HandleAsync(request, ct));
+
+    [HttpPatch("kinds/{kindId:guid}/active")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<IActionResult> SetKindActive(
+        [FromRoute] Guid kindId,
+        [FromServices] SetAccountKindActiveHandler handler,
+        [FromBody] SetAccountKindActiveRequest request,
+        CancellationToken ct)
+    {
+        await handler.HandleAsync(kindId, request, ct);
+        return NoContent();
+    }
+
+    [HttpDelete("kinds/{kindId:guid}")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<IActionResult> DeleteKind(
+        [FromRoute] Guid kindId,
+        [FromServices] DeleteAccountKindHandler handler,
+        CancellationToken ct)
+    {
+        var ok = await handler.HandleAsync(kindId, ct);
+        return ok ? NoContent() : NotFound();
+    }
+
+    [HttpPatch("{id:guid}/kind")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<IActionResult> SetKind(
+        [FromRoute] Guid id,
+        [FromBody] SetAccountKindRequest request,
+        [FromServices] SetAccountKindHandler handler,
+        CancellationToken ct)
+    {
+        var ok = await handler.HandleAsync(id, request, ct);
+        return ok ? NoContent() : NotFound();
+    }
+
     [HttpGet("balances")]
     [Authorize(Policy = Policies.CanRead)]
     public async Task<ActionResult<IReadOnlyList<AccountBalanceDto>>> GetBalances(

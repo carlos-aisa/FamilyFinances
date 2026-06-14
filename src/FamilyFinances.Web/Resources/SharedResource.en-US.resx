@@ -450,6 +450,12 @@
   <data name="Accounts_Field_Kind" xml:space="preserve">
     <value>Kind</value>
   </data>
+  <data name="Accounts_Field_Kind_Custom" xml:space="preserve">
+    <value>Kind (custom)</value>
+  </data>
+  <data name="Accounts_Field_Kind_Custom_Placeholder" xml:space="preserve">
+    <value>Add custom kind</value>
+  </data>
   <data name="Accounts_Field_Name" xml:space="preserve">
     <value>Name</value>
   </data>
@@ -498,6 +504,12 @@
   <data name="Accounts_Message_Created" xml:space="preserve">
     <value>Created</value>
   </data>
+  <data name="Accounts_Action_Disable" xml:space="preserve">
+    <value>Disable</value>
+  </data>
+  <data name="Accounts_Action_Enable" xml:space="preserve">
+    <value>Enable</value>
+  </data>
   <data name="Accounts_Message_Deleted" xml:space="preserve">
     <value>Deleted</value>
   </data>
@@ -509,6 +521,12 @@
   </data>
   <data name="Accounts_Nature_Equity" xml:space="preserve">
     <value>Equity</value>
+  </data>
+  <data name="Accounts_CustomKinds_Title" xml:space="preserve">
+    <value>Custom kinds</value>
+  </data>
+  <data name="Accounts_CustomKinds_CannotDeleteUsed" xml:space="preserve">
+    <value>This kind is in use and cannot be deleted.</value>
   </data>
   <data name="Accounts_NewAccount" xml:space="preserve">
     <value>New Account</value>

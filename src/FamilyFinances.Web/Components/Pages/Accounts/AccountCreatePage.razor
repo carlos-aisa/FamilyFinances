@@ -1,6 +1,7 @@
 @page "/accounts/new"
 @inherits ApiPageBase
 @using System.ComponentModel.DataAnnotations
+@using FamilyFinances.Application.Ledger.Accounts.Dtos
 @using FamilyFinances.Application.Ledger.Accounts.Requests
 @using FamilyFinances.Domain.Ledger.Accounts
 @using FamilyFinances.Web.Api
@@ -9,6 +10,7 @@
 @using FamilyFinances.Web
 @inject AccountsApi AccountsApi
 @inject IStringLocalizer<SharedResource> L
+@using FamilyFinances.Web.Features.Accounts
 
 <h3>@L["Accounts_NewAccount_CardTitle"]</h3>
 
@@ -28,7 +30,9 @@
 
     <div class="mb-3">
         <label class="form-label">@L["Accounts_Field_Nature"]</label>
-        <InputSelect class="form-select" @bind-Value="_model.Nature">
+        <InputSelect class="form-select"
+                 @bind-Value="_model.Nature"
+                 @bind-Value:after="OnNatureChanged">
             @foreach (var n in Enum.GetValues<AccountNature>())
             {
                 <option value="@n">@GetNatureLabel(n)</option>
@@ -38,10 +42,10 @@
 
     <div class="mb-3">
         <label class="form-label">@L["Accounts_Field_Kind"]</label>
-        <InputSelect class="form-select" @bind-Value="_model.Kind">
-            @foreach (var k in Enum.GetValues<AccountKind>())
+        <InputSelect class="form-select ff-account-kind-select" @bind-Value="_model.KindId">
+            @foreach (var k in GetAllowedKinds(_model.Nature))
             {
-                <option value="@k">@GetKindLabel(k)</option>
+                <option value="@k.Id">@GetKindLabel(k)</option>
             }
         </InputSelect>
     </div>
@@ -55,8 +59,18 @@
 @code {
     private bool _isBusy;
     private string? _error;
+    private IReadOnlyList<AccountKindCatalogDto> _kinds = Array.Empty<AccountKindCatalogDto>();
 
     private CreateAccountFormModel _model = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ExecuteApiAsync(async ct =>
+        {
+            _kinds = await AccountsApi.ListKindsAsync(includeInactive: false, ct);
+            _model.KindId = GetDefaultKind(_model.Nature)?.Id ?? Guid.Empty;
+        });
+    }
 
     private async Task CreateAsync()
     {
@@ -71,8 +85,9 @@
             var request = new CreateAccountRequest(
                 _model.Name.Trim(),
                 _model.Nature,
-                _model.Kind,
-                DateOnly.FromDateTime(DateTime.Now));
+                AccountKind.Other,
+                DateOnly.FromDateTime(DateTime.Now),
+                _model.KindId);
 
             await AccountsApi.CreateAsync(request, ct);
         });
@@ -85,6 +100,12 @@
 
     private void Cancel() => Nav.NavigateTo("/accounts");
 
+    private Task OnNatureChanged()
+    {
+        _model.KindId = GetDefaultKind(_model.Nature)?.Id ?? Guid.Empty;
+        return Task.CompletedTask;
+    }
+
     private string GetNatureLabel(AccountNature nature) => nature switch
     {
         AccountNature.Asset => L["Dashboard_Nature_Asset"],
@@ -95,20 +116,43 @@
         _ => nature.ToString()
     };
 
-    private string GetKindLabel(AccountKind kind) => kind switch
+    private string GetKindLabel(AccountKindCatalogDto kind)
+        => AccountKindLabelResolver.Resolve(kind, L);
+
+    private AccountKindCatalogDto? GetDefaultKind(AccountNature nature)
     {
-        AccountKind.Cash => L["Accounts_Kind_Cash"],
-        AccountKind.Checking => L["Accounts_Kind_Checking"],
-        AccountKind.Savings => L["Accounts_Kind_Savings"],
-        AccountKind.Investment => L["Accounts_Kind_Investment"],
-        AccountKind.CreditCard => L["Accounts_Kind_CreditCard"],
-        AccountKind.Loan => L["Accounts_Kind_Loan"],
-        AccountKind.Mortgage => L["Accounts_Kind_Mortgage"],
-        AccountKind.ExpenseCategory => L["Accounts_Kind_ExpenseCategory"],
-        AccountKind.IncomeSource => L["Accounts_Kind_IncomeSource"],
-        AccountKind.Other => L["Accounts_Kind_Other"],
-        _ => kind.ToString()
-    };
+        var allowed = GetAllowedKinds(nature);
+        return nature switch
+        {
+            AccountNature.Asset => allowed.FirstOrDefault(x => x.LegacyKind == AccountKind.Checking) ?? allowed.FirstOrDefault(),
+            AccountNature.Liability => allowed.FirstOrDefault(x => x.LegacyKind == AccountKind.CreditCard) ?? allowed.FirstOrDefault(),
+            AccountNature.Expense => allowed.FirstOrDefault(x => x.LegacyKind == AccountKind.ExpenseCategory) ?? allowed.FirstOrDefault(),
+            AccountNature.Income => allowed.FirstOrDefault(x => x.LegacyKind == AccountKind.IncomeSource) ?? allowed.FirstOrDefault(),
+            _ => allowed.FirstOrDefault()
+        };
+    }
+
+    private IReadOnlyList<AccountKindCatalogDto> GetAllowedKinds(AccountNature nature)
+    {
+        var allowedSystemKinds = nature switch
+        {
+            AccountNature.Asset => new HashSet<AccountKind> { AccountKind.Cash, AccountKind.Checking, AccountKind.Savings, AccountKind.Investment, AccountKind.Other },
+            AccountNature.Liability => new HashSet<AccountKind> { AccountKind.CreditCard, AccountKind.Loan, AccountKind.Mortgage, AccountKind.Other },
+            AccountNature.Expense => new HashSet<AccountKind> { AccountKind.ExpenseCategory, AccountKind.Other },
+            AccountNature.Income => new HashSet<AccountKind> { AccountKind.IncomeSource, AccountKind.Other },
+            AccountNature.Equity => new HashSet<AccountKind> { AccountKind.Other },
+            _ => new HashSet<AccountKind> { AccountKind.Other }
+        };
+
+        return _kinds
+            .Where(x => x.IsActive)
+            .Where(x => x.IsSystem
+                ? allowedSystemKinds.Contains(x.LegacyKind)
+                : x.Nature == nature)
+            .OrderBy(x => GetKindLabel(x), StringComparer.CurrentCultureIgnoreCase)
+            .ThenBy(x => x.IsSystem ? 0 : 1)
+            .ToList();
+    }
 
     private sealed class CreateAccountFormModel
     {
@@ -120,6 +164,6 @@
         public AccountNature Nature { get; set; } = AccountNature.Asset;
 
         [Required]
-        public AccountKind Kind { get; set; } = AccountKind.Cash;
+        public Guid KindId { get; set; }
     }
 }

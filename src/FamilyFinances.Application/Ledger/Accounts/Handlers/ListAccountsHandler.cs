@@ -18,7 +18,16 @@ public sealed class ListAccountsHandler
 
         return list
             .Select(a => new AccountDto(
-                a.Id.Value, a.Name, a.Nature, a.Kind, a.OpenedOn, a.IsClosed, a.ClosedOn))
+                a.Id.Value,
+                a.Name,
+                a.Nature,
+                a.Kind,
+                a.OpenedOn,
+                a.IsClosed,
+                a.ClosedOn,
+                a.KindId.Value,
+                a.KindCatalog.Key,
+                a.KindCatalog.Name))
             .ToList();
     }
 }
