@@ -131,7 +131,8 @@ A change is done only when all items below are true:
 
 ## 10. Optional OpenSpec + GStack Workflow Integration
 - OpenSpec remains the source of truth for artifact governance (`proposal/specs/design/tasks`).
-- GStack integration is optional and policy-driven via `.codex/opsx-gstack-policy.json`.
+- Repository-shared OpenSpec skill definitions live under `.github/skills/`.
+- GStack integration is optional and may be influenced by an untracked local policy file such as `.codex/opsx-gstack-policy.json`.
 - If policy is missing or invalid, baseline OpenSpec behavior must continue.
 - Release/deploy gstack skills are forbidden inside `opsx:*` orchestration.
 - See `openspec/OPSX_GSTACK_INTEGRATION.md` for activation, modes, mappings, evidence, and troubleshooting.
