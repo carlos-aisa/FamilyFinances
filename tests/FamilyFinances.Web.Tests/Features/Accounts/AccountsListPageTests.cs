@@ -169,6 +169,214 @@ public sealed class AccountsListPageTests : WebTestContext
         });
     }
 
+    [Fact]
+    public void Accounts_List_CreateForm_Hides_FullKindManagement_ByDefault()
+    {
+        var accountsApiMock = CreateAccountsApiMock(
+            CreateAccounts(AccountNature.Expense),
+            CreateKinds());
+
+        RegisterAuthorizedServices(accountsApiMock.Object);
+
+        var cut = RenderComponent<AccountsListPage>();
+
+        cut.FindAll("button")
+            .First(button => button.TextContent.Contains("New Account", StringComparison.OrdinalIgnoreCase))
+            .Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.FindAll(".ff-kind-management-panel").Should().BeEmpty();
+            cut.Markup.Should().NotContain("Custom kinds");
+            cut.FindAll(".ff-account-kind-select").Should().HaveCount(1);
+        });
+    }
+
+    [Fact]
+    public void Accounts_List_KindSelector_FiltersAndFallsBack_WhenNatureChanges()
+    {
+        var accountsApiMock = CreateAccountsApiMock(
+            CreateAccounts(AccountNature.Expense),
+            CreateKinds());
+
+        RegisterAuthorizedServices(accountsApiMock.Object);
+
+        var cut = RenderComponent<AccountsListPage>();
+
+        cut.FindAll("button")
+            .First(button => button.TextContent.Contains("New Account", StringComparison.OrdinalIgnoreCase))
+            .Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            var initialOptionTexts = cut.FindAll("select.ff-account-kind-select option")
+                .Select(option => option.TextContent.Trim())
+                .ToList();
+
+            initialOptionTexts.Should().ContainInOrder("Expense category", "Food", "Other");
+        });
+
+        cut.Find("select.ff-account-nature-select").Change(AccountNature.Asset.ToString());
+
+        cut.WaitForAssertion(() =>
+        {
+            var optionTexts = cut.FindAll("select.ff-account-kind-select option")
+                .Select(option => option.TextContent.Trim())
+                .ToList();
+
+            optionTexts.Should().ContainInOrder("Checking", "Other", "Savings", "Travel Wallet");
+            cut.Find("select.ff-account-kind-select option[selected]").TextContent.Trim().Should().Be("Checking");
+        });
+    }
+
+    [Fact]
+    public void Accounts_List_InlineKindCreation_CreatesCompatibleKind_AndSelectsIt()
+    {
+        var existingKinds = CreateKinds();
+        var createdKind = new AccountKindCatalogDto(
+            Guid.Parse("30000000-0000-0000-0000-000000000001"),
+            "travel",
+            "Travel",
+            false,
+            true,
+            1100,
+            AccountKind.Other,
+            AccountNature.Expense);
+
+        var accountsApiMock = CreateAccountsApiMock(
+            CreateAccounts(AccountNature.Expense),
+            existingKinds);
+        accountsApiMock
+            .Setup(x => x.CreateKindAsync("Travel", AccountNature.Expense, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(createdKind);
+
+        RegisterAuthorizedServices(accountsApiMock.Object);
+
+        var cut = RenderComponent<AccountsListPage>();
+
+        cut.FindAll("button")
+            .First(button => button.TextContent.Contains("New Account", StringComparison.OrdinalIgnoreCase))
+            .Click();
+
+        cut.Find(".ff-account-kind-create-toggle").Click();
+        cut.Find("input.ff-account-kind-create-input").Change("Travel");
+        cut.Find("button.ff-account-kind-create-submit").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            accountsApiMock.Verify(x => x.CreateKindAsync("Travel", AccountNature.Expense, It.IsAny<CancellationToken>()), Times.Once);
+
+            var optionTexts = cut.FindAll("select.ff-account-kind-select option")
+                .Select(option => option.TextContent.Trim())
+                .ToList();
+
+            optionTexts.Should().Contain("Travel");
+            cut.Find("select.ff-account-kind-select option[selected]").TextContent.Trim().Should().Be("Travel");
+        });
+    }
+
+    [Fact]
+    public void Accounts_List_InlineKindCreation_ShowsLocalError_AndPreservesFormState()
+    {
+        var accountsApiMock = CreateAccountsApiMock(
+            CreateAccounts(AccountNature.Expense),
+            CreateKinds());
+        accountsApiMock
+            .Setup(x => x.CreateKindAsync("Duplicate", AccountNature.Expense, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("Kind already exists"));
+
+        RegisterAuthorizedServices(accountsApiMock.Object);
+
+        var cut = RenderComponent<AccountsListPage>();
+
+        cut.FindAll("button")
+            .First(button => button.TextContent.Contains("New Account", StringComparison.OrdinalIgnoreCase))
+            .Click();
+
+        cut.Find("input.ff-account-name-input").Change("Groceries Envelope");
+        cut.Find(".ff-account-kind-create-toggle").Click();
+        cut.Find("input.ff-account-kind-create-input").Change("Duplicate");
+        cut.Find("button.ff-account-kind-create-submit").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find(".ff-account-kind-create-error").TextContent.Should().Contain("Kind already exists");
+            cut.Find("input.ff-account-name-input").GetAttribute("value").Should().Be("Groceries Envelope");
+        });
+    }
+
+    [Fact]
+    public void Accounts_List_ManageKinds_OpensSecondaryManagementSurface()
+    {
+        var accountsApiMock = CreateAccountsApiMock(
+            CreateAccounts(AccountNature.Expense),
+            CreateKinds());
+
+        RegisterAuthorizedServices(accountsApiMock.Object);
+
+        var cut = RenderComponent<AccountsListPage>();
+
+        cut.FindAll(".ff-kind-management-panel").Should().BeEmpty();
+
+        cut.Find("button.ff-manage-kinds-toggle").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.FindAll(".ff-kind-management-panel").Should().HaveCount(1);
+            cut.Markup.Should().Contain("Custom kinds");
+            cut.FindAll(".ff-kind-management-create-name").Should().HaveCount(1);
+            cut.Markup.Should().Contain("Enable");
+            cut.Markup.Should().Contain("Delete");
+        });
+    }
+
+    private static Mock<IAccountsApi> CreateAccountsApiMock(
+        IReadOnlyList<AccountDto> accounts,
+        IReadOnlyList<AccountKindCatalogDto> kinds)
+    {
+        var accountsApiMock = new Mock<IAccountsApi>(MockBehavior.Strict);
+        accountsApiMock
+            .Setup(x => x.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(accounts);
+        accountsApiMock
+            .Setup(x => x.GetBalancesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<AccountBalanceDto>());
+        accountsApiMock
+            .Setup(x => x.ListKindsAsync(true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(kinds);
+
+        return accountsApiMock;
+    }
+
+    private static IReadOnlyList<AccountDto> CreateAccounts(AccountNature nature)
+    {
+        return
+        [
+            new AccountDto(
+                Guid.Parse("40000000-0000-0000-0000-000000000001"),
+                "Reference account",
+                nature,
+                nature == AccountNature.Asset ? AccountKind.Checking : AccountKind.ExpenseCategory,
+                new DateOnly(2026, 1, 1),
+                false,
+                null)
+        ];
+    }
+
+    private static IReadOnlyList<AccountKindCatalogDto> CreateKinds()
+    {
+        return
+        [
+            new AccountKindCatalogDto(Guid.Parse("10000000-0000-0000-0000-000000000010"), "checking", "Checking", true, true, 10, AccountKind.Checking, AccountNature.Asset),
+            new AccountKindCatalogDto(Guid.Parse("10000000-0000-0000-0000-000000000011"), "savings", "Savings", true, true, 20, AccountKind.Savings, AccountNature.Asset),
+            new AccountKindCatalogDto(Guid.Parse("10000000-0000-0000-0000-000000000012"), "expense-category", "Expense Category", true, true, 60, AccountKind.ExpenseCategory, AccountNature.Expense),
+            new AccountKindCatalogDto(Guid.Parse("10000000-0000-0000-0000-000000000013"), "other", "Other", true, true, 100, AccountKind.Other, AccountNature.Equity),
+            new AccountKindCatalogDto(Guid.Parse("10000000-0000-0000-0000-000000000014"), "food", "Food", false, true, 1000, AccountKind.Other, AccountNature.Expense),
+            new AccountKindCatalogDto(Guid.Parse("10000000-0000-0000-0000-000000000015"), "travel-wallet", "Travel Wallet", false, true, 1010, AccountKind.Other, AccountNature.Asset),
+            new AccountKindCatalogDto(Guid.Parse("10000000-0000-0000-0000-000000000016"), "seasonal", "Seasonal", false, false, 1020, AccountKind.Other, AccountNature.Expense)
+        ];
+    }
+
     private void RegisterAuthorizedServices(IAccountsApi accountsApi)
     {
         var tokenStore = new TestTokenStore("test-token");

@@ -510,6 +510,15 @@
   <data name="Accounts_Action_Enable" xml:space="preserve">
     <value>Enable</value>
   </data>
+  <data name="Accounts_Action_ManageKinds" xml:space="preserve">
+    <value>Manage kinds</value>
+  </data>
+  <data name="Accounts_Action_NewKind" xml:space="preserve">
+    <value>New kind</value>
+  </data>
+  <data name="Accounts_Kind_Create_NameRequired" xml:space="preserve">
+    <value>Kind name is required.</value>
+  </data>
   <data name="Accounts_Message_Deleted" xml:space="preserve">
     <value>Deleted</value>
   </data>

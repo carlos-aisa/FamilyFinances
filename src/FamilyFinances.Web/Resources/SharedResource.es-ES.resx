@@ -510,6 +510,15 @@
   <data name="Accounts_Action_Enable" xml:space="preserve">
     <value>Activar</value>
   </data>
+  <data name="Accounts_Action_ManageKinds" xml:space="preserve">
+    <value>Gestionar tipos</value>
+  </data>
+  <data name="Accounts_Action_NewKind" xml:space="preserve">
+    <value>Nuevo tipo</value>
+  </data>
+  <data name="Accounts_Kind_Create_NameRequired" xml:space="preserve">
+    <value>El nombre del tipo es obligatorio.</value>
+  </data>
   <data name="Accounts_Message_Deleted" xml:space="preserve">
     <value>Eliminada</value>
   </data>
