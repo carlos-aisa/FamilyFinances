@@ -25,6 +25,11 @@ Catalog contract:
 - **AND** the new kind MUST become available in the same unified kind selectors used for account forms
 - **AND** the new kind MUST be selectable only for accounts with matching `Nature`
 
+#### Scenario: Account creation can create a missing compatible custom kind inline
+- **WHEN** a user creates a custom kind from an account creation flow that already has a selected account `Nature`
+- **THEN** the system MUST allow the custom kind to be created without leaving that account creation flow
+- **AND** the resulting kind MUST inherit the same compatible `Nature` used by the current account form
+
 #### Scenario: User can delete an unused custom kind
 - **WHEN** a custom kind is not referenced by any account
 - **THEN** the system MUST allow deleting that custom kind
