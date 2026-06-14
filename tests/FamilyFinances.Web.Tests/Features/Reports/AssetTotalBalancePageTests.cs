@@ -6,6 +6,7 @@ using FamilyFinances.Application.Reporting.Dtos;
 using FamilyFinances.Web.Api;
 using FamilyFinances.Web.Auth;
 using FamilyFinances.Web.Components.Pages.Reports;
+using FamilyFinances.Web.Features.Reports;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
@@ -63,7 +64,7 @@ public sealed class AssetTotalBalancePageTests : WebTestContext
         {
             cut.Markup.Should().Contain("Accounts Included");
             cut.Markup.Should().Contain("As of 2026-01-31");
-            cut.Markup.Should().Contain("+\u20AC1,234.56");
+            cut.Markup.Should().Contain(MoneyFormatter.FormatCentsWithSign(123_456));
         });
     }
 
