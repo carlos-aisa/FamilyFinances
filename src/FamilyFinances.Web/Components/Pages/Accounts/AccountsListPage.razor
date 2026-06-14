@@ -47,6 +47,10 @@
                     </label>
                 </div>
 
+                <button class="btn btn-sm btn-outline-secondary ff-manage-kinds-toggle" @onclick="ToggleKindManagement">
+                    <i class="bi bi-tags me-1"></i>@L["Accounts_Action_ManageKinds"]
+                </button>
+
                 <button class="btn @(_isCreating ? "btn-outline-secondary" : "btn-primary")" @onclick="ToggleCreate">
                     <i class="bi @(_isCreating ? "bi-x-circle" : "bi-plus-circle") me-1"></i>
                     @(_isCreating ? L["Accounts_Cancel"] : L["Accounts_NewAccount"])
@@ -85,19 +89,19 @@
                         <DataAnnotationsValidator />
                         <ValidationSummary class="text-danger" />
 
-                        <div class="row g-3">
-                            <div class="col-12 col-md-6">
+                        <div class="row g-3 align-items-start">
+                            <div class="col-12 col-xl-5">
                                 <label class="form-label">
                                     <i class="bi bi-pencil me-1"></i>@L["Accounts_Field_Name"]
                                 </label>
-                                <InputText class="form-control" @bind-Value="_createModel.Name" placeholder="@L["Accounts_Field_Name_Placeholder"]" />
+                                <InputText class="form-control ff-account-name-input" @bind-Value="_createModel.Name" placeholder="@L["Accounts_Field_Name_Placeholder"]" />
                             </div>
 
-                            <div class="col-12 col-md-3">
+                            <div class="col-12 col-md-4 col-xl-3">
                                 <label class="form-label">
                                     <i class="bi bi-diagram-3 me-1"></i>@L["Accounts_Field_Nature"]
                                 </label>
-                                <InputSelect class="form-select"
+                                <InputSelect class="form-select ff-account-nature-select"
                                              @bind-Value="_createModel.Nature"
                                              @bind-Value:after="OnNatureChanged">
                                     @foreach (var n in _natureOrder)
@@ -107,67 +111,13 @@
                                 </InputSelect>
                             </div>
 
-                            <div class="col-12 col-md-3">
-                                <label class="form-label">
-                                    <i class="bi bi-tag me-1"></i>@L["Accounts_Field_Kind"]
-                                </label>
-                                <InputSelect class="form-select ff-account-kind-select" @bind-Value="_createModel.KindId">
-                                    @foreach (var k in GetAllowedKinds(_createModel.Nature))
-                                    {
-                                        <option value="@k.Id">@GetKindLabel(k)</option>
-                                    }
-                                </InputSelect>
-                            </div>
-                        </div>
-
-                        <div class="row g-3 mt-2">
-                            <div class="col-12 col-md-8">
-                                <label class="form-label">
-                                    <i class="bi bi-plus-square me-1"></i>@L["Accounts_Field_Kind_Custom"]
-                                </label>
-                                <div class="input-group">
-                                    <InputSelect class="form-select ff-kind-nature-select" @bind-Value="_newKindNature">
-                                        @foreach (var n in _natureOrder)
-                                        {
-                                            <option value="@n">@GetNatureLabel(n)</option>
-                                        }
-                                    </InputSelect>
-                                    <InputText class="form-control" @bind-Value="_newKindName" placeholder="@L["Accounts_Field_Kind_Custom_Placeholder"]" />
-                                    <button class="btn btn-outline-primary" type="button" @onclick="CreateKindAsync" disabled="@_isBusy">
-                                        <i class="bi bi-plus-circle me-1"></i>@L["Accounts_Create"]
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="col-12 col-md-4">
-                                <label class="form-label">
-                                    <i class="bi bi-list-ul me-1"></i>@L["Accounts_CustomKinds_Title"]
-                                </label>
-                                <div class="d-flex flex-column gap-1 small border rounded p-2 ff-kind-list-scroll">
-                                    @foreach (var kind in _kinds.Where(k => !k.IsSystem).OrderBy(k => GetKindLabel(k), StringComparer.CurrentCultureIgnoreCase))
-                                    {
-                                        var isKindInUse = _accounts?.Any(a => a.KindId == kind.Id) == true;
-                                        <div class="d-flex align-items-center justify-content-between">
-                                            <span class="@(kind.IsActive ? "" : "text-muted text-decoration-line-through")">
-                                                @GetKindLabel(kind)
-                                                <span class="text-muted">(@GetNatureLabel(kind.Nature))</span>
-                                            </span>
-                                            <div class="d-flex gap-1">
-                                                <button type="button"
-                                                        class="btn btn-sm @(kind.IsActive ? "btn-outline-warning" : "btn-outline-success")"
-                                                        @onclick="() => ToggleKindActiveAsync(kind)">
-                                                    @(kind.IsActive ? L["Accounts_Action_Disable"] : L["Accounts_Action_Enable"])
-                                                </button>
-                                                <button type="button"
-                                                        class="btn btn-sm btn-outline-danger"
-                                                        @onclick="() => DeleteKindAsync(kind)"
-                                                        disabled="@(_isBusy || isKindInUse)"
-                                                        title="@(isKindInUse ? L["Accounts_CustomKinds_CannotDeleteUsed"] : L["Accounts_Action_Delete"])">
-                                                    @L["Accounts_Action_Delete"]
-                                                </button>
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
+                            <div class="col-12 col-md-8 col-xl-4">
+                                <AccountKindSelector Kinds="_kinds"
+                                                     Nature="_createModel.Nature"
+                                                     SelectedKindId="_createModel.KindId"
+                                                     SelectedKindIdChanged="OnCreateKindChanged"
+                                                     KindCreated="HandleInlineKindCreatedAsync"
+                                                     IsDisabled="_isBusy" />
                             </div>
                         </div>
 
@@ -188,6 +138,85 @@
                             </small>
                         </div>
                     </EditForm>
+                </div>
+            </div>
+        }
+
+        @if (_showKindManagement)
+        {
+            <div class="card shadow-sm mb-4 ff-kind-management-panel">
+                <div class="card-header bg-body-tertiary">
+                    <div class="d-flex justify-content-between align-items-center gap-3">
+                        <div>
+                            <h5 class="card-title mb-1">
+                                <i class="bi bi-tags me-2"></i>@L["Accounts_CustomKinds_Title"]
+                            </h5>
+                            <p class="text-body-secondary small mb-0">@L["Accounts_Field_Kind_Custom"]</p>
+                        </div>
+                        <button class="btn btn-sm btn-outline-secondary" type="button" @onclick="ToggleKindManagement">
+                            <i class="bi bi-x-circle me-1"></i>@L["Accounts_Cancel"]
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-lg-3">
+                            <label class="form-label">
+                                <i class="bi bi-diagram-3 me-1"></i>@L["Accounts_Field_Nature"]
+                            </label>
+                            <InputSelect class="form-select ff-kind-nature-select" @bind-Value="_newKindNature">
+                                @foreach (var n in _natureOrder)
+                                {
+                                    <option value="@n">@GetNatureLabel(n)</option>
+                                }
+                            </InputSelect>
+                        </div>
+                        <div class="col-12 col-lg-6">
+                            <label class="form-label">
+                                <i class="bi bi-plus-square me-1"></i>@L["Accounts_Field_Kind_Custom"]
+                            </label>
+                            <InputText class="form-control ff-kind-management-create-name"
+                                       @bind-Value="_newKindName"
+                                       placeholder="@L["Accounts_Field_Kind_Custom_Placeholder"]" />
+                        </div>
+                        <div class="col-12 col-lg-3 d-flex align-items-end">
+                            <button class="btn btn-outline-primary w-100 ff-kind-management-create-button"
+                                    type="button"
+                                    @onclick="CreateManagedKindAsync"
+                                    disabled="@_isBusy">
+                                <i class="bi bi-plus-circle me-1"></i>@L["Accounts_Create"]
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-column gap-2 small border rounded p-3">
+                        @foreach (var kind in _kinds.Where(k => !k.IsSystem).OrderBy(k => GetKindLabel(k), StringComparer.CurrentCultureIgnoreCase))
+                        {
+                            var isKindInUse = _accounts?.Any(a => a.KindId == kind.Id) == true;
+                            <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-2 ff-kind-management-row">
+                                <div>
+                                    <span class="@(kind.IsActive ? "" : "text-muted text-decoration-line-through")">
+                                        @GetKindLabel(kind)
+                                    </span>
+                                    <span class="text-muted ms-1">(@GetNatureLabel(kind.Nature))</span>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="button"
+                                            class="btn btn-sm @(kind.IsActive ? "btn-outline-warning" : "btn-outline-success")"
+                                            @onclick="() => ToggleKindActiveAsync(kind)">
+                                        @(kind.IsActive ? L["Accounts_Action_Disable"] : L["Accounts_Action_Enable"])
+                                    </button>
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger"
+                                            @onclick="() => DeleteKindAsync(kind)"
+                                            disabled="@(_isBusy || isKindInUse)"
+                                            title="@(isKindInUse ? L["Accounts_CustomKinds_CannotDeleteUsed"] : L["Accounts_Action_Delete"])">
+                                        @L["Accounts_Action_Delete"]
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
                 </div>
             </div>
         }
@@ -426,6 +455,7 @@
 
     private bool _showClosed;
     private bool _isCreating;
+    private bool _showKindManagement;
     private bool _isBusy;
     private Guid? _editingAccountId;
     private Guid? _editingKindAccountId;
@@ -532,14 +562,27 @@
     {
         _createModel.Name = "";
         _createModel.Nature = AccountNature.Expense;
-        _newKindNature = _createModel.Nature;
         _createModel.KindId = GetDefaultKind(_createModel.Nature)?.Id ?? Guid.Empty;
     }
 
     private Task OnNatureChanged()
     {
         _createModel.KindId = GetDefaultKind(_createModel.Nature)?.Id ?? Guid.Empty;
-        _newKindNature = _createModel.Nature;
+        return Task.CompletedTask;
+    }
+
+    private Task OnCreateKindChanged(Guid kindId)
+    {
+        _createModel.KindId = kindId;
+        return Task.CompletedTask;
+    }
+
+    private Task HandleInlineKindCreatedAsync(AccountKindCatalogDto createdKind)
+    {
+        _kinds = _kinds
+            .Where(kind => kind.Id != createdKind.Id)
+            .Append(createdKind)
+            .ToList();
         return Task.CompletedTask;
     }
 
@@ -583,39 +626,10 @@
     }
 
     private AccountKindCatalogDto? GetDefaultKind(AccountNature nature)
-    {
-        var allowed = GetAllowedKinds(nature);
-        return nature switch
-        {
-            AccountNature.Asset => allowed.FirstOrDefault(x => x.LegacyKind == AccountKind.Checking) ?? allowed.FirstOrDefault(),
-            AccountNature.Liability => allowed.FirstOrDefault(x => x.LegacyKind == AccountKind.CreditCard) ?? allowed.FirstOrDefault(),
-            AccountNature.Expense => allowed.FirstOrDefault(x => x.LegacyKind == AccountKind.ExpenseCategory) ?? allowed.FirstOrDefault(),
-            AccountNature.Income => allowed.FirstOrDefault(x => x.LegacyKind == AccountKind.IncomeSource) ?? allowed.FirstOrDefault(),
-            _ => allowed.FirstOrDefault()
-        };
-    }
+        => AccountKindCatalogUiRules.GetDefaultKind(_kinds, nature, GetKindLabel);
 
     private IReadOnlyList<AccountKindCatalogDto> GetAllowedKinds(AccountNature nature)
-    {
-        var allowedSystemKinds = nature switch
-        {
-            AccountNature.Asset => new HashSet<AccountKind> { AccountKind.Cash, AccountKind.Checking, AccountKind.Savings, AccountKind.Investment, AccountKind.Other },
-            AccountNature.Liability => new HashSet<AccountKind> { AccountKind.CreditCard, AccountKind.Loan, AccountKind.Mortgage, AccountKind.Other },
-            AccountNature.Expense => new HashSet<AccountKind> { AccountKind.ExpenseCategory, AccountKind.Other },
-            AccountNature.Income => new HashSet<AccountKind> { AccountKind.IncomeSource, AccountKind.Other },
-            AccountNature.Equity => new HashSet<AccountKind> { AccountKind.Other },
-            _ => new HashSet<AccountKind> { AccountKind.Other }
-        };
-
-        return _kinds
-            .Where(x => x.IsActive)
-            .Where(x => x.IsSystem
-                ? allowedSystemKinds.Contains(x.LegacyKind)
-                : x.Nature == nature)
-            .OrderBy(x => GetKindLabel(x), StringComparer.CurrentCultureIgnoreCase)
-            .ThenBy(x => x.IsSystem ? 0 : 1)
-            .ToList();
-    }
+        => AccountKindCatalogUiRules.GetAllowedKinds(_kinds, nature, GetKindLabel);
 
     private string GetNatureLabel(AccountNature nature) => nature switch
     {
@@ -631,21 +645,45 @@
 
     private string GetKindLabel(AccountKindCatalogDto kind) => AccountKindLabelResolver.Resolve(kind, L);
 
-    private async Task CreateKindAsync()
+    private async Task CreateManagedKindAsync()
     {
         var name = _newKindName.Trim();
         if (string.IsNullOrWhiteSpace(name))
             return;
 
-        await ExecuteApiAsync(async ct =>
+        try
         {
-            await AccountsApi.CreateKindAsync(name, _newKindNature, ct);
-            _newKindName = string.Empty;
-            _kinds = await AccountsApi.ListKindsAsync(includeInactive: true, ct);
+            await ExecuteApiAsync(async ct =>
+            {
+                var createdKind = await AccountsApi.CreateKindAsync(name, _newKindNature, ct);
+                _newKindName = string.Empty;
+                _kinds = _kinds
+                    .Where(kind => kind.Id != createdKind.Id)
+                    .Append(createdKind)
+                    .ToList();
 
-            if (_isCreating && _createModel.KindId == Guid.Empty)
-                _createModel.KindId = GetDefaultKind(_createModel.Nature)?.Id ?? Guid.Empty;
-        });
+                if (_isCreating && _createModel.KindId == Guid.Empty)
+                    _createModel.KindId = GetDefaultKind(_createModel.Nature)?.Id ?? Guid.Empty;
+            });
+        }
+        catch (HttpRequestException ex)
+        {
+            _error = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _error = L["Common_UnexpectedErrorWithDetails", ex.Message];
+        }
+    }
+
+    private void ToggleKindManagement()
+    {
+        _error = null;
+        _info = null;
+        _showKindManagement = !_showKindManagement;
+
+        if (_showKindManagement && string.IsNullOrWhiteSpace(_newKindName))
+            _newKindNature = _isCreating ? _createModel.Nature : AccountNature.Expense;
     }
 
     private async Task ToggleKindActiveAsync(AccountKindCatalogDto kind)

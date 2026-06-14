@@ -1,0 +1,162 @@
+@using FamilyFinances.Application.Ledger.Accounts.Dtos
+@using FamilyFinances.Domain.Ledger.Accounts
+@using FamilyFinances.Web
+@using FamilyFinances.Web.Api
+@using FamilyFinances.Web.Features.Accounts
+@using Microsoft.Extensions.Localization
+@inject IAccountsApi AccountsApi
+@inject IStringLocalizer<SharedResource> L
+
+<div class="ff-account-kind-selector d-flex flex-column gap-2">
+    <div class="d-flex flex-column gap-2 flex-lg-row align-items-lg-end">
+        <div class="flex-grow-1">
+            <label class="form-label">
+                <i class="bi bi-tag me-1"></i>@L["Accounts_Field_Kind"]
+            </label>
+            <InputSelect class="form-select ff-account-kind-select"
+                         TValue="Guid"
+                         Value="@SelectedKindId"
+                         ValueExpression="@(() => SelectedKindId)"
+                         ValueChanged="OnSelectedKindChanged"
+                         disabled="@IsDisabled">
+                @foreach (var kind in AllowedKinds)
+                {
+                    <option value="@kind.Id">@GetKindLabel(kind)</option>
+                }
+            </InputSelect>
+        </div>
+
+        <button class="btn btn-sm btn-outline-secondary text-nowrap ff-account-kind-create-toggle"
+                type="button"
+                @onclick="ToggleCreateForm"
+                disabled="@IsDisabled">
+            <i class="bi bi-plus-circle me-1"></i>@L["Accounts_Action_NewKind"]
+        </button>
+    </div>
+
+    @if (_showCreateForm)
+    {
+        <div class="border rounded-3 bg-body-tertiary p-3 ff-account-kind-inline-create">
+            @if (!string.IsNullOrWhiteSpace(_createError))
+            {
+                <div class="alert alert-danger py-2 px-3 small mb-3 ff-account-kind-create-error" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2"></i>@_createError
+                </div>
+            }
+
+            <div class="small text-body-secondary mb-2">
+                <i class="bi bi-plus-square me-1"></i>@L["Accounts_Field_Kind_Custom"]
+            </div>
+
+            <div class="d-flex flex-column gap-2 flex-lg-row align-items-lg-start">
+                <div class="flex-grow-1">
+                    <InputText class="form-control form-control-sm ff-account-kind-create-input"
+                               @bind-Value="_newKindName"
+                               placeholder="@L["Accounts_Field_Kind_Custom_Placeholder"]"
+                               disabled="@(_isBusy || IsDisabled)" />
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-primary ff-account-kind-create-submit"
+                            type="button"
+                            @onclick="CreateKindAsync"
+                            disabled="@(_isBusy || IsDisabled)">
+                        @if (_isBusy)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                        }
+                        <i class="bi bi-check-circle me-1"></i>@L["Accounts_Create"]
+                    </button>
+
+                    <button class="btn btn-sm btn-outline-secondary ff-account-kind-create-cancel"
+                            type="button"
+                            @onclick="CancelCreate"
+                            disabled="@(_isBusy || IsDisabled)">
+                        <i class="bi bi-x-circle me-1"></i>@L["Accounts_Cancel"]
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<AccountKindCatalogDto> Kinds { get; set; } = Array.Empty<AccountKindCatalogDto>();
+
+    [Parameter] public AccountNature Nature { get; set; }
+
+    [Parameter] public Guid SelectedKindId { get; set; }
+
+    [Parameter] public EventCallback<Guid> SelectedKindIdChanged { get; set; }
+
+    [Parameter] public EventCallback<AccountKindCatalogDto> KindCreated { get; set; }
+
+    [Parameter] public bool IsDisabled { get; set; }
+
+    private bool _showCreateForm;
+    private bool _isBusy;
+    private string? _createError;
+    private string _newKindName = string.Empty;
+
+    private IReadOnlyList<AccountKindCatalogDto> AllowedKinds
+        => AccountKindCatalogUiRules.GetAllowedKinds(Kinds, Nature, GetKindLabel);
+
+    private async Task OnSelectedKindChanged(Guid selectedKindId)
+    {
+        SelectedKindId = selectedKindId;
+        await SelectedKindIdChanged.InvokeAsync(selectedKindId);
+    }
+
+    private void ToggleCreateForm()
+    {
+        _showCreateForm = !_showCreateForm;
+        _createError = null;
+        _newKindName = string.Empty;
+    }
+
+    private void CancelCreate()
+    {
+        _showCreateForm = false;
+        _createError = null;
+        _newKindName = string.Empty;
+    }
+
+    private async Task CreateKindAsync()
+    {
+        if (_isBusy)
+            return;
+
+        var name = _newKindName.Trim();
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            _createError = L["Accounts_Kind_Create_NameRequired"];
+            return;
+        }
+
+        _isBusy = true;
+        _createError = null;
+
+        try
+        {
+            var created = await AccountsApi.CreateKindAsync(name, Nature, CancellationToken.None);
+            await KindCreated.InvokeAsync(created);
+            await SelectedKindIdChanged.InvokeAsync(created.Id);
+            CancelCreate();
+        }
+        catch (HttpRequestException ex)
+        {
+            _createError = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _createError = L["Common_UnexpectedErrorWithDetails", ex.Message];
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private string GetKindLabel(AccountKindCatalogDto kind)
+        => AccountKindLabelResolver.Resolve(kind, L);
+}
