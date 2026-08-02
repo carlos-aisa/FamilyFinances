@@ -1,13 +1,13 @@
 ## Why
 
-The current reports index presents all entries in a flat grid without explicit analytical families, which makes report discovery slower and increases cognitive load when users need to choose the right report quickly. A focused information-architecture revision is needed now to improve scanability, reduce ambiguity in report naming, and expose currently under-discoverable report routes.
+The current reports index presents all entries in a flat grid without explicit analytical families, which makes report discovery slower and increases cognitive load when users need to choose the right report quickly. A focused information-architecture revision is needed now to improve scanability, reduce ambiguity in report naming, and avoid redundant report entries.
 
 ## What Changes
 
 - Reorganize the Reports index (`/reports`) into explicit analytical sections with clear group headings and concise section descriptions.
 - Keep existing report routes and navigation targets intact while changing only the entry organization and presentation hierarchy.
 - Improve report card naming and microcopy so each card communicates report intent and scope consistently.
-- Add discoverability for existing report routes that are currently not represented on the reports landing surface.
+- Keep the landing surface focused on primary report entries; do not duplicate the asset-total-balance summary because Economic State already presents that information.
 - Preserve accessibility behavior and existing interaction patterns (card click behavior, keyboard/accessibility expectations).
 - Add/adjust UI tests for reports index grouping, card presence, and navigation stability.
 - Update implementation notes/documentation to describe the new grouping model and naming rationale.
@@ -32,7 +32,7 @@ The current reports index presents all entries in a flat grid without explicit a
 - `reports-index-information-architecture`: Defines the grouped reports entry experience, discoverability rules, and copy consistency requirements for `/reports`.
 
 ### Modified Capabilities
-- `dashboard-reporting-entry`: Refines reports landing requirements to explicitly require semantically grouped report families and complete discoverability of report deep-dive routes.
+- `dashboard-reporting-entry`: Refines reports landing requirements to explicitly require semantically grouped report families and focused primary-report discoverability.
 
 ## Impact
 

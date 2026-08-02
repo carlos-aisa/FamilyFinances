@@ -1,5 +1,8 @@
-## ADDED Requirements
+# reports-index-information-architecture Specification
 
+## Purpose
+TBD - created by archiving change reports-information-architecture-reorganization. Update Purpose after archive.
+## Requirements
 ### Requirement: Reports Index SHALL Organize Entries By Explicit Analytical Families
 The reports index page (`/reports`) MUST organize report entries into explicit analytical families to improve scanability and first-click accuracy.
 
@@ -27,15 +30,15 @@ Reorganization of the reports index MUST preserve existing report destinations a
 - **THEN** title, description, and badge text MUST communicate report intent and scope consistently
 - **AND** card labeling MUST avoid ambiguous phrasing that suggests a different report family
 
-### Requirement: Reports Index SHALL Provide Complete Discoverability For Existing Report Deep-Dive Routes
-The reports landing surface MUST provide direct discoverability for all intended report deep-dive routes in the active reports route family.
+### Requirement: Reports Index SHALL Provide Focused Discoverability For Primary Report Entries
+The reports landing surface MUST provide direct discoverability for the five primary report entries while avoiding duplicate summary entries.
 
-#### Scenario: Existing asset total balance report is directly discoverable from reports index
+#### Scenario: Asset total balance is not duplicated on reports index
 - **WHEN** an authenticated user opens `/reports`
-- **THEN** the page MUST include a direct entry card for `/reports/asset-total-balance`
-- **AND** that card MUST be presented within the financial snapshot family
+- **THEN** the page MUST NOT include a direct entry card for `/reports/asset-total-balance`
+- **AND** the Financial Snapshot family MUST present Economic State as the point-in-time summary entry
 
-#### Scenario: Grouped discoverability remains route-family consistent
+#### Scenario: Primary report entries remain directly discoverable
 - **WHEN** the reports index is rendered after reorganization
-- **THEN** report entries MUST remain discoverable through the `/reports` route family entry surface
-- **AND** discoverability improvements MUST not require users to navigate through unrelated pages first
+- **THEN** Economic State, Monthly Summary, Category Totals, Account Totals, and Account Group Totals MUST remain directly actionable through the `/reports` entry surface
+- **AND** the existing `/reports/asset-total-balance` deep-link route MUST remain unchanged

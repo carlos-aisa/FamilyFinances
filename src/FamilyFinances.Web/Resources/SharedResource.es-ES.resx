@@ -2037,6 +2037,24 @@
   <data name="ReportsIndex_AboutTitle" xml:space="preserve">
     <value>Sobre los informes</value>
   </data>
+  <data name="ReportsIndex_AccountStructureAnalysis_Description" xml:space="preserve">
+    <value>Consulta saldos y movimientos por cuenta individual o grupo de cuentas.</value>
+  </data>
+  <data name="ReportsIndex_AccountStructureAnalysis_Title" xml:space="preserve">
+    <value>Análisis de estructura de cuentas</value>
+  </data>
+  <data name="ReportsIndex_FinancialSnapshot_Description" xml:space="preserve">
+    <value>Revisa tu posición financiera en un momento determinado.</value>
+  </data>
+  <data name="ReportsIndex_FinancialSnapshot_Title" xml:space="preserve">
+    <value>Resumen financiero</value>
+  </data>
+  <data name="ReportsIndex_PeriodFlowAnalysis_Description" xml:space="preserve">
+    <value>Revisa ingresos, gastos y resultados netos durante un período seleccionado.</value>
+  </data>
+  <data name="ReportsIndex_PeriodFlowAnalysis_Title" xml:space="preserve">
+    <value>Análisis de flujos del período</value>
+  </data>
   <data name="ReportsIndex_AccountGroupTotals_Badge" xml:space="preserve">
     <value>Flujo + stock</value>
   </data>
