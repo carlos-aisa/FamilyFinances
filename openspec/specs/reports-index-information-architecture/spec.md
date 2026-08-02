@@ -42,4 +42,3 @@ The reports landing surface MUST provide direct discoverability for the five pri
 - **WHEN** the reports index is rendered after reorganization
 - **THEN** Economic State, Monthly Summary, Category Totals, Account Totals, and Account Group Totals MUST remain directly actionable through the `/reports` entry surface
 - **AND** the existing `/reports/asset-total-balance` deep-link route MUST remain unchanged
-
