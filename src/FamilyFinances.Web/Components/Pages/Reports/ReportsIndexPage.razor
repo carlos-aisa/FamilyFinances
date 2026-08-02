@@ -18,112 +18,148 @@
             </div>
         </div>
 
-        <div class="row g-4 ff-reports-grid">
-            <div class="col-12 col-md-6 col-lg-4">
-                <div class="card shadow-sm h-100 report-card ff-panel ff-report-card ff-reveal" @onclick="@(() => NavigateToReport("economic-state"))">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="report-icon bg-dark bg-opacity-10 text-body rounded-3 p-3 me-3">
-                                <i class="bi bi-piggy-bank fs-4"></i>
-                            </div>
-                            <div>
-                                <h5 class="card-title mb-0">@L["ReportsIndex_EconomicState_Title"]</h5>
-                            </div>
-                        </div>
-                        <p class="card-text text-muted">@L["ReportsIndex_EconomicState_Description"]</p>
-                        <div class="mt-3">
-                            <span class="badge bg-dark bg-opacity-10 text-body">
-                                <i class="bi bi-calendar-date me-1"></i>@L["ReportsIndex_EconomicState_Badge"]
-                            </span>
-                        </div>
-                    </div>
-                </div>
+        <section class="mb-5" aria-labelledby="reports-index-financial-snapshot-title" data-testid="reports-index-family">
+            <div class="mb-3">
+                <h4 id="reports-index-financial-snapshot-title" class="mb-1">@L["ReportsIndex_FinancialSnapshot_Title"]</h4>
+                <p class="text-muted mb-0">@L["ReportsIndex_FinancialSnapshot_Description"]</p>
             </div>
 
-            <div class="col-12 col-md-6 col-lg-4">
-                <div class="card shadow-sm h-100 report-card ff-panel ff-report-card ff-reveal" @onclick="@(() => NavigateToReport("monthly-summary"))">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="report-icon bg-primary bg-opacity-10 text-primary rounded-3 p-3 me-3">
-                                <i class="bi bi-calendar-month fs-4"></i>
+            <div class="row g-4 ff-reports-grid">
+                <div class="col-12 col-md-6 col-lg-6">
+                    <div class="card shadow-sm h-100 report-card ff-panel ff-report-card ff-reveal"
+                         data-testid="reports-index-card-economic-state"
+                         @onclick="@(() => NavigateToReport("economic-state"))">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="report-icon bg-dark bg-opacity-10 text-body rounded-3 p-3 me-3">
+                                    <i class="bi bi-piggy-bank fs-4"></i>
+                                </div>
+                                <div>
+                                    <h5 class="card-title mb-0">@L["ReportsIndex_EconomicState_Title"]</h5>
+                                </div>
                             </div>
-                            <div>
-                                <h5 class="card-title mb-0">@L["ReportsIndex_AccountAnalysis_Title"]</h5>
+                            <p class="card-text text-muted">@L["ReportsIndex_EconomicState_Description"]</p>
+                            <div class="mt-3">
+                                <span class="badge bg-dark bg-opacity-10 text-body">
+                                    <i class="bi bi-calendar-date me-1"></i>@L["ReportsIndex_EconomicState_Badge"]
+                                </span>
                             </div>
-                        </div>
-                        <p class="card-text text-muted">@L["ReportsIndex_MonthlySummary_Description"]</p>
-                        <div class="mt-3">
-                            <span class="badge bg-primary bg-opacity-10 text-primary">
-                                <i class="bi bi-calendar3 me-1"></i>@L["ReportsIndex_MonthlySummary_Badge"]
-                            </span>
                         </div>
                     </div>
                 </div>
+
+            </div>
+        </section>
+
+        <section class="mb-5" aria-labelledby="reports-index-period-flow-title" data-testid="reports-index-family">
+            <div class="mb-3">
+                <h4 id="reports-index-period-flow-title" class="mb-1">@L["ReportsIndex_PeriodFlowAnalysis_Title"]</h4>
+                <p class="text-muted mb-0">@L["ReportsIndex_PeriodFlowAnalysis_Description"]</p>
             </div>
 
-            <div class="col-12 col-md-6 col-lg-4">
-                <div class="card shadow-sm h-100 report-card ff-panel ff-report-card ff-reveal" @onclick="@(() => NavigateToReport("category-totals"))">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="report-icon bg-success bg-opacity-10 text-success rounded-3 p-3 me-3">
-                                <i class="bi bi-pie-chart fs-4"></i>
+            <div class="row g-4 ff-reports-grid">
+                <div class="col-12 col-md-6 col-lg-6">
+                    <div class="card shadow-sm h-100 report-card ff-panel ff-report-card ff-reveal"
+                         data-testid="reports-index-card-monthly-summary"
+                         @onclick="@(() => NavigateToReport("monthly-summary"))">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="report-icon bg-primary bg-opacity-10 text-primary rounded-3 p-3 me-3">
+                                    <i class="bi bi-calendar-month fs-4"></i>
+                                </div>
+                                <div>
+                                    <h5 class="card-title mb-0">@L["ReportsIndex_MonthlySummary_Title"]</h5>
+                                </div>
                             </div>
-                            <div>
-                                <h5 class="card-title mb-0">@L["ReportsIndex_CategoryTotals_Title"]</h5>
+                            <p class="card-text text-muted">@L["ReportsIndex_MonthlySummary_Description"]</p>
+                            <div class="mt-3">
+                                <span class="badge bg-primary bg-opacity-10 text-primary">
+                                    <i class="bi bi-calendar3 me-1"></i>@L["ReportsIndex_MonthlySummary_Badge"]
+                                </span>
                             </div>
-                        </div>
-                        <p class="card-text text-muted">@L["ReportsIndex_CategoryTotals_Description"]</p>
-                        <div class="mt-3">
-                            <span class="badge bg-success bg-opacity-10 text-success">
-                                <i class="bi bi-calendar-range me-1"></i>@L["ReportsIndex_CategoryTotals_Badge"]
-                            </span>
                         </div>
                     </div>
                 </div>
+
+                <div class="col-12 col-md-6 col-lg-6">
+                    <div class="card shadow-sm h-100 report-card ff-panel ff-report-card ff-reveal"
+                         data-testid="reports-index-card-category-totals"
+                         @onclick="@(() => NavigateToReport("category-totals"))">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="report-icon bg-success bg-opacity-10 text-success rounded-3 p-3 me-3">
+                                    <i class="bi bi-pie-chart fs-4"></i>
+                                </div>
+                                <div>
+                                    <h5 class="card-title mb-0">@L["ReportsIndex_CategoryTotals_Title"]</h5>
+                                </div>
+                            </div>
+                            <p class="card-text text-muted">@L["ReportsIndex_CategoryTotals_Description"]</p>
+                            <div class="mt-3">
+                                <span class="badge bg-success bg-opacity-10 text-success">
+                                    <i class="bi bi-calendar-range me-1"></i>@L["ReportsIndex_CategoryTotals_Badge"]
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-5" aria-labelledby="reports-index-account-structure-title" data-testid="reports-index-family">
+            <div class="mb-3">
+                <h4 id="reports-index-account-structure-title" class="mb-1">@L["ReportsIndex_AccountStructureAnalysis_Title"]</h4>
+                <p class="text-muted mb-0">@L["ReportsIndex_AccountStructureAnalysis_Description"]</p>
             </div>
 
-            <div class="col-12 col-md-6 col-lg-4">
-                <div class="card shadow-sm h-100 report-card ff-panel ff-report-card ff-reveal" @onclick="@(() => NavigateToReport("account-totals"))">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="report-icon bg-info bg-opacity-10 text-info rounded-3 p-3 me-3">
-                                <i class="bi bi-wallet2 fs-4"></i>
+            <div class="row g-4 ff-reports-grid">
+                <div class="col-12 col-md-6 col-lg-6">
+                    <div class="card shadow-sm h-100 report-card ff-panel ff-report-card ff-reveal"
+                         data-testid="reports-index-card-account-totals"
+                         @onclick="@(() => NavigateToReport("account-totals"))">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="report-icon bg-info bg-opacity-10 text-info rounded-3 p-3 me-3">
+                                    <i class="bi bi-wallet2 fs-4"></i>
+                                </div>
+                                <div>
+                                    <h5 class="card-title mb-0">@L["ReportsIndex_AccountTotals_Title"]</h5>
+                                </div>
                             </div>
-                            <div>
-                                <h5 class="card-title mb-0">@L["ReportsIndex_AccountTotals_Title"]</h5>
+                            <p class="card-text text-muted">@L["ReportsIndex_AccountTotals_Description"]</p>
+                            <div class="mt-3">
+                                <span class="badge bg-info bg-opacity-10 text-info">
+                                    <i class="bi bi-layers me-1"></i>@L["ReportsIndex_AccountTotals_Badge"]
+                                </span>
                             </div>
-                        </div>
-                        <p class="card-text text-muted">@L["ReportsIndex_AccountTotals_Description"]</p>
-                        <div class="mt-3">
-                            <span class="badge bg-info bg-opacity-10 text-info">
-                                <i class="bi bi-layers me-1"></i>@L["ReportsIndex_AccountTotals_Badge"]
-                            </span>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="col-12 col-md-6 col-lg-4">
-                <div class="card shadow-sm h-100 report-card ff-panel ff-report-card ff-reveal" @onclick="@(() => NavigateToReport("account-group-totals"))">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="report-icon bg-warning bg-opacity-10 text-warning rounded-3 p-3 me-3">
-                                <i class="bi bi-collection fs-4"></i>
+                <div class="col-12 col-md-6 col-lg-6">
+                    <div class="card shadow-sm h-100 report-card ff-panel ff-report-card ff-reveal"
+                         data-testid="reports-index-card-account-group-totals"
+                         @onclick="@(() => NavigateToReport("account-group-totals"))">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="report-icon bg-warning bg-opacity-10 text-warning rounded-3 p-3 me-3">
+                                    <i class="bi bi-collection fs-4"></i>
+                                </div>
+                                <div>
+                                    <h5 class="card-title mb-0">@L["ReportsIndex_AccountGroupTotals_Title"]</h5>
+                                </div>
                             </div>
-                            <div>
-                                <h5 class="card-title mb-0">@L["ReportsIndex_AccountGroupTotals_Title"]</h5>
+                            <p class="card-text text-muted">@L["ReportsIndex_AccountGroupTotals_Description"]</p>
+                            <div class="mt-3">
+                                <span class="badge bg-warning bg-opacity-10 text-warning">
+                                    <i class="bi bi-layers me-1"></i>@L["ReportsIndex_AccountGroupTotals_Badge"]
+                                </span>
                             </div>
-                        </div>
-                        <p class="card-text text-muted">@L["ReportsIndex_AccountGroupTotals_Description"]</p>
-                        <div class="mt-3">
-                            <span class="badge bg-warning bg-opacity-10 text-warning">
-                                <i class="bi bi-layers me-1"></i>@L["ReportsIndex_AccountGroupTotals_Badge"]
-                            </span>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
 
         <div class="card shadow-sm mt-4 ff-panel ff-report-about-card">
             <div class="card-body">
@@ -133,7 +169,6 @@
                 <p class="card-text text-muted mb-0">@L["ReportsIndex_AboutText"]</p>
             </div>
         </div>
-
     </Authorized>
     <NotAuthorized>
         <div class="alert alert-warning">

@@ -1,10 +1,10 @@
 ## Context
 
-The reports landing page (`/reports`) currently exposes report entries as a flat set of cards without explicit analytical grouping. Functional coverage has grown over multiple changes, but the index does not clearly communicate report families, relative usage intent, or complete route discoverability.
+The reports landing page (`/reports`) currently exposes report entries as a flat set of cards without explicit analytical grouping. Functional coverage has grown over multiple changes, but the index does not clearly communicate report families or relative usage intent.
 
 Current observed state:
 - Existing report routes include `economic-state`, `monthly-summary`, `category-totals`, `account-totals`, `account-group-totals`, and `asset-total-balance`.
-- The reports index currently exposes only five cards and does not provide a direct card entry for `asset-total-balance`.
+- The reports index exposes the five primary report entries. `asset-total-balance` remains a supported deep-link route but is intentionally not repeated on the index because its summary is already included in Economic State.
 - Some report labels/microcopy communicate intent inconsistently (for example, title key naming that suggests account analysis while the destination is monthly summary).
 
 Constraints:
@@ -22,7 +22,7 @@ Stakeholders:
 
 **Goals:**
 - Reorganize the reports index into explicit analytical families.
-- Ensure complete discoverability of relevant report deep-dive routes from `/reports`.
+- Ensure direct discoverability of the five primary report entries from `/reports` without duplicating the asset total balance summary.
 - Improve card naming and microcopy consistency while preserving destinations.
 - Keep interaction behavior deterministic and accessible.
 - Update tests and docs to encode the new information architecture.
@@ -62,16 +62,17 @@ Rationale:
 Alternatives considered:
 - Add route aliases/new route names: rejected because it introduces avoidable navigation complexity.
 
-### Decision 3: Include explicit discoverability for `asset-total-balance`
+### Decision 3: Avoid a redundant `asset-total-balance` card
 Choice:
-- Add an explicit report entry card in the "Financial Snapshot" family for asset total balance.
+- Do not add an explicit report entry card for asset total balance in the "Financial Snapshot" family.
+- Keep the existing `/reports/asset-total-balance` deep-link route unchanged.
 
 Rationale:
-- Route already exists but lacks first-level discoverability on reports index.
-- Improves parity between available routes and index entry surface.
+- Economic State already communicates the relevant asset summary at the reports entry surface.
+- Omitting the duplicate card keeps the Financial Snapshot family concise and avoids presenting equivalent balances as separate choices.
 
 Alternatives considered:
-- Keep hidden and rely on deep links: rejected because discoverability remains incomplete.
+- Add the card for route parity: rejected because it adds no distinct decision-support value on the index.
 
 ### Decision 4: Normalize card naming and microcopy by semantic contract
 Choice:
@@ -90,13 +91,35 @@ Choice:
   - family section rendering,
   - card presence per family,
   - unchanged destination routes,
-  - inclusion of `asset-total-balance` entry.
+  - intentional absence of the redundant `asset-total-balance` entry.
 
 Rationale:
 - Guards against regressions in discoverability and navigation.
 
 Alternatives considered:
 - Rely only on manual QA: rejected due to recurring regression risk in UI composition changes.
+
+### Decision 6: Use semantic, neutral family copy
+Choice:
+- Use the semantic family headings `Financial Snapshot`, `Period Flow Analysis`, and `Account Structure Analysis`.
+- Keep the index neutral; do not add a recommended first-report prompt.
+- Use concise card titles with one-line descriptions that explain report purpose.
+
+Rationale:
+- Semantic headings help users identify the analytical question they need to answer without prescribing a workflow.
+- Neutral guidance remains appropriate because the best starting report depends on the user's immediate question.
+- Brief descriptive copy improves discoverability without increasing visual density.
+
+### Decision 7: Size report cards for two-column desktop groups
+Choice:
+- Render the report cards in a two-column desktop grid (`col-lg-6`) instead of reserving each family for three cards.
+
+Rationale:
+- The two-card families use the available horizontal space, which reduces wrapping in the descriptive copy.
+- The Financial Snapshot family remains intentionally focused on its single Economic State entry.
+
+Alternatives considered:
+- Retain three-column sizing for future expansion: rejected because it adds avoidable vertical density to the current, user-facing layout.
 
 ## Risks / Trade-offs
 
@@ -115,11 +138,12 @@ Alternatives considered:
 ## Migration Plan
 
 1. Implement grouped reports index composition in `ReportsIndexPage.razor` while preserving route navigation behavior.
-2. Add the missing `asset-total-balance` card entry in the appropriate group.
+2. Keep the existing asset total balance route available by deep link without duplicating it as an index card.
 3. Normalize report index microcopy/localization keys for clarity and consistency.
-4. Update/add UI tests covering grouped IA and route stability.
-5. Update release/implementation notes documenting IA rationale and user-facing outcome.
-6. Validate with focused web tests and, if needed, broader solution test run.
+4. Use two-column desktop sizing for report card groups.
+5. Update/add UI tests covering grouped IA, focused entry selection, and route stability.
+6. Update release/implementation notes documenting IA rationale and user-facing outcome.
+7. Validate with focused web tests and, if needed, broader solution test run.
 
 Rollback strategy:
 - Revert reports index composition and resource key additions to previous flat layout.
@@ -128,6 +152,4 @@ Rollback strategy:
 
 ## Open Questions
 
-- Should section headers be purely semantic (for example, "Financial Snapshot") or explicitly workflow-oriented (for example, "Start Here")?
-- Should the reports index include a lightweight "recommended first report" hint for new users, or remain neutral?
-- Confirm final copy style preference (strictly concise labels vs descriptive labels) before implementation.
+None. The family headings, neutral index behavior, and concise-title/descriptive-subtitle copy style were confirmed during implementation.
