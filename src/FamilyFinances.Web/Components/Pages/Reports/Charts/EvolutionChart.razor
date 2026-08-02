@@ -41,7 +41,7 @@ else
                                 @onclick="ExportChartAsync"
                                 data-testid="@($"{TestId}-export-image")"
                                 aria-label="@L["ReportingChart_AriaExportPng", Title]">
-                            <i class="bi bi-download me-1"></i>@L["Reports_Export"]
+                            <i class="bi bi-download me-1"></i>@L["Reports_ExportPng"]
                         </button>
                     }
                     <span class="badge bg-secondary-subtle text-secondary">@GetBadgeText(month)</span>
@@ -333,7 +333,7 @@ else
 
     private string GetBadgeText(int month)
         => Mode == EvolutionChartMode.DailyInMonth
-            ? L["Reports_BadgePeriod", $"{Year:D4}-{month:00}"]
+            ? L["Reports_BadgePeriod", $"{month:00}-{Year:D4}"]
             : L["Reports_BadgeYear", Year.ToString(CultureInfo.InvariantCulture)];
 
     private async Task ExportChartAsync()

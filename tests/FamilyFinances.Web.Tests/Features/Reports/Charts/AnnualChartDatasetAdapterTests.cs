@@ -158,6 +158,29 @@ public sealed class AnnualChartDatasetAdapterTests
     }
 
     [Fact]
+    public void BuildMonthlyMovementCompositionByNatureAtMonth_UsesOnly_SelectedMonth_Delta()
+    {
+        var incomeId = Guid.NewGuid();
+        var report = new MonthlyEvolutionReportDto(
+            2026,
+            MonthlyEvolutionScope.Accounts,
+            [BuildSeries("salary", "Salary", incomeId, points:
+            [
+                new MonthlyEvolutionPointDto(1, new DateOnly(2026, 1, 31), 100_000, 100_000, 100_000),
+                new MonthlyEvolutionPointDto(2, new DateOnly(2026, 2, 28), 150_000, 50_000, 150_000)
+            ])]);
+
+        var result = AnnualChartDatasetAdapter.BuildMonthlyMovementCompositionByNatureAtMonth(
+            report,
+            new Dictionary<Guid, AccountNature> { [incomeId] = AccountNature.Income },
+            AccountNature.Income,
+            month: 2);
+
+        result.Should().ContainSingle();
+        result[0].RawValueCents.Should().Be(50_000);
+    }
+
+    [Fact]
     public void BuildCompositionFromSeriesAtMonth_ReturnsEmpty_WhenPredicateDoesNotMatch()
     {
         var report = new MonthlyEvolutionReportDto(

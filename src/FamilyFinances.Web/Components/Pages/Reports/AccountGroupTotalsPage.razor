@@ -169,7 +169,7 @@
                                     @onclick="ExportCsvAsync"
                                     data-testid="account-group-totals-export-csv"
                                     aria-label="@L["Reports_AriaExportCsv"]">
-                                <i class="bi bi-download me-1"></i>@L["Reports_Export"]
+                                <i class="bi bi-download me-1"></i>@L["Reports_AriaExportCsv"]
                             </button>
                             <span class="badge bg-secondary">
                                 @DateHelper.FormatShortDate(_report.FromInclusive) - @DateHelper.FormatShortDate(_report.ToExclusive.AddDays(-1))

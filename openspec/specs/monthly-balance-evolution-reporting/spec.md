@@ -68,27 +68,29 @@ The API MUST expose a state evolution endpoint with explicit `year` and `scope` 
 - **THEN** the API MUST return `400 BadRequest`
 
 ### Requirement: Web Reports UI SHALL Provide Integrated State Evolution Views
-The Web UI MUST provide month-focused chart behavior inside integrated state-evolution tabs and MUST NOT require a dedicated Monthly Evolution route.
+The Web UI MUST provide month-focused chart behavior inside integrated state-evolution tabs and MUST NOT require a dedicated Monthly Evolution route. When month-focused charts and summary rows are shown together in an integrated tab, both MUST reference the same selected month context, and labels MUST clearly indicate the selected month. In the Economic State Asset, Income, and Expense Evolution tabs, the Monthly Overview table and CSV export MUST be bounded by the global focused month.
 
-#### Scenario: Reports index keeps integrated entry points
-- **WHEN** an authenticated user opens `/reports`
-- **THEN** the UI MUST expose integrated report entries (`Economic State`, `Account Totals`, `Account Group Totals`)
-- **AND** month-focused chart flows MUST be reachable through those report tabs without a standalone `/reports/monthly-evolution` entry
+#### Scenario: Asset Evolution overview uses the focused-month cutoff
+- **WHEN** a user selects focused month `M` in `/reports/economic-state` and opens Asset Evolution
+- **THEN** the daily chart MUST load data for month `M`
+- **AND** the Monthly Overview MUST render evolution points for months `1` through `M` only
+- **AND** the CSV export MUST contain the same ordered month rows `1` through `M` only
 
-#### Scenario: User can select focused month in asset evolution tab
-- **WHEN** the user opens `/reports/economic-state` and selects `Asset Evolution`
-- **THEN** the view MUST provide focused-month controls for month-level charts
-- **AND** changing month MUST reload month-level chart datasets for the selected year/month
+#### Scenario: Income and Expense Evolution overviews use the focused-month cutoff
+- **WHEN** a user selects focused month `M` in `/reports/economic-state` and opens Income Evolution or Expense Evolution
+- **THEN** the active panel's daily chart MUST load data for month `M`
+- **AND** its Monthly Overview and CSV export MUST contain months `1` through `M` only
+- **AND** no month after `M` from the annual evolution payload MUST be rendered or exported by that overview
 
-#### Scenario: User can select focused month in account group state evolution tab
-- **WHEN** the user opens `/reports/account-group-totals` and selects `State Evolution`
-- **THEN** the view MUST provide focused-month controls for month-level charts
-- **AND** changing month MUST reload month-level chart datasets for the selected year/month
+#### Scenario: Historical-year focused month remains an explicit cutoff
+- **WHEN** a user selects a past year and focused month `M`
+- **THEN** the overview MUST use `M` as its final displayed and exported month even though the annual evolution endpoint contains points through December
+- **AND** the context label MUST identify the selected period rather than the system current month
 
-#### Scenario: Month-focused chart and table context are consistent
-- **WHEN** month-focused charts and summary rows are shown together in an integrated tab
-- **THEN** both MUST reference the same selected month context
-- **AND** labels MUST clearly indicate the selected month
+#### Scenario: Income and Expense composition uses selected-month movement
+- **WHEN** a user views Income or Expense composition for focused month `M` in `/reports/economic-state`
+- **THEN** every composition slice MUST use that entity's absolute `DeltaVsPreviousMonthCents` for month `M`
+- **AND** the composition MUST NOT use the entity's cumulative end balance as the monthly slice value
 
 ### Requirement: Evolution Contract SHALL Be Graph-Ready
 The response contract MUST remain machine-friendly and stable for future chart rendering.

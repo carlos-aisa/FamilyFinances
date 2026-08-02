@@ -158,6 +158,41 @@ public static class AnnualChartDatasetAdapter
             .ToList();
     }
 
+    public static IReadOnlyList<AnnualCompositionSlice> BuildMonthlyMovementCompositionByNatureAtMonth(
+        MonthlyEvolutionReportDto report,
+        IReadOnlyDictionary<Guid, AccountNature> accountNatureById,
+        AccountNature nature,
+        int month)
+    {
+        var weighted = report.Series
+            .Where(series => series.EntityId is not null &&
+                             accountNatureById.TryGetValue(series.EntityId.Value, out var foundNature) &&
+                             foundNature == nature)
+            .Select(series => new
+            {
+                series.SeriesKey,
+                series.DisplayName,
+                ValueCents = Math.Abs(series.Points.FirstOrDefault(point => point.Month == month)?.DeltaVsPreviousMonthCents ?? 0)
+            })
+            .Where(item => item.ValueCents > 0)
+            .OrderByDescending(item => item.ValueCents)
+            .ThenBy(item => item.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var total = weighted.Sum(item => item.ValueCents);
+        if (total == 0)
+            return Array.Empty<AnnualCompositionSlice>();
+
+        return weighted
+            .Select((item, index) => new AnnualCompositionSlice(
+                Key: item.SeriesKey,
+                Label: item.DisplayName,
+                RawValueCents: item.ValueCents,
+                Percentage: (item.ValueCents * 100m) / total,
+                ColorHex: ChartSemanticPalette.ResolveIndexed(index)))
+            .ToList();
+    }
+
     public static IReadOnlyList<AnnualCompositionSlice> BuildCompositionFromSeries(
         MonthlyEvolutionReportDto report,
         Func<MonthlyEvolutionSeriesDto, bool> predicate)

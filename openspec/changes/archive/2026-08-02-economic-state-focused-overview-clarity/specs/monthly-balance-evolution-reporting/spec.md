@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
-### Requirement: Month-focused chart and table context are consistent
-When month-focused charts and summary rows are shown together in an integrated tab, both MUST reference the same selected month context, and labels MUST clearly indicate the selected month. In the Economic State Asset, Income, and Expense Evolution tabs, the Monthly Overview table and CSV export MUST be bounded by the global focused month.
+### Requirement: Web Reports UI SHALL Provide Integrated State Evolution Views
+The Web UI MUST provide month-focused chart behavior inside integrated state-evolution tabs and MUST NOT require a dedicated Monthly Evolution route. When month-focused charts and summary rows are shown together in an integrated tab, both MUST reference the same selected month context, and labels MUST clearly indicate the selected month. In the Economic State Asset, Income, and Expense Evolution tabs, the Monthly Overview table and CSV export MUST be bounded by the global focused month.
 
 #### Scenario: Asset Evolution overview uses the focused-month cutoff
 - **WHEN** a user selects focused month `M` in `/reports/economic-state` and opens Asset Evolution
@@ -19,3 +19,8 @@ When month-focused charts and summary rows are shown together in an integrated t
 - **WHEN** a user selects a past year and focused month `M`
 - **THEN** the overview MUST use `M` as its final displayed and exported month even though the annual evolution endpoint contains points through December
 - **AND** the context label MUST identify the selected period rather than the system current month
+
+#### Scenario: Income and Expense composition uses selected-month movement
+- **WHEN** a user views Income or Expense composition for focused month `M` in `/reports/economic-state`
+- **THEN** every composition slice MUST use that entity's absolute `DeltaVsPreviousMonthCents` for month `M`
+- **AND** the composition MUST NOT use the entity's cumulative end balance as the monthly slice value

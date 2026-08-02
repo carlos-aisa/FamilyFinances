@@ -40,7 +40,6 @@ public sealed class ApiTokenStoreTests
         var store = new ApiTokenStore();
 
         var waitTask = store.WaitForTokenAsync(TimeSpan.FromSeconds(1), CancellationToken.None);
-        await Task.Delay(30);
         store.SetAccessToken("late-token");
 
         var token = await waitTask;
@@ -55,7 +54,6 @@ public sealed class ApiTokenStoreTests
         store.Clear();
 
         var waitTask = store.WaitForTokenAsync(TimeSpan.FromSeconds(1), CancellationToken.None);
-        await Task.Delay(30);
         store.SetAccessToken("new-token");
 
         var token = await waitTask;

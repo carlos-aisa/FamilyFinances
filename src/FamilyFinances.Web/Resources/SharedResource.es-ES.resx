@@ -684,6 +684,9 @@
   <data name="AssetEvolution_StockMetricsHint" xml:space="preserve">
     <value>Los saldos y deltas de activos son métricas de stock.</value>
   </data>
+  <data name="AssetEvolution_MonthlyOverviewSemanticsHint" xml:space="preserve">
+    <value>El movimiento de activos es la variación mensual de los saldos de las cuentas de activo. Puede diferir de Ingresos - Gastos del Snapshot cuando una transacción afecta a cuentas de pasivo o patrimonio.</value>
+  </data>
   <data name="AssetTotalBalance_AccountsIncluded" xml:space="preserve">
     <value>Cuentas Incluido</value>
   </data>
@@ -1018,7 +1021,7 @@
     <value>Ingresos vs gastos del mes</value>
   </data>
   <data name="EconomicState_MonthFocusedSubtitle" xml:space="preserve">
-    <value>Comparación acumulada diaria para {0} de {1} hasta el día {2} (valores absolutos).</value>
+    <value>Comparación acumulada diaria</value>
   </data>
   <data name="EconomicState_NoDailyPoints" xml:space="preserve">
     <value>Sin puntos diarios</value>
@@ -1869,17 +1872,26 @@
   <data name="Reports_CurrentMonth" xml:space="preserve">
     <value>Mes actual: {0}</value>
   </data>
+  <data name="Reports_Selected" xml:space="preserve">
+    <value>Seleccionado</value>
+  </data>
+  <data name="Reports_SelectedPeriod" xml:space="preserve">
+    <value>Periodo: {0}</value>
+  </data>
+  <data name="Reports_AssetMovement" xml:space="preserve">
+    <value>Movimiento de activos</value>
+  </data>
   <data name="Reports_BadgeYear" xml:space="preserve">
-    <value>Año {0}</value>
+    <value>Periodo: {0}</value>
   </data>
   <data name="Reports_BadgePeriod" xml:space="preserve">
-    <value>Periodo {0}</value>
+    <value>Periodo: {0}</value>
   </data>
   <data name="Reports_DeltaPrevMonth" xml:space="preserve">
     <value>Variación vs mes anterior</value>
   </data>
   <data name="Reports_DeltaYearStart" xml:space="preserve">
-    <value>Variación vs inicio de año</value>
+    <value>Acumulado</value>
   </data>
   <data name="Reports_Details" xml:space="preserve">
     <value>Detalles</value>
@@ -1925,6 +1937,9 @@
   </data>
   <data name="Reports_Export" xml:space="preserve">
     <value>Exportar</value>
+  </data>
+  <data name="Reports_ExportPng" xml:space="preserve">
+    <value>Exportar PNG</value>
   </data>
   <data name="Reports_Filters" xml:space="preserve">
     <value>Filtros</value>
@@ -2569,7 +2584,7 @@
     <value>Exportar gráfico "{0}" como PNG</value>
   </data>
   <data name="EconomicState_MonthlyNetList_Subtitle" xml:space="preserve">
-    <value>Saldo operativo mes a mes para el ano seleccionado.</value>
+    <value>Saldo operativo mes a mes para el año seleccionado.</value>
   </data>
   <data name="ExpenseEvolution_AnnualTitle" xml:space="preserve">
     <value>Evolucion anual de gastos</value>
@@ -2611,7 +2626,7 @@
     <value>Top contribuidor</value>
   </data>
   <data name="EconomicState_AnnualIncomeExpense_Title" xml:space="preserve">
-    <value>Ingresos vs Gastos anual (resultado mensual)</value>
+    <value>Ingresos vs Gastos anual</value>
   </data>
   <data name="Dashboard_Kpi_Expense" xml:space="preserve">
     <value>Gastos</value>
@@ -2623,7 +2638,7 @@
     <value>Tendencia mensual neta (Ingresos - Gastos).</value>
   </data>
   <data name="ExpenseEvolution_SelectYearHint" xml:space="preserve">
-    <value>Selecciona un ano para cargar la evolucion de gastos.</value>
+    <value>Selecciona un año para cargar la evolucion de gastos.</value>
   </data>
   <data name="Dashboard_DeltaVsPreviousMonth" xml:space="preserve">
     <value>vs mes anterior:</value>
@@ -2641,7 +2656,7 @@
     <value>No hay insights compactos disponibles.</value>
   </data>
   <data name="EconomicState_AnnualIncomeExpense_Subtitle" xml:space="preserve">
-    <value>Barras mensuales para cada mes del ano seleccionado.</value>
+    <value>Barras mensuales para cada mes</value>
   </data>
   <data name="ExpenseEvolution_StockMetricsHint" xml:space="preserve">
     <value>Las metricas de gasto son valores de flujo mensuales.</value>
@@ -2725,16 +2740,16 @@
     <value>Grafico mensual de gastos</value>
   </data>
   <data name="Dashboard_AnnualIncomeExpense_Title" xml:space="preserve">
-    <value>Ingresos vs gastos anual (resultado mensual)</value>
+    <value>Ingresos vs gastos anual</value>
   </data>
   <data name="Dashboard_AnnualIncomeExpense_Subtitle" xml:space="preserve">
-    <value>Barras mensuales para cada mes del ano seleccionado.</value>
+    <value>Barras mensuales para cada mes</value>
   </data>
   <data name="Dashboard_MonthlyNetTrend_Title" xml:space="preserve">
-    <value>Tendencia mensual de saldo (Ingresos - Gastos)</value>
+    <value>Saldo (Ingresos - Gastos)</value>
   </data>
   <data name="Dashboard_MonthlyNetTrend_Subtitle" xml:space="preserve">
-    <value>Balance operativo mensual del ano seleccionado.</value>
+    <value>Balance operativo mensual del año seleccionado.</value>
   </data>
   <data name="Dashboard_MonthlyNetTrend_Legend" xml:space="preserve">
     <value>Saldo</value>
@@ -2761,7 +2776,7 @@
     <value>Evolución total de activos</value>
   </data>
   <data name="Dashboard_AssetEvolution_Subtitle" xml:space="preserve">
-    <value>Saldo final por mes del ano seleccionado.</value>
+    <value>Saldo final por mes del año seleccionado.</value>
   </data>
   <data name="Dashboard_AssetEvolution_Legend" xml:space="preserve">
     <value>Saldo de activos</value>

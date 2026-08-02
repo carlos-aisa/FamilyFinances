@@ -19,3 +19,8 @@ The economic-state tabs MUST keep deterministic data-loading behavior while supp
 - **THEN** Snapshot MUST continue to display the income-and-expense period result
 - **AND** Asset Evolution MUST continue to display the month-over-month delta of Asset-account balances
 - **AND** the UI MUST provide explicit text that the values can differ
+
+#### Scenario: Focused-month composition legend retains chart and currency semantics
+- **WHEN** Income or Expense composition is rendered for a selected reporting month
+- **THEN** pie slices MUST represent percentage share of that selected month's movement
+- **AND** the legend MUST render each slice's EUR amount rather than repeating the percentage

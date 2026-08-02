@@ -39,7 +39,7 @@ else
                                 @onclick="ExportChartAsync"
                                 data-testid="@($"{TestId}-export-image")"
                                 aria-label="@L["ReportingChart_AriaExportPng", Title]">
-                            <i class="bi bi-download me-1"></i>@L["Reports_Export"]
+                            <i class="bi bi-download me-1"></i>@L["Reports_ExportPng"]
                         </button>
                     }
                     <span class="badge bg-secondary-subtle text-secondary">@GetBadgeText()</span>
@@ -64,7 +64,7 @@ else
                             <div class="composition-slice-row">
                                 <span class="composition-dot" style="@($"--ff-slice-color:{slice.ColorHex};")"></span>
                                 <span class="composition-label" title="@slice.Label">@slice.Label</span>
-                                <span class="composition-percentage">@slice.Percentage.ToString("0.##", CultureInfo.InvariantCulture)%</span>
+                                <span class="composition-percentage">@MoneyFormatter.FormatCents(slice.RawValueCents)</span>
                             </div>
                         }
                     </div>

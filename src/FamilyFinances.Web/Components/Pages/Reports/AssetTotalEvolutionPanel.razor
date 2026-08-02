@@ -79,6 +79,7 @@ else if (_report is not null)
     var (latestEndBalance, latestDeltaPrev, latestDeltaYearStart) = GetLatestSummary();
     var charts = BuildChartsViewModel();
     var dataUntilMonth = GetDataUntilMonthForSelectedYear();
+    var overviewContextMonth = GetOverviewContextMonth();
     var series = _report.Series.First();
     var monthlyChartSeries = BuildMonthlyChartSeries();
     var focusedMonthLabel = DateHelper.GetMonthName(_focusedMonth);
@@ -128,7 +129,7 @@ else if (_report is not null)
         : L["Reports_NotAvailable"];
     var compositionSubtitle = $"{L["Reports_FocusedMonth"]}: {compositionMonthLabel}";
     var compositionBadgeText = compositionMonth is not null
-        ? L["Reports_BadgePeriod", $"{_selectedYear:D4}-{compositionMonth.Value:D2}"]
+        ? L["Reports_BadgePeriod", $"{compositionMonth.Value:D2}-{_selectedYear:D4}"]
         : L["Reports_BadgeYear", _selectedYear.ToString()];
     var compositionSlices = BuildCompositionSlices();
 
@@ -146,12 +147,14 @@ else if (_report is not null)
                                     @onclick="ExportMonthlyOverviewCsvAsync"
                                     data-testid="economic-state-asset-overview-export-csv"
                                     aria-label="@L["Reports_AriaExportCsv"]">
-                                <i class="bi bi-download me-1"></i>@L["Reports_Export"]
+                                <i class="bi bi-download me-1"></i>@L["Reports_AriaExportCsv"]
                             </button>
-                            @if (dataUntilMonth is not null)
+                            @if (overviewContextMonth is not null)
                             {
                                 <span class="badge text-bg-secondary">
-                                    @L["Reports_CurrentMonth", DateHelper.GetMonthName(dataUntilMonth.Value)]
+                                    @(UseExternalFilters
+                                        ? L["Reports_SelectedPeriod", $"{DateHelper.GetMonthName(overviewContextMonth.Value)} {_selectedYear}"]
+                                        : L["Reports_CurrentMonth", DateHelper.GetMonthName(overviewContextMonth.Value)])
                                 </span>
                             }
                         </div>
@@ -163,7 +166,7 @@ else if (_report is not null)
                             <thead class="table-light">
                                 <tr>
                                     <th class="border-0 ps-3">@L["Reports_Month"]</th>
-                                    <th class="border-0 text-end">@L["Reports_Balance"]</th>
+                                    <th class="border-0 text-end">@L["Reports_AssetMovement"]</th>
                                     <th class="border-0 text-end">@L["Reports_EndBalance"]</th>
                                     <th class="border-0 text-end pe-3">@L["Reports_DeltaYearStart"]</th>
                                 </tr>
@@ -172,15 +175,11 @@ else if (_report is not null)
                                 @foreach (var month in visibleMonths)
                                 {
                                     var point = series.Points.FirstOrDefault(p => p.Month == month);
-                                    var isCurrentMonth = dataUntilMonth is not null && month == dataUntilMonth.Value;
+                                    var isSelectedMonth = overviewContextMonth is not null && month == overviewContextMonth.Value;
 
-                                    <tr class="series-summary-row @(isCurrentMonth ? "table-active" : string.Empty)">
+                                    <tr class="series-summary-row @(isSelectedMonth ? "table-active" : string.Empty)">
                                         <td class="ps-3">
                                             @DateHelper.GetMonthName(month)
-                                            @if (isCurrentMonth)
-                                            {
-                                                <span class="badge rounded-pill text-bg-primary ms-2">@L["Reports_Current"]</span>
-                                            }
                                         </td>
                                         <td class="text-end @MoneyFormatter.GetColorClass(point?.DeltaVsPreviousMonthCents ?? 0)">
                                             @(point is not null ? MoneyFormatter.FormatCentsWithSign(point.DeltaVsPreviousMonthCents) : "-")
@@ -197,6 +196,10 @@ else if (_report is not null)
                         </table>
                     </div>
                 </div>
+            </div>
+            <div class="alert alert-info mt-3 mb-0 ff-info-note" role="alert" data-testid="economic-state-asset-overview-semantics-hint">
+                <i class="bi bi-info-circle me-2"></i>
+                @L["AssetEvolution_MonthlyOverviewSemanticsHint"]
             </div>
         </div>
         <div class="ff-report-column">
@@ -549,8 +552,16 @@ else
 
     private IReadOnlyList<int> GetVisibleMonths()
     {
+        if (UseExternalFilters)
+            return Enumerable.Range(1, _focusedMonth).ToList();
+
         var maxMonth = GetDataUntilMonthForSelectedYear() ?? 12;
         return Enumerable.Range(1, maxMonth).ToList();
+    }
+
+    private int? GetOverviewContextMonth()
+    {
+        return UseExternalFilters ? _focusedMonth : GetDataUntilMonthForSelectedYear();
     }
 
     private int? GetCompositionMonth()
@@ -663,7 +674,7 @@ else
                 [L["Reports_Year"]] = _selectedYear.ToString(),
                 [L["Reports_FocusedMonth"]] = DateHelper.GetMonthName(_focusedMonth)
             },
-            headers: [L["Reports_Month"], L["Reports_Balance"], L["Reports_EndBalance"], L["Reports_DeltaYearStart"]],
+            headers: [L["Reports_Month"], L["Reports_AssetMovement"], L["Reports_EndBalance"], L["Reports_DeltaYearStart"]],
             rows: rows);
 
         try
