@@ -162,8 +162,8 @@ Pushes to `main` trigger `.github/workflows/release-windows.yml`, which:
 
 Primary assets:
 
-- `FamilyFinances-v<version>-win-x64-setup.exe` (bootstrapper)
-- `FamilyFinances-v<version>-win-x64.msi`
+- `FamilyFinances-v<version>-win-x64-setup.exe` (recommended for clean Windows machines)
+- `FamilyFinances-v<version>-win-x64.msi` (advanced/manual path)
 
 ### Manual local installer build
 

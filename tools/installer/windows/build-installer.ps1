@@ -38,10 +38,20 @@ Push-Location $repoRoot
 try {
     & ".\tools\installer\windows\build-windows-dist.ps1" -Version $Version -Configuration $Configuration | Out-Null
 
+    if (-not (Test-Path $hostingBundleCacheDir)) {
+        New-Item -ItemType Directory -Path $hostingBundleCacheDir -Force | Out-Null
+    }
+
+    if (-not (Test-Path $hostingBundleSource)) {
+        Write-Host "Downloading .NET 9 Hosting Bundle for installer packaging..."
+        Invoke-WebRequest -Uri $hostingBundleUrl -OutFile $hostingBundleSource | Out-Null
+    }
+
     & (Join-Path $PSScriptRoot "scripts\Publish-MsiLayout.ps1") `
         -Version $Version `
         -SourceDistDir $sourceDistDir `
-        -MsiLayoutDir $msiLayoutDir | Out-Null
+        -MsiLayoutDir $msiLayoutDir `
+        -HostingBundleSourcePath $hostingBundleSource | Out-Null
 
     if (Test-Path $installerMsi) {
         Remove-Item $installerMsi -Force
@@ -86,15 +96,6 @@ try {
 
     if (Test-Path $setupBootstrapper) {
         Remove-Item $setupBootstrapper -Force
-    }
-
-    if (-not (Test-Path $hostingBundleCacheDir)) {
-        New-Item -ItemType Directory -Path $hostingBundleCacheDir -Force | Out-Null
-    }
-
-    if (-not (Test-Path $hostingBundleSource)) {
-        Write-Host "Downloading .NET 9 Hosting Bundle for web bootstrapper build..."
-        Invoke-WebRequest -Uri $hostingBundleUrl -OutFile $hostingBundleSource | Out-Null
     }
 
     $setupOutputName = "FamilyFinances-v{0}-win-x64-setup" -f $Version

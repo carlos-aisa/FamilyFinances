@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
-    [switch]$EnableIisIfMissing
+    [switch]$EnableIisIfMissing,
+    [Parameter()] [string]$HostingBundlePath = ""
 )
 
 Set-StrictMode -Version Latest
@@ -15,10 +16,9 @@ if ($env:OS -ne "Windows_NT") {
 }
 
 $missing = New-Object System.Collections.Generic.List[string]
-
-if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
-    $missing.Add("dotnet SDK/runtime")
-}
+$iisChangedThisRun = $false
+$restartRequired = $false
+$initialRebootState = Test-InstallerRebootPending
 
 $requiredFeatures = @(
     "IIS-WebServerRole",
@@ -39,7 +39,11 @@ foreach ($featureName in $requiredFeatures) {
     }
 
     if ($EnableIisIfMissing) {
-        Enable-WindowsOptionalFeature -Online -FeatureName $featureName -All -NoRestart | Out-Null
+        $result = Enable-WindowsOptionalFeature -Online -FeatureName $featureName -All -NoRestart
+        $iisChangedThisRun = $true
+        if (Test-InstallerRestartNeededValue -Value $result.RestartNeeded) {
+            $restartRequired = $true
+        }
         continue
     }
 
@@ -53,7 +57,29 @@ else {
     Import-Module WebAdministration -ErrorAction SilentlyContinue | Out-Null
     $aspNetCoreModule = Get-WebGlobalModule -Name "AspNetCoreModuleV2" -ErrorAction SilentlyContinue
     if ($null -eq $aspNetCoreModule) {
-        $missing.Add("IIS module AspNetCoreModuleV2 (.NET Hosting Bundle is required)")
+        if ($restartRequired) {
+            throw (Get-InstallerRebootMessage -Sources @("IIS feature enablement"))
+        }
+
+        $currentRebootState = Test-InstallerRebootPending
+        if ($currentRebootState.Pending -and -not $iisChangedThisRun) {
+            throw (Get-InstallerRebootMessage -Sources $currentRebootState.Sources)
+        }
+
+        & (Join-Path $PSScriptRoot "Invoke-HostingBundleMaintenance.ps1") `
+            -HostingBundlePath $HostingBundlePath `
+            -PreferredMode "Repair" | Out-Null
+
+        Import-Module WebAdministration -Force -ErrorAction SilentlyContinue | Out-Null
+        $aspNetCoreModule = Get-WebGlobalModule -Name "AspNetCoreModuleV2" -ErrorAction SilentlyContinue
+        if ($null -eq $aspNetCoreModule) {
+            $postMaintenanceRebootState = Test-InstallerRebootPending
+            if ($postMaintenanceRebootState.Pending) {
+                throw (Get-InstallerRebootMessage -Sources $postMaintenanceRebootState.Sources)
+            }
+
+            $missing.Add("IIS module AspNetCoreModuleV2 (Hosting Bundle install/repair did not register the module)")
+        }
     }
 }
 
@@ -66,8 +92,10 @@ if ($missing.Count -gt 0) {
 }
 
 [pscustomobject]@{
-    Ok             = $true
-    TimestampUtc   = [DateTime]::UtcNow.ToString("O")
-    EnableIis      = [bool]$EnableIisIfMissing
-    Preconditions  = "All required prerequisites are available."
+    Ok                = $true
+    TimestampUtc      = [DateTime]::UtcNow.ToString("O")
+    EnableIis         = [bool]$EnableIisIfMissing
+    IisChangedThisRun = [bool]$iisChangedThisRun
+    RebootPendingAtStart = [bool]$initialRebootState.Pending
+    Preconditions     = "All required prerequisites are available."
 }
