@@ -40,7 +40,6 @@ public sealed class EconomicStatePageTests : WebTestContext
         Services.AddSingleton(new JwtAuthStateProvider(tokenStore));
         Services.AddScoped<ReportsApi>();
         Services.AddSingleton(BuildAccountsApiMock().Object);
-
         var cut = RenderComponent<EconomicStatePage>();
 
         cut.WaitForAssertion(() =>
@@ -64,7 +63,6 @@ public sealed class EconomicStatePageTests : WebTestContext
         Services.AddSingleton(new JwtAuthStateProvider(tokenStore));
         Services.AddScoped<ReportsApi>();
         Services.AddSingleton(BuildAccountsApiMock().Object);
-
         var cut = RenderComponent<EconomicStatePage>();
 
         cut.WaitForAssertion(() =>
@@ -212,6 +210,7 @@ public sealed class EconomicStatePageTests : WebTestContext
         Services.AddScoped<ReportsApi>();
         Services.AddSingleton(BuildAccountsApiMock().Object);
 
+        var exportCall = JSInterop.SetupVoid("familyFinancesCharts.downloadCsv", _ => true);
         var cut = RenderComponent<EconomicStatePage>();
         var assetTab = cut.FindAll("button.nav-link")
             .First(button => button.TextContent.Contains("asset", StringComparison.OrdinalIgnoreCase));
@@ -252,7 +251,23 @@ public sealed class EconomicStatePageTests : WebTestContext
             requestedUris.Should().Contain(uri =>
                 uri.Contains("api/v1/reports/economic-state?asOf=", StringComparison.OrdinalIgnoreCase) &&
                 uri.Contains($"asOf={currentYear}-01-{DateTime.DaysInMonth(currentYear, 1):00}", StringComparison.OrdinalIgnoreCase));
+            var overview = cut.FindAll("table.ff-data-table").First();
+            overview.TextContent.Should().Contain("January");
+            overview.TextContent.Should().NotContain("February");
+            cut.Markup.Should().Contain($"Period: January {currentYear}");
+            cut.Markup.Should().Contain("Asset movement");
+            cut.Find("[data-testid='economic-state-asset-overview-semantics-hint']").TextContent
+                .Should().Contain("can differ from Snapshot Income - Expense");
         });
+
+        cut.Find("[data-testid='economic-state-asset-overview-export-csv']").Click();
+
+        exportCall.Invocations.Should().ContainSingle();
+        var csvContent = exportCall.Invocations.Single().Arguments[1] as string;
+        csvContent.Should().NotBeNull();
+        csvContent!.Should()
+            .Contain("January")
+            .And.NotContain("February");
     }
 
     [Fact]
@@ -406,6 +421,17 @@ public sealed class EconomicStatePageTests : WebTestContext
                 points.Should().NotContain($"{lastDayOfCurrentMonth}:");
             cut.Find("[data-testid='economic-state-global-focused-month']");
             cut.FindAll("[data-testid='economic-state-income-focused-month']").Should().BeEmpty();
+        });
+
+        cut.Find("[data-testid='economic-state-global-focused-month']").Change("1");
+
+        cut.WaitForAssertion(() =>
+        {
+            var overview = cut.FindAll("table.ff-data-table").First();
+            overview.TextContent.Should().Contain("January");
+            overview.TextContent.Should().NotContain("February");
+            cut.Markup.Should().Contain($"Period: January {currentYear}");
+            cut.Markup.Should().NotContain("Current month:");
         });
     }
 
@@ -574,6 +600,17 @@ public sealed class EconomicStatePageTests : WebTestContext
                 points.Should().NotContain($"{lastDayOfCurrentMonth}:");
             cut.Find("[data-testid='economic-state-global-focused-month']");
             cut.FindAll("[data-testid='economic-state-expense-focused-month']").Should().BeEmpty();
+        });
+
+        cut.Find("[data-testid='economic-state-global-focused-month']").Change("1");
+
+        cut.WaitForAssertion(() =>
+        {
+            var overview = cut.FindAll("table.ff-data-table").First();
+            overview.TextContent.Should().Contain("January");
+            overview.TextContent.Should().NotContain("February");
+            cut.Markup.Should().Contain($"Period: January {currentYear}");
+            cut.Markup.Should().NotContain("Current month:");
         });
     }
 

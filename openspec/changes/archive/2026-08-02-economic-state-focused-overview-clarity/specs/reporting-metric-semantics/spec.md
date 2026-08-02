@@ -1,15 +1,4 @@
-# Reporting Metric Semantics Specification
-
-## Purpose
-Define canonical reporting metric semantics to keep KPI and chart labels aligned with deterministic financial meaning across reporting views.
-## Requirements
-### Requirement: Reporting MUST Expose Canonical Metric Semantics
-The system MUST define a canonical semantic dictionary for reporting metrics, including formula intent and comparability class.
-
-#### Scenario: Canonical dictionary includes stock and flow metrics
-- **WHEN** reporting semantics are loaded for a report page
-- **THEN** the dictionary MUST include at least `Asset Balance`, `Liability Balance`, `Net Worth`, `Income`, `Expense`, and `Period Net Result`
-- **AND** each metric MUST be classified as stock (`balance at time`) or flow (`result over period`)
+## MODIFIED Requirements
 
 ### Requirement: KPI and Chart Labels MUST Map to Canonical Metrics
 Every KPI card and chart series shown in reporting pages MUST map deterministically to one canonical metric definition. When two metrics are numerically present in the same view but are not comparable, the UI MUST display an explicit disclaimer that they are different metric families. In Asset Evolution, the monthly Asset-account balance delta MUST be labeled as asset movement and MUST be distinguished from Snapshot `Income + Expense` period net result.
@@ -26,12 +15,7 @@ Every KPI card and chart series shown in reporting pages MUST map deterministica
 - **AND** Snapshot period net result MUST remain derived from `PeriodNetResultCents`
 - **AND** the UI MUST NOT transform either value to force equality
 
-### Requirement: Semantic Alignment MUST Be Regression-Tested
-Semantic mapping behavior MUST be protected with deterministic automated tests.
-
-#### Scenario: Semantic tests fail on label-formula drift
-- **WHEN** a report page label changes without the corresponding canonical metric mapping
-- **THEN** the semantic consistency test suite MUST fail
+## ADDED Requirements
 
 ### Requirement: Report Controls SHALL State Their Existing Export Format
 Existing report controls MUST communicate the format they already download without changing export implementation or payload content.

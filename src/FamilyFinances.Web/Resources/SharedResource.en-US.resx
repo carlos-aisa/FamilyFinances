@@ -684,6 +684,9 @@
   <data name="AssetEvolution_StockMetricsHint" xml:space="preserve">
     <value>Asset balances and deltas are stock metrics.</value>
   </data>
+  <data name="AssetEvolution_MonthlyOverviewSemanticsHint" xml:space="preserve">
+    <value>Asset movement is the month-over-month change in Asset-account balances. It can differ from Snapshot Income - Expense when a transaction affects Liability or Equity accounts.</value>
+  </data>
   <data name="AssetTotalBalance_AccountsIncluded" xml:space="preserve">
     <value>Accounts Included</value>
   </data>
@@ -1018,7 +1021,7 @@
     <value>Month-focused income vs expense</value>
   </data>
   <data name="EconomicState_MonthFocusedSubtitle" xml:space="preserve">
-    <value>Daily accumulated comparison for {0} {1} up to day {2} (absolute values).</value>
+    <value>Daily accumulated comparison</value>
   </data>
   <data name="EconomicState_NoDailyPoints" xml:space="preserve">
     <value>No daily points</value>
@@ -1869,17 +1872,26 @@
   <data name="Reports_CurrentMonth" xml:space="preserve">
     <value>Current month: {0}</value>
   </data>
+  <data name="Reports_Selected" xml:space="preserve">
+    <value>Selected</value>
+  </data>
+  <data name="Reports_SelectedPeriod" xml:space="preserve">
+    <value>Period: {0}</value>
+  </data>
+  <data name="Reports_AssetMovement" xml:space="preserve">
+    <value>Asset movement</value>
+  </data>
   <data name="Reports_BadgeYear" xml:space="preserve">
-    <value>Year {0}</value>
+    <value>Period: {0}</value>
   </data>
   <data name="Reports_BadgePeriod" xml:space="preserve">
-    <value>Period {0}</value>
+    <value>Period: {0}</value>
   </data>
   <data name="Reports_DeltaPrevMonth" xml:space="preserve">
     <value>Delta vs previous month</value>
   </data>
   <data name="Reports_DeltaYearStart" xml:space="preserve">
-    <value>Delta vs year start</value>
+    <value>Accumulated</value>
   </data>
   <data name="Reports_Details" xml:space="preserve">
     <value>Details</value>
@@ -1925,6 +1937,9 @@
   </data>
   <data name="Reports_Export" xml:space="preserve">
     <value>Export</value>
+  </data>
+  <data name="Reports_ExportPng" xml:space="preserve">
+    <value>Export PNG</value>
   </data>
   <data name="Reports_Filters" xml:space="preserve">
     <value>Filters</value>
@@ -2611,7 +2626,7 @@
     <value>Top contributor</value>
   </data>
   <data name="EconomicState_AnnualIncomeExpense_Title" xml:space="preserve">
-    <value>Annual Income vs Expense (month result)</value>
+    <value>Annual Income vs Expense</value>
   </data>
   <data name="Dashboard_Kpi_Expense" xml:space="preserve">
     <value>Expense</value>
@@ -2641,7 +2656,7 @@
     <value>No compact insights available.</value>
   </data>
   <data name="EconomicState_AnnualIncomeExpense_Subtitle" xml:space="preserve">
-    <value>Monthly bars for each month of the selected year.</value>
+    <value>Monthly bars for each month</value>
   </data>
   <data name="ExpenseEvolution_StockMetricsHint" xml:space="preserve">
     <value>Expense flow metrics are month-focused values.</value>
@@ -2722,13 +2737,13 @@
     <value>Month-focused expense chart</value>
   </data>
   <data name="Dashboard_AnnualIncomeExpense_Title" xml:space="preserve">
-    <value>Annual Income vs Expense (month result)</value>
+    <value>Annual Income vs Expense</value>
   </data>
   <data name="Dashboard_AnnualIncomeExpense_Subtitle" xml:space="preserve">
-    <value>Monthly bars for each month of the selected year.</value>
+    <value>Monthly bars for each month</value>
   </data>
   <data name="Dashboard_MonthlyNetTrend_Title" xml:space="preserve">
-    <value>Monthly net trend (Income - Expense)</value>
+    <value>Balance (Income - Expense)</value>
   </data>
   <data name="Dashboard_MonthlyNetTrend_Subtitle" xml:space="preserve">
     <value>Operational monthly balance for the selected year.</value>

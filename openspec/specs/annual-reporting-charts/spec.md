@@ -20,17 +20,12 @@ The reporting UI MUST provide a chart for annual account-group evolution.
 - **AND** each group series MUST remain stable by series key and display name
 
 ### Requirement: Reporting UI SHALL Render Annual Composition Charts for Implemented Scopes
-The reporting UI MUST display charted percentage composition in annual reporting views where composition is supported.
+The reporting UI MUST display charted percentage composition in annual reporting views where composition is supported. Annual composition charts MUST keep percentage values for pie geometry while presenting each legend entry as a EUR amount.
 
-#### Scenario: Account-group composition shows percentage split for expense-oriented groups
-- **WHEN** annual expense-group data is available
-- **THEN** the UI MUST render a percentage composition chart for expense-oriented account groups
-- **AND** percentages MUST sum to 100% within rounding tolerance
-
-#### Scenario: Accounts composition shows percentage split for expense and income natures
-- **WHEN** annual accounts data is available
-- **THEN** the UI MUST render composition charts for `Expense` and `Income` natures in accounts state evolution
-- **AND** percentages MUST sum to 100% within rounding tolerance
+#### Scenario: Composition legend exposes monetary slice value
+- **WHEN** an annual composition chart renders a side legend
+- **THEN** each legend value MUST show the slice's EUR amount using the active UI culture
+- **AND** pie slices MUST continue to use percentage values whose total is 100% within rounding tolerance
 
 ### Requirement: Annual Report Charts SHALL Follow Premium Comparative Visualization Standards
 Annual charts MUST adopt a premium comparative visualization style that is consistent across annual state-evolution and composition contexts, and MUST consume shared token-governed chart primitives.

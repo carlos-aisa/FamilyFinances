@@ -19,7 +19,7 @@ This is a Presentation-layer correction. Existing API endpoints, DTOs, account-n
 
 - No calculation, API, query, DTO, database, migration, or OpenAPI change.
 - No financial reconciliation feature and no requirement that asset movement equal income plus expense.
-- No changes to standalone panels when `UseExternalFilters` is false, other report routes, or Reports index navigation.
+- No changes to standalone panel calculations, report routes, or Reports index navigation. Existing controls on other report routes may receive the same wording-only export and period-clarity treatment.
 - No broad visual redesign, chart rewrite, or introduction of a new shared component.
 
 ## Implementation Rules - Do Not Deviate
@@ -61,6 +61,14 @@ Focused bUnit tests will use a deterministic selected month earlier than the cur
 
 Alternative considered: only snapshot markup tests. Rejected because a stale CSV would leave the user-facing inconsistency unresolved.
 
+### Decision 5: Reuse chart and export primitives for report-wide clarity
+
+The existing table export operations remain CSV downloads and the existing chart export operations remain PNG downloads. Their visible labels state that file type consistently, while their existing detailed accessible names remain intact. This is copy-only and does not introduce a new export path or alter serialization.
+
+Period badges use `MM-YYYY` for a selected month and `YYYY` for a selected year. Composition charts keep percentage values in the pie payload, but their side legend renders the corresponding EUR amount. Income and Expense composition derives each slice from `DeltaVsPreviousMonthCents` at the selected month; Asset composition keeps its existing balance-based semantics.
+
+Alternative considered: leave each report's legacy export, badge, and legend wording untouched. Rejected because identical controls otherwise communicate different output and period meanings across the reporting surface.
+
 ## Detailed UI Flows And Component Reuse
 
 1. User opens `/reports/economic-state`; `EconomicStatePage` initializes year and focused month, loads the snapshot, and gives panels those values when a tab is activated.
@@ -100,6 +108,8 @@ Asset Evolution
 | `ReportsApi` / API controller | Reuse unchanged | Continue providing annual series and selected-month daily charts. |
 | `DateHelper`, CSV builder, export interop | Reuse unchanged | Supply existing formatting and download behavior. |
 | Shared `.resx` files | Modify additively | Provide localized selected-period, asset-movement, and explanation text. |
+| Reusable annual chart components and report table controls | Modify wording only | State PNG/CSV output type consistently and keep period/legend presentation aligned. |
+| `AnnualChartDatasetAdapter` | Modify | Produce selected-month Income and Expense movement composition without changing API data. |
 
 ## Critical Implementation Pattern
 
@@ -141,6 +151,8 @@ The table, current/selected marker, header badge, and `ExportMonthlyOverviewCsvA
 3. Update the Asset panel's first-column header and render its clarification note.
 4. Add/update focused bUnit tests, then run the affected Web test suite and `openspec validate economic-state-focused-overview-clarity --strict`.
 5. Deploy as a patch release; no data migration, cache invalidation, or API rollout coordination is needed.
+
+The report-wide clarity extension also verifies the chart-adapter selected-month delta behavior and removes an unnecessary timing delay from token-store tests that was causing an intermittent test failure.
 
 Rollback is a source-only revert of the component/resource/test changes. The annual API response and historical data remain untouched.
 

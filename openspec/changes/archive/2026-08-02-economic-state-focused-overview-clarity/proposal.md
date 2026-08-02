@@ -5,7 +5,7 @@
 - Do not alter financial calculation formulas, account-nature aggregation, transaction data, API contracts, or persistence models.
 - Do not make asset movement equal to `Income + Expense`; asset movement and period net result remain different metric families.
 - Do not introduce a new report route, new frontend framework, or shared abstraction beyond the existing economic-state panels and localization resources.
-- Do not modify unrelated report pages or the active reports-information-architecture change.
+- Do not modify report calculations, export payload formats, or the active reports-information-architecture change. Report-wide clarity normalizations are limited to existing export controls, period badges, composition legends, and established reporting copy.
 
 ### Required
 
@@ -24,6 +24,8 @@ The Economic State page accepts a global focused month, but its three Monthly Ov
 - Replace current-month-only overview context text with explicit selected-period context when the page supplies external filters.
 - Keep Asset Evolution calculations unchanged, but label its first monthly value as an asset movement and present a concise explanation that it is a stock delta, not the Snapshot period net result.
 - Add Web UI regression coverage for focused-month table, badge, and export behavior, and for the asset-versus-period-net semantic clarification.
+- Make existing export controls explicit about their delivered file type (`CSV` for tables and `PNG` for charts), without adding export formats or changing their download implementations.
+- Keep period badges, annual-report wording, and composition legends consistent with the selected reporting context; Income and Expense composition must use the selected month's movement rather than its year-to-date balance.
 
 ## Capabilities
 
@@ -39,9 +41,10 @@ The Economic State page accepts a global focused month, but its three Monthly Ov
 
 ## Impact
 
-- Web components: `EconomicStatePage.razor`, `AssetTotalEvolutionPanel.razor`, `IncomeEvolutionPanel.razor`, and `ExpenseEvolutionPanel.razor`.
-- Localization: the shared default, English, and Spanish resource files for selected-period and asset-movement copy.
-- Tests: focused Web UI report tests in `tests/FamilyFinances.Web.Tests/Features/Reports/`.
+- Web components: the Economic State Evolution panels, reusable annual chart components, and existing report table export controls.
+- Reporting adapter: `AnnualChartDatasetAdapter` adds selected-month movement composition for Income and Expense.
+- Localization: the shared default, English, and Spanish resource files for period, export, chart, and reporting copy.
+- Tests: focused Web UI report tests, chart dataset-adapter tests, and the stabilized API token-store test.
 - APIs, application handlers, database schema, transaction data, and OpenAPI contracts: no changes.
 
 ## Non-Goals
@@ -50,11 +53,12 @@ The Economic State page accepts a global focused month, but its three Monthly Ov
 - Changing the meaning, signs, ordering, or twelve-bucket API response of monthly evolution data.
 - Changing focused-month behavior on report pages outside `/reports/economic-state`.
 - Redesigning the report layout or the Reports index.
+- Adding CSV or image export formats, changing CSV columns, or changing PNG generation.
 
 ## Release Impact
 
 Type: patch
-Rationale: This is a backward-compatible correction of report filter context and metric wording with no API, data-model, or calculation change.
+Rationale: This is a backward-compatible correction of report filter context, composition semantics, and reporting wording with no API, data-model, calculation, or export-payload change.
 
 ## Rollback Plan
 
