@@ -43,6 +43,7 @@ FamilyFinances-v<version>-win-x64-msi-layout/
   ...
   installer-scripts/
     Assert-InstallerPreconditions.ps1
+    Invoke-HostingBundleMaintenance.ps1
     Invoke-MsiConfigureInstall.ps1
     Invoke-MsiConfigureUninstall.ps1
     Set-ManagedRuntimeConfig.ps1
@@ -50,6 +51,8 @@ FamilyFinances-v<version>-win-x64-msi-layout/
     Configure-WebIisSite.ps1
     Set-LanAccess.ps1
     ...
+  installer-prereqs/
+    dotnet-hosting-9.0-win.exe
 ```
 
 ## Install and Uninstall
@@ -70,7 +73,8 @@ msiexec /i .\dist\FamilyFinances-v0.9.7-win-x64.msi INSTALLDIR="C:\Program Files
 
 Notes:
 - The setup bootstrapper performs a web download of .NET 9 Hosting Bundle only when `AspNetCoreModuleV2` is missing.
-- Use raw MSI only for advanced/manual scenarios where prerequisites are already handled.
+- During MSI prerequisite convergence, the installer enables IIS first and then installs or repairs the Hosting Bundle again if `AspNetCoreModuleV2` is still missing.
+- Use `*-setup.exe` as the recommended path for clean machines. Raw MSI remains the advanced/manual path, even though it now carries the Hosting Bundle payload for self-healing prerequisite repair.
 
 Uninstall (data preserved by default):
 
@@ -127,7 +131,8 @@ If installer rollout has issues:
 ### Install fails on prerequisite checks
 - Run PowerShell as Administrator.
 - Ensure IIS features can be enabled on the host.
-- Verify `dotnet --info` works.
+- If setup reports that Windows restart is required, reboot the machine and rerun the same installer package.
+- If `AspNetCoreModuleV2` still cannot be registered, rerun setup so the staged Hosting Bundle payload can retry repair after IIS activation.
 
 ### Service or IIS startup failures
 - Verify Windows Service `FamilyFinances.Api` status.

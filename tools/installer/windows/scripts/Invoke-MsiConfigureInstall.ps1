@@ -39,7 +39,11 @@ $rotateJwt = $RotateJwtKey -eq 1
 [Environment]::SetEnvironmentVariable("FF_HOSTOPS_SCRIPTS_ROOT", $scriptsRoot, "Machine")
 [Environment]::SetEnvironmentVariable("FF_HOSTOPS_SCRIPTS_ROOT", $scriptsRoot, "Process")
 
-& (Join-Path $scriptsRoot "Assert-InstallerPreconditions.ps1") -EnableIisIfMissing:$enableIis | Out-Null
+$hostingBundlePath = Join-Path $InstallRoot $defaults.HostingBundleRelativePath
+
+& (Join-Path $scriptsRoot "Assert-InstallerPreconditions.ps1") `
+    -EnableIisIfMissing:$enableIis `
+    -HostingBundlePath $hostingBundlePath | Out-Null
 
 & (Join-Path $scriptsRoot "Set-ManagedRuntimeConfig.ps1") `
     -PayloadRoot $InstallRoot `
