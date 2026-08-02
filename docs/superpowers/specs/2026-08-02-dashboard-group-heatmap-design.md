@@ -1,10 +1,10 @@
-# Annual account-group heatmap design
+# Dense annual reporting visualizations design
 
 ## Context and goal
 
-The Dashboard and the Account Group Totals `State Evolution` view currently present account-group monthly results through `AnnualBarChart`. Their dense grouped series make individual bars too narrow to identify, and Chart.js' hover tooltip obscures the same compact plotting area it is meant to explain.
+The Dashboard and the Account Group Totals `State Evolution` view currently present account-group monthly results through `AnnualBarChart`. Their dense grouped series make individual bars too narrow to identify, and Chart.js' hover tooltip obscures the same compact plotting area it is meant to explain. The annual multi-account evolution view has the equivalent problem with intersecting lines and the same overlay tooltip.
 
-These views must let a household quickly identify which account groups dominate spending in each month. The replacement must show every available account group without requiring a floating legend or a separate data fetch. Annual Income versus Expense comparison controls are explicitly out of scope and remain bar charts.
+These views must let a household quickly identify which account groups dominate spending in each month, and follow the annual trajectory of several accounts. The replacements must not require a floating legend or a separate data fetch. Annual Income versus Expense comparison controls, single-series annual lines, and daily charts are explicitly out of scope and remain unchanged.
 
 ## Chosen design
 
@@ -40,6 +40,32 @@ The component will keep each host's title, subtitle, selected-year badge, empty 
 
 No new endpoint, DTO, persistence change, transaction calculation, or aggregation formula is required.
 
+## Account trajectories: chosen design
+
+Replace the multi-series annual `EvolutionChart` in `AccountStateEvolutionPanel` with `AnnualAccountTrajectoryStrips`. The component renders one compact line strip per account, aligned to the same twelve month headers:
+
+```text
+Account                         Jan Feb Mar Apr May Jun Jul Aug ... Dec   Current
+Main account                     ╱╲────╱╲─────────────── ···········     1,245 €
+Card                             ──╲──────╲─────╱──────── ·········      -620 €
+Savings                          ╱────╱──────────╱──────── ·········    3,780 €
+
+Selected: Savings · August · 3,420 €
+```
+
+- Every account series currently supplied by the selected account context appears as a labelled row. When the host explicitly filters to one account, the same component renders that one trajectory rather than reintroducing the legacy chart.
+- Every row has its own vertical scale so that meaningful changes in a small account remain visible beside high-balance accounts. The fixed `Current` value makes magnitude explicit, and the component does not claim that line height is comparable across rows.
+- Actual values use a solid line through `DataUntilMonth`. The remaining months repeat the final known balance only as a muted dashed continuation, preserving the current chart's context without representing it as observed data.
+- Rows share month positions, so a vertical selection marker aligns the selected month across all strips. Selecting a row or point with pointer, Enter, Space, or arrow keys updates a persistent detail region beneath the list.
+- Each row exposes an accessible name containing account, month, signed EUR amount, and observed-versus-carried-forward state. Colour supplements but never replaces these labels.
+- The component retains the source title, subtitle, period badge, empty state, and PNG export behaviour. It uses Razor/SVG or CSS-drawn lines rather than Chart.js, so no hover overlay can obscure a trajectory.
+
+## Account-trajectory testing
+
+- Extend `AccountStateEvolutionPanel` coverage to assert that its dense annual `EvolutionChart` is replaced only in the multi-account annual context.
+- Add focused component tests for one-row and multi-row rendering, independent per-row scales, actual versus dashed carried-forward segments, current-value formatting, pointer/keyboard selection, and persistent selected-point detail.
+- Add accessibility assertions for row and point labels, selection state, keyboard navigation, and reduced-motion-safe rendering.
+
 ## Layout and visual direction
 
 The heatmap uses the existing premium dark report surface and chart tokens. It is intentionally quieter than the neighbouring charts: sparse month headers, strong row labels, and a single selected-cell outline are the signature rather than another palette of competing series colours.
@@ -66,6 +92,8 @@ At wide Dashboard and report widths, the group-label column remains fixed while 
 2. **Twelve mini-rankings:** makes individual months readable but breaks the ability to trace one group's evolution across the year.
 3. **Keep grouped bars and relocate the tooltip:** avoids the overlay but leaves the primary problem, unreadable narrow bars, intact.
 
+For account trajectories, overlaying only the selected account on the existing multi-line chart was rejected because it hides the other trajectories; a horizon chart was rejected because it makes ordinary household balance changes harder to read than isolated line strips.
+
 ## Scope and acceptance criteria
 
 - The Dashboard and Account Group Totals state-evolution view show every available account group and every valid month in the selected year.
@@ -73,3 +101,4 @@ At wide Dashboard and report widths, the group-label column remains fixed while 
 - Selection exposes the exact signed EUR amount in a persistent detail region.
 - Existing report data, financial semantics, and export formats remain unchanged.
 - The component remains compact enough to occupy the existing Dashboard card position and report-panel position; annual Income versus Expense controls remain unchanged.
+- The annual multi-account view shows one independently readable trajectory per available account with exact selected-point detail and no obstructive overlay.
