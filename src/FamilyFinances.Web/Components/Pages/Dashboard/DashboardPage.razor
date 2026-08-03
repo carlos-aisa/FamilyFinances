@@ -1,6 +1,7 @@
 @page "/"
 @rendermode InteractiveServer
 @using FamilyFinances.Application.Reporting.Dtos
+@using FamilyFinances.Domain.Ledger.Accounts
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
 @using FamilyFinances.Web.Components.Pages.Reports.Charts
@@ -12,6 +13,7 @@
 @inherits ApiPageBase
 
 @inject ReportsApi ReportsApi
+@inject AccountGroupsApi AccountGroupsApi
 @inject IStringLocalizer<SharedResource> L
 
 <AuthorizeView>
@@ -207,7 +209,7 @@
                         }
                     </div>
                     <div class="col-12 col-xxl-4">
-                        @if (_groupAnnualEvolutionSeries.Count == 0)
+                        @if (_groupAnnualEvolutionItems.Count == 0)
                         {
                             <ReportingChartEmptyState
                                 Title="@L["Dashboard_GroupAnnualEvolution_Title"]"
@@ -215,12 +217,14 @@
                         }
                         else
                         {
-                            <AnnualBarChart
+                            <AnnualEvolutionList
                                 Title="@L["Dashboard_GroupAnnualEvolution_Title"]"
                                 Subtitle="@L["Dashboard_GroupAnnualEvolution_Subtitle"]"
                                 Year="@_overview.AsOf.Year"
-                                Series="@_groupAnnualEvolutionSeries"
-                                DataUntilMonth="@_overview.AsOf.Month"
+                                Month="@_overview.AsOf.Month"
+                                Items="@_groupAnnualEvolutionItems"
+                                Layout="AnnualEvolutionListLayout.AccountGroup"
+                                EnableDetailNavigation="true"
                                 TestId="dashboard-group-annual-evolution-chart" />
                         }
                     </div>
@@ -264,7 +268,9 @@
     private IReadOnlyList<AnnualChartSeries> _annualIncomeVsExpenseSeries = Array.Empty<AnnualChartSeries>();
     private IReadOnlyList<AnnualChartSeries> _monthlyNetTrendSeries = Array.Empty<AnnualChartSeries>();
     private IReadOnlyList<AnnualChartSeries> _assetAnnualEvolutionSeries = Array.Empty<AnnualChartSeries>();
-    private IReadOnlyList<AnnualChartSeries> _groupAnnualEvolutionSeries = Array.Empty<AnnualChartSeries>();
+    private IReadOnlyList<AnnualEvolutionListItem> _groupAnnualEvolutionItems = Array.Empty<AnnualEvolutionListItem>();
+    private IReadOnlyDictionary<Guid, IReadOnlySet<AccountNature>> _accountGroupNaturesById =
+        new Dictionary<Guid, IReadOnlySet<AccountNature>>();
     private IReadOnlyList<AnnualCompositionSlice> _expenseCompositionSlices = Array.Empty<AnnualCompositionSlice>();
 
     protected override async Task OnInitializedAsync()
@@ -281,7 +287,8 @@
         _annualIncomeVsExpenseSeries = Array.Empty<AnnualChartSeries>();
         _monthlyNetTrendSeries = Array.Empty<AnnualChartSeries>();
         _assetAnnualEvolutionSeries = Array.Empty<AnnualChartSeries>();
-        _groupAnnualEvolutionSeries = Array.Empty<AnnualChartSeries>();
+        _groupAnnualEvolutionItems = Array.Empty<AnnualEvolutionListItem>();
+        _accountGroupNaturesById = new Dictionary<Guid, IReadOnlySet<AccountNature>>();
         _expenseCompositionSlices = Array.Empty<AnnualCompositionSlice>();
         StateHasChanged();
 
@@ -294,7 +301,7 @@
             _monthlyIncomeVsExpenseSeries = BuildMonthlyIncomeExpenseSeries(_overview);
             _annualIncomeVsExpenseSeries = BuildAnnualIncomeExpenseSeries(_overview);
             _monthlyNetTrendSeries = BuildMonthlyNetTrendSeries(_overview);
-            await LoadAnnualEvolutionSeriesAsync(_overview.AsOf.Year);
+            await LoadAnnualEvolutionSeriesAsync(_overview.AsOf.Year, _overview.AsOf.Month);
             _expenseCompositionSlices = BuildExpenseCompositionSlices(_overview);
             await CalculateYtdKpiAsync();
         }
@@ -424,7 +431,7 @@
         return slices;
     }
 
-    private async Task LoadAnnualEvolutionSeriesAsync(int year)
+    private async Task LoadAnnualEvolutionSeriesAsync(int year, int month)
     {
         var assetEvolution = await ExecuteApiAsync(
             ct => ReportsApi.GetStateEvolutionAsync(year, MonthlyEvolutionScope.AssetTotal, ct));
@@ -442,9 +449,71 @@
             label: L["Dashboard_AssetEvolution_Legend"],
             colorHex: ChartSemanticPalette.ResolveSemantic(ChartSemanticPalette.Neutral));
 
-        _groupAnnualEvolutionSeries = AnnualChartDatasetAdapter.BuildSeriesMonthlyDelta(
-            groupEvolution,
-            maxSeries: 8);
+        await LoadAccountGroupNatureLookupBestEffortAsync();
+        _groupAnnualEvolutionItems = BuildAccountGroupEvolutionItems(groupEvolution, month);
+    }
+
+    private async Task LoadAccountGroupNatureLookupBestEffortAsync()
+    {
+        try
+        {
+            var groups = await AccountGroupsApi.ListAsync(default);
+            var details = await Task.WhenAll(groups.Select(async group => new
+            {
+                group.Id,
+                Details = await AccountGroupsApi.GetByIdAsync(group.Id, default)
+            }));
+
+            _accountGroupNaturesById = details.ToDictionary(
+                item => item.Id,
+                item => (IReadOnlySet<AccountNature>)item.Details.Accounts
+                    .Select(account => account.Nature)
+                    .ToHashSet());
+        }
+        catch
+        {
+            _accountGroupNaturesById = new Dictionary<Guid, IReadOnlySet<AccountNature>>();
+        }
+    }
+
+    private IReadOnlyList<AnnualEvolutionListItem> BuildAccountGroupEvolutionItems(
+        MonthlyEvolutionReportDto report,
+        int month)
+    {
+        return report.Series
+            .Select(series =>
+            {
+                var point = series.Points
+                    .Where(item => item.Month <= month)
+                    .OrderByDescending(item => item.Month)
+                    .FirstOrDefault();
+                return new AnnualEvolutionListItem(
+                    series.EntityId,
+                    series.SeriesKey,
+                    series.DisplayName,
+                    CurrentBalanceCents: point?.EndBalanceCents,
+                    MonthChangeCents: point?.DeltaVsPreviousMonthCents,
+                    YearToDateCents: point?.DeltaVsYearStartCents,
+                    SemanticClass: ResolveAccountGroupSemanticClass(series.EntityId));
+            })
+            .OrderByDescending(item => Math.Abs(item.MonthChangeCents ?? 0L))
+            .ThenBy(item => item.Label, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(item => item.Key, StringComparer.Ordinal)
+            .ToList();
+    }
+
+    private string ResolveAccountGroupSemanticClass(Guid? groupId)
+    {
+        if (groupId is null || !_accountGroupNaturesById.TryGetValue(groupId.Value, out var natures))
+            return "text-secondary";
+
+        if (natures.Contains(AccountNature.Income) && !natures.Contains(AccountNature.Expense))
+            return "text-success";
+
+        if (natures.Contains(AccountNature.Expense) && !natures.Contains(AccountNature.Income))
+            return "text-danger";
+
+        return "text-secondary";
     }
 
     private string GetDataSufficiencyMessage(DashboardDataSufficiencyState state)

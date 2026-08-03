@@ -102,7 +102,6 @@ else if (_report is not null)
     var dataUntilMonth = GetDataUntilMonthForSelectedYear();
     var summaryMonth = GetReferenceMonthForSelectedYear();
     var groupedSeries = GetAccountSeriesGroups();
-    var selectableSeries = GetSelectableAccountSeries();
     var compositionMonthOptions = GetAvailableMonthsForFocusedSelection();
     var compositionMonth = GetFocusedCompositionMonth();
     var compositionMonthLabel = compositionMonth is not null
@@ -248,103 +247,51 @@ else if (_report is not null)
                         </div>
 
                         <div class="col-12 col-xxl-4 accounts-chart-panel">
-                            <div class="d-flex justify-content-end mb-2">
-                                <div class="btn-group btn-group-sm" role="group" aria-label="@L["AccountStateOverview_ChartMode"]">
+                            <div class="d-flex justify-content-between align-items-end gap-2 mb-2">
+                                <div class="btn-group btn-group-sm" role="group" aria-label="@L["AccountStateOverview_CompositionNature"]">
                                     <button type="button"
-                                            class="btn @GetAccountsChartModeButtonClass(AccountsChartMode.Evolution)"
-                                            @onclick="() => SetAccountsChartMode(AccountsChartMode.Evolution)">
-                                        @L["Reports_ChartMode_Evolution"]
+                                            class="btn @GetAccountsCompositionButtonClass(AccountNature.Expense)"
+                                            @onclick="() => SetAccountsCompositionNature(AccountNature.Expense)">
+                                        @L["Dashboard_Nature_Expense"]
                                     </button>
                                     <button type="button"
-                                            class="btn @GetAccountsChartModeButtonClass(AccountsChartMode.Composition)"
-                                            @onclick="() => SetAccountsChartMode(AccountsChartMode.Composition)">
-                                        @L["Reports_ChartMode_Composition"]
+                                            class="btn @GetAccountsCompositionButtonClass(AccountNature.Income)"
+                                            @onclick="() => SetAccountsCompositionNature(AccountNature.Income)">
+                                        @L["Dashboard_Nature_Income"]
                                     </button>
                                 </div>
+
+                                @if (compositionMonthOptions.Count > 0 && _focusedMonth is not null)
+                                {
+                                    <div>
+                                        <label class="form-label fw-semibold mb-1">@L["Reports_FocusedMonth"]</label>
+                                        <select class="form-select form-select-sm month-focus-select"
+                                                aria-label="@L["Reports_FocusedMonth"]"
+                                                value="@_focusedMonth"
+                                                @onchange="OnFocusedMonthChanged">
+                                            @foreach (var month in compositionMonthOptions)
+                                            {
+                                                <option value="@month">@DateHelper.GetMonthName(month)</option>
+                                            }
+                                        </select>
+                                    </div>
+                                }
                             </div>
 
-                            @if (_accountsChartMode == AccountsChartMode.Evolution)
+                            @if (!string.IsNullOrWhiteSpace(charts.Error))
                             {
-                                <div class="mb-2">
-                                    <label class="form-label fw-semibold mb-1">@L["Reports_Account"]</label>
-                                    <select class="form-select form-select-sm account-line-selector"
-                                            aria-label="@L["Reports_AccountLineSelector"]"
-                                            value="@_selectedAccountSeriesKeyForChart"
-                                            @onchange="OnAccountSeriesSelectionChanged">
-                                        <option value="">@L["AccountStateOverview_TopAccounts"]</option>
-                                        @foreach (var series in selectableSeries)
-                                        {
-                                            <option value="@series.SeriesKey">@series.DisplayName</option>
-                                        }
-                                    </select>
-                                </div>
-
-                                @if (!string.IsNullOrWhiteSpace(charts.Error))
-                                {
-                                    <ReportingChartErrorState Message="@charts.Error" />
-                                }
-                                else
-                                {
-                                    <EvolutionChart
-                                        Mode="EvolutionChartMode.MonthlyInYear"
-                                        Title="@L["AccountStateOverview_AnnualEvolutionTitle"]"
-                                        Subtitle="@L["AccountStateOverview_AnnualEvolutionSubtitle"]"
-                                        Year="@_selectedYear"
-                                        AnnualSeries="@charts.AccountEvolution"
-                                        DataUntilMonth="@dataUntilMonth"
-                                        YTickMaxTicks="5"
-                                        CarryForwardAfterMarker="true"
-                                        TestId="annual-accounts-evolution-chart" />
-                                }
+                                <ReportingChartErrorState Message="@charts.Error" />
                             }
                             else
                             {
-                                <div class="d-flex justify-content-between align-items-end gap-2 mb-2">
-                                    <div class="btn-group btn-group-sm" role="group" aria-label="@L["AccountStateOverview_CompositionNature"]">
-                                        <button type="button"
-                                                class="btn @GetAccountsCompositionButtonClass(AccountNature.Expense)"
-                                                @onclick="() => SetAccountsCompositionNature(AccountNature.Expense)">
-                                            @L["Dashboard_Nature_Expense"]
-                                        </button>
-                                        <button type="button"
-                                                class="btn @GetAccountsCompositionButtonClass(AccountNature.Income)"
-                                                @onclick="() => SetAccountsCompositionNature(AccountNature.Income)">
-                                            @L["Dashboard_Nature_Income"]
-                                        </button>
-                                    </div>
-
-                                    @if (compositionMonthOptions.Count > 0 && _focusedMonth is not null)
-                                    {
-                                        <div>
-                                            <label class="form-label fw-semibold mb-1">@L["Reports_FocusedMonth"]</label>
-                                            <select class="form-select form-select-sm month-focus-select"
-                                                    aria-label="@L["Reports_FocusedMonth"]"
-                                                    value="@_focusedMonth"
-                                                    @onchange="OnFocusedMonthChanged">
-                                                @foreach (var month in compositionMonthOptions)
-                                                {
-                                                    <option value="@month">@DateHelper.GetMonthName(month)</option>
-                                                }
-                                            </select>
-                                        </div>
-                                    }
-                                </div>
-
-                                @if (!string.IsNullOrWhiteSpace(charts.Error))
-                                {
-                                    <ReportingChartErrorState Message="@charts.Error" />
-                                }
-                                else
-                                {
-                                    <AnnualCompositionChart
-                                        Title="@GetAccountsCompositionTitle()"
-                                        Subtitle="@L["AccountStateOverview_CompositionSubtitle", GetAccountsCompositionNatureLabel().ToLowerInvariant(), compositionMonthLabel]"
-                                        Year="@_selectedYear"
-                                        Slices="@GetAccountsCompositionSlices(charts)"
-                                        UseSideLegend="true"
-                                        LegendMaxItems="10"
-                                        TestId="annual-accounts-composition-chart" />
-                                }
+                                <AnnualCompositionChart
+                                    Title="@GetAccountsCompositionTitle()"
+                                    Subtitle="@L["AccountStateOverview_CompositionSubtitle", GetAccountsCompositionNatureLabel().ToLowerInvariant(), compositionMonthLabel]"
+                                    Year="@_selectedYear"
+                                    Slices="@GetAccountsCompositionSlices(charts)"
+                                    UseSideLegend="true"
+                                    LegendMaxItems="10"
+                                    TestId="annual-accounts-composition-chart" />
                             }
                         </div>
     </div>
@@ -370,8 +317,6 @@ else
     private IReadOnlyDictionary<Guid, AccountNature> _accountNatureById = new Dictionary<Guid, AccountNature>();
     private int? _focusedMonth;
     private string? _expandedSeriesKey;
-    private string? _selectedAccountSeriesKeyForChart;
-    private AccountsChartMode _accountsChartMode = AccountsChartMode.Evolution;
     private AccountNature _accountsCompositionNature = AccountNature.Expense;
     private static readonly AccountNature[] _natureOrder =
     {
@@ -418,26 +363,9 @@ else
         return Task.CompletedTask;
     }
 
-    private Task OnAccountSeriesSelectionChanged(ChangeEventArgs e)
-    {
-        var selected = e.Value?.ToString();
-        _selectedAccountSeriesKeyForChart = string.IsNullOrWhiteSpace(selected) ? null : selected;
-        return Task.CompletedTask;
-    }
-
     private static string GetValueColorClass(long cents, bool hasData)
     {
         return hasData ? MoneyFormatter.GetColorClass(cents) : "text-muted";
-    }
-
-    private void SetAccountsChartMode(AccountsChartMode mode)
-    {
-        _accountsChartMode = mode;
-    }
-
-    private string GetAccountsChartModeButtonClass(AccountsChartMode mode)
-    {
-        return _accountsChartMode == mode ? "btn-primary" : "btn-outline-primary";
     }
 
     private void SetAccountsCompositionNature(AccountNature nature)
@@ -482,7 +410,6 @@ else
             await LoadAccountNatureLookupBestEffortAsync();
 
             SyncFocusedMonth();
-            SyncSelectedAccountSeries();
             _expandedSeriesKey = null;
         }
         catch (UnauthorizedAccessException)
@@ -508,15 +435,6 @@ else
         {
             var focusedCompositionMonth = GetFocusedCompositionMonth();
 
-            var selectedAccountKeys = !string.IsNullOrWhiteSpace(_selectedAccountSeriesKeyForChart)
-                ? new HashSet<string>(StringComparer.Ordinal) { _selectedAccountSeriesKeyForChart }
-                : null;
-
-            var accountEvolution = AnnualChartDatasetAdapter.BuildSeriesEvolution(
-                _report,
-                maxSeries: selectedAccountKeys is null ? 12 : 1,
-                includedSeriesKeys: selectedAccountKeys);
-
             var expenseComposition = focusedCompositionMonth is not null
                 ? AnnualChartDatasetAdapter.BuildCompositionByNatureAtMonth(
                     _report,
@@ -534,7 +452,6 @@ else
                 : Array.Empty<AnnualCompositionSlice>();
 
             return new AnnualChartsViewModel(
-                AccountEvolution: accountEvolution,
                 ExpenseComposition: expenseComposition,
                 IncomeComposition: incomeComposition,
                 Error: null);
@@ -542,7 +459,6 @@ else
         catch (Exception ex)
         {
             return new AnnualChartsViewModel(
-                AccountEvolution: Array.Empty<AnnualChartSeries>(),
                 ExpenseComposition: Array.Empty<AnnualCompositionSlice>(),
                 IncomeComposition: Array.Empty<AnnualCompositionSlice>(),
                 Error: L["Reports_Error_BuildAnnualChartDataset", ex.Message]);
@@ -694,33 +610,6 @@ else
         }
     }
 
-    private IReadOnlyList<MonthlyEvolutionSeriesDto> GetSelectableAccountSeries()
-    {
-        if (_report is null)
-            return Array.Empty<MonthlyEvolutionSeriesDto>();
-
-        return _report.Series
-            .OrderBy(s => s.DisplayName)
-            .ThenBy(s => s.SeriesKey)
-            .ToList();
-    }
-
-    private void SyncSelectedAccountSeries()
-    {
-        if (_report is null)
-        {
-            _selectedAccountSeriesKeyForChart = null;
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(_selectedAccountSeriesKeyForChart))
-            return;
-
-        var exists = _report.Series.Any(s => s.SeriesKey == _selectedAccountSeriesKeyForChart);
-        if (!exists)
-            _selectedAccountSeriesKeyForChart = null;
-    }
-
     private IReadOnlyList<AccountNatureSeriesGroup> GetAccountSeriesGroups()
     {
         if (_report is null || _report.Series.Count == 0)
@@ -851,8 +740,7 @@ else
             context: new Dictionary<string, string?>
             {
                 [L["Reports_Year"]] = _selectedYear.ToString(),
-                [L["Reports_FocusedMonth"]] = summaryMonth is not null ? DateHelper.GetMonthName(summaryMonth.Value) : null,
-                [L["Reports_ChartMode"]] = _accountsChartMode.ToString()
+                [L["Reports_FocusedMonth"]] = summaryMonth is not null ? DateHelper.GetMonthName(summaryMonth.Value) : null
             },
             headers: [L["Reports_Nature"], L["Reports_SeriesName"], L["Reports_EndBalance"], L["Reports_DeltaPrevMonth"], L["Reports_DeltaYearStart"]],
             rows: rows);
@@ -869,22 +757,14 @@ else
     }
 
     private sealed record AnnualChartsViewModel(
-        IReadOnlyList<AnnualChartSeries> AccountEvolution,
         IReadOnlyList<AnnualCompositionSlice> ExpenseComposition,
         IReadOnlyList<AnnualCompositionSlice> IncomeComposition,
         string? Error)
     {
         public static AnnualChartsViewModel Empty => new(
-            AccountEvolution: Array.Empty<AnnualChartSeries>(),
             ExpenseComposition: Array.Empty<AnnualCompositionSlice>(),
             IncomeComposition: Array.Empty<AnnualCompositionSlice>(),
             Error: null);
-    }
-
-    private enum AccountsChartMode
-    {
-        Evolution,
-        Composition
     }
 
     private sealed record AccountNatureSeriesGroup(

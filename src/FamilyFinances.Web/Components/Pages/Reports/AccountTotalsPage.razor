@@ -317,7 +317,6 @@
     private AccountTotalsReportTab _activeTab = AccountTotalsReportTab.PeriodTotals;
     private SortColumn _sortColumn = SortColumn.NetChange;
     private SortDirection _sortDirection = SortDirection.Descending;
-
     private async Task HandlePresetSelected(DateRangePresets.DateRangePreset preset)
     {
         var (from, to) = preset.GetDateRange();

@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using Bunit;
 using Bunit.TestDoubles;
 using FamilyFinances.Application.Reporting.Dtos;
+using FamilyFinances.Application.Ledger.AccountGroups.Dtos;
 using FamilyFinances.Web.Api;
 using FamilyFinances.Web.Auth;
 using FamilyFinances.Web.Components.Pages.Dashboard;
@@ -31,7 +32,8 @@ public sealed class DashboardPageTests : WebTestContext
             cut.Find("[data-testid='dashboard-annual-income-expense-chart']");
             cut.Find("[data-testid='dashboard-monthly-net-trend-chart']");
             cut.Find("[data-testid='dashboard-asset-evolution-chart']");
-            cut.Find("[data-testid='dashboard-group-annual-evolution-chart']");
+            var groupEvolution = cut.Find("[data-testid='dashboard-group-annual-evolution-chart']");
+            groupEvolution.ClassList.Should().Contain("annual-evolution-list");
             var compositionChart = cut.Find("[data-testid='dashboard-expense-composition-chart']");
             cut.Find("[data-testid='dashboard-open-quick-entry']");
             compositionChart.TextContent.Should().Contain("2026-03");
@@ -154,6 +156,7 @@ public sealed class DashboardPageTests : WebTestContext
         Services.AddSingleton<IApiTokenStore>(tokenStore);
         Services.AddSingleton(new JwtAuthStateProvider(tokenStore));
         Services.AddScoped<ReportsApi>();
+        Services.AddScoped<AccountGroupsApi>();
     }
 
     private static Mock<IHttpClientFactory> BuildHttpClientFactory(
@@ -212,6 +215,14 @@ public sealed class DashboardPageTests : WebTestContext
                             AsOf: new DateOnly(payload.AsOf.Year - 1, 12, 31),
                             TotalCents: previousYearAssetTotalCents,
                             AssetAccountsCount: 2))
+                    });
+                }
+
+                if (uri.Contains("api/v1/account-groups", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(Array.Empty<AccountGroupDto>())
                     });
                 }
 
