@@ -1,5 +1,17 @@
 ## MODIFIED Requirements
 
+### Requirement: Reporting UI SHALL Render Annual Evolution Charts for Implemented State-Evolution Scopes
+
+The reporting UI MUST display annual charts only for implemented state-evolution scopes that retain a chart visualization (`asset-total`).
+
+#### Scenario: Annual evolution chart is shown with selected year data
+
+- **WHEN** an authenticated user opens an annual reporting view with charted evolution for year `Y`
+- **THEN** the UI MUST show a chart visualizing monthly evolution across months `1..N` for that year
+- **AND** chart points MUST use the same underlying monthly values shown in the corresponding table
+
+## ADDED Requirements
+
 ### Requirement: Reporting UI SHALL Render Annual Account Group Evolution
 
 The reporting UI MUST present annual account-group evolution on the Dashboard as a complete list of supplied groups. Account Group Totals State Evolution MUST retain its complete group summary on the left and use the right Evolution panel for the selected group's account detail. Each group row MUST show its signed selected-month amount and the UI MUST NOT hide groups through a presentation top-N cap.
@@ -49,3 +61,7 @@ Account Totals State Evolution MUST show its expense and income composition anal
 
 - **WHEN** a user selects Expense or Income and an available focused month
 - **THEN** the composition chart MUST use the existing values for that nature and month
+
+## REMOVED Requirements
+
+### Requirement: Reporting UI SHALL Render Annual Account Group Evolution Chart
