@@ -11,6 +11,7 @@ using FamilyFinances.Web.Auth;
 using FamilyFinances.Web.Components.Pages.Reports;
 using FamilyFinances.Web.Features.Reports;
 using FluentAssertions;
+using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Moq.Protected;
@@ -121,7 +122,7 @@ public sealed class AccountGroupTotalsPageTests : WebTestContext
             requestedUris.Should().Contain(uri => uri.Contains("scope=account-groups"));
             requestedUris.Should().Contain(uri => uri.Contains("monthly-charts/group-evolution"));
             cut.Markup.Should().Contain("Account Group State");
-            cut.Find("[data-testid='account-group-totals-stock-evolution-chart']");
+            cut.Find("[data-testid='reporting-chart-empty']");
             cut.Find("[data-testid='account-group-totals-monthly-comparison-chart']");
             cut.Find("[data-testid='account-group-focused-month']");
             var summaryTable = cut.Find("[data-testid='account-group-state-summary-table']");
@@ -218,7 +219,7 @@ public sealed class AccountGroupTotalsPageTests : WebTestContext
         cut.WaitForAssertion(() =>
         {
             requestedUris.Should().Contain(uri => uri.Contains("scope=account-groups"));
-            cut.Find("[data-testid='account-group-totals-stock-evolution-chart']");
+            cut.Find("[data-testid='reporting-chart-empty']");
         });
 
         var compositionModeButton = cut.FindAll("button")
@@ -326,7 +327,7 @@ public sealed class AccountGroupTotalsPageTests : WebTestContext
     }
 
     [Fact]
-    public void State_Evolution_Uses_Annual_Bar_Chart_And_Removes_Comparability_Card_Text()
+    public void State_Evolution_PromptsForHistoricalMonthSelection_And_Removes_Comparability_Card_Text()
     {
         var currentYear = DateHelper.GetCurrentYear();
         var groupId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
@@ -391,10 +392,58 @@ public sealed class AccountGroupTotalsPageTests : WebTestContext
 
         cut.WaitForAssertion(() =>
         {
-            var chart = cut.Find("[data-testid='account-group-totals-stock-evolution-chart']");
-            chart.ClassList.Should().Contain("annual-bar-chart");
-            cut.Markup.Should().Contain("Monthly result bars (non-cumulative).");
+            cut.Markup.Should().Contain("Select a month from a group history");
             cut.Markup.Should().NotContain("Monthly evolution end balances and deltas are stock metrics.");
+        });
+    }
+
+    [Fact]
+    public void State_Evolution_HistoricalMonthSelection_ShowsOnlyTheSelectedGroupsAccounts()
+    {
+        var currentYear = DateHelper.GetCurrentYear();
+        var groupId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        var httpClient = CreateHttpClient(handlerMock);
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync((HttpRequestMessage request, CancellationToken _) =>
+            {
+                var uri = request.RequestUri!.ToString();
+                if (uri.Contains($"api/v1/account-groups/{groupId}", StringComparison.OrdinalIgnoreCase))
+                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(CreateGroupDetailsPayload(groupId)) };
+                if (uri.Contains("api/v1/account-groups", StringComparison.OrdinalIgnoreCase))
+                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(CreateGroupListPayload()) };
+                if (uri.Contains("api/v1/reports/state-evolution", StringComparison.OrdinalIgnoreCase) && uri.Contains("scope=account-groups"))
+                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(CreateMonthlyEvolutionPayload(currentYear, groupId)) };
+                if (uri.Contains("api/v1/reports/state-evolution", StringComparison.OrdinalIgnoreCase) && uri.Contains("scope=accounts"))
+                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(CreateAccountEvolutionPayload(currentYear)) };
+                if (uri.Contains("api/v1/reports/monthly-charts/group-evolution", StringComparison.OrdinalIgnoreCase))
+                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(CreateMonthlyBalanceVsGroupsPayload(currentYear, groupId)) };
+
+                return new HttpResponseMessage(HttpStatusCode.BadRequest);
+            });
+        RegisterAuthorizedServices(httpClient);
+
+        var cut = RenderComponent<AccountGroupTotalsPage>();
+        cut.FindAll("button.nav-link")
+            .First(button => button.TextContent.Contains("state", StringComparison.OrdinalIgnoreCase))
+            .Click();
+
+        cut.WaitForAssertion(() => cut.Find("tr.series-summary-row button").Click());
+
+        var historicalMonth = cut.FindAll("tr.series-detail-row tbody tr")
+            .First(row => row.TextContent.Contains("January", StringComparison.OrdinalIgnoreCase));
+        historicalMonth.Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            var detail = cut.Find("[data-testid='account-group-totals-stock-evolution-chart']");
+            detail.TextContent.Should().Contain("Groceries");
+            detail.TextContent.Should().Contain("Rent");
+            detail.QuerySelectorAll("a").Should().BeEmpty();
+            detail.QuerySelectorAll("thead th").Select(header => header.TextContent.Trim())
+                .Should().Equal("Account", "Month balance", "Accumulated");
         });
     }
 
@@ -471,6 +520,55 @@ public sealed class AccountGroupTotalsPageTests : WebTestContext
         cut.Find("[data-testid='account-group-totals-export-csv']").Click();
 
         exportCall.Invocations.Should().ContainSingle();
+    }
+
+    [Fact]
+    public void QueryContext_LoadsTheSelectedGroupForTheRequestedMonth()
+    {
+        var groupId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        var requestedUris = new List<string>();
+        var reportDto = new AccountGroupTotalsDto(
+            groupId,
+            "Household",
+            new DateOnly(2026, 3, 1),
+            new DateOnly(2026, 4, 1),
+            AccountNature.Expense,
+            1_000,
+            1,
+            1,
+            [new AccountGroupTotalItemDto(Guid.NewGuid(), "Groceries", 1_000, 1)]);
+        var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        var httpClient = CreateHttpClient(handlerMock);
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync((HttpRequestMessage request, CancellationToken _) =>
+            {
+                var uri = request.RequestUri!.ToString();
+                requestedUris.Add(uri);
+                if (uri.Contains("api/v1/account-groups", StringComparison.OrdinalIgnoreCase) &&
+                    !uri.Contains("api/v1/reports", StringComparison.OrdinalIgnoreCase))
+                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(CreateGroupListPayload()) };
+                if (uri.Contains("api/v1/reports/account-groups/", StringComparison.OrdinalIgnoreCase))
+                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(reportDto) };
+                if (uri.Contains("api/v1/reports/state-evolution", StringComparison.OrdinalIgnoreCase))
+                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(CreateMonthlyEvolutionPayload(2026, groupId)) };
+                if (uri.Contains("api/v1/reports/monthly-charts/group-evolution", StringComparison.OrdinalIgnoreCase))
+                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(CreateMonthlyBalanceVsGroupsPayload(2026, groupId)) };
+
+                return new HttpResponseMessage(HttpStatusCode.BadRequest);
+            });
+        RegisterAuthorizedServices(httpClient);
+
+        var navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo($"http://localhost/reports/account-group-totals?groupId={groupId}&year=2026&month=3");
+        var cut = RenderComponent<AccountGroupTotalsPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            requestedUris.Should().Contain(uri => uri.Contains($"account-groups/{groupId}/totals") && uri.Contains("from=2026-03-01") && uri.Contains("to=2026-04-01"));
+            cut.Markup.Should().Contain("Household");
+        });
     }
 
     [Fact]
@@ -704,6 +802,39 @@ public sealed class AccountGroupTotalsPageTests : WebTestContext
                         new MonthlyEvolutionPointDto(1, new DateOnly(year, 1, 31), 120_000, 120_000, 120_000),
                         new MonthlyEvolutionPointDto(2, new DateOnly(year, 2, DateTime.DaysInMonth(year, 2)), 145_000, 25_000, 145_000)
                     ])
+            ]);
+    }
+
+    private static MonthlyEvolutionReportDto CreateAccountEvolutionPayload(int year)
+    {
+        return new MonthlyEvolutionReportDto(
+            year,
+            MonthlyEvolutionScope.Accounts,
+            [
+                new MonthlyEvolutionSeriesDto(
+                    "account:bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+                    "Groceries",
+                    Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
+                    "account",
+                    [
+                        new MonthlyEvolutionPointDto(1, new DateOnly(year, 1, 31), 12_000, 12_000, 12_000),
+                        new MonthlyEvolutionPointDto(2, new DateOnly(year, 2, DateTime.DaysInMonth(year, 2)), 15_000, 3_000, 15_000)
+                    ]),
+                new MonthlyEvolutionSeriesDto(
+                    "account:cccccccc-cccc-cccc-cccc-cccccccccccc",
+                    "Rent",
+                    Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc"),
+                    "account",
+                    [
+                        new MonthlyEvolutionPointDto(1, new DateOnly(year, 1, 31), 50_000, 50_000, 50_000),
+                        new MonthlyEvolutionPointDto(2, new DateOnly(year, 2, DateTime.DaysInMonth(year, 2)), 50_000, 0, 50_000)
+                    ]),
+                new MonthlyEvolutionSeriesDto(
+                    "account:dddddddd-dddd-dddd-dddd-dddddddddddd",
+                    "Excluded account",
+                    Guid.Parse("dddddddd-dddd-dddd-dddd-dddddddddddd"),
+                    "account",
+                    [new MonthlyEvolutionPointDto(1, new DateOnly(year, 1, 31), 99_000, 99_000, 99_000)])
             ]);
     }
 

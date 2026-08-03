@@ -36,7 +36,7 @@ public sealed class AccountTotalsPageTests : WebTestContext
     }
 
     [Fact]
-    public void State_Evolution_Tab_Loads_Accounts_Evolution_Content()
+    public void State_Evolution_Tab_Shows_Composition_Without_Annual_Account_List()
     {
         var currentYear = DateHelper.GetCurrentYear();
         var requestedUris = new List<string>();
@@ -94,7 +94,8 @@ public sealed class AccountTotalsPageTests : WebTestContext
         {
             requestedUris.Should().Contain(uri => uri.Contains("scope=accounts"));
             cut.Markup.Should().Contain("Account State Overview");
-            cut.Find("[data-testid='annual-accounts-evolution-chart']");
+            cut.Find("[data-testid='reporting-chart-empty']");
+            cut.FindAll("[data-testid='annual-accounts-evolution-chart']").Should().BeEmpty();
         });
     }
 
@@ -172,15 +173,6 @@ public sealed class AccountTotalsPageTests : WebTestContext
         cut.WaitForAssertion(() =>
         {
             requestedUris.Should().Contain(uri => uri.Contains("scope=accounts"));
-            cut.Find("[data-testid='annual-accounts-evolution-chart']");
-        });
-
-        var compositionModeButton = cut.FindAll("button")
-            .First(button => button.TextContent.Trim().Contains("composition", StringComparison.OrdinalIgnoreCase));
-        compositionModeButton.Click();
-
-        cut.WaitForAssertion(() =>
-        {
             var chart = cut.Find("[data-testid='annual-accounts-composition-chart']");
             var rawTotal = chart.GetAttribute("data-total-percentage");
 
