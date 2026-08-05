@@ -1,0 +1,207 @@
+@page "/reports/economic-state-as-of-date"
+@rendermode InteractiveServer
+@using FamilyFinances.Application.Reporting.Dtos
+@using FamilyFinances.Application.Reporting.Semantics
+@using FamilyFinances.Web
+@using FamilyFinances.Web.Api
+@using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web.Features.Reports
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.Extensions.Localization
+@inherits ApiPageBase
+
+@inject ReportsApi ReportsApi
+@inject IStringLocalizer<SharedResource> L
+
+<AuthorizeView>
+    <Authorized>
+        <div class="d-flex align-items-center justify-content-between mb-4 ff-page-header">
+            <div>
+                <h3 class="mb-1 ff-page-title">
+                    <i class="bi bi-calendar-date me-2"></i>@L["EconomicStateAsOf_Title"]
+                </h3>
+                <p class="text-muted mb-0 ff-page-subtitle">@L["EconomicStateAsOf_Subtitle"]</p>
+            </div>
+            <a class="btn btn-outline-secondary" href="/reports">
+                <i class="bi bi-arrow-left me-1"></i>@L["Reports_BackToReports"]
+            </a>
+        </div>
+
+        <div class="card shadow-sm mb-4 ff-panel ff-report-filter-panel">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-12 col-md-4">
+                        <label class="form-label fw-semibold" for="economic-state-as-of-date-input">
+                            <i class="bi bi-calendar3 me-1"></i>@L["EconomicState_AsOfDate"]
+                        </label>
+                        <input id="economic-state-as-of-date-input"
+                               data-testid="economic-state-as-of-date-input"
+                               type="date"
+                               class="form-control"
+                               aria-label="@L["EconomicState_AsOfDate"]"
+                               max="@_today.ToString("yyyy-MM-dd")"
+                               @bind="_asOfDate" />
+                    </div>
+                    <div class="col-12 col-md-auto">
+                        <button type="button"
+                                class="btn btn-primary"
+                                data-testid="economic-state-as-of-date-load"
+                                @onclick="LoadReportAsync"
+                                disabled="@_isLoading">
+                            @if (_isLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-search me-1"></i>
+                            }
+                            @L["Reports_LoadReport"]
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert" data-testid="economic-state-as-of-date-error">
+                <i class="bi bi-exclamation-triangle me-2"></i>@_error
+                <button type="button" class="btn-close" @onclick="@(() => _error = null)"></button>
+            </div>
+        }
+
+        @if (_isLoading)
+        {
+            <div class="card shadow-sm ff-panel" data-testid="economic-state-as-of-date-loading">
+                <div class="card-body text-center py-5">
+                    <div class="spinner-border text-primary mb-3 ff-spinner-lg" role="status">
+                        <span class="visually-hidden">@L["Common_Loading"]</span>
+                    </div>
+                    <p class="text-muted mb-0">@L["Reports_LoadingData"]</p>
+                </div>
+            </div>
+        }
+        else if (_report is not null)
+        {
+            var flowFrom = new DateOnly(_report.AsOf.Year, _report.AsOf.Month, 1);
+
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 gap-2">
+                <div class="badge bg-primary bg-opacity-10 text-primary px-3 py-2" data-testid="economic-state-as-of-date-balance-context">
+                    <i class="bi bi-clock-history me-1"></i>@L["EconomicStateAsOf_BalanceContext", _report.AsOf.ToString("dd-MM-yyyy")]
+                </div>
+                <div class="badge bg-success bg-opacity-10 text-success px-3 py-2" data-testid="economic-state-as-of-date-flow-context">
+                    <i class="bi bi-calendar-range me-1"></i>@L["EconomicStateAsOf_FlowContext", flowFrom.ToString("dd-MM-yyyy"), _report.AsOf.ToString("dd-MM-yyyy")]
+                </div>
+            </div>
+
+            <div class="row g-3 mb-3" data-testid="economic-state-as-of-date-stock-metrics">
+                <div class="col-12 col-md-6 col-xl-4">
+                    <div class="card shadow-sm border-start border-primary border-4 h-100 ff-kpi-card ff-panel">
+                        <div class="card-body">
+                            <h6 class="text-muted text-uppercase mb-2 ff-kpi-label">@ReportingMetricLocalizer.GetLabel(L, AssetMetric)</h6>
+                            <h4 class="mb-0 @MoneyFormatter.GetColorClass(_report.AssetsTotalCents)">@MoneyFormatter.FormatCentsWithSign(_report.AssetsTotalCents)</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 col-xl-4">
+                    <div class="card shadow-sm border-start border-warning border-4 h-100 ff-kpi-card ff-panel">
+                        <div class="card-body">
+                            <h6 class="text-muted text-uppercase mb-2 ff-kpi-label">@ReportingMetricLocalizer.GetLabel(L, LiabilityMetric)</h6>
+                            <h4 class="mb-0 text-danger">@MoneyFormatter.FormatCentsWithSign(_report.LiabilitiesTotalCents)</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 col-xl-4">
+                    <div class="card shadow-sm border-start border-info border-4 h-100 ff-kpi-card ff-panel">
+                        <div class="card-body">
+                            <h6 class="text-muted text-uppercase mb-2 ff-kpi-label">@ReportingMetricLocalizer.GetLabel(L, NetWorthMetric)</h6>
+                            <h4 class="mb-0 @MoneyFormatter.GetColorClass(_report.NetWorthCents)">@MoneyFormatter.FormatCentsWithSign(_report.NetWorthCents)</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3" data-testid="economic-state-as-of-date-flow-metrics">
+                <div class="col-12 col-md-6 col-xl-4">
+                    <div class="card shadow-sm border-start border-success border-4 h-100 ff-kpi-card ff-panel">
+                        <div class="card-body">
+                            <h6 class="text-muted text-uppercase mb-2 ff-kpi-label">@ReportingMetricLocalizer.GetLabel(L, IncomeMetric)</h6>
+                            <h4 class="mb-0 text-success">@MoneyFormatter.FormatCentsWithSign(_report.IncomeTotalCents)</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 col-xl-4">
+                    <div class="card shadow-sm border-start border-danger border-4 h-100 ff-kpi-card ff-panel">
+                        <div class="card-body">
+                            <h6 class="text-muted text-uppercase mb-2 ff-kpi-label">@ReportingMetricLocalizer.GetLabel(L, ExpenseMetric)</h6>
+                            <h4 class="mb-0 text-danger">@MoneyFormatter.FormatCentsWithSign(_report.ExpenseTotalCents)</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 col-xl-4">
+                    <div class="card shadow-sm border-start border-secondary border-4 h-100 ff-kpi-card ff-panel">
+                        <div class="card-body">
+                            <h6 class="text-muted text-uppercase mb-2 ff-kpi-label">@ReportingMetricLocalizer.GetLabel(L, PeriodNetMetric)</h6>
+                            <h4 class="mb-0 @MoneyFormatter.GetColorClass(_report.PeriodNetResultCents)">@MoneyFormatter.FormatCentsWithSign(_report.PeriodNetResultCents)</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-2"></i>@L["Reports_LoginRequired"]
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private static readonly ReportingMetricDefinition AssetMetric = ReportingMetricSemantics.Get(ReportingMetricKey.AssetBalance);
+    private static readonly ReportingMetricDefinition LiabilityMetric = ReportingMetricSemantics.Get(ReportingMetricKey.LiabilityBalance);
+    private static readonly ReportingMetricDefinition NetWorthMetric = ReportingMetricSemantics.Get(ReportingMetricKey.NetWorth);
+    private static readonly ReportingMetricDefinition IncomeMetric = ReportingMetricSemantics.Get(ReportingMetricKey.Income);
+    private static readonly ReportingMetricDefinition ExpenseMetric = ReportingMetricSemantics.Get(ReportingMetricKey.Expense);
+    private static readonly ReportingMetricDefinition PeriodNetMetric = ReportingMetricSemantics.Get(ReportingMetricKey.PeriodNetResult);
+
+    private readonly DateOnly _today = DateOnly.FromDateTime(DateTime.Today);
+    private DateOnly _asOfDate;
+    private EconomicStateDto? _report;
+    private string? _error;
+    private bool _isLoading;
+
+    protected override Task OnInitializedAsync()
+    {
+        _asOfDate = _today;
+        return LoadReportAsync();
+    }
+
+    private async Task LoadReportAsync()
+    {
+        if (_asOfDate > _today)
+            _asOfDate = _today;
+
+        _isLoading = true;
+        _error = null;
+        _report = null;
+        StateHasChanged();
+
+        try
+        {
+            _report = await ReportsApi.GetEconomicStateAsync(_asOfDate);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            _error = L["Reports_Error_Unauthorized"];
+        }
+        catch (Exception ex)
+        {
+            _error = L["Reports_Error_LoadFailed", ex.Message];
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

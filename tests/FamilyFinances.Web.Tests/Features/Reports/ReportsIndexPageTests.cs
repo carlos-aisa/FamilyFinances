@@ -26,7 +26,8 @@ public sealed class ReportsIndexPageTests : WebTestContext
         families[0].QuerySelectorAll(".report-card")
             .Select(card => card.GetAttribute("data-testid"))
             .Should().Equal(
-                "reports-index-card-economic-state");
+                "reports-index-card-economic-state",
+                "reports-index-card-economic-state-as-of-date");
         families[1].QuerySelectorAll(".report-card")
             .Select(card => card.GetAttribute("data-testid"))
             .Should().Equal(
@@ -41,6 +42,7 @@ public sealed class ReportsIndexPageTests : WebTestContext
 
     [Theory]
     [InlineData("reports-index-card-economic-state", "/reports/economic-state")]
+    [InlineData("reports-index-card-economic-state-as-of-date", "/reports/economic-state-as-of-date")]
     [InlineData("reports-index-card-monthly-summary", "/reports/monthly-summary")]
     [InlineData("reports-index-card-category-totals", "/reports/category-totals")]
     [InlineData("reports-index-card-account-totals", "/reports/account-totals")]
@@ -79,6 +81,8 @@ public sealed class ReportsIndexPageTests : WebTestContext
     }
 
     [Theory]
+    [InlineData("reports-index-card-economic-state")]
+    [InlineData("reports-index-card-economic-state-as-of-date")]
     [InlineData("reports-index-card-monthly-summary")]
     [InlineData("reports-index-card-category-totals")]
     [InlineData("reports-index-card-account-totals")]

@@ -1008,6 +1008,18 @@
   <data name="EconomicState_AsOfDate" xml:space="preserve">
     <value>Fecha de corte</value>
   </data>
+  <data name="EconomicStateAsOf_BalanceContext" xml:space="preserve">
+    <value>Saldo a fecha: {0}</value>
+  </data>
+  <data name="EconomicStateAsOf_FlowContext" xml:space="preserve">
+    <value>Período: {0} a {1}</value>
+  </data>
+  <data name="EconomicStateAsOf_Subtitle" xml:space="preserve">
+    <value>Foto financiera en una fecha seleccionada.</value>
+  </data>
+  <data name="EconomicStateAsOf_Title" xml:space="preserve">
+    <value>Estado económico a fecha</value>
+  </data>
   <data name="EconomicState_FlowMetricsInfo" xml:space="preserve">
     <value>representan resultados de un período y no son directamente comparables con los saldos de stock.</value>
   </data>
@@ -2105,6 +2117,15 @@
   </data>
   <data name="ReportsIndex_EconomicState_Title" xml:space="preserve">
     <value>Estado económico</value>
+  </data>
+  <data name="ReportsIndex_EconomicStateAsOf_Badge" xml:space="preserve">
+    <value>Fecha concreta</value>
+  </data>
+  <data name="ReportsIndex_EconomicStateAsOf_Description" xml:space="preserve">
+    <value>Saldos y resultado acumulado del mes en un día concreto.</value>
+  </data>
+  <data name="ReportsIndex_EconomicStateAsOf_Title" xml:space="preserve">
+    <value>Estado económico a fecha</value>
   </data>
   <data name="ReportsIndex_LoginRequired" xml:space="preserve">
     <value>Inicia sesión para ver los informes.</value>

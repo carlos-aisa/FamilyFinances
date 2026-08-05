@@ -1008,6 +1008,18 @@
   <data name="EconomicState_AsOfDate" xml:space="preserve">
     <value>As of date</value>
   </data>
+  <data name="EconomicStateAsOf_BalanceContext" xml:space="preserve">
+    <value>Balance as of: {0}</value>
+  </data>
+  <data name="EconomicStateAsOf_FlowContext" xml:space="preserve">
+    <value>Period: {0} to {1}</value>
+  </data>
+  <data name="EconomicStateAsOf_Subtitle" xml:space="preserve">
+    <value>Financial snapshot on a selected date.</value>
+  </data>
+  <data name="EconomicStateAsOf_Title" xml:space="preserve">
+    <value>Economic state as of date</value>
+  </data>
   <data name="EconomicState_FlowMetricsInfo" xml:space="preserve">
     <value>represent results over a period and are not directly comparable to stock balances.</value>
   </data>
@@ -2081,6 +2093,15 @@
   </data>
   <data name="ReportsIndex_EconomicState_Title" xml:space="preserve">
     <value>Economic State</value>
+  </data>
+  <data name="ReportsIndex_EconomicStateAsOf_Badge" xml:space="preserve">
+    <value>Exact date</value>
+  </data>
+  <data name="ReportsIndex_EconomicStateAsOf_Description" xml:space="preserve">
+    <value>Balances and month-to-date results on a specific day.</value>
+  </data>
+  <data name="ReportsIndex_EconomicStateAsOf_Title" xml:space="preserve">
+    <value>Economic State As Of Date</value>
   </data>
   <data name="ReportsIndex_LoginRequired" xml:space="preserve">
     <value>Please log in to view reports.</value>
