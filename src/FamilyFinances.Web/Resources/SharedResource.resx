@@ -2775,6 +2775,7 @@
   <data name="AccountGroupDetail_DashboardPinned" xml:space="preserve"><value>Show on dashboard</value></data>
   <data name="AccountGroupDetail_DashboardPinned_Hint" xml:space="preserve"><value>Monitor this group in the dashboard operational results.</value></data>
   <data name="AccountGroupDetail_DashboardPinned_Updated" xml:space="preserve"><value>Dashboard visibility updated.</value></data>
+  <data name="AccountGroups_DashboardPinned" xml:space="preserve"><value>Shown on dashboard</value></data>
   <data name="Dashboard_ExpenseKindRanking_Title" xml:space="preserve"><value>Where did we spend?</value></data>
   <data name="Dashboard_ExpenseKindRanking_Subtitle" xml:space="preserve"><value>Top expense types in {0}.</value></data>
   <data name="Dashboard_PinnedGroups_Title" xml:space="preserve"><value>Highlighted groups</value></data>

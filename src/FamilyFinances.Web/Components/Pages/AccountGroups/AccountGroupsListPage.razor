@@ -167,6 +167,12 @@
                                         <h5 class="card-title mb-0">
                                             <i class="bi bi-collection me-2 text-primary"></i>@group.Name
                                         </h5>
+                                        @if (group.IsDashboardPinned)
+                                        {
+                                            <span class="badge text-bg-success" data-testid="account-group-dashboard-pinned-badge">
+                                                <i class="bi bi-pin-angle-fill me-1" aria-hidden="true"></i>@L["AccountGroups_DashboardPinned"]
+                                            </span>
+                                        }
                                     </div>
 
                                     @if (!string.IsNullOrWhiteSpace(group.Description))

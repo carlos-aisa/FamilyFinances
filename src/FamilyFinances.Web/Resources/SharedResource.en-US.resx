@@ -2805,4 +2805,5 @@
   <data name="Dashboard_GroupAnnualEvolution_Subtitle" xml:space="preserve">
     <value>Monthly result bars by account group.</value>
   </data>
+  <data name="AccountGroups_DashboardPinned" xml:space="preserve"><value>Shown on dashboard</value></data>
 </root>

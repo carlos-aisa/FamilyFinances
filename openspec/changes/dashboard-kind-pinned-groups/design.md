@@ -44,6 +44,10 @@ Introduce `PATCH /api/v1/account-groups/{id}` with a partial request DTO limited
 
 The existing `PATCH /{id}/rename` endpoint remains intact for compatibility. The application may later consolidate mutations deliberately, but this change does not impose a client migration or remove a route.
 
+### Decision 8: Make pinned status scannable in account-group cards
+
+The account-group list renders a compact, text-bearing semantic badge only for groups whose `IsDashboardPinned` value is true. It uses the existing list payload and does not add a list-level toggle, a secondary request, or a placeholder for unpinned groups.
+
 ## Data Flow
 
 1. Dashboard requests its existing overview endpoint for `asOf`.
@@ -71,4 +75,3 @@ Add non-null `AccountGroups.IsDashboardPinned` with default `false`. Existing ro
 - **Chart regression:** optional line-series configuration is backward-compatible and existing annual-bar payload tests stay valid.
 - **Schema regression:** default false preserves all pre-existing group behavior and migration tests validate upgrade.
 - **Scope creep into insights:** prohibit adding `Kind` to the reporting-insights enum/surfaces in this change.
-

@@ -13,6 +13,7 @@ Account kinds are non-overlapping economic classifications; account groups are o
 - Replace the two separate annual dashboard visuals (income/expense bars and monthly net line) with one mixed annual chart: income bars, expense bars, and a monthly-result line.
 - Replace group-based expense composition with an ordered horizontal `Top 6 + Others` expense-kind ranking for the current selected month.
 - Add `AccountGroup.IsDashboardPinned`, exposed through additive account-group contracts and a general partial-update endpoint.
+- Show a compact status badge on account-group list cards when a group is pinned to the dashboard.
 - Replace the dashboard account-group evolution visual with a compact table of user-pinned groups showing current-month and YTD operational result.
 - Keep asset-total evolution as a lower-priority dashboard visual.
 
@@ -34,7 +35,7 @@ Account kinds are non-overlapping economic classifications; account groups are o
 - **Domain/persistence:** `AccountGroup`, EF configuration, one Ledger migration, and model snapshot.
 - **Application/reporting:** account-group update handler, additive DTO fields, dashboard-specific expense-kind and pinned-group projections, and dashboard overview composition.
 - **API:** additive `PATCH /api/v1/account-groups/{id}` plus additive fields in existing account-group and dashboard-overview responses.
-- **Web:** dashboard layout and chart configuration, group-management toggle, typed API client method, localization, and responsive component tests.
+- **Web:** dashboard layout and chart configuration, group-management toggle, pinned-card status badge, typed API client method, localization, and responsive component tests.
 - **Documentation:** OpenAPI contract and affected OpenSpec base specifications.
 
 ## Non-Goals
@@ -53,4 +54,3 @@ Account kinds are non-overlapping economic classifications; account groups are o
 - Revert the additive dashboard DTO fields and queries if data regressions occur; existing consumers retain their prior fields.
 - Revert the account-group pin UI and general PATCH endpoint while retaining the migration column as an inert `false`/stored preference if database rollback is not safe.
 - Re-run dashboard, account-group, reporting API, and migration tests after each rollback boundary.
-

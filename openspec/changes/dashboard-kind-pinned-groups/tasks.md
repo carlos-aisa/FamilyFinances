@@ -48,3 +48,9 @@
 - [x] 6.3 Run a Release build for affected solution scope.
 - [x] 6.4 Update implementation-era OpenSpec proposal/design/tasks if discoveries materially change behavior or architecture.
 - [x] 6.5 Review OpenAPI and user-facing documentation for accuracy before completion.
+
+## 7. Pinned group card visibility refinement
+
+- [x] 7.1 Render a localized, semantic dashboard-pin badge on pinned account-group cards only.
+- [x] 7.2 Add a Web component test covering pinned and unpinned card states.
+- [x] 7.3 Record the refinement in the OpenSpec proposal and design.

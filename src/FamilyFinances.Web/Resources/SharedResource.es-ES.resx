@@ -2811,6 +2811,7 @@
   <data name="AccountGroupDetail_DashboardPinned" xml:space="preserve"><value>Mostrar en el dashboard</value></data>
   <data name="AccountGroupDetail_DashboardPinned_Hint" xml:space="preserve"><value>Controla este grupo en los resultados operativos del dashboard.</value></data>
   <data name="AccountGroupDetail_DashboardPinned_Updated" xml:space="preserve"><value>Visibilidad del dashboard actualizada.</value></data>
+  <data name="AccountGroups_DashboardPinned" xml:space="preserve"><value>Visible en el dashboard</value></data>
   <data name="Dashboard_ExpenseKindRanking_Title" xml:space="preserve"><value>¿En qué hemos gastado?</value></data>
   <data name="Dashboard_ExpenseKindRanking_Subtitle" xml:space="preserve"><value>Principales tipos de gasto en {0}.</value></data>
   <data name="Dashboard_PinnedGroups_Title" xml:space="preserve"><value>Grupos destacados</value></data>
