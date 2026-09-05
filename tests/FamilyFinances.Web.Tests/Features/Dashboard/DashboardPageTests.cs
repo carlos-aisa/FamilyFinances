@@ -32,7 +32,25 @@ public sealed class DashboardPageTests : WebTestContext
             cut.Find("[data-testid='dashboard-asset-evolution-chart']");
             cut.Find("[data-testid='dashboard-expense-kind-ranking']");
             cut.Find("[data-testid='dashboard-pinned-groups']");
+            cut.Find("[data-testid='dashboard-monthly-summary']");
             cut.Find("[data-testid='dashboard-open-quick-entry']");
+
+            var secondRow = cut.Find(".ff-dashboard-analytics-row-2");
+            secondRow.QuerySelectorAll(":scope > div").Should().HaveCount(3);
+            secondRow.QuerySelectorAll(":scope > div").Should().OnlyContain(column =>
+                column.ClassList.Contains("col-12") && column.ClassList.Contains("col-xxl-4"));
+            secondRow.QuerySelector("[data-testid='dashboard-monthly-income-expense-chart']").Should().NotBeNull();
+            secondRow.QuerySelector("[data-testid='dashboard-annual-income-expense-chart']").Should().NotBeNull();
+            secondRow.QuerySelector("[data-testid='dashboard-asset-evolution-chart']").Should().NotBeNull();
+
+            var thirdRow = cut.Find(".ff-dashboard-analytics-row-3");
+            thirdRow.QuerySelectorAll(":scope > div").Should().HaveCount(3);
+            thirdRow.QuerySelectorAll(":scope > div").Should().OnlyContain(column =>
+                column.ClassList.Contains("col-12") && column.ClassList.Contains("col-xxl-4"));
+            thirdRow.QuerySelector("[data-testid='dashboard-expense-kind-ranking']").Should().NotBeNull();
+            thirdRow.QuerySelector("[data-testid='dashboard-pinned-groups']").Should().NotBeNull();
+            thirdRow.QuerySelector("[data-testid='dashboard-monthly-summary']").Should().NotBeNull();
+            cut.FindAll("[data-testid='dashboard-monthly-summary-insight']").Count.Should().BeLessThanOrEqualTo(4);
 
             cut.Markup.Should().NotContain("ff-premium-tabs");
             cut.Markup.Should().NotContain("report-card");

@@ -60,3 +60,11 @@
 - [x] 8.1 Change the compact annual KPI and pinned-group table header to `Acum. anual` in Spanish.
 - [x] 8.2 Add localized dashboard component coverage for both labels.
 - [x] 8.3 Record the refinement in the OpenSpec proposal and design.
+
+## 9. Dashboard row composition and deterministic monthly summary
+
+- [x] 9.1 Move asset-total evolution into the second dashboard row without changing its data or chart behavior.
+- [x] 9.2 Add the third-row monthly textual summary block using existing dashboard overview data only.
+- [x] 9.3 Add a focused builder with a four-insight maximum, reliable-history guard, expense-kind, pinned-group, and no-data coverage.
+- [x] 9.4 Verify desktop row composition and responsive stacking through dashboard component tests.
+- [x] 9.5 Record the refinement in the OpenSpec proposal and design.

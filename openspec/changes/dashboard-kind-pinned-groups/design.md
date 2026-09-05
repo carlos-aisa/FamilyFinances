@@ -52,6 +52,16 @@ The account-group list renders a compact, text-bearing semantic badge only for g
 
 The Spanish dashboard KPI for the annual net accumulation and the pinned-group annual column both use `Acum. anual`. The refinement is presentation-only: calculations, resource keys, English labels, and long-form explanatory labels remain unchanged.
 
+### Decision 10: Compose a deterministic monthly textual summary
+
+The dashboard uses a small `DashboardMonthlySummaryBuilder` in the Web feature layer to select no more than four textual insights from `DashboardOverviewDto`. It always includes the monthly result, includes the prior-month comparison only when `DataSufficiencyState` is `Complete`, and prioritizes a non-synthetic top expense kind and the pinned group with the greatest absolute monthly operational impact.
+
+If contextual insights are unavailable, it may add annual accumulation and then net worth as a limited fallback. It does not call an additional endpoint, reuse generic reporting insights, make forecasts, or generate text with AI.
+
+### Decision 11: Preserve chart width through three complete dashboard rows
+
+The second row contains daily income versus expense, annual income/expense/result, and asset-total evolution. The third row contains the Top 6 plus Others kind ranking, pinned groups, and monthly summary. All six blocks retain `col-12 col-xxl-4`, so they stack at smaller viewports and form balanced three-column rows only at wide desktop widths.
+
 ## Data Flow
 
 1. Dashboard requests its existing overview endpoint for `asOf`.

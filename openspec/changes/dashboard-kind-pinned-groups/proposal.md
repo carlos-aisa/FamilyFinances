@@ -17,6 +17,8 @@ Account kinds are non-overlapping economic classifications; account groups are o
 - Use `Acum. anual` for the Spanish dashboard annual-accumulation KPI and pinned-group table header.
 - Replace the dashboard account-group evolution visual with a compact table of user-pinned groups showing current-month and YTD operational result.
 - Keep asset-total evolution as a lower-priority dashboard visual.
+- Arrange the dashboard in three rows: household KPIs, three financial evolutions, and the expense-kind ranking, pinned groups, and a deterministic monthly textual summary.
+- Add a maximum of four deterministic monthly-summary insights using existing dashboard data only.
 
 ## Capabilities
 
@@ -36,7 +38,7 @@ Account kinds are non-overlapping economic classifications; account groups are o
 - **Domain/persistence:** `AccountGroup`, EF configuration, one Ledger migration, and model snapshot.
 - **Application/reporting:** account-group update handler, additive DTO fields, dashboard-specific expense-kind and pinned-group projections, and dashboard overview composition.
 - **API:** additive `PATCH /api/v1/account-groups/{id}` plus additive fields in existing account-group and dashboard-overview responses.
-- **Web:** dashboard layout and chart configuration, group-management toggle, pinned-card status badge, typed API client method, localization, and responsive component tests.
+- **Web:** dashboard layout and chart configuration, deterministic monthly-summary builder, group-management toggle, pinned-card status badge, typed API client method, localization, and responsive component tests.
 - **Documentation:** OpenAPI contract and affected OpenSpec base specifications.
 
 ## Non-Goals
@@ -48,6 +50,7 @@ Account kinds are non-overlapping economic classifications; account groups are o
 - No partial addition of `Kind` to `ReportingInsightDimension`; Pareto, anomaly, and reporting-insights API surfaces remain unchanged.
 - No removal, redirect, or behavior change for `PATCH /api/v1/account-groups/{id}/rename`.
 - No broad report-page redesign.
+- No AI-generated text or generic insight/rules engine.
 
 ## Rollback Plan
 

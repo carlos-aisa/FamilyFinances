@@ -6,6 +6,7 @@
 @using FamilyFinances.Web.Components.Pages.Reports.Charts
 @using FamilyFinances.Web.Features.Reports
 @using FamilyFinances.Web.Features.Reports.Charts
+@using FamilyFinances.Web.Features.Dashboard
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.Extensions.Localization
 @using FamilyFinances.Web
@@ -166,9 +167,6 @@
                                 TestId="dashboard-annual-income-expense-chart" />
                         }
                     </div>
-                </div>
-
-                <div class="row g-3 ff-dashboard-analytics-row ff-dashboard-analytics-row-3">
                     <div class="col-12 col-xxl-4">
                         @if (_assetAnnualEvolutionSeries.Count == 0)
                         {
@@ -188,6 +186,9 @@
                                 TestId="dashboard-asset-evolution-chart" />
                         }
                     </div>
+                </div>
+
+                <div class="row g-3 ff-dashboard-analytics-row ff-dashboard-analytics-row-3">
                     <div class="col-12 col-xxl-4">
                         <div class="card shadow-sm h-100 ff-panel" data-testid="dashboard-expense-kind-ranking">
                             <div class="card-header bg-transparent ff-panel-header">
@@ -228,6 +229,25 @@
                             </div>
                         </div>
                     </div>
+                    <div class="col-12 col-xxl-4">
+                        <div class="card shadow-sm h-100 ff-panel" data-testid="dashboard-monthly-summary">
+                            <div class="card-header bg-transparent ff-panel-header">
+                                <h6 class="mb-1">@L["Dashboard_MonthlySummary_Title"]</h6>
+                                <small class="text-muted">@L["Dashboard_MonthlySummary_Subtitle"]</small>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-unstyled mb-0 ff-dashboard-monthly-summary-list">
+                                    @foreach (var insight in _monthlySummaryInsights)
+                                    {
+                                        <li class="d-flex gap-2 mb-2" data-testid="dashboard-monthly-summary-insight">
+                                            <i class="bi bi-check2-circle text-primary" aria-hidden="true"></i>
+                                            <span>@GetMonthlySummaryInsightText(insight)</span>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         }
@@ -256,6 +276,7 @@
     private IReadOnlyList<MonthlyChartSeries> _monthlyIncomeVsExpenseSeries = Array.Empty<MonthlyChartSeries>();
     private IReadOnlyList<AnnualChartSeries> _annualIncomeVsExpenseSeries = Array.Empty<AnnualChartSeries>();
     private IReadOnlyList<AnnualChartSeries> _assetAnnualEvolutionSeries = Array.Empty<AnnualChartSeries>();
+    private IReadOnlyList<DashboardMonthlySummaryInsight> _monthlySummaryInsights = Array.Empty<DashboardMonthlySummaryInsight>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -270,6 +291,7 @@
         _monthlyIncomeVsExpenseSeries = Array.Empty<MonthlyChartSeries>();
         _annualIncomeVsExpenseSeries = Array.Empty<AnnualChartSeries>();
         _assetAnnualEvolutionSeries = Array.Empty<AnnualChartSeries>();
+        _monthlySummaryInsights = Array.Empty<DashboardMonthlySummaryInsight>();
         StateHasChanged();
 
         try
@@ -280,6 +302,7 @@
 
             _monthlyIncomeVsExpenseSeries = BuildMonthlyIncomeExpenseSeries(_overview);
             _annualIncomeVsExpenseSeries = BuildAnnualIncomeExpenseSeries(_overview);
+            _monthlySummaryInsights = DashboardMonthlySummaryBuilder.Build(_overview);
             await LoadAnnualEvolutionSeriesAsync(_overview.AsOf.Year);
             await CalculateYtdKpiAsync();
         }
@@ -380,6 +403,21 @@
             DashboardDataSufficiencyState.Complete => L["Dashboard_DataState_Complete"],
             DashboardDataSufficiencyState.Partial => L["Dashboard_DataState_Partial"],
             _ => L["Dashboard_DataState_InsufficientHistory"]
+        };
+    }
+
+    private string GetMonthlySummaryInsightText(DashboardMonthlySummaryInsight insight)
+    {
+        var amount = MoneyFormatter.FormatCentsWithSign(insight.AmountCents);
+        return insight.Kind switch
+        {
+            DashboardMonthlySummaryInsightKind.MonthlyResult => L["Dashboard_MonthlySummary_Result", amount],
+            DashboardMonthlySummaryInsightKind.PreviousMonthComparison => L["Dashboard_MonthlySummary_PreviousMonth", amount],
+            DashboardMonthlySummaryInsightKind.TopExpenseKind => L["Dashboard_MonthlySummary_TopExpense", insight.Label!, MoneyFormatter.FormatCents(insight.AmountCents)],
+            DashboardMonthlySummaryInsightKind.TopPinnedGroup => L["Dashboard_MonthlySummary_TopPinnedGroup", insight.Label!, amount],
+            DashboardMonthlySummaryInsightKind.AnnualAccumulation => L["Dashboard_MonthlySummary_AnnualAccumulation", amount],
+            DashboardMonthlySummaryInsightKind.NetWorth => L["Dashboard_MonthlySummary_NetWorth", amount],
+            _ => string.Empty
         };
     }
 
