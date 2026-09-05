@@ -54,3 +54,9 @@
 - [x] 7.1 Render a localized, semantic dashboard-pin badge on pinned account-group cards only.
 - [x] 7.2 Add a Web component test covering pinned and unpinned card states.
 - [x] 7.3 Record the refinement in the OpenSpec proposal and design.
+
+## 8. Spanish annual accumulation terminology refinement
+
+- [x] 8.1 Change the compact annual KPI and pinned-group table header to `Acum. anual` in Spanish.
+- [x] 8.2 Add localized dashboard component coverage for both labels.
+- [x] 8.3 Record the refinement in the OpenSpec proposal and design.

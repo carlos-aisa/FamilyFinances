@@ -2734,7 +2734,7 @@
     <value>Patrimonio neto</value>
   </data>
   <data name="Dashboard_Kpi_YtdNet" xml:space="preserve">
-    <value>Neto YTD</value>
+    <value>Acum. anual</value>
   </data>
   <data name="Dashboard_CompactInsights_Status_Anomaly" xml:space="preserve">
     <value>Anomalia</value>
@@ -2818,5 +2818,5 @@
   <data name="Dashboard_PinnedGroups_Subtitle" xml:space="preserve"><value>Resultado operativo de los grupos que sigues.</value></data>
   <data name="Dashboard_PinnedGroups_Empty" xml:space="preserve"><value>Aún no hay grupos destacados.</value></data>
   <data name="Dashboard_PinnedGroups_Month" xml:space="preserve"><value>Mes</value></data>
-  <data name="Dashboard_PinnedGroups_Ytd" xml:space="preserve"><value>YTD</value></data>
+  <data name="Dashboard_PinnedGroups_Ytd" xml:space="preserve"><value>Acum. anual</value></data>
 </root>

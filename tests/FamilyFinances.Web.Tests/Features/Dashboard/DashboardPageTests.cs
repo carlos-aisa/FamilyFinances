@@ -107,8 +107,9 @@ public sealed class DashboardPageTests : WebTestContext
     }
 
     [Fact]
-    public void Dashboard_Displays_YTD_Net_KPI()
+    public void Dashboard_Displays_Annual_Accumulation_KPI()
     {
+        using var culture = UseCulture("es-ES");
         RegisterAuthorizedServices(BuildHttpClientFactory(CreateOverviewPayload(), previousYearAssetTotalCents: 1_200_000));
 
         var cut = RenderComponent<DashboardPage>();
@@ -125,7 +126,7 @@ public sealed class DashboardPageTests : WebTestContext
             
             var label = fifthKpi.QuerySelector("h6");
             label.Should().NotBeNull();
-            label!.TextContent.Should().MatchRegex("YTD Net|Neto YTD", "label should be localized");
+            label!.TextContent.Should().Contain("Acum. anual", "label should use the family-oriented Spanish terminology");
             
             var value = fifthKpi.QuerySelector("h4");
             value.Should().NotBeNull();
@@ -136,6 +137,26 @@ public sealed class DashboardPageTests : WebTestContext
             var delta = fifthKpi.QuerySelector("small");
             delta.Should().NotBeNull();
             delta!.TextContent.Should().NotBeNullOrWhiteSpace("delta should be displayed");
+        });
+    }
+
+    [Fact]
+    public void Dashboard_PinnedGroups_Uses_Annual_Accumulation_Header()
+    {
+        using var culture = UseCulture("es-ES");
+        var pinnedGroups =
+            new[]
+            {
+                new DashboardPinnedGroupOperationalResultDto(Guid.NewGuid(), "Household", 15_000, 45_000)
+            };
+        RegisterAuthorizedServices(BuildHttpClientFactory(CreateOverviewPayload(pinnedGroups: pinnedGroups)));
+
+        var cut = RenderComponent<DashboardPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var pinnedGroupsTable = cut.Find("[data-testid='dashboard-pinned-groups']");
+            pinnedGroupsTable.TextContent.Should().Contain("Acum. anual");
         });
     }
 
@@ -224,7 +245,8 @@ public sealed class DashboardPageTests : WebTestContext
     private static DashboardOverviewDto CreateOverviewPayload(
         DashboardDataSufficiencyState dataState = DashboardDataSufficiencyState.Complete,
         IReadOnlyList<DashboardCompactInsightRowDto>? compactInsights = null,
-        IReadOnlyList<DashboardExpenseKindRankDto>? expenseKindRanking = null)
+        IReadOnlyList<DashboardExpenseKindRankDto>? expenseKindRanking = null,
+        IReadOnlyList<DashboardPinnedGroupOperationalResultDto>? pinnedGroups = null)
     {
         var asOf = new DateOnly(2026, 3, 1);
         return new DashboardOverviewDto(
@@ -269,7 +291,7 @@ public sealed class DashboardPageTests : WebTestContext
                 new DashboardExpenseKindRankDto(Guid.NewGuid(), "Groceries", 55_000, 55m, false),
                 new DashboardExpenseKindRankDto(null, "Others", 45_000, 45m, true)
             ],
-            PinnedGroups: Array.Empty<DashboardPinnedGroupOperationalResultDto>());
+            PinnedGroups: pinnedGroups ?? Array.Empty<DashboardPinnedGroupOperationalResultDto>());
     }
 
     private static MonthlyEvolutionReportDto CreateAssetEvolutionPayload(int year)

@@ -48,6 +48,10 @@ The existing `PATCH /{id}/rename` endpoint remains intact for compatibility. The
 
 The account-group list renders a compact, text-bearing semantic badge only for groups whose `IsDashboardPinned` value is true. It uses the existing list payload and does not add a list-level toggle, a secondary request, or a placeholder for unpinned groups.
 
+### Decision 9: Use family-oriented Spanish annual accumulation labels
+
+The Spanish dashboard KPI for the annual net accumulation and the pinned-group annual column both use `Acum. anual`. The refinement is presentation-only: calculations, resource keys, English labels, and long-form explanatory labels remain unchanged.
+
 ## Data Flow
 
 1. Dashboard requests its existing overview endpoint for `asOf`.

@@ -14,6 +14,7 @@ Account kinds are non-overlapping economic classifications; account groups are o
 - Replace group-based expense composition with an ordered horizontal `Top 6 + Others` expense-kind ranking for the current selected month.
 - Add `AccountGroup.IsDashboardPinned`, exposed through additive account-group contracts and a general partial-update endpoint.
 - Show a compact status badge on account-group list cards when a group is pinned to the dashboard.
+- Use `Acum. anual` for the Spanish dashboard annual-accumulation KPI and pinned-group table header.
 - Replace the dashboard account-group evolution visual with a compact table of user-pinned groups showing current-month and YTD operational result.
 - Keep asset-total evolution as a lower-priority dashboard visual.
 
