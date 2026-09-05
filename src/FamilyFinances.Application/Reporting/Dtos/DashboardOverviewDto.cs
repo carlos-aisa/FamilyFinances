@@ -48,6 +48,24 @@ public sealed record DashboardCompactInsightRowDto(
     string? StatusCode
 );
 
+public sealed record DashboardExpenseKindTotalDto(
+    Guid KindId,
+    string KindName,
+    long AmountCents);
+
+public sealed record DashboardExpenseKindRankDto(
+    Guid? KindId,
+    string Label,
+    long AmountCents,
+    decimal Percentage,
+    bool IsOthers);
+
+public sealed record DashboardPinnedGroupOperationalResultDto(
+    Guid GroupId,
+    string GroupName,
+    long MonthOperationalResultCents,
+    long YtdOperationalResultCents);
+
 public sealed record DashboardOverviewDto(
     DateOnly AsOf,
     DateOnly SelectedMonthStart,
@@ -64,7 +82,9 @@ public sealed record DashboardOverviewDto(
     IReadOnlyList<DashboardDailyIncomeExpensePointDto> DailyIncomeVsExpense,
     IReadOnlyList<DashboardGroupStatePointDto> GroupStates,
     DashboardYtdSummaryDto YtdSummary,
-    IReadOnlyList<DashboardCompactInsightRowDto> CompactInsights
+    IReadOnlyList<DashboardCompactInsightRowDto> CompactInsights,
+    IReadOnlyList<DashboardExpenseKindRankDto>? ExpenseKindRanking = null,
+    IReadOnlyList<DashboardPinnedGroupOperationalResultDto>? PinnedGroups = null
 );
 
 public sealed record DashboardOverviewCoreDto(

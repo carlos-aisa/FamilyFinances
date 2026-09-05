@@ -30,5 +30,9 @@ public sealed class AccountGroupConfiguration : IEntityTypeConfiguration<Account
 
         b.Property(x => x.Description)
             .HasMaxLength(1000);
+
+        b.Property(x => x.IsDashboardPinned)
+            .IsRequired()
+            .HasDefaultValue(false);
     }
 }

@@ -17,7 +17,7 @@ namespace FamilyFinances.Application.Ledger.AccountGroups.Handlers
             var groups = await _groups.ListAsync(ct);
 
             return groups
-                .Select(g => new AccountGroupDto(g.Id.Value, g.Name, g.Description))
+                .Select(g => new AccountGroupDto(g.Id.Value, g.Name, g.Description, g.IsDashboardPinned))
                 .ToList();
         }
     }

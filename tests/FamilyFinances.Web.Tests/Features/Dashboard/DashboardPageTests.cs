@@ -29,12 +29,10 @@ public sealed class DashboardPageTests : WebTestContext
             cut.Find("[data-testid='dashboard-kpi-strip']");
             cut.Find("[data-testid='dashboard-monthly-income-expense-chart']");
             cut.Find("[data-testid='dashboard-annual-income-expense-chart']");
-            cut.Find("[data-testid='dashboard-monthly-net-trend-chart']");
             cut.Find("[data-testid='dashboard-asset-evolution-chart']");
-            cut.Find("[data-testid='dashboard-group-annual-evolution-chart']");
-            var compositionChart = cut.Find("[data-testid='dashboard-expense-composition-chart']");
+            cut.Find("[data-testid='dashboard-expense-kind-ranking']");
+            cut.Find("[data-testid='dashboard-pinned-groups']");
             cut.Find("[data-testid='dashboard-open-quick-entry']");
-            compositionChart.TextContent.Should().Contain("2026-03");
 
             cut.Markup.Should().NotContain("ff-premium-tabs");
             cut.Markup.Should().NotContain("report-card");
@@ -43,27 +41,24 @@ public sealed class DashboardPageTests : WebTestContext
     }
 
     [Fact]
-    public void Dashboard_Expense_Composition_Chart_Has_Total_Percentage_Close_To_OneHundred()
+    public void Dashboard_Expense_Kind_Ranking_Renders_TopRows()
     {
-        var compositionRows =
+        var rankingRows =
             new[]
             {
-                new DashboardCompactInsightRowDto("row-1", "top-expense", "Housing", 60_000, 50m, "top-contributor"),
-                new DashboardCompactInsightRowDto("row-2", "top-expense", "Food", 36_000, 30m, "top-contributor"),
-                new DashboardCompactInsightRowDto("row-others", "top-expense", "Others", 24_000, 20m, "others")
+                new DashboardExpenseKindRankDto(Guid.NewGuid(), "Housing", 60_000, 50m, false),
+                new DashboardExpenseKindRankDto(Guid.NewGuid(), "Food", 36_000, 30m, false),
+                new DashboardExpenseKindRankDto(null, "Others", 24_000, 20m, true)
             };
 
-        RegisterAuthorizedServices(BuildHttpClientFactory(CreateOverviewPayload(compactInsights: compositionRows)));
+        RegisterAuthorizedServices(BuildHttpClientFactory(CreateOverviewPayload(expenseKindRanking: rankingRows)));
 
         var cut = RenderComponent<DashboardPage>();
 
         cut.WaitForAssertion(() =>
         {
-            var chart = cut.Find("[data-testid='dashboard-expense-composition-chart']");
-            var totalRaw = chart.GetAttribute("data-total-percentage");
-            totalRaw.Should().NotBeNullOrWhiteSpace();
-            var total = decimal.Parse(totalRaw!, System.Globalization.CultureInfo.InvariantCulture);
-            total.Should().BeApproximately(100m, 0.01m);
+            var ranking = cut.Find("[data-testid='dashboard-expense-kind-ranking']");
+            ranking.TextContent.Should().Contain("Housing").And.Contain("Food").And.Contain("Others");
         });
     }
 
@@ -228,7 +223,8 @@ public sealed class DashboardPageTests : WebTestContext
 
     private static DashboardOverviewDto CreateOverviewPayload(
         DashboardDataSufficiencyState dataState = DashboardDataSufficiencyState.Complete,
-        IReadOnlyList<DashboardCompactInsightRowDto>? compactInsights = null)
+        IReadOnlyList<DashboardCompactInsightRowDto>? compactInsights = null,
+        IReadOnlyList<DashboardExpenseKindRankDto>? expenseKindRanking = null)
     {
         var asOf = new DateOnly(2026, 3, 1);
         return new DashboardOverviewDto(
@@ -267,7 +263,13 @@ public sealed class DashboardPageTests : WebTestContext
                 new DashboardCompactInsightRowDto("a-1", "top-expense", "Groceries", 55_000, 55m, "top-contributor"),
                 new DashboardCompactInsightRowDto("a-2", "top-expense", "Utilities", 40_000, 40m, "top-contributor"),
                 new DashboardCompactInsightRowDto("a-others", "top-expense", "Others", 5_000, 5m, "others")
-            ]);
+            ],
+            ExpenseKindRanking: expenseKindRanking ??
+            [
+                new DashboardExpenseKindRankDto(Guid.NewGuid(), "Groceries", 55_000, 55m, false),
+                new DashboardExpenseKindRankDto(null, "Others", 45_000, 45m, true)
+            ],
+            PinnedGroups: Array.Empty<DashboardPinnedGroupOperationalResultDto>());
     }
 
     private static MonthlyEvolutionReportDto CreateAssetEvolutionPayload(int year)

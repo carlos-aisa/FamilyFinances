@@ -17,7 +17,10 @@ public sealed class HardcodedStyleGuardTests
             Contains: "--ff-progress-width:@(percentage)%"),
         new(
             RelativePath: "src/FamilyFinances.Web/Components/Pages/Reports/Charts/AnnualCompositionChart.razor",
-            Contains: "--ff-slice-color:{slice.ColorHex}")
+            Contains: "--ff-slice-color:{slice.ColorHex}"),
+        new(
+            RelativePath: "src/FamilyFinances.Web/Components/Pages/Dashboard/DashboardPage.razor",
+            Contains: "--ff-progress-width:@GetPercentageWidth(row.AmountCents, maximum)")
     ];
 
     private static readonly AllowlistEntry[] HexAllowlist =

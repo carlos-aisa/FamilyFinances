@@ -35,8 +35,9 @@ namespace FamilyFinances.Application.Ledger.AccountGroups.Handlers
                         a.Id.Value,
                         a.Name,
                         a.Nature,
-                        a.Kind))
-                .ToList());
+                    a.Kind))
+                .ToList(),
+                group.IsDashboardPinned);
         }
     }
 }

@@ -64,6 +64,7 @@ else
     [Parameter] public int? DataUntilMonth { get; set; }
     [Parameter] public int? YTickMaxTicks { get; set; }
     [Parameter] public bool EnableImageExport { get; set; } = true;
+    [Parameter] public string? LineSeriesKey { get; set; }
 
     private readonly string _canvasId = $"annual-bar-{Guid.NewGuid():N}";
     private string? _lastRenderedSignature;
@@ -136,6 +137,7 @@ else
                     key = series.Key,
                     label = series.Label,
                     colorHex = series.ColorHex,
+                    renderingType = string.Equals(series.Key, LineSeriesKey, StringComparison.Ordinal) ? "line" : "bar",
                     values
                 };
             })

@@ -117,6 +117,16 @@
                                     <p class="mb-0 text-muted fst-italic">@L["AccountGroups_NoDescription"]</p>
                                 }
                             </div>
+                            <div class="form-check form-switch mt-3">
+                                <input class="form-check-input"
+                                       type="checkbox"
+                                       id="account-group-dashboard-pin"
+                                       checked="@_details.IsDashboardPinned"
+                                       disabled="@_isBusy"
+                                       @onchange="SetDashboardPinnedAsync" />
+                                <label class="form-check-label" for="account-group-dashboard-pin">@L["AccountGroupDetail_DashboardPinned"]</label>
+                                <div class="form-text">@L["AccountGroupDetail_DashboardPinned_Hint"]</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -395,6 +405,33 @@
                 await AccountGroupsApi.RemoveAccountAsync(Id, accountId, ct);
                 _info = L["AccountGroupDetail_Message_AccountRemoved"];
                 _details = await AccountGroupsApi.GetByIdAsync(Id, ct);
+            });
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private async Task SetDashboardPinnedAsync(ChangeEventArgs args)
+    {
+        if (_isBusy || _details is null || args.Value is not bool isDashboardPinned)
+            return;
+
+        _isBusy = true;
+        _error = null;
+        _info = null;
+        try
+        {
+            await ExecuteApiAsync(async ct =>
+            {
+                await AccountGroupsApi.SetDashboardPinnedAsync(Id, isDashboardPinned, ct);
+                _details = await AccountGroupsApi.GetByIdAsync(Id, ct);
+                _info = L["AccountGroupDetail_DashboardPinned_Updated"];
             });
         }
         catch (Exception ex)

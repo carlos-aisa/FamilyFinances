@@ -1131,3 +1131,4 @@
     }
 }
 
+ .ff-dashboard-rank-bar { width: var(--ff-progress-width); }

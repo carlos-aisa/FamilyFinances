@@ -499,6 +499,96 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             SameMonthLastYearNetCents: sameMonthLastYearNet);
     }
 
+    public async Task<IReadOnlyList<DashboardExpenseKindTotalDto>> GetDashboardExpenseKindTotalsAsync(
+        DateOnly fromInclusive,
+        DateOnly toExclusive,
+        CancellationToken ct)
+    {
+        var rows = await (
+            from t in _db.Transactions.AsNoTracking()
+            join s in _db.TransactionSplits.AsNoTracking()
+                on t.Id equals EF.Property<TransactionId>(s, "TransactionId")
+            join a in _db.Accounts.AsNoTracking() on s.AccountId equals a.Id
+            join k in _db.AccountKinds.AsNoTracking() on a.KindId equals k.Id
+            where t.BookedOn >= fromInclusive && t.BookedOn < toExclusive
+            where a.Nature == AccountNature.Expense
+            select new { KindId = k.Id.Value, k.Name, AmountCents = -s.Amount.Cents }
+        ).ToListAsync(ct);
+
+        return rows
+            .GroupBy(x => new { x.KindId, x.Name })
+            .Select(group => new DashboardExpenseKindTotalDto(
+                group.Key.KindId,
+                group.Key.Name,
+                group.Sum(x => x.AmountCents)))
+            .OrderByDescending(x => x.AmountCents)
+            .ThenBy(x => x.KindName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<DashboardPinnedGroupOperationalResultDto>> GetDashboardPinnedGroupOperationalResultsAsync(
+        DateOnly asOf,
+        CancellationToken ct)
+    {
+        var monthStart = new DateOnly(asOf.Year, asOf.Month, 1);
+        var ytdStart = new DateOnly(asOf.Year, 1, 1);
+        var toExclusive = asOf.AddDays(1);
+
+        var pinnedGroups = await _db.AccountGroups
+            .AsNoTracking()
+            .Where(group => group.IsDashboardPinned)
+            .Select(group => new { GroupId = group.Id.Value, group.Name })
+            .ToListAsync(ct);
+
+        pinnedGroups = pinnedGroups
+            .OrderBy(group => group.Name, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(group => group.GroupId)
+            .ToList();
+
+        if (pinnedGroups.Count == 0)
+            return Array.Empty<DashboardPinnedGroupOperationalResultDto>();
+
+        var pinnedGroupIds = pinnedGroups.Select(group => new AccountGroupId(group.GroupId)).ToList();
+        var rows = await (
+            from membership in _db.AccountGroupMembers.AsNoTracking()
+            join account in _db.Accounts.AsNoTracking() on membership.AccountId equals account.Id
+            join split in _db.TransactionSplits.AsNoTracking() on account.Id equals split.AccountId
+            join transaction in _db.Transactions.AsNoTracking()
+                on EF.Property<TransactionId>(split, "TransactionId") equals transaction.Id
+            where pinnedGroupIds.Contains(membership.GroupId)
+            where account.Nature == AccountNature.Income || account.Nature == AccountNature.Expense
+            where transaction.BookedOn >= ytdStart && transaction.BookedOn < toExclusive
+            select new
+            {
+                GroupId = membership.GroupId.Value,
+                transaction.BookedOn,
+                DisplayAmountCents = -split.Amount.Cents
+            }
+        ).ToListAsync(ct);
+
+        var amountsByGroup = rows
+            .GroupBy(row => row.GroupId)
+            .ToDictionary(
+                group => group.Key,
+                group => new
+                {
+                    Month = group.Where(row => row.BookedOn >= monthStart).Sum(row => row.DisplayAmountCents),
+                    Ytd = group.Sum(row => row.DisplayAmountCents)
+                });
+
+        return pinnedGroups
+            .Select(group =>
+            {
+                var amounts = amountsByGroup.GetValueOrDefault(group.GroupId);
+                return new DashboardPinnedGroupOperationalResultDto(
+                    group.GroupId,
+                    group.Name,
+                    amounts?.Month ?? 0L,
+                    amounts?.Ytd ?? 0L);
+            })
+            .ToList();
+    }
+
     public async Task<MonthlyEvolutionReportDto> GetMonthlyEvolutionAsync(
         int year,
         MonthlyEvolutionScope scope,

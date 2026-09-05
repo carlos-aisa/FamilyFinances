@@ -34,6 +34,20 @@ public sealed class AccountGroupTests
     }
 
     [Fact]
+    public void DashboardPin_DefaultsToFalse_AndCanBeUpdated()
+    {
+        var group = AccountGroup.Create("Group", null);
+
+        Assert.False(group.IsDashboardPinned);
+
+        group.SetDashboardPinned(true);
+        Assert.True(group.IsDashboardPinned);
+
+        group.SetDashboardPinned(false);
+        Assert.False(group.IsDashboardPinned);
+    }
+
+    [Fact]
     public void Create_TrimsAndNormalizesDescription()
     {
         var group = AccountGroup.Create("Group", "   ");

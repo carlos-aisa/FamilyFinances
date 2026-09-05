@@ -9,6 +9,7 @@ namespace FamilyFinances.Domain.Ledger.AccountGroups
 
         // Optional description
         public string? Description { get; private set; }
+        public bool IsDashboardPinned { get; private set; }
 
         // Convenience for indexing/search (case-insensitive uniqueness enforced in Infra)
         public string NormalizedName { get; private set; } = string.Empty;
@@ -28,6 +29,9 @@ namespace FamilyFinances.Domain.Ledger.AccountGroups
         public void Rename(string name) => SetName(name);
 
         public void UpdateDescription(string? description) => SetDescription(description);
+
+        public void SetDashboardPinned(bool isDashboardPinned)
+            => IsDashboardPinned = isDashboardPinned;
 
         private void SetName(string name)
         {

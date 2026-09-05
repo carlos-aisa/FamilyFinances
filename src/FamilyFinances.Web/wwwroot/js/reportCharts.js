@@ -520,13 +520,19 @@ window.familyFinancesCharts = window.familyFinancesCharts || (function () {
             : null;
         const yTickMaxTicks = Number.isFinite(payload.yTickMaxTicks) ? payload.yTickMaxTicks : undefined;
         const datasets = (payload.datasets || []).map((dataset) => ({
+            type: dataset.renderingType === "line" ? "line" : "bar",
             label: dataset.label,
             data: dataset.values,
             borderColor: dataset.colorHex,
-            backgroundColor: `${dataset.colorHex}B3`,
-            borderWidth: 1.4,
-            borderRadius: theme.barBorderRadius,
-            maxBarThickness: 28
+            backgroundColor: dataset.renderingType === "line" ? dataset.colorHex : `${dataset.colorHex}B3`,
+            borderWidth: dataset.renderingType === "line" ? 2.6 : 1.4,
+            borderRadius: dataset.renderingType === "line" ? undefined : theme.barBorderRadius,
+            maxBarThickness: dataset.renderingType === "line" ? undefined : 28,
+            pointRadius: dataset.renderingType === "line" ? 0 : undefined,
+            pointHoverRadius: dataset.renderingType === "line" ? 4 : undefined,
+            pointHitRadius: dataset.renderingType === "line" ? 12 : undefined,
+            tension: dataset.renderingType === "line" ? 0.33 : undefined,
+            fill: false
         }));
 
         const chart = new window.Chart(canvas, {
