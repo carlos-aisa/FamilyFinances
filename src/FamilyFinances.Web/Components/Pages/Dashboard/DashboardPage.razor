@@ -204,13 +204,34 @@
                                 else
                                 {
                                     var maximum = _overview.ExpenseKindRanking.Max(row => row.AmountCents);
-                                    @foreach (var row in _overview.ExpenseKindRanking)
-                                    {
-                                        <div class="mb-3">
-                                            <div class="d-flex justify-content-between gap-2 small mb-1"><span>@(row.IsOthers ? L["Dashboard_ExpenseComposition_Others"] : row.Label)</span><strong>@MoneyFormatter.FormatCents(row.AmountCents)</strong></div>
-                                            <div class="progress ff-dashboard-rank-progress"><div class="progress-bar bg-primary ff-dashboard-rank-bar" role="progressbar" style="--ff-progress-width:@GetPercentageWidth(row.AmountCents, maximum)"></div></div>
-                                        </div>
-                                    }
+                                    <div class="ff-dashboard-rank-list">
+                                        @foreach (var row in _overview.ExpenseKindRanking)
+                                        {
+                                            var label = row.IsOthers
+                                            ? L["Dashboard_ExpenseComposition_Others"].Value
+                                            : row.Label;
+
+                                            <div class="ff-dashboard-rank-row small"
+                                                 data-testid="dashboard-expense-kind-row">
+
+                                                <span class="ff-dashboard-rank-label"
+                                                      title="@label">
+                                                    @label
+                                                </span>
+
+                                                <div class="progress ff-dashboard-rank-progress">
+                                                    <div class="progress-bar bg-primary ff-dashboard-rank-bar"
+                                                         role="progressbar"
+                                                         style="--ff-progress-width:@GetPercentageWidth(row.AmountCents, maximum)">
+                                                    </div>
+                                                </div>
+
+                                                <strong class="ff-dashboard-rank-amount">
+                                                    @MoneyFormatter.FormatCents(row.AmountCents)
+                                                </strong>
+                                            </div>
+                                        }
+                                    </div>
                                 }
                             </div>
                         </div>
