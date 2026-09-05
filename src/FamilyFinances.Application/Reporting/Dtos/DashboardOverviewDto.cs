@@ -7,6 +7,13 @@ public enum DashboardDataSufficiencyState
     InsufficientHistory = 3
 }
 
+public enum DashboardPinnedGroupMetricKind
+{
+    Expense,
+    Income,
+    NetResult
+}
+
 public sealed record DashboardKpiDto(
     long ValueCents,
     long DeltaVsPreviousMonthCents
@@ -64,7 +71,8 @@ public sealed record DashboardPinnedGroupOperationalResultDto(
     Guid GroupId,
     string GroupName,
     long MonthOperationalResultCents,
-    long YtdOperationalResultCents);
+    long YtdOperationalResultCents,
+    DashboardPinnedGroupMetricKind MetricKind);
 
 public sealed record DashboardOverviewDto(
     DateOnly AsOf,

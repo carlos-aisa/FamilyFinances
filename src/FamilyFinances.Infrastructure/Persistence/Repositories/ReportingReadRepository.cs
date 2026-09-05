@@ -549,6 +549,26 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             return Array.Empty<DashboardPinnedGroupOperationalResultDto>();
 
         var pinnedGroupIds = pinnedGroups.Select(group => new AccountGroupId(group.GroupId)).ToList();
+        var groupNatureRows = await (
+            from membership in _db.AccountGroupMembers.AsNoTracking()
+            join account in _db.Accounts.AsNoTracking()
+                on membership.AccountId equals account.Id
+            where pinnedGroupIds.Contains(membership.GroupId)
+            where account.Nature == AccountNature.Income
+               || account.Nature == AccountNature.Expense
+            select new
+            {
+                GroupId = membership.GroupId.Value,
+                account.Nature
+            }
+        ).ToListAsync(ct);
+
+        var metricKindByGroup = groupNatureRows
+            .GroupBy(row => row.GroupId)
+            .ToDictionary(
+                group => group.Key,
+                group => ResolveDashboardGroupMetricKind(
+                    group.Select(row => row.Nature)));
         var rows = await (
             from membership in _db.AccountGroupMembers.AsNoTracking()
             join account in _db.Accounts.AsNoTracking() on membership.AccountId equals account.Id
@@ -580,11 +600,17 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             .Select(group =>
             {
                 var amounts = amountsByGroup.GetValueOrDefault(group.GroupId);
+
+                var metricKind = metricKindByGroup.GetValueOrDefault(
+                    group.GroupId,
+                    DashboardPinnedGroupMetricKind.NetResult);
+
                 return new DashboardPinnedGroupOperationalResultDto(
                     group.GroupId,
                     group.Name,
                     amounts?.Month ?? 0L,
-                    amounts?.Ytd ?? 0L);
+                    amounts?.Ytd ?? 0L,
+                    metricKind);
             })
             .ToList();
     }
@@ -1327,6 +1353,24 @@ public sealed class ReportingReadRepository : IReportingReadRepository
         IReadOnlyDictionary<AccountId, long> OpeningBalanceByAccount,
         IReadOnlyList<MonthlyChartMovementRow> MovementRows);
 
+    private static DashboardPinnedGroupMetricKind ResolveDashboardGroupMetricKind(
+            IEnumerable<AccountNature> natures)
+    {
+        var distinctNatures = natures
+            .Distinct()
+            .ToArray();
+
+        if (distinctNatures.Length == 0)
+            return DashboardPinnedGroupMetricKind.NetResult;
+
+        if (distinctNatures.All(x => x == AccountNature.Expense))
+            return DashboardPinnedGroupMetricKind.Expense;
+
+        if (distinctNatures.All(x => x == AccountNature.Income))
+            return DashboardPinnedGroupMetricKind.Income;
+
+        return DashboardPinnedGroupMetricKind.NetResult;
+    }
     private async Task<MonthlyChartSeedData> BuildMonthlyChartSeedDataAsync(
         int year,
         int month,

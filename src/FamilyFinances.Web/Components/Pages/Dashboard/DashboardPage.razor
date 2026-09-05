@@ -246,7 +246,35 @@
                                 }
                                 else
                                 {
-                                    <div class="table-responsive"><table class="table table-sm align-middle mb-0 ff-data-table"><thead class="table-light"><tr><th class="ps-3">@L["AccountGroups_Title"]</th><th class="text-end">@L["Dashboard_PinnedGroups_Month"]</th><th class="text-end pe-3">@L["Dashboard_PinnedGroups_Ytd"]</th></tr></thead><tbody>@foreach (var group in _overview.PinnedGroups) { <tr><td class="ps-3">@group.GroupName</td><td class="text-end @MoneyFormatter.GetColorClass(group.MonthOperationalResultCents)">@MoneyFormatter.FormatCentsWithSign(group.MonthOperationalResultCents)</td><td class="text-end pe-3 @MoneyFormatter.GetColorClass(group.YtdOperationalResultCents)">@MoneyFormatter.FormatCentsWithSign(group.YtdOperationalResultCents)</td></tr> }</tbody></table></div>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm align-middle mb-0 ff-data-table">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th class="ps-3">@L["AccountGroups_Title"]</th>
+                                                    <th class="text-end">@L["Dashboard_PinnedGroups_Month"]</th>
+                                                    <th class="text-end pe-3">@L["Dashboard_PinnedGroups_Ytd"]</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var group in _overview.PinnedGroups)
+                                                {
+                                                    <tr>
+                                                        <td class="ps-3">@group.GroupName</td>
+                                                        @if (group.MetricKind == DashboardPinnedGroupMetricKind.Expense)
+                                                        {
+                                                            <td class="text-end">@MoneyFormatter.FormatCents(Math.Abs(group.MonthOperationalResultCents))</td>
+                                                            <td class="text-end pe-3">@MoneyFormatter.FormatCents(Math.Abs(group.YtdOperationalResultCents))</td>
+                                                        }
+                                                        else
+                                                        {
+                                                            <td class="text-end @MoneyFormatter.GetColorClass(group.MonthOperationalResultCents)">@MoneyFormatter.FormatCentsWithSign(group.MonthOperationalResultCents)</td>
+                                                            <td class="text-end pe-3 @MoneyFormatter.GetColorClass(group.YtdOperationalResultCents)">@MoneyFormatter.FormatCentsWithSign(group.YtdOperationalResultCents)</td>
+                                                        }
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 }
                             </div>
                         </div>
