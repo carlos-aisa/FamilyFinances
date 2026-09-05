@@ -12,7 +12,7 @@ The Dashboard loads this collection separately from its existing overview payloa
 
 ## Presentation
 
-A reusable Razor movement-list component receives presentation-ready list items and has no knowledge of the query or source of its data. Each row renders the date, description and/or payee when supplied, and the absolute monetary amount using neutral styling. It will therefore be suitable for a future `Upcoming planned expenses` card without alteration to the visual component's data-access boundary.
+A reusable Razor movement-list component receives presentation-ready list items and has no knowledge of the query or source of its data. Following the compact table layout of the Dashboard's highlighted-groups card, each row renders only the date, description, and absolute monetary amount using neutral styling. Payee is deliberately omitted from this compact Dashboard presentation. The component remains suitable for a future `Upcoming planned expenses` card without alteration to its data-access boundary.
 
 When no expense movements exist, the card shows the existing localized no-data state.
 
