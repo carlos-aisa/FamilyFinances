@@ -36,15 +36,15 @@
 
 - [x] 5.1 Add Domain unit tests for the default and state transitions of `IsDashboardPinned`.
 - [x] 5.2 Add Application unit tests for pin updates and Top 6 + Others ordering/aggregation.
-- [ ] 5.3 Add relational EF integration tests for migration application, default false persistence, dashboard kind aggregate, flow-only group result, and overlapping memberships.
-- [ ] 5.4 Add API integration tests for general PATCH authorization/404/persistence, additive account-group responses, and dashboard overview response semantics.
-- [ ] 5.5 Update Web/API-client tests for account-group pin management, annual mixed-chart payload, dashboard block order, ranking, pinned empty state, and responsive layout.
-- [ ] 5.6 Keep and run regression coverage for existing rename, dashboard history-state, annual bars, reports, and exports.
+- [x] 5.3 Add relational EF integration tests for migration application, default false persistence, dashboard kind aggregate, flow-only group result, and overlapping memberships.
+- [x] 5.4 Add API integration tests for general PATCH authorization/404/persistence, additive account-group responses, and dashboard overview response semantics.
+- [x] 5.5 Update Web/API-client tests for account-group pin management, annual mixed-chart payload, dashboard block order, ranking, pinned empty state, and responsive layout.
+- [x] 5.6 Keep and run regression coverage for existing rename, dashboard history-state, annual bars, reports, and exports.
 
 ## 6. Validation and documentation
 
 - [x] 6.1 Run OpenSpec validation for this change.
 - [x] 6.2 Run affected unit, Web, and API integration tests using the repository’s standard .NET commands.
 - [x] 6.3 Run a Release build for affected solution scope.
-- [ ] 6.4 Update implementation-era OpenSpec proposal/design/tasks if discoveries materially change behavior or architecture.
-- [ ] 6.5 Review OpenAPI and user-facing documentation for accuracy before completion.
+- [x] 6.4 Update implementation-era OpenSpec proposal/design/tasks if discoveries materially change behavior or architecture.
+- [x] 6.5 Review OpenAPI and user-facing documentation for accuracy before completion.

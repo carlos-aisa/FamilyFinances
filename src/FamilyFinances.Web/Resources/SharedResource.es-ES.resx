@@ -2704,7 +2704,7 @@
     <value>Principales contribuidores y senales de anomalia.</value>
   </data>
   <data name="Dashboard_Kpi_NetResult" xml:space="preserve">
-    <value>Saldo neto</value>
+    <value>Resultado del mes</value>
   </data>
   <data name="ExpenseEvolution_LoadingMonthFocusedExpense" xml:space="preserve">
     <value>Cargando grafico mensual de gastos...</value>

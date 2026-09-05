@@ -512,7 +512,7 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             join k in _db.AccountKinds.AsNoTracking() on a.KindId equals k.Id
             where t.BookedOn >= fromInclusive && t.BookedOn < toExclusive
             where a.Nature == AccountNature.Expense
-            select new { KindId = k.Id.Value, k.Name, AmountCents = -s.Amount.Cents }
+            select new { KindId = k.Id.Value, k.Name, AmountCents = s.Amount.Cents }
         ).ToListAsync(ct);
 
         return rows

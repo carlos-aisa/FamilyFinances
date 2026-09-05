@@ -2671,7 +2671,7 @@
     <value>Top contributors and anomaly signals.</value>
   </data>
   <data name="Dashboard_Kpi_NetResult" xml:space="preserve">
-    <value>Net result</value>
+    <value>Monthly result</value>
   </data>
   <data name="ExpenseEvolution_LoadingMonthFocusedExpense" xml:space="preserve">
     <value>Loading month-focused expense chart...</value>
