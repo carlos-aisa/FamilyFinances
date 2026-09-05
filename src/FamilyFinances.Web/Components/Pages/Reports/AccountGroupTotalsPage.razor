@@ -21,6 +21,12 @@
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResource> L
 
+@code {
+    [Parameter, SupplyParameterFromQuery(Name = "groupId")] public Guid? QueryGroupId { get; set; }
+    [Parameter, SupplyParameterFromQuery(Name = "year")] public int? QueryYear { get; set; }
+    [Parameter, SupplyParameterFromQuery(Name = "month")] public int? QueryMonth { get; set; }
+}
+
 <AuthorizeView>
     <Authorized>
         <!-- Header -->
@@ -403,6 +409,26 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadGroupsAsync();
+        if (TryApplyQueryContext())
+            await LoadReportAsync();
+    }
+
+    private bool TryApplyQueryContext()
+    {
+        if (QueryGroupId is null || QueryYear is not { } year || QueryMonth is not { } month ||
+            month is < 1 or > 12 || year is < 1 or > 9999 ||
+            _groups?.Any(group => group.Id == QueryGroupId.Value) != true)
+            return false;
+
+        var from = new DateOnly(year, month, 1);
+        if (from > DateHelper.GetCurrentMonthStart())
+            return false;
+
+        _selectedGroupId = QueryGroupId.Value.ToString();
+        _fromDate = from;
+        _toDate = from.AddMonths(1);
+        _activePreset = null;
+        return true;
     }
 
     private Task HandlePresetSelected(DateRangePresets.DateRangePreset preset)

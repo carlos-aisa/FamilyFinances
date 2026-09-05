@@ -165,6 +165,12 @@
   <data name="AccountGroupState_AnnualEvolutionTitle" xml:space="preserve">
     <value>Evolución anual</value>
   </data>
+  <data name="AccountGroupState_AccountMonthDetailSelect" xml:space="preserve">
+    <value>Selecciona un mes del histórico de un grupo para ver sus cuentas.</value>
+  </data>
+  <data name="AccountGroupState_AccountMonthDetailTitle" xml:space="preserve">
+    <value>Cuentas de {0} · {1}</value>
+  </data>
   <data name="AccountGroupState_ChartMode" xml:space="preserve">
     <value>Modo de gráfico</value>
   </data>

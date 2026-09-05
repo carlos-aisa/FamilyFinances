@@ -1,4 +1,5 @@
 @using FamilyFinances.Application.Reporting.Dtos
+@using FamilyFinances.Application.Ledger.AccountGroups.Dtos
 @using FamilyFinances.Domain.Ledger.Accounts
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
@@ -196,7 +197,8 @@ else if (_report is not null)
                                                             <tbody>
                                                                 @foreach (var monthPoint in GetSeriesPointsForDetails(series, dataUntilMonth))
                                                                 {
-                                                                    <tr>
+                                                                    <tr class="ff-clickable"
+                                                                        @onclick="() => SelectGroupMonth(series, monthPoint)">
                                                                         <td>@DateHelper.GetMonthName(monthPoint.Month)</td>
                                                                         <td class="text-end @MoneyFormatter.GetColorClass(monthPoint.EndBalanceCents)">
                                                                             @MoneyFormatter.FormatCentsWithSign(monthPoint.EndBalanceCents)
@@ -238,14 +240,28 @@ else if (_report is not null)
 
                 @if (_chartMode == ChartMode.Evolution)
                 {
-                    <AnnualBarChart
-                        Title="@L["AccountGroupState_AnnualEvolutionTitle"]"
-                        Subtitle="@L["AccountGroupState_AnnualEvolutionMonthResultSubtitle"]"
-                        Year="@_selectedYear"
-                        Series="@charts.AccountGroupEvolution"
-                        DataUntilMonth="@dataUntilMonth"
-                        YTickMaxTicks="5"
-                        TestId="account-group-totals-stock-evolution-chart" />
+                    @if (_selectedGroupMonth is null)
+                    {
+                        <ReportingChartEmptyState
+                            Title="@L["AccountGroupState_AnnualEvolutionTitle"]"
+                            Description="@L["AccountGroupState_AccountMonthDetailSelect"]" />
+                    }
+                    else if (!string.IsNullOrWhiteSpace(_accountDetailError))
+                    {
+                        <ReportingChartErrorState Message="@_accountDetailError" />
+                    }
+                    else
+                    {
+                        <AnnualEvolutionList
+                            Title="@L["AccountGroupState_AccountMonthDetailTitle", _selectedGroupMonth.GroupName, DateHelper.GetMonthName(_selectedGroupMonth.Month)]"
+                            Year="@_selectedYear"
+                            Month="@_selectedGroupMonth.Month"
+                            Items="@BuildSelectedGroupAccountItems()"
+                            Layout="AnnualEvolutionListLayout.Account"
+                            ShowCurrentBalance="false"
+                            EnableDetailNavigation="false"
+                            TestId="account-group-totals-stock-evolution-chart" />
+                    }
                 }
                 else
                 {
@@ -308,9 +324,11 @@ else
 
 @code {
     private MonthlyEvolutionReportDto? _report;
+    private MonthlyEvolutionReportDto? _accountEvolutionReport;
     private MonthlyBalanceVsGroupsChartDto? _monthlyBalanceVsGroupsChart;
     private string? _error;
     private string? _monthlyChartError;
+    private string? _accountDetailError;
     private bool _isLoading;
     private bool _isMonthlyChartLoading;
 
@@ -318,10 +336,13 @@ else
     private IReadOnlyList<int> _yearOptions = Array.Empty<int>();
     private int? _focusedMonth;
     private string? _expandedSeriesKey;
+    private GroupMonthSelection? _selectedGroupMonth;
     private ChartMode _chartMode = ChartMode.Evolution;
     private const int CompositionMaxSlices = 10;
     private IReadOnlyDictionary<Guid, IReadOnlySet<AccountNature>> _accountGroupNaturesById =
         new Dictionary<Guid, IReadOnlySet<AccountNature>>();
+    private IReadOnlyDictionary<Guid, IReadOnlyList<AccountRefDto>> _accountGroupAccountsById =
+        new Dictionary<Guid, IReadOnlyList<AccountRefDto>>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -347,13 +368,17 @@ else
         _isLoading = true;
         _error = null;
         _report = null;
+        _accountEvolutionReport = null;
         _monthlyBalanceVsGroupsChart = null;
         _monthlyChartError = null;
+        _accountDetailError = null;
+        _selectedGroupMonth = null;
         StateHasChanged();
 
         try
         {
             _report = await ReportsApi.GetStateEvolutionAsync(_selectedYear, MonthlyEvolutionScope.AccountGroups);
+            await LoadAccountEvolutionBestEffortAsync();
             await LoadAccountGroupNatureLookupBestEffortAsync();
             SyncFocusedMonth();
             _expandedSeriesKey = null;
@@ -392,10 +417,31 @@ else
                     .Where(n => n != AccountNature.Liability)
                     .Distinct()
                     .ToHashSet());
+            _accountGroupAccountsById = details.ToDictionary(
+                x => x.Id,
+                x => (IReadOnlyList<AccountRefDto>)x.Details.Accounts);
         }
         catch
         {
             _accountGroupNaturesById = new Dictionary<Guid, IReadOnlySet<AccountNature>>();
+            _accountGroupAccountsById = new Dictionary<Guid, IReadOnlyList<AccountRefDto>>();
+        }
+    }
+
+    private async Task LoadAccountEvolutionBestEffortAsync()
+    {
+        try
+        {
+            _accountEvolutionReport = await ReportsApi.GetStateEvolutionAsync(_selectedYear, MonthlyEvolutionScope.Accounts);
+            _accountDetailError = null;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            _accountDetailError = L["Reports_Error_Unauthorized"];
+        }
+        catch (Exception ex)
+        {
+            _accountDetailError = L["Reports_Error_LoadFailed", ex.Message];
         }
     }
 
@@ -569,6 +615,51 @@ else
         return natures.Contains(AccountNature.Expense);
     }
 
+    private void SelectGroupMonth(MonthlyEvolutionSeriesDto groupSeries, MonthlyEvolutionPointDto monthPoint)
+    {
+        if (groupSeries.EntityId is null)
+            return;
+
+        _selectedGroupMonth = new GroupMonthSelection(
+            groupSeries.EntityId.Value,
+            groupSeries.DisplayName,
+            monthPoint.Month);
+        _chartMode = ChartMode.Evolution;
+    }
+
+    private IReadOnlyList<AnnualEvolutionListItem> BuildSelectedGroupAccountItems()
+    {
+        if (_selectedGroupMonth is null || _accountEvolutionReport is null ||
+            !_accountGroupAccountsById.TryGetValue(_selectedGroupMonth.GroupId, out var accounts))
+            return Array.Empty<AnnualEvolutionListItem>();
+
+        var seriesByAccountId = _accountEvolutionReport.Series
+            .Where(series => series.EntityId is not null)
+            .GroupBy(series => series.EntityId!.Value)
+            .ToDictionary(group => group.Key, group => group.First());
+
+        return accounts
+            .Select(account =>
+            {
+                seriesByAccountId.TryGetValue(account.AccountId, out var series);
+                var point = series is null
+                    ? null
+                    : GetPointAtMonth(series, _selectedGroupMonth.Month);
+                return new AnnualEvolutionListItem(
+                    account.AccountId,
+                    series?.SeriesKey ?? $"account:{account.AccountId}",
+                    account.Name,
+                    CurrentBalanceCents: point?.EndBalanceCents,
+                    MonthChangeCents: point?.DeltaVsPreviousMonthCents,
+                    YearToDateCents: point?.DeltaVsYearStartCents,
+                    SemanticClass: "text-secondary");
+            })
+            .OrderByDescending(item => Math.Abs(item.MonthChangeCents ?? 0L))
+            .ThenBy(item => item.Label, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(item => item.Key, StringComparer.Ordinal)
+            .ToList();
+    }
+
     private (long EndBalance, long DeltaPrev, long DeltaYearStart) GetLatestSummary()
     {
         if (_report is null || _report.Series.Count == 0)
@@ -601,7 +692,6 @@ else
         try
         {
             var focusedCompositionMonth = GetFocusedCompositionMonth();
-            var accountGroupEvolution = AnnualChartDatasetAdapter.BuildSeriesMonthlyDelta(_report, maxSeries: 12);
             var rawAccountGroupExpenseComposition = focusedCompositionMonth is not null
                 ? AnnualChartDatasetAdapter.BuildCompositionFromSeriesAtMonth(
                     _report,
@@ -611,14 +701,12 @@ else
             var accountGroupExpenseComposition = BuildDashboardStyleComposition(rawAccountGroupExpenseComposition);
 
             return new ChartsViewModel(
-                AccountGroupEvolution: accountGroupEvolution,
                 AccountGroupExpenseComposition: accountGroupExpenseComposition,
                 Error: null);
         }
         catch (Exception ex)
         {
             return new ChartsViewModel(
-                AccountGroupEvolution: Array.Empty<AnnualChartSeries>(),
                 AccountGroupExpenseComposition: Array.Empty<AnnualCompositionSlice>(),
                 Error: L["Reports_Error_BuildChartDataset", ex.Message]);
         }
@@ -750,13 +838,13 @@ else
     }
 
     private sealed record ChartsViewModel(
-        IReadOnlyList<AnnualChartSeries> AccountGroupEvolution,
         IReadOnlyList<AnnualCompositionSlice> AccountGroupExpenseComposition,
         string? Error)
     {
         public static ChartsViewModel Empty => new(
-            AccountGroupEvolution: Array.Empty<AnnualChartSeries>(),
             AccountGroupExpenseComposition: Array.Empty<AnnualCompositionSlice>(),
             Error: null);
     }
+
+    private sealed record GroupMonthSelection(Guid GroupId, string GroupName, int Month);
 }

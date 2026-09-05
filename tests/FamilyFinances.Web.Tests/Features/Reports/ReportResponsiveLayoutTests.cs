@@ -149,7 +149,8 @@ public sealed class ReportResponsiveLayoutTests : WebTestContext
             cut.Markup.Should().Contain("col-12 col-xxl-4");
             cut.Markup.Should().Contain("aria-label=\"Year\"");
             cut.Markup.Should().Contain("ff-data-table");
-            cut.Markup.Should().Contain("ff-chart-panel");
+            cut.Markup.Should().Contain("aria-label=\"Composition by nature\"");
+            cut.Find("[data-testid='reporting-chart-empty']");
         });
     }
 

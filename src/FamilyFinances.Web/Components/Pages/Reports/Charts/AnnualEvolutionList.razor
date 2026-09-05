@@ -1,0 +1,169 @@
+@using System.Globalization
+@using FamilyFinances.Web.Features.Reports
+@using FamilyFinances.Web.Features.Reports.Charts
+@using FamilyFinances.Web.Features.Reports.Export
+@using Microsoft.Extensions.Localization
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject IStringLocalizer<SharedResource> L
+
+@if (Items.Count == 0)
+{
+    <ReportingChartEmptyState Title="@Title" Description="@L["ReportingChart_Empty_NoPointsForFilters"]" />
+}
+else
+{
+    <div class="card shadow-sm mb-4 annual-evolution-list ff-panel ff-chart-panel"
+         data-testid="@TestId"
+         data-year="@Year"
+         data-month="@Month">
+        <div class="card-body">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 mb-3">
+                <div>
+                    <h6 class="mb-1">@Title</h6>
+                    @if (!string.IsNullOrWhiteSpace(Subtitle))
+                    {
+                        <small class="text-muted">@Subtitle</small>
+                    }
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button"
+                            class="btn btn-sm btn-outline-secondary report-export-button ff-chart-export-button"
+                            @onclick="ExportCsvAsync"
+                            data-testid="@($"{TestId}-export-csv")"
+                            aria-label="@L["Reports_AriaExportCsv"]">
+                        <i class="bi bi-download me-1"></i>@L["Reports_AriaExportCsv"]
+                    </button>
+                    <span class="badge bg-secondary-subtle text-secondary">@L["Reports_BadgePeriod", $"{Month:00}-{Year:D4}"]</span>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_exportError))
+            {
+                <div class="text-danger small mb-2">@_exportError</div>
+            }
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 ff-data-table annual-evolution-list-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col">@(Layout == AnnualEvolutionListLayout.AccountGroup ? L["AccountGroupTotals_AccountGroup"] : L["Reports_Account"])</th>
+                            @if (Layout == AnnualEvolutionListLayout.Account && ShowCurrentBalance)
+                            {
+                                <th scope="col" class="text-end">@L["Reports_EndBalance"]</th>
+                            }
+                            <th scope="col" class="text-end">@L["Reports_MonthBalance"]</th>
+                            <th scope="col" class="text-end">@L["Reports_DeltaYearStart"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Items)
+                        {
+                            <tr class="@(EnableDetailNavigation && item.EntityId is not null ? "ff-clickable" : string.Empty)"
+                                @onclick="() => NavigateToDetail(item.EntityId)">
+                                <td>
+                                    @if (EnableDetailNavigation && item.EntityId is { } entityId)
+                                    {
+                                        <a class="annual-evolution-list-link" href="@BuildDetailHref(entityId)" aria-label="@BuildLinkAriaLabel(item)">@item.Label</a>
+                                    }
+                                    else
+                                    {
+                                        <span class="fw-semibold">@item.Label</span>
+                                    }
+                                </td>
+                                @if (Layout == AnnualEvolutionListLayout.Account && ShowCurrentBalance)
+                                {
+                                    <td class="text-end @GetValueClass(item.CurrentBalanceCents, item.SemanticClass)">@FormatValue(item.CurrentBalanceCents)</td>
+                                }
+                                <td class="text-end @GetValueClass(item.MonthChangeCents, item.SemanticClass)">@FormatValue(item.MonthChangeCents)</td>
+                                <td class="text-end @GetValueClass(item.YearToDateCents, item.SemanticClass)">@FormatValue(item.YearToDateCents)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter, EditorRequired] public int Year { get; set; }
+    [Parameter, EditorRequired] public int Month { get; set; }
+    [Parameter, EditorRequired] public IReadOnlyList<AnnualEvolutionListItem> Items { get; set; } = Array.Empty<AnnualEvolutionListItem>();
+    [Parameter, EditorRequired] public AnnualEvolutionListLayout Layout { get; set; }
+    [Parameter] public string TestId { get; set; } = "annual-evolution-list";
+    [Parameter] public bool ShowCurrentBalance { get; set; } = true;
+    [Parameter] public bool EnableDetailNavigation { get; set; }
+
+    private string? _exportError;
+
+    private string BuildDetailHref(Guid entityId)
+    {
+        var route = Layout == AnnualEvolutionListLayout.AccountGroup
+            ? "/reports/account-group-totals"
+            : "/reports/account-totals";
+        var parameter = Layout == AnnualEvolutionListLayout.AccountGroup ? "groupId" : "accountId";
+        return $"{route}?{parameter}={Uri.EscapeDataString(entityId.ToString())}&year={Year:D4}&month={Month:D2}";
+    }
+
+    private void NavigateToDetail(Guid? entityId)
+    {
+        if (EnableDetailNavigation && entityId is { } value)
+            Navigation.NavigateTo(BuildDetailHref(value));
+    }
+
+    private string BuildLinkAriaLabel(AnnualEvolutionListItem item)
+        => $"{item.Label}, {FormatValue(item.MonthChangeCents)}, {FormatValue(item.YearToDateCents)}";
+
+    private string GetValueClass(long? value, string semanticClass)
+    {
+        if (value is null)
+            return "text-muted";
+
+        return Layout == AnnualEvolutionListLayout.AccountGroup
+            ? semanticClass
+            : MoneyFormatter.GetColorClass(value.Value);
+    }
+
+    private static string FormatValue(long? value)
+        => value is null ? "-" : MoneyFormatter.FormatCentsWithSign(value.Value);
+
+    private async Task ExportCsvAsync()
+    {
+        _exportError = null;
+        IReadOnlyList<string> headers = Layout == AnnualEvolutionListLayout.AccountGroup
+            ? [L["AccountGroupTotals_AccountGroup"], L["Reports_MonthBalance"], L["Reports_DeltaYearStart"]]
+            : ShowCurrentBalance
+                ? [L["Reports_Account"], L["Reports_EndBalance"], L["Reports_MonthBalance"], L["Reports_DeltaYearStart"]]
+                : [L["Reports_Account"], L["Reports_MonthBalance"], L["Reports_DeltaYearStart"]];
+
+        var rows = Items.Select(item =>
+        {
+            var values = new List<string?> { item.Label };
+            if (Layout == AnnualEvolutionListLayout.Account && ShowCurrentBalance)
+                values.Add(FormatValue(item.CurrentBalanceCents));
+            values.Add(FormatValue(item.MonthChangeCents));
+            values.Add(FormatValue(item.YearToDateCents));
+            return (IReadOnlyList<string?>)values;
+        }).ToList();
+
+        var csv = ReportCsvBuilder.Build(
+            reportName: Title,
+            context: new Dictionary<string, string?> { [L["Reports_SelectedPeriod"]] = $"{Month:00}-{Year:D4}" },
+            headers: headers,
+            rows: rows);
+
+        try
+        {
+            var fileName = $"{ReportExportInterop.BuildFileName("report-list", Title, Year, Month.ToString("00", CultureInfo.InvariantCulture))}.csv";
+            await JS.DownloadCsvAsync(fileName, csv);
+        }
+        catch (Exception ex)
+        {
+            _exportError = L["Reports_Error_ExportCsvFailed", ex.Message];
+        }
+    }
+}
