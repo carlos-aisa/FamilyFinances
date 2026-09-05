@@ -10,10 +10,24 @@ The Dashboard MUST render an analytics-first household overview that prioritizes
 - **THEN** the Dashboard MUST render a five-KPI strip and these analytical blocks without tab interaction:
   - current-month `Income vs Expense` daily evolution;
   - annual `Income vs Expense vs Monthly Result` mixed chart;
+  - asset-total evolution;
   - current-month expense-kind ranking with Top 6 + Others;
   - user-pinned account-group operational-result table;
-  - asset-total evolution.
+  - deterministic monthly textual summary.
 - **AND** it MUST NOT require report shortcut cards to reach a financial overview.
+
+#### Scenario: Dashboard uses balanced analytical rows
+
+- **WHEN** the dashboard renders at a wide desktop breakpoint
+- **THEN** the daily, annual, and asset-total evolutions MUST share the second row
+- **AND** the expense-kind ranking, pinned groups, and monthly textual summary MUST share the third row.
+
+#### Scenario: Dashboard summary uses only reliable existing data
+
+- **WHEN** the dashboard renders its monthly textual summary
+- **THEN** it MUST render no more than four deterministic insights from the overview payload
+- **AND** it MUST include a previous-month comparison only when historical sufficiency is complete
+- **AND** it MUST NOT use AI or request a new endpoint.
 
 #### Scenario: Dashboard preserves distinct monthly and annual questions
 
@@ -43,6 +57,8 @@ The Dashboard MUST show current-month expense composition by account kind, not a
 - **THEN** its ranking contribution MUST be assigned only to its catalog-backed account kind
 - **AND** group membership MUST NOT alter its kind-ranking amount.
 
+## ADDED Requirements
+
 ### Requirement: Dashboard SHALL Monitor User-Pinned Account Groups
 
 The Dashboard MUST show only account groups explicitly selected for monitoring by the user.
@@ -69,4 +85,3 @@ The Dashboard MUST show only account groups explicitly selected for monitoring b
 - **WHEN** no group is pinned
 - **THEN** the Dashboard MUST render a localized compact empty state
 - **AND** it MUST direct the user to account-group management.
-
