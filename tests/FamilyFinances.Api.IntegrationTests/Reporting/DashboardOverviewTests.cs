@@ -20,6 +20,47 @@ public sealed class DashboardOverviewTests
         var salary = await TestHelpers.CreateAccountAsync(client, "Salary", "Income", "Other");
         var groceries = await TestHelpers.CreateAccountAsync(client, "Groceries", "Expense", "Other");
 
+        var groupResponse = await client.PostAsJsonAsync("/api/v1/account-groups", new
+        {
+            name = "Household",
+            description = (string?)null
+        });
+        groupResponse.EnsureSuccessStatusCode();
+
+        using var groupJson = JsonDocument.Parse(await groupResponse.Content.ReadAsStringAsync());
+        groupJson.RootElement.GetProperty("isDashboardPinned").GetBoolean().Should().BeFalse();
+        var groupId = groupJson.RootElement.GetProperty("id").GetGuid();
+        foreach (var accountId in new[] { bank.Id, salary.Id, groceries.Id })
+        {
+            (await client.PostAsync($"/api/v1/account-groups/{groupId}/accounts/{accountId}", null))
+                .EnsureSuccessStatusCode();
+        }
+
+        (await client.PatchAsync(
+            $"/api/v1/account-groups/{groupId}",
+            JsonContent.Create(new { isDashboardPinned = true })))
+            .StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var sharedGroupResponse = await client.PostAsJsonAsync("/api/v1/account-groups", new
+        {
+            name = "Shared household",
+            description = (string?)null
+        });
+        sharedGroupResponse.EnsureSuccessStatusCode();
+
+        using var sharedGroupJson = JsonDocument.Parse(await sharedGroupResponse.Content.ReadAsStringAsync());
+        var sharedGroupId = sharedGroupJson.RootElement.GetProperty("id").GetGuid();
+        foreach (var accountId in new[] { salary.Id, groceries.Id })
+        {
+            (await client.PostAsync($"/api/v1/account-groups/{sharedGroupId}/accounts/{accountId}", null))
+                .EnsureSuccessStatusCode();
+        }
+
+        (await client.PatchAsync(
+            $"/api/v1/account-groups/{sharedGroupId}",
+            JsonContent.Create(new { isDashboardPinned = true })))
+            .StatusCode.Should().Be(HttpStatusCode.NoContent);
+
         await PostTransactionAsync(
             client,
             new DateOnly(year, 1, 10),
@@ -50,6 +91,8 @@ public sealed class DashboardOverviewTests
         root.TryGetProperty("ytdSummary", out var ytd).Should().BeTrue();
         root.TryGetProperty("compactInsights", out var insights).Should().BeTrue();
         root.TryGetProperty("dataSufficiencyState", out var dataState).Should().BeTrue();
+        root.TryGetProperty("expenseKindRanking", out var expenseKindRanking).Should().BeTrue();
+        root.TryGetProperty("pinnedGroups", out var pinnedGroups).Should().BeTrue();
 
         var incomeValue = income.GetProperty("valueCents").GetInt64();
         var expenseValue = expense.GetProperty("valueCents").GetInt64();
@@ -64,6 +107,16 @@ public sealed class DashboardOverviewTests
         ytd.GetProperty("monthlyNetPoints").ValueKind.Should().Be(JsonValueKind.Array);
         insights.GetArrayLength().Should().BeLessThanOrEqualTo(9);
         dataState.GetInt32().Should().BeOneOf(1, 2, 3);
+        expenseKindRanking.ValueKind.Should().Be(JsonValueKind.Array);
+        expenseKindRanking[0].GetProperty("amountCents").GetInt64().Should().Be(40_000);
+        pinnedGroups.ValueKind.Should().Be(JsonValueKind.Array);
+        pinnedGroups.GetArrayLength().Should().Be(2);
+        pinnedGroups.EnumerateArray()
+            .Select(group => group.GetProperty("monthOperationalResultCents").GetInt64())
+            .Should().AllBeEquivalentTo(-40_000);
+        pinnedGroups.EnumerateArray()
+            .Select(group => group.GetProperty("ytdOperationalResultCents").GetInt64())
+            .Should().AllBeEquivalentTo(160_000);
     }
 
     [Fact]

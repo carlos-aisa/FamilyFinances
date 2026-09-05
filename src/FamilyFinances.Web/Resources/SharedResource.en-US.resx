@@ -2710,7 +2710,7 @@
     <value>Top contributors and anomaly signals.</value>
   </data>
   <data name="Dashboard_Kpi_NetResult" xml:space="preserve">
-    <value>Net result</value>
+    <value>Monthly result</value>
   </data>
   <data name="ExpenseEvolution_LoadingMonthFocusedExpense" xml:space="preserve">
     <value>Loading month-focused expense chart...</value>
@@ -2811,4 +2811,5 @@
   <data name="Dashboard_GroupAnnualEvolution_Subtitle" xml:space="preserve">
     <value>Monthly result bars by account group.</value>
   </data>
+  <data name="AccountGroups_DashboardPinned" xml:space="preserve"><value>Shown on dashboard</value></data>
 </root>

@@ -1031,6 +1031,29 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+    patch:
+      tags: [AccountGroups]
+      summary: Partially update account group dashboard settings
+      operationId: AccountGroups_Update
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GroupIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetAccountGroupDashboardPinnedRequest'
+      responses:
+        '204':
+          description: Account group updated.
+        '404':
+          description: Account group not found.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
     delete:
       tags: [AccountGroups]
       summary: Delete account group
@@ -2053,6 +2076,13 @@ components:
           type: string
       required: [name]
 
+    SetAccountGroupDashboardPinnedRequest:
+      type: object
+      properties:
+        isDashboardPinned:
+          type: boolean
+      required: [isDashboardPinned]
+
     AccountGroupDto:
       type: object
       properties:
@@ -2064,7 +2094,9 @@ components:
         description:
           type: string
           nullable: true
-      required: [id, name, description]
+        isDashboardPinned:
+          type: boolean
+      required: [id, name, description, isDashboardPinned]
 
     AccountRefDto:
       type: object
@@ -2095,7 +2127,9 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AccountRefDto'
-      required: [id, name, description, accounts]
+        isDashboardPinned:
+          type: boolean
+      required: [id, name, description, accounts, isDashboardPinned]
 
     MonthlySummaryDto:
       type: object

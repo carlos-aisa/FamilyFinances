@@ -20,6 +20,19 @@ public sealed class GetDashboardOverviewHandlerTests
         var core = BuildCore(asOf, hasPreviousMonthData: true, hasSameMonthLastYearData: false);
         repo.Setup(r => r.GetDashboardOverviewCoreAsync(asOf, It.IsAny<CancellationToken>()))
             .ReturnsAsync(core);
+        repo.Setup(r => r.GetDashboardExpenseKindTotalsAsync(It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new DashboardExpenseKindTotalDto(Guid.NewGuid(), "Food", 120_000),
+                new DashboardExpenseKindTotalDto(Guid.NewGuid(), "Housing", 110_000),
+                new DashboardExpenseKindTotalDto(Guid.NewGuid(), "Transport", 100_000),
+                new DashboardExpenseKindTotalDto(Guid.NewGuid(), "Health", 90_000),
+                new DashboardExpenseKindTotalDto(Guid.NewGuid(), "Education", 80_000),
+                new DashboardExpenseKindTotalDto(Guid.NewGuid(), "Leisure", 70_000),
+                new DashboardExpenseKindTotalDto(Guid.NewGuid(), "Personal care", 60_000)
+            ]);
+        repo.Setup(r => r.GetDashboardPinnedGroupOperationalResultsAsync(asOf, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<DashboardPinnedGroupOperationalResultDto>());
         repo.Setup(r => r.GetInsightContributorTotalsAsync(
                 It.IsAny<DateOnly>(),
                 It.IsAny<DateOnly>(),
@@ -80,6 +93,9 @@ public sealed class GetDashboardOverviewHandlerTests
         result.CompactInsights.Take(5).Select(r => r.Kind).Should().OnlyContain(kind => kind == "top-expense");
         result.CompactInsights.Last().StatusCode.Should().Be("others");
         result.CompactInsights.Last().AmountCents.Should().Be(50_000);
+        result.ExpenseKindRanking.Should().HaveCount(7);
+        result.ExpenseKindRanking!.Take(6).Should().OnlyContain(row => !row.IsOthers);
+        result.ExpenseKindRanking.Last().Should().Match<DashboardExpenseKindRankDto>(row => row.IsOthers && row.AmountCents == 60_000);
 
         repo.VerifyAll();
         calculator.VerifyAll();
@@ -100,6 +116,10 @@ public sealed class GetDashboardOverviewHandlerTests
 
         repo.Setup(r => r.GetDashboardOverviewCoreAsync(asOf, It.IsAny<CancellationToken>()))
             .ReturnsAsync(BuildCore(asOf, hasPreviousMonthData, hasSameMonthLastYearData));
+        repo.Setup(r => r.GetDashboardExpenseKindTotalsAsync(It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<DashboardExpenseKindTotalDto>());
+        repo.Setup(r => r.GetDashboardPinnedGroupOperationalResultsAsync(asOf, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<DashboardPinnedGroupOperationalResultDto>());
         repo.Setup(r => r.GetInsightContributorTotalsAsync(
                 It.IsAny<DateOnly>(),
                 It.IsAny<DateOnly>(),

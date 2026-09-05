@@ -134,6 +134,11 @@ public sealed class AccountGroupsApiTests
 
         var create = await client.PostAsJsonAsync("/api/v1/account-groups", new { name = "X", description = (string?)null });
         create.StatusCode.Should().BeOneOf(HttpStatusCode.Unauthorized, HttpStatusCode.Forbidden);
+
+        var pin = await client.PatchAsync(
+            $"/api/v1/account-groups/{Guid.NewGuid()}",
+            JsonContent.Create(new { isDashboardPinned = true }));
+        pin.StatusCode.Should().BeOneOf(HttpStatusCode.Unauthorized, HttpStatusCode.Forbidden);
     }
 
     [Fact]
@@ -200,6 +205,19 @@ public sealed class AccountGroupsApiTests
             JsonContent.Create(new { name = "Any Name" }));
 
         renameRes.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task SetDashboardPinned_Returns_NotFound_For_NonExistent_Group()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var response = await client.PatchAsync(
+            $"/api/v1/account-groups/{Guid.NewGuid()}",
+            JsonContent.Create(new { isDashboardPinned = true }));
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Fact]

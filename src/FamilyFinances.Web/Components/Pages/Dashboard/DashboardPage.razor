@@ -1,19 +1,18 @@
 @page "/"
 @rendermode InteractiveServer
 @using FamilyFinances.Application.Reporting.Dtos
-@using FamilyFinances.Domain.Ledger.Accounts
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
 @using FamilyFinances.Web.Components.Pages.Reports.Charts
 @using FamilyFinances.Web.Features.Reports
 @using FamilyFinances.Web.Features.Reports.Charts
+@using FamilyFinances.Web.Features.Dashboard
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.Extensions.Localization
 @using FamilyFinances.Web
 @inherits ApiPageBase
 
 @inject ReportsApi ReportsApi
-@inject AccountGroupsApi AccountGroupsApi
 @inject IStringLocalizer<SharedResource> L
 
 <AuthorizeView>
@@ -164,31 +163,10 @@
                                 Year="@_overview.AsOf.Year"
                                 Series="@_annualIncomeVsExpenseSeries"
                                 DataUntilMonth="@_overview.AsOf.Month"
+                                LineSeriesKey="result"
                                 TestId="dashboard-annual-income-expense-chart" />
                         }
                     </div>
-                    <div class="col-12 col-xxl-4">
-                        @if (_monthlyNetTrendSeries.Count == 0)
-                        {
-                            <ReportingChartEmptyState
-                                Title="@L["Dashboard_MonthlyNetTrend_Title"]"
-                                Description="@L["ReportingChart_Empty_NoPointsForFilters"]" />
-                        }
-                        else
-                        {
-                            <EvolutionChart
-                                Mode="EvolutionChartMode.MonthlyInYear"
-                                Title="@L["Dashboard_MonthlyNetTrend_Title"]"
-                                Subtitle="@L["Dashboard_MonthlyNetTrend_Subtitle"]"
-                                Year="@_overview.AsOf.Year"
-                                AnnualSeries="@_monthlyNetTrendSeries"
-                                DataUntilMonth="@_overview.AsOf.Month"
-                                TestId="dashboard-monthly-net-trend-chart" />
-                        }
-                    </div>
-                </div>
-
-                <div class="row g-3 ff-dashboard-analytics-row ff-dashboard-analytics-row-3">
                     <div class="col-12 col-xxl-4">
                         @if (_assetAnnualEvolutionSeries.Count == 0)
                         {
@@ -208,36 +186,67 @@
                                 TestId="dashboard-asset-evolution-chart" />
                         }
                     </div>
+                </div>
+
+                <div class="row g-3 ff-dashboard-analytics-row ff-dashboard-analytics-row-3">
                     <div class="col-12 col-xxl-4">
-                        @if (_groupAnnualEvolutionItems.Count == 0)
-                        {
-                            <ReportingChartEmptyState
-                                Title="@L["Dashboard_GroupAnnualEvolution_Title"]"
-                                Description="@L["ReportingChart_Empty_NoPointsForFilters"]" />
-                        }
-                        else
-                        {
-                            <AnnualEvolutionList
-                                Title="@L["Dashboard_GroupAnnualEvolution_Title"]"
-                                Subtitle="@L["Dashboard_GroupAnnualEvolution_Subtitle"]"
-                                Year="@_overview.AsOf.Year"
-                                Month="@_overview.AsOf.Month"
-                                Items="@_groupAnnualEvolutionItems"
-                                Layout="AnnualEvolutionListLayout.AccountGroup"
-                                EnableDetailNavigation="true"
-                                TestId="dashboard-group-annual-evolution-chart" />
-                        }
+                        <div class="card shadow-sm h-100 ff-panel" data-testid="dashboard-expense-kind-ranking">
+                            <div class="card-header bg-transparent ff-panel-header">
+                                <h6 class="mb-1">@L["Dashboard_ExpenseKindRanking_Title"]</h6>
+                                <small class="text-muted">@L["Dashboard_ExpenseKindRanking_Subtitle", DateHelper.GetMonthName(_overview.AsOf.Month)]</small>
+                            </div>
+                            <div class="card-body">
+                                @if (_overview.ExpenseKindRanking is null || _overview.ExpenseKindRanking.Count == 0)
+                                {
+                                    <p class="text-muted mb-0">@L["Reports_NoDataForPeriod"]</p>
+                                }
+                                else
+                                {
+                                    var maximum = _overview.ExpenseKindRanking.Max(row => row.AmountCents);
+                                    @foreach (var row in _overview.ExpenseKindRanking)
+                                    {
+                                        <div class="mb-3">
+                                            <div class="d-flex justify-content-between gap-2 small mb-1"><span>@(row.IsOthers ? L["Dashboard_ExpenseComposition_Others"] : row.Label)</span><strong>@MoneyFormatter.FormatCents(row.AmountCents)</strong></div>
+                                            <div class="progress ff-dashboard-rank-progress"><div class="progress-bar bg-primary ff-dashboard-rank-bar" role="progressbar" style="--ff-progress-width:@GetPercentageWidth(row.AmountCents, maximum)"></div></div>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        </div>
                     </div>
                     <div class="col-12 col-xxl-4">
-                        <AnnualCompositionChart
-                            Title="@L["Dashboard_ExpenseComposition_Title"]"
-                            Subtitle="@L["Dashboard_ExpenseComposition_Subtitle", DateHelper.GetMonthName(_overview.AsOf.Month)]"
-                            Year="@_overview.AsOf.Year"
-                            BadgeText="@($"{_overview.AsOf.Year:D4}-{_overview.AsOf.Month:D2}")"
-                            Slices="@_expenseCompositionSlices"
-                            UseSideLegend="true"
-                            LegendMaxItems="10"
-                            TestId="dashboard-expense-composition-chart" />
+                        <div class="card shadow-sm h-100 ff-panel" data-testid="dashboard-pinned-groups">
+                            <div class="card-header bg-transparent ff-panel-header"><h6 class="mb-1">@L["Dashboard_PinnedGroups_Title"]</h6><small class="text-muted">@L["Dashboard_PinnedGroups_Subtitle"]</small></div>
+                            <div class="card-body p-0">
+                                @if (_overview.PinnedGroups is null || _overview.PinnedGroups.Count == 0)
+                                {
+                                    <div class="p-3 text-muted"><p class="mb-2">@L["Dashboard_PinnedGroups_Empty"]</p><a href="/account-groups">@L["Nav_AccountGroups"]</a></div>
+                                }
+                                else
+                                {
+                                    <div class="table-responsive"><table class="table table-sm align-middle mb-0 ff-data-table"><thead class="table-light"><tr><th class="ps-3">@L["AccountGroups_Title"]</th><th class="text-end">@L["Dashboard_PinnedGroups_Month"]</th><th class="text-end pe-3">@L["Dashboard_PinnedGroups_Ytd"]</th></tr></thead><tbody>@foreach (var group in _overview.PinnedGroups) { <tr><td class="ps-3">@group.GroupName</td><td class="text-end @MoneyFormatter.GetColorClass(group.MonthOperationalResultCents)">@MoneyFormatter.FormatCentsWithSign(group.MonthOperationalResultCents)</td><td class="text-end pe-3 @MoneyFormatter.GetColorClass(group.YtdOperationalResultCents)">@MoneyFormatter.FormatCentsWithSign(group.YtdOperationalResultCents)</td></tr> }</tbody></table></div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-xxl-4">
+                        <div class="card shadow-sm h-100 ff-panel" data-testid="dashboard-monthly-summary">
+                            <div class="card-header bg-transparent ff-panel-header">
+                                <h6 class="mb-1">@L["Dashboard_MonthlySummary_Title"]</h6>
+                                <small class="text-muted">@L["Dashboard_MonthlySummary_Subtitle"]</small>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-unstyled mb-0 ff-dashboard-monthly-summary-list">
+                                    @foreach (var insight in _monthlySummaryInsights)
+                                    {
+                                        <li class="d-flex gap-2 mb-2" data-testid="dashboard-monthly-summary-insight">
+                                            <i class="bi bi-check2-circle text-primary" aria-hidden="true"></i>
+                                            <span>@GetMonthlySummaryInsightText(insight)</span>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -266,12 +275,8 @@
     private long _ytdNetDelta;
     private IReadOnlyList<MonthlyChartSeries> _monthlyIncomeVsExpenseSeries = Array.Empty<MonthlyChartSeries>();
     private IReadOnlyList<AnnualChartSeries> _annualIncomeVsExpenseSeries = Array.Empty<AnnualChartSeries>();
-    private IReadOnlyList<AnnualChartSeries> _monthlyNetTrendSeries = Array.Empty<AnnualChartSeries>();
     private IReadOnlyList<AnnualChartSeries> _assetAnnualEvolutionSeries = Array.Empty<AnnualChartSeries>();
-    private IReadOnlyList<AnnualEvolutionListItem> _groupAnnualEvolutionItems = Array.Empty<AnnualEvolutionListItem>();
-    private IReadOnlyDictionary<Guid, IReadOnlySet<AccountNature>> _accountGroupNaturesById =
-        new Dictionary<Guid, IReadOnlySet<AccountNature>>();
-    private IReadOnlyList<AnnualCompositionSlice> _expenseCompositionSlices = Array.Empty<AnnualCompositionSlice>();
+    private IReadOnlyList<DashboardMonthlySummaryInsight> _monthlySummaryInsights = Array.Empty<DashboardMonthlySummaryInsight>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -285,11 +290,8 @@
         _overview = null;
         _monthlyIncomeVsExpenseSeries = Array.Empty<MonthlyChartSeries>();
         _annualIncomeVsExpenseSeries = Array.Empty<AnnualChartSeries>();
-        _monthlyNetTrendSeries = Array.Empty<AnnualChartSeries>();
         _assetAnnualEvolutionSeries = Array.Empty<AnnualChartSeries>();
-        _groupAnnualEvolutionItems = Array.Empty<AnnualEvolutionListItem>();
-        _accountGroupNaturesById = new Dictionary<Guid, IReadOnlySet<AccountNature>>();
-        _expenseCompositionSlices = Array.Empty<AnnualCompositionSlice>();
+        _monthlySummaryInsights = Array.Empty<DashboardMonthlySummaryInsight>();
         StateHasChanged();
 
         try
@@ -300,9 +302,8 @@
 
             _monthlyIncomeVsExpenseSeries = BuildMonthlyIncomeExpenseSeries(_overview);
             _annualIncomeVsExpenseSeries = BuildAnnualIncomeExpenseSeries(_overview);
-            _monthlyNetTrendSeries = BuildMonthlyNetTrendSeries(_overview);
-            await LoadAnnualEvolutionSeriesAsync(_overview.AsOf.Year, _overview.AsOf.Month);
-            _expenseCompositionSlices = BuildExpenseCompositionSlices(_overview);
+            _monthlySummaryInsights = DashboardMonthlySummaryBuilder.Build(_overview);
+            await LoadAnnualEvolutionSeriesAsync(_overview.AsOf.Year);
             await CalculateYtdKpiAsync();
         }
         catch (Exception ex)
@@ -348,11 +349,13 @@
 
         var incomePoints = new List<AnnualChartPoint>(12);
         var expensePoints = new List<AnnualChartPoint>(12);
+        var resultPoints = new List<AnnualChartPoint>(12);
         for (var month = 1; month <= 12; month++)
         {
             var point = pointsByMonth.GetValueOrDefault(month);
             incomePoints.Add(new AnnualChartPoint(month, point?.IncomeCents ?? 0L));
             expensePoints.Add(new AnnualChartPoint(month, point?.ExpenseCents ?? 0L));
+            resultPoints.Add(new AnnualChartPoint(month, point?.NetCents ?? 0L));
         }
 
         return
@@ -366,81 +369,20 @@
                 Key: "expense",
                 Label: L["Dashboard_Kpi_Expense"],
                 ColorHex: ChartSemanticPalette.ResolveSemantic(ChartSemanticPalette.Expense),
-                Points: expensePoints)
-        ];
-    }
-
-    private IReadOnlyList<AnnualChartSeries> BuildMonthlyNetTrendSeries(DashboardOverviewDto overview)
-    {
-        var pointsByMonth = overview.YtdSummary.MonthlyNetPoints
-            .ToDictionary(point => point.Month, point => point);
-
-        var netPoints = new List<AnnualChartPoint>(12);
-        for (var month = 1; month <= 12; month++)
-        {
-            var point = pointsByMonth.GetValueOrDefault(month);
-            netPoints.Add(new AnnualChartPoint(month, point?.NetCents ?? 0L));
-        }
-
-        return
-        [
+                Points: expensePoints),
             new AnnualChartSeries(
-                Key: "monthly-net",
-                Label: L["Dashboard_MonthlyNetTrend_Legend"],
+                Key: "result",
+                Label: L["Dashboard_Kpi_NetResult"],
                 ColorHex: ChartSemanticPalette.ResolveSemantic(ChartSemanticPalette.Balance),
-                Points: netPoints)
+                Points: resultPoints)
         ];
     }
 
-    private IReadOnlyList<AnnualCompositionSlice> BuildExpenseCompositionSlices(DashboardOverviewDto overview)
-    {
-        var rows = overview.CompactInsights
-            .Where(row => row.AmountCents > 0L)
-            .OrderBy(row => string.Equals(row.StatusCode, "others", StringComparison.OrdinalIgnoreCase) ? 1 : 0)
-            .ThenByDescending(row => row.AmountCents)
-            .ThenBy(row => row.Label, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        if (rows.Count == 0)
-            return Array.Empty<AnnualCompositionSlice>();
-
-        var totalAmount = rows.Sum(row => row.AmountCents);
-        if (totalAmount <= 0L)
-            return Array.Empty<AnnualCompositionSlice>();
-
-        var slices = new List<AnnualCompositionSlice>(rows.Count);
-        for (var index = 0; index < rows.Count; index++)
-        {
-            var row = rows[index];
-            var label = string.Equals(row.StatusCode, "others", StringComparison.OrdinalIgnoreCase)
-                ? L["Dashboard_ExpenseComposition_Others"]
-                : row.Label;
-
-            var percentage = row.Percentage is decimal value
-                ? value
-                : (row.AmountCents * 100m) / totalAmount;
-
-            slices.Add(new AnnualCompositionSlice(
-                Key: row.RowKey,
-                Label: label,
-                RawValueCents: row.AmountCents,
-                Percentage: percentage,
-                ColorHex: AnnualChartPalette.Resolve(index)));
-        }
-
-        return slices;
-    }
-
-    private async Task LoadAnnualEvolutionSeriesAsync(int year, int month)
+    private async Task LoadAnnualEvolutionSeriesAsync(int year)
     {
         var assetEvolution = await ExecuteApiAsync(
             ct => ReportsApi.GetStateEvolutionAsync(year, MonthlyEvolutionScope.AssetTotal, ct));
         if (assetEvolution is null)
-            return;
-
-        var groupEvolution = await ExecuteApiAsync(
-            ct => ReportsApi.GetStateEvolutionAsync(year, MonthlyEvolutionScope.AccountGroups, ct));
-        if (groupEvolution is null)
             return;
 
         _assetAnnualEvolutionSeries = AnnualChartDatasetAdapter.BuildEndBalanceSeries(
@@ -449,72 +391,10 @@
             label: L["Dashboard_AssetEvolution_Legend"],
             colorHex: ChartSemanticPalette.ResolveSemantic(ChartSemanticPalette.Neutral));
 
-        await LoadAccountGroupNatureLookupBestEffortAsync();
-        _groupAnnualEvolutionItems = BuildAccountGroupEvolutionItems(groupEvolution, month);
     }
 
-    private async Task LoadAccountGroupNatureLookupBestEffortAsync()
-    {
-        try
-        {
-            var groups = await AccountGroupsApi.ListAsync(default);
-            var details = await Task.WhenAll(groups.Select(async group => new
-            {
-                group.Id,
-                Details = await AccountGroupsApi.GetByIdAsync(group.Id, default)
-            }));
-
-            _accountGroupNaturesById = details.ToDictionary(
-                item => item.Id,
-                item => (IReadOnlySet<AccountNature>)item.Details.Accounts
-                    .Select(account => account.Nature)
-                    .ToHashSet());
-        }
-        catch
-        {
-            _accountGroupNaturesById = new Dictionary<Guid, IReadOnlySet<AccountNature>>();
-        }
-    }
-
-    private IReadOnlyList<AnnualEvolutionListItem> BuildAccountGroupEvolutionItems(
-        MonthlyEvolutionReportDto report,
-        int month)
-    {
-        return report.Series
-            .Select(series =>
-            {
-                var point = series.Points
-                    .Where(item => item.Month <= month)
-                    .OrderByDescending(item => item.Month)
-                    .FirstOrDefault();
-                return new AnnualEvolutionListItem(
-                    series.EntityId,
-                    series.SeriesKey,
-                    series.DisplayName,
-                    CurrentBalanceCents: point?.EndBalanceCents,
-                    MonthChangeCents: point?.DeltaVsPreviousMonthCents,
-                    YearToDateCents: point?.DeltaVsYearStartCents,
-                    SemanticClass: ResolveAccountGroupSemanticClass(series.EntityId));
-            })
-            .OrderByDescending(item => Math.Abs(item.MonthChangeCents ?? 0L))
-            .ThenBy(item => item.Label, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(item => item.Key, StringComparer.Ordinal)
-            .ToList();
-    }
-
-    private string ResolveAccountGroupSemanticClass(Guid? groupId)
-    {
-        if (groupId is null || !_accountGroupNaturesById.TryGetValue(groupId.Value, out var natures))
-            return "text-secondary";
-
-        if (natures.Contains(AccountNature.Income) && !natures.Contains(AccountNature.Expense))
-            return "text-success";
-
-        if (natures.Contains(AccountNature.Expense) && !natures.Contains(AccountNature.Income))
-            return "text-danger";
-
-        return "text-secondary";
-    }
+    private static string GetPercentageWidth(long value, long maximum)
+        => maximum <= 0L ? "0%" : $"{Math.Clamp(value * 100m / maximum, 0m, 100m):0.##}%";
 
     private string GetDataSufficiencyMessage(DashboardDataSufficiencyState state)
     {
@@ -523,6 +403,21 @@
             DashboardDataSufficiencyState.Complete => L["Dashboard_DataState_Complete"],
             DashboardDataSufficiencyState.Partial => L["Dashboard_DataState_Partial"],
             _ => L["Dashboard_DataState_InsufficientHistory"]
+        };
+    }
+
+    private string GetMonthlySummaryInsightText(DashboardMonthlySummaryInsight insight)
+    {
+        var amount = MoneyFormatter.FormatCentsWithSign(insight.AmountCents);
+        return insight.Kind switch
+        {
+            DashboardMonthlySummaryInsightKind.MonthlyResult => L["Dashboard_MonthlySummary_Result", amount],
+            DashboardMonthlySummaryInsightKind.PreviousMonthComparison => L["Dashboard_MonthlySummary_PreviousMonth", amount],
+            DashboardMonthlySummaryInsightKind.TopExpenseKind => L["Dashboard_MonthlySummary_TopExpense", insight.Label!, MoneyFormatter.FormatCents(insight.AmountCents)],
+            DashboardMonthlySummaryInsightKind.TopPinnedGroup => L["Dashboard_MonthlySummary_TopPinnedGroup", insight.Label!, amount],
+            DashboardMonthlySummaryInsightKind.AnnualAccumulation => L["Dashboard_MonthlySummary_AnnualAccumulation", amount],
+            DashboardMonthlySummaryInsightKind.NetWorth => L["Dashboard_MonthlySummary_NetWorth", amount],
+            _ => string.Empty
         };
     }
 

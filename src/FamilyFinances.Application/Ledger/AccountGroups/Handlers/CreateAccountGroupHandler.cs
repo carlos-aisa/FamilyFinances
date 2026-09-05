@@ -38,7 +38,8 @@ namespace FamilyFinances.Application.Ledger.AccountGroups.Handlers
             return new AccountGroupDto(
                 group.Id.Value,
                 group.Name,
-                group.Description);
+                group.Description,
+                group.IsDashboardPinned);
         }
     }
 }

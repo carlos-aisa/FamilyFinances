@@ -2,7 +2,6 @@
 
 ## Purpose
 Define the global account-kind catalog capability that provides stable catalog-backed identity for predefined and user-defined account kinds.
-
 ## Requirements
 ### Requirement: Global Account Kind Catalog SHALL Support System and Custom Entries
 The system MUST provide a global account kind catalog with two entry origins: predefined system kinds and user-defined custom kinds.
@@ -83,3 +82,20 @@ Key governance contract:
 - **WHEN** a custom kind creation operation normalizes to a key that already exists
 - **THEN** the system MUST generate a unique suffixed key before persisting the new kind
 - **AND** persisted kind identity uniqueness MUST remain intact
+
+### Requirement: Dashboard Expense Aggregation SHALL Use Catalog-Backed Kind Identity
+
+Dashboard expense aggregation MUST group eligible expense-account movement by the account’s `AccountKindCatalog` identity rather than by legacy enum value, display label alone, or account-group membership.
+
+#### Scenario: Custom and system expense kinds are aggregated consistently
+
+- **WHEN** a dashboard expense ranking is requested
+- **THEN** both system and active custom expense kinds assigned to expense accounts MUST be eligible for aggregation
+- **AND** grouping identity MUST remain stable when labels are not unique.
+
+#### Scenario: Kind aggregation does not expand reporting-insight dimensions implicitly
+
+- **WHEN** dashboard kind aggregation is implemented
+- **THEN** it MUST NOT add a partially supported `Kind` value to `ReportingInsightDimension`
+- **AND** existing Pareto, anomaly, and insight API semantics MUST remain unchanged.
+

@@ -8,6 +8,7 @@ namespace FamilyFinances.Application.Reporting.Handlers;
 public sealed class GetDashboardOverviewHandler
 {
     private const int ParetoTopN = 8;
+    private const int ExpenseKindTopCount = 6;
 
     private readonly IReportingReadRepository _repo;
     private readonly IReportingInsightsCalculator _insightsCalculator;
@@ -46,6 +47,11 @@ public sealed class GetDashboardOverviewHandler
 
         var dailyIncomeVsExpense = BuildDailyIncomeVsExpense(core.IncomeDailyPoints, core.ExpenseDailyPoints);
         var compactInsights = await BuildExpenseCompositionRowsAsync(core.AsOf, ct);
+        var expenseKindTotals = await _repo.GetDashboardExpenseKindTotalsAsync(
+            core.SelectedMonthStart,
+            core.SelectedMonthEnd.AddDays(1),
+            ct);
+        var pinnedGroups = await _repo.GetDashboardPinnedGroupOperationalResultsAsync(core.AsOf, ct);
 
         long? sameMonthDelta = core.SameMonthLastYearNetCents is null
             ? null
@@ -69,8 +75,46 @@ public sealed class GetDashboardOverviewHandler
             YtdSummary: new DashboardYtdSummaryDto(
                 AccumulatedNetCents: core.MonthlyNetPoints.LastOrDefault()?.AccumulatedNetCents ?? 0L,
                 MonthlyNetPoints: core.MonthlyNetPoints),
-            CompactInsights: compactInsights
+            CompactInsights: compactInsights,
+            ExpenseKindRanking: BuildExpenseKindRanking(expenseKindTotals),
+            PinnedGroups: pinnedGroups
         );
+    }
+
+    private static IReadOnlyList<DashboardExpenseKindRankDto> BuildExpenseKindRanking(
+        IReadOnlyList<DashboardExpenseKindTotalDto> totals)
+    {
+        var ordered = totals
+            .Where(x => x.AmountCents > 0L)
+            .OrderByDescending(x => x.AmountCents)
+            .ThenBy(x => x.KindName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var total = ordered.Sum(x => x.AmountCents);
+        if (total <= 0L)
+            return Array.Empty<DashboardExpenseKindRankDto>();
+
+        var rows = ordered.Take(ExpenseKindTopCount)
+            .Select(x => new DashboardExpenseKindRankDto(
+                x.KindId,
+                x.KindName,
+                x.AmountCents,
+                Math.Round(x.AmountCents * 100m / total, 2, MidpointRounding.AwayFromZero),
+                false))
+            .ToList();
+
+        var others = ordered.Skip(ExpenseKindTopCount).Sum(x => x.AmountCents);
+        if (others > 0L)
+        {
+            rows.Add(new DashboardExpenseKindRankDto(
+                null,
+                "Others",
+                others,
+                Math.Round(others * 100m / total, 2, MidpointRounding.AwayFromZero),
+                true));
+        }
+
+        return rows;
     }
 
     private static DashboardDataSufficiencyState ResolveDataSufficiency(DashboardOverviewCoreDto core)

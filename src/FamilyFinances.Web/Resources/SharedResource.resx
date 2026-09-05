@@ -2677,7 +2677,7 @@
     <value>Top contributors and anomaly signals.</value>
   </data>
   <data name="Dashboard_Kpi_NetResult" xml:space="preserve">
-    <value>Net result</value>
+    <value>Monthly result</value>
   </data>
   <data name="ExpenseEvolution_LoadingMonthFocusedExpense" xml:space="preserve">
     <value>Loading month-focused expense chart...</value>
@@ -2707,7 +2707,7 @@
     <value>Net worth</value>
   </data>
   <data name="Dashboard_Kpi_YtdNet" xml:space="preserve">
-    <value>YTD Net</value>
+    <value>Annual accumulation</value>
   </data>
   <data name="Dashboard_CompactInsights_Status_Anomaly" xml:space="preserve">
     <value>Anomaly</value>
@@ -2778,4 +2778,23 @@
   <data name="Dashboard_GroupAnnualEvolution_Subtitle" xml:space="preserve">
     <value>Monthly result bars by account group.</value>
   </data>
+  <data name="AccountGroupDetail_DashboardPinned" xml:space="preserve"><value>Show on dashboard</value></data>
+  <data name="AccountGroupDetail_DashboardPinned_Hint" xml:space="preserve"><value>Monitor this group in the dashboard operational results.</value></data>
+  <data name="AccountGroupDetail_DashboardPinned_Updated" xml:space="preserve"><value>Dashboard visibility updated.</value></data>
+  <data name="AccountGroups_DashboardPinned" xml:space="preserve"><value>Shown on dashboard</value></data>
+  <data name="Dashboard_ExpenseKindRanking_Title" xml:space="preserve"><value>Where did we spend?</value></data>
+  <data name="Dashboard_ExpenseKindRanking_Subtitle" xml:space="preserve"><value>Top expense types in {0}.</value></data>
+  <data name="Dashboard_PinnedGroups_Title" xml:space="preserve"><value>Highlighted groups</value></data>
+  <data name="Dashboard_PinnedGroups_Subtitle" xml:space="preserve"><value>Operational result for groups you monitor.</value></data>
+  <data name="Dashboard_PinnedGroups_Empty" xml:space="preserve"><value>No groups are highlighted yet.</value></data>
+  <data name="Dashboard_PinnedGroups_Month" xml:space="preserve"><value>Month</value></data>
+  <data name="Dashboard_PinnedGroups_Ytd" xml:space="preserve"><value>Annual accumulation</value></data>
+  <data name="Dashboard_MonthlySummary_Title" xml:space="preserve"><value>Monthly summary</value></data>
+  <data name="Dashboard_MonthlySummary_Subtitle" xml:space="preserve"><value>The most useful facts for the selected month.</value></data>
+  <data name="Dashboard_MonthlySummary_Result" xml:space="preserve"><value>The monthly result is {0}.</value></data>
+  <data name="Dashboard_MonthlySummary_PreviousMonth" xml:space="preserve"><value>Compared with the previous month: {0}.</value></data>
+  <data name="Dashboard_MonthlySummary_TopExpense" xml:space="preserve"><value>The largest expense type was {0}: {1}.</value></data>
+  <data name="Dashboard_MonthlySummary_TopPinnedGroup" xml:space="preserve"><value>{0} had the greatest highlighted-group impact: {1}.</value></data>
+  <data name="Dashboard_MonthlySummary_AnnualAccumulation" xml:space="preserve"><value>Annual accumulation is {0}.</value></data>
+  <data name="Dashboard_MonthlySummary_NetWorth" xml:space="preserve"><value>Current net worth is {0}.</value></data>
 </root>

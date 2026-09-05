@@ -45,6 +45,18 @@ public sealed class AccountGroupsController : ControllerBase
         return Ok(dto);
     }
 
+    [HttpPatch("{id:guid}")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<IActionResult> Update(
+        [FromRoute] Guid id,
+        [FromBody] SetAccountGroupDashboardPinnedRequest request,
+        [FromServices] SetAccountGroupDashboardPinnedHandler handler,
+        CancellationToken ct)
+    {
+        var ok = await handler.HandleAsync(id, request, ct);
+        return ok ? NoContent() : NotFound();
+    }
+
     [HttpPost("{id:guid}/accounts/{accountId:guid}")]
     [Authorize(Policy = Policies.CanWrite)] 
     public async Task<IActionResult> AddAccount(

@@ -2710,7 +2710,7 @@
     <value>Principales contribuidores y senales de anomalia.</value>
   </data>
   <data name="Dashboard_Kpi_NetResult" xml:space="preserve">
-    <value>Saldo neto</value>
+    <value>Resultado del mes</value>
   </data>
   <data name="ExpenseEvolution_LoadingMonthFocusedExpense" xml:space="preserve">
     <value>Cargando grafico mensual de gastos...</value>
@@ -2740,7 +2740,7 @@
     <value>Patrimonio neto</value>
   </data>
   <data name="Dashboard_Kpi_YtdNet" xml:space="preserve">
-    <value>Neto YTD</value>
+    <value>Acum. anual</value>
   </data>
   <data name="Dashboard_CompactInsights_Status_Anomaly" xml:space="preserve">
     <value>Anomalia</value>
@@ -2814,4 +2814,23 @@
   <data name="Dashboard_GroupAnnualEvolution_Subtitle" xml:space="preserve">
     <value>Barras de resultado mensual por grupo de cuentas.</value>
   </data>
+  <data name="AccountGroupDetail_DashboardPinned" xml:space="preserve"><value>Mostrar en el dashboard</value></data>
+  <data name="AccountGroupDetail_DashboardPinned_Hint" xml:space="preserve"><value>Controla este grupo en los resultados operativos del dashboard.</value></data>
+  <data name="AccountGroupDetail_DashboardPinned_Updated" xml:space="preserve"><value>Visibilidad del dashboard actualizada.</value></data>
+  <data name="AccountGroups_DashboardPinned" xml:space="preserve"><value>Visible en el dashboard</value></data>
+  <data name="Dashboard_ExpenseKindRanking_Title" xml:space="preserve"><value>¿En qué hemos gastado?</value></data>
+  <data name="Dashboard_ExpenseKindRanking_Subtitle" xml:space="preserve"><value>Principales tipos de gasto en {0}.</value></data>
+  <data name="Dashboard_PinnedGroups_Title" xml:space="preserve"><value>Grupos destacados</value></data>
+  <data name="Dashboard_PinnedGroups_Subtitle" xml:space="preserve"><value>Resultado operativo de los grupos que sigues.</value></data>
+  <data name="Dashboard_PinnedGroups_Empty" xml:space="preserve"><value>Aún no hay grupos destacados.</value></data>
+  <data name="Dashboard_PinnedGroups_Month" xml:space="preserve"><value>Mes</value></data>
+  <data name="Dashboard_PinnedGroups_Ytd" xml:space="preserve"><value>Acum. anual</value></data>
+  <data name="Dashboard_MonthlySummary_Title" xml:space="preserve"><value>Resumen del mes</value></data>
+  <data name="Dashboard_MonthlySummary_Subtitle" xml:space="preserve"><value>Los datos más útiles del mes seleccionado.</value></data>
+  <data name="Dashboard_MonthlySummary_Result" xml:space="preserve"><value>El resultado del mes es {0}.</value></data>
+  <data name="Dashboard_MonthlySummary_PreviousMonth" xml:space="preserve"><value>Respecto al mes anterior: {0}.</value></data>
+  <data name="Dashboard_MonthlySummary_TopExpense" xml:space="preserve"><value>El mayor gasto fue {0}: {1}.</value></data>
+  <data name="Dashboard_MonthlySummary_TopPinnedGroup" xml:space="preserve"><value>{0} fue el grupo destacado con mayor impacto: {1}.</value></data>
+  <data name="Dashboard_MonthlySummary_AnnualAccumulation" xml:space="preserve"><value>El acumulado anual es {0}.</value></data>
+  <data name="Dashboard_MonthlySummary_NetWorth" xml:space="preserve"><value>El patrimonio neto actual es {0}.</value></data>
 </root>

@@ -118,6 +118,27 @@ public sealed class AccountGroupsApi
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task SetDashboardPinnedAsync(Guid groupId, bool isDashboardPinned, CancellationToken ct)
+    {
+        var token = _tokenStore.GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("No access token available.");
+
+        using var request = new HttpRequestMessage(HttpMethod.Patch, $"api/v1/account-groups/{groupId}")
+        {
+            Content = JsonContent.Create(new { IsDashboardPinned = isDashboardPinned })
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _http.SendAsync(request, ct);
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            throw new KeyNotFoundException($"Account group with ID {groupId} not found.");
+
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task AddAccountAsync(Guid groupId, Guid accountId, CancellationToken ct)
     {
         var token = _tokenStore.GetAccessToken();

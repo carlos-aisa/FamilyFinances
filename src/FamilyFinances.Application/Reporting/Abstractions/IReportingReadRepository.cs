@@ -39,6 +39,15 @@ public interface IReportingReadRepository
         DateOnly asOf,
         CancellationToken ct);
 
+    Task<IReadOnlyList<DashboardExpenseKindTotalDto>> GetDashboardExpenseKindTotalsAsync(
+        DateOnly fromInclusive,
+        DateOnly toExclusive,
+        CancellationToken ct);
+
+    Task<IReadOnlyList<DashboardPinnedGroupOperationalResultDto>> GetDashboardPinnedGroupOperationalResultsAsync(
+        DateOnly asOf,
+        CancellationToken ct);
+
     Task<MonthlyEvolutionReportDto> GetMonthlyEvolutionAsync(
         int year,
         MonthlyEvolutionScope scope,

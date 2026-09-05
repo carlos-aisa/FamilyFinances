@@ -3,7 +3,6 @@ using System.Net.Http.Json;
 using Bunit;
 using Bunit.TestDoubles;
 using FamilyFinances.Application.Reporting.Dtos;
-using FamilyFinances.Application.Ledger.AccountGroups.Dtos;
 using FamilyFinances.Web.Api;
 using FamilyFinances.Web.Auth;
 using FamilyFinances.Web.Components.Pages.Dashboard;
@@ -30,13 +29,28 @@ public sealed class DashboardPageTests : WebTestContext
             cut.Find("[data-testid='dashboard-kpi-strip']");
             cut.Find("[data-testid='dashboard-monthly-income-expense-chart']");
             cut.Find("[data-testid='dashboard-annual-income-expense-chart']");
-            cut.Find("[data-testid='dashboard-monthly-net-trend-chart']");
             cut.Find("[data-testid='dashboard-asset-evolution-chart']");
-            var groupEvolution = cut.Find("[data-testid='dashboard-group-annual-evolution-chart']");
-            groupEvolution.ClassList.Should().Contain("annual-evolution-list");
-            var compositionChart = cut.Find("[data-testid='dashboard-expense-composition-chart']");
+            cut.Find("[data-testid='dashboard-expense-kind-ranking']");
+            cut.Find("[data-testid='dashboard-pinned-groups']");
+            cut.Find("[data-testid='dashboard-monthly-summary']");
             cut.Find("[data-testid='dashboard-open-quick-entry']");
-            compositionChart.TextContent.Should().Contain("2026-03");
+
+            var secondRow = cut.Find(".ff-dashboard-analytics-row-2");
+            secondRow.QuerySelectorAll(":scope > div").Should().HaveCount(3);
+            secondRow.QuerySelectorAll(":scope > div").Should().OnlyContain(column =>
+                column.ClassList.Contains("col-12") && column.ClassList.Contains("col-xxl-4"));
+            secondRow.QuerySelector("[data-testid='dashboard-monthly-income-expense-chart']").Should().NotBeNull();
+            secondRow.QuerySelector("[data-testid='dashboard-annual-income-expense-chart']").Should().NotBeNull();
+            secondRow.QuerySelector("[data-testid='dashboard-asset-evolution-chart']").Should().NotBeNull();
+
+            var thirdRow = cut.Find(".ff-dashboard-analytics-row-3");
+            thirdRow.QuerySelectorAll(":scope > div").Should().HaveCount(3);
+            thirdRow.QuerySelectorAll(":scope > div").Should().OnlyContain(column =>
+                column.ClassList.Contains("col-12") && column.ClassList.Contains("col-xxl-4"));
+            thirdRow.QuerySelector("[data-testid='dashboard-expense-kind-ranking']").Should().NotBeNull();
+            thirdRow.QuerySelector("[data-testid='dashboard-pinned-groups']").Should().NotBeNull();
+            thirdRow.QuerySelector("[data-testid='dashboard-monthly-summary']").Should().NotBeNull();
+            cut.FindAll("[data-testid='dashboard-monthly-summary-insight']").Count.Should().BeLessThanOrEqualTo(4);
 
             cut.Markup.Should().NotContain("ff-premium-tabs");
             cut.Markup.Should().NotContain("report-card");
@@ -45,27 +59,24 @@ public sealed class DashboardPageTests : WebTestContext
     }
 
     [Fact]
-    public void Dashboard_Expense_Composition_Chart_Has_Total_Percentage_Close_To_OneHundred()
+    public void Dashboard_Expense_Kind_Ranking_Renders_TopRows()
     {
-        var compositionRows =
+        var rankingRows =
             new[]
             {
-                new DashboardCompactInsightRowDto("row-1", "top-expense", "Housing", 60_000, 50m, "top-contributor"),
-                new DashboardCompactInsightRowDto("row-2", "top-expense", "Food", 36_000, 30m, "top-contributor"),
-                new DashboardCompactInsightRowDto("row-others", "top-expense", "Others", 24_000, 20m, "others")
+                new DashboardExpenseKindRankDto(Guid.NewGuid(), "Housing", 60_000, 50m, false),
+                new DashboardExpenseKindRankDto(Guid.NewGuid(), "Food", 36_000, 30m, false),
+                new DashboardExpenseKindRankDto(null, "Others", 24_000, 20m, true)
             };
 
-        RegisterAuthorizedServices(BuildHttpClientFactory(CreateOverviewPayload(compactInsights: compositionRows)));
+        RegisterAuthorizedServices(BuildHttpClientFactory(CreateOverviewPayload(expenseKindRanking: rankingRows)));
 
         var cut = RenderComponent<DashboardPage>();
 
         cut.WaitForAssertion(() =>
         {
-            var chart = cut.Find("[data-testid='dashboard-expense-composition-chart']");
-            var totalRaw = chart.GetAttribute("data-total-percentage");
-            totalRaw.Should().NotBeNullOrWhiteSpace();
-            var total = decimal.Parse(totalRaw!, System.Globalization.CultureInfo.InvariantCulture);
-            total.Should().BeApproximately(100m, 0.01m);
+            var ranking = cut.Find("[data-testid='dashboard-expense-kind-ranking']");
+            ranking.TextContent.Should().Contain("Housing").And.Contain("Food").And.Contain("Others");
         });
     }
 
@@ -114,8 +125,9 @@ public sealed class DashboardPageTests : WebTestContext
     }
 
     [Fact]
-    public void Dashboard_Displays_YTD_Net_KPI()
+    public void Dashboard_Displays_Annual_Accumulation_KPI()
     {
+        using var culture = UseCulture("es-ES");
         RegisterAuthorizedServices(BuildHttpClientFactory(CreateOverviewPayload(), previousYearAssetTotalCents: 1_200_000));
 
         var cut = RenderComponent<DashboardPage>();
@@ -132,7 +144,7 @@ public sealed class DashboardPageTests : WebTestContext
             
             var label = fifthKpi.QuerySelector("h6");
             label.Should().NotBeNull();
-            label!.TextContent.Should().MatchRegex("YTD Net|Neto YTD", "label should be localized");
+            label!.TextContent.Should().Contain("Acum. anual", "label should use the family-oriented Spanish terminology");
             
             var value = fifthKpi.QuerySelector("h4");
             value.Should().NotBeNull();
@@ -146,6 +158,26 @@ public sealed class DashboardPageTests : WebTestContext
         });
     }
 
+    [Fact]
+    public void Dashboard_PinnedGroups_Uses_Annual_Accumulation_Header()
+    {
+        using var culture = UseCulture("es-ES");
+        var pinnedGroups =
+            new[]
+            {
+                new DashboardPinnedGroupOperationalResultDto(Guid.NewGuid(), "Household", 15_000, 45_000)
+            };
+        RegisterAuthorizedServices(BuildHttpClientFactory(CreateOverviewPayload(pinnedGroups: pinnedGroups)));
+
+        var cut = RenderComponent<DashboardPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var pinnedGroupsTable = cut.Find("[data-testid='dashboard-pinned-groups']");
+            pinnedGroupsTable.TextContent.Should().Contain("Acum. anual");
+        });
+    }
+
     private void RegisterAuthorizedServices(Mock<IHttpClientFactory> httpClientFactory)
     {
         var tokenStore = new TestTokenStore("test-token");
@@ -156,7 +188,6 @@ public sealed class DashboardPageTests : WebTestContext
         Services.AddSingleton<IApiTokenStore>(tokenStore);
         Services.AddSingleton(new JwtAuthStateProvider(tokenStore));
         Services.AddScoped<ReportsApi>();
-        Services.AddScoped<AccountGroupsApi>();
     }
 
     private static Mock<IHttpClientFactory> BuildHttpClientFactory(
@@ -218,14 +249,6 @@ public sealed class DashboardPageTests : WebTestContext
                     });
                 }
 
-                if (uri.Contains("api/v1/account-groups", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-                    {
-                        Content = JsonContent.Create(Array.Empty<AccountGroupDto>())
-                    });
-                }
-
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
             });
 
@@ -239,7 +262,9 @@ public sealed class DashboardPageTests : WebTestContext
 
     private static DashboardOverviewDto CreateOverviewPayload(
         DashboardDataSufficiencyState dataState = DashboardDataSufficiencyState.Complete,
-        IReadOnlyList<DashboardCompactInsightRowDto>? compactInsights = null)
+        IReadOnlyList<DashboardCompactInsightRowDto>? compactInsights = null,
+        IReadOnlyList<DashboardExpenseKindRankDto>? expenseKindRanking = null,
+        IReadOnlyList<DashboardPinnedGroupOperationalResultDto>? pinnedGroups = null)
     {
         var asOf = new DateOnly(2026, 3, 1);
         return new DashboardOverviewDto(
@@ -278,7 +303,13 @@ public sealed class DashboardPageTests : WebTestContext
                 new DashboardCompactInsightRowDto("a-1", "top-expense", "Groceries", 55_000, 55m, "top-contributor"),
                 new DashboardCompactInsightRowDto("a-2", "top-expense", "Utilities", 40_000, 40m, "top-contributor"),
                 new DashboardCompactInsightRowDto("a-others", "top-expense", "Others", 5_000, 5m, "others")
-            ]);
+            ],
+            ExpenseKindRanking: expenseKindRanking ??
+            [
+                new DashboardExpenseKindRankDto(Guid.NewGuid(), "Groceries", 55_000, 55m, false),
+                new DashboardExpenseKindRankDto(null, "Others", 45_000, 45m, true)
+            ],
+            PinnedGroups: pinnedGroups ?? Array.Empty<DashboardPinnedGroupOperationalResultDto>());
     }
 
     private static MonthlyEvolutionReportDto CreateAssetEvolutionPayload(int year)
