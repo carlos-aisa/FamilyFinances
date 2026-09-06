@@ -195,6 +195,57 @@ public sealed class TransactionsApiTests
     }
 
     [Fact]
+    public async Task ListLatestExpenses_ReturnsSixExpenseMovements_InDeterministicDescendingOrder()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var bank = await TestHelpers.CreateAccountAsync(client, "Main Bank", "Asset", "Checking");
+        var groceries = await TestHelpers.CreateAccountAsync(client, "Groceries", "Expense", "Other");
+        var salary = await TestHelpers.CreateAccountAsync(client, "Salary", "Income", "Other");
+
+        foreach (var (bookedOn, description) in new[]
+        {
+            ("2026-02-01", "Expense 1"),
+            ("2026-02-02", "Expense 2"),
+            ("2026-02-03", "Expense 3"),
+            ("2026-02-04", "Expense 4"),
+            ("2026-02-05", "Expense 5"),
+            ("2026-02-06", "Expense 6a"),
+            ("2026-02-06", "Expense 6b")
+        })
+        {
+            await CreateTwoSplitTransactionAsync(client, bookedOn, description, bank.Id, groceries.Id, -5_000, 5_000);
+        }
+
+        await CreateTwoSplitTransactionAsync(client, "2026-02-07", "Income", bank.Id, salary.Id, 9_000, -9_000);
+
+        var firstResponse = await client.GetAsync("/api/v1/transactions/latest-expenses");
+        var secondResponse = await client.GetAsync("/api/v1/transactions/latest-expenses");
+
+        firstResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var first = await firstResponse.Content.ReadFromJsonAsync<List<LatestExpenseMovementResponse>>();
+        var second = await secondResponse.Content.ReadFromJsonAsync<List<LatestExpenseMovementResponse>>();
+
+        first.Should().NotBeNull().And.HaveCount(6);
+        first!.Select(item => item.Description).Should().NotContain("Income").And.NotContain("Expense 1");
+        first.Select(item => item.BookedOn).Should().BeInDescendingOrder();
+        first.Select(item => item.AmountCents).Should().OnlyContain(amount => amount == 5_000);
+        first.Select(item => item.Id).Should().Equal(second!.Select(item => item.Id));
+    }
+
+    [Fact]
+    public async Task ListLatestExpenses_RequiresAuth()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/api/v1/transactions/latest-expenses");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
     public async Task GetById_Returns404_WhenNotFound()
     {
         using var factory = TestClient.CreateFactoryWithFreshDb(out _);
@@ -465,10 +516,39 @@ public sealed class TransactionsApiTests
         decimal Amount,
         int Type);
 
+    public sealed record LatestExpenseMovementResponse(
+        Guid Id,
+        DateOnly BookedOn,
+        string? Description,
+        long AmountCents);
+
     public sealed record TransactionSplitDto(
         Guid AccountId,
         decimal Amount,
         string? Memo);
 
     public sealed record ErrorResponse(string Error);
+
+    private static async Task CreateTwoSplitTransactionAsync(
+        HttpClient client,
+        string bookedOn,
+        string description,
+        Guid firstAccountId,
+        Guid secondAccountId,
+        long firstAmountCents,
+        long secondAmountCents)
+    {
+        var response = await client.PostAsJsonAsync("/api/v1/transactions", new
+        {
+            bookedOn,
+            description,
+            splits = new[]
+            {
+                new { accountId = firstAccountId, amountCents = firstAmountCents, memo = (string?)null },
+                new { accountId = secondAccountId, amountCents = secondAmountCents, memo = (string?)null }
+            }
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
 }

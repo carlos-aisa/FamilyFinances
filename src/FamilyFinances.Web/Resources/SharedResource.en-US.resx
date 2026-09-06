@@ -2812,4 +2812,7 @@
     <value>Monthly result bars by account group.</value>
   </data>
   <data name="AccountGroups_DashboardPinned" xml:space="preserve"><value>Shown on dashboard</value></data>
+  <data name="Dashboard_LatestExpenses_Title" xml:space="preserve"><value>Latest expenses</value></data>
+  <data name="Dashboard_LatestExpenses_Subtitle" xml:space="preserve"><value>Your six most recent expense movements.</value></data>
+  <data name="Dashboard_LatestExpenses_Empty" xml:space="preserve"><value>No recent expenses.</value></data>
 </root>

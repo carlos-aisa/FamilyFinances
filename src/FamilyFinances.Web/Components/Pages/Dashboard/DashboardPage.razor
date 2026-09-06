@@ -1,20 +1,25 @@
 @page "/"
 @rendermode InteractiveServer
 @using FamilyFinances.Application.Reporting.Dtos
+@using FamilyFinances.Application.Ledger.Transactions.Dtos
 @using FamilyFinances.Web.Api
 @using FamilyFinances.Web.Components.Base
+@using FamilyFinances.Web.Components.Shared
 @using FamilyFinances.Web.Components.Pages.Reports.Charts
 @using FamilyFinances.Web.Features.Reports
 @using FamilyFinances.Web.Features.Reports.Charts
-@using FamilyFinances.Web.Features.Dashboard
+@using FamilyFinances.Web.Features.Reports.Export
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.Extensions.Localization
+@using Microsoft.JSInterop
 @using FamilyFinances.Web
 @using System.Globalization
 @inherits ApiPageBase
 
 @inject ReportsApi ReportsApi
+@inject TransactionsApi TransactionsApi
 @inject IStringLocalizer<SharedResource> L
+@inject IJSRuntime JS
 
 <AuthorizeView>
     <Authorized>
@@ -191,55 +196,22 @@
 
                 <div class="row g-3 ff-dashboard-analytics-row ff-dashboard-analytics-row-3">
                     <div class="col-12 col-xxl-4">
-                        <div class="card shadow-sm h-100 ff-panel" data-testid="dashboard-expense-kind-ranking">
-                            <div class="card-header bg-transparent ff-panel-header">
-                                <h6 class="mb-1">@L["Dashboard_ExpenseKindRanking_Title"]</h6>
-                                <small class="text-muted">@L["Dashboard_ExpenseKindRanking_Subtitle", DateHelper.GetMonthName(_overview.AsOf.Month)]</small>
-                            </div>
-                            <div class="card-body">
-                                @if (_overview.ExpenseKindRanking is null || _overview.ExpenseKindRanking.Count == 0)
-                                {
-                                    <p class="text-muted mb-0">@L["Reports_NoDataForPeriod"]</p>
-                                }
-                                else
-                                {
-                                    var maximum = _overview.ExpenseKindRanking.Max(row => row.AmountCents);
-                                    <div class="ff-dashboard-rank-list">
-                                        @foreach (var row in _overview.ExpenseKindRanking)
-                                        {
-                                            var label = row.IsOthers
-                                            ? L["Dashboard_ExpenseComposition_Others"].Value
-                                            : row.Label;
-
-                                            <div class="ff-dashboard-rank-row small"
-                                                 data-testid="dashboard-expense-kind-row">
-
-                                                <span class="ff-dashboard-rank-label"
-                                                      title="@label">
-                                                    @label
-                                                </span>
-
-                                                <div class="progress ff-dashboard-rank-progress">
-                                                    <div class="progress-bar bg-primary ff-dashboard-rank-bar"
-                                                         role="progressbar"
-                                                         style="--ff-progress-width:@GetPercentageWidth(row.AmountCents, maximum)">
-                                                    </div>
-                                                </div>
-
-                                                <strong class="ff-dashboard-rank-amount">
-                                                    @MoneyFormatter.FormatCents(row.AmountCents)
-                                                </strong>
-                                            </div>
-                                        }
-                                    </div>
-                                }
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-12 col-xxl-4">
                         <div class="card shadow-sm h-100 ff-panel" data-testid="dashboard-pinned-groups">
-                            <div class="card-header bg-transparent ff-panel-header"><h6 class="mb-1">@L["Dashboard_PinnedGroups_Title"]</h6><small class="text-muted">@L["Dashboard_PinnedGroups_Subtitle"]</small></div>
+                            <div class="card-header bg-transparent ff-panel-header d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2">
+                                <div>
+                                    <h6 class="mb-1">@L["Dashboard_PinnedGroups_Title"]</h6>
+                                    <small class="text-muted">@L["Dashboard_PinnedGroups_Subtitle"]</small>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary report-export-button ff-chart-export-button" @onclick="ExportPinnedGroupsCsvAsync" data-testid="dashboard-pinned-groups-export-csv" aria-label="@L["Reports_AriaExportCsv"]"><i class="bi bi-download me-1"></i>@L["Reports_AriaExportCsv"]</button>
+                                    <span class="badge bg-secondary-subtle text-secondary">@GetSelectedPeriodBadge()</span>
+                                </div>
+                            </div>
                             <div class="card-body p-0">
+                                @if (!string.IsNullOrWhiteSpace(_pinnedGroupsExportError))
+                                {
+                                    <div class="text-danger small p-3 pb-0">@_pinnedGroupsExportError</div>
+                                }
                                 @if (_overview.PinnedGroups is null || _overview.PinnedGroups.Count == 0)
                                 {
                                     <div class="p-3 text-muted"><p class="mb-2">@L["Dashboard_PinnedGroups_Empty"]</p><a href="/account-groups">@L["Nav_AccountGroups"]</a></div>
@@ -280,21 +252,79 @@
                         </div>
                     </div>
                     <div class="col-12 col-xxl-4">
-                        <div class="card shadow-sm h-100 ff-panel" data-testid="dashboard-monthly-summary">
-                            <div class="card-header bg-transparent ff-panel-header">
-                                <h6 class="mb-1">@L["Dashboard_MonthlySummary_Title"]</h6>
-                                <small class="text-muted">@L["Dashboard_MonthlySummary_Subtitle"]</small>
+                        <div class="card shadow-sm h-100 ff-panel" data-testid="dashboard-expense-kind-ranking">
+                            <div class="card-header bg-transparent ff-panel-header d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2">
+                                <div>
+                                    <h6 class="mb-1">@L["Dashboard_ExpenseKindRanking_Title"]</h6>
+                                    <small class="text-muted">@L["Dashboard_ExpenseKindRanking_Subtitle", DateHelper.GetMonthName(_overview.AsOf.Month)]</small>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary report-export-button ff-chart-export-button" @onclick="ExportExpenseKindRankingCsvAsync" data-testid="dashboard-expense-kind-ranking-export-csv" aria-label="@L["Reports_AriaExportCsv"]"><i class="bi bi-download me-1"></i>@L["Reports_AriaExportCsv"]</button>
+                                    <span class="badge bg-secondary-subtle text-secondary">@GetSelectedPeriodBadge()</span>
+                                </div>
                             </div>
                             <div class="card-body">
-                                <ul class="list-unstyled mb-0 ff-dashboard-monthly-summary-list">
-                                    @foreach (var insight in _monthlySummaryInsights)
-                                    {
-                                        <li class="d-flex gap-2 mb-2" data-testid="dashboard-monthly-summary-insight">
-                                            <i class="bi bi-check2-circle text-primary" aria-hidden="true"></i>
-                                            <span>@GetMonthlySummaryInsightText(insight)</span>
-                                        </li>
-                                    }
-                                </ul>
+                                @if (!string.IsNullOrWhiteSpace(_expenseKindExportError))
+                                {
+                                    <div class="text-danger small mb-2">@_expenseKindExportError</div>
+                                }
+                                @if (_overview.ExpenseKindRanking is null || _overview.ExpenseKindRanking.Count == 0)
+                                {
+                                    <p class="text-muted mb-0">@L["Reports_NoDataForPeriod"]</p>
+                                }
+                                else
+                                {
+                                    var maximum = _overview.ExpenseKindRanking.Max(row => row.AmountCents);
+                                    <div class="ff-dashboard-rank-list">
+                                        @foreach (var row in _overview.ExpenseKindRanking)
+                                        {
+                                            var label = row.IsOthers
+                                            ? L["Dashboard_ExpenseComposition_Others"].Value
+                                            : row.Label;
+
+                                            <div class="ff-dashboard-rank-row small"
+                                                 data-testid="dashboard-expense-kind-row">
+
+                                                <span class="ff-dashboard-rank-label"
+                                                      title="@label">
+                                                    @label
+                                                </span>
+
+                                                <div class="progress ff-dashboard-rank-progress">
+                                                    <div class="progress-bar bg-primary ff-dashboard-rank-bar"
+                                                         role="progressbar"
+                                                         style="--ff-progress-width:@GetPercentageWidth(row.AmountCents, maximum)">
+                                                    </div>
+                                                </div>
+
+                                                <strong class="ff-dashboard-rank-amount">
+                                                    @MoneyFormatter.FormatCents(row.AmountCents)
+                                                </strong>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-xxl-4">
+                        <div class="card shadow-sm h-100 ff-panel" data-testid="dashboard-latest-expenses">
+                            <div class="card-header bg-transparent ff-panel-header d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2">
+                                <div>
+                                    <h6 class="mb-1">@L["Dashboard_LatestExpenses_Title"]</h6>
+                                    <small class="text-muted">@L["Dashboard_LatestExpenses_Subtitle"]</small>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary report-export-button ff-chart-export-button" @onclick="ExportLatestExpensesCsvAsync" data-testid="dashboard-latest-expenses-export-csv" aria-label="@L["Reports_AriaExportCsv"]"><i class="bi bi-download me-1"></i>@L["Reports_AriaExportCsv"]</button>
+                                    <span class="badge bg-secondary-subtle text-secondary">@GetSelectedPeriodBadge()</span>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                @if (!string.IsNullOrWhiteSpace(_latestExpensesExportError))
+                                {
+                                    <div class="text-danger small p-3 pb-0">@_latestExpensesExportError</div>
+                                }
+                                <MovementList Items="@_latestExpenses" EmptyMessage="@L["Dashboard_LatestExpenses_Empty"]" />
                             </div>
                         </div>
                     </div>
@@ -326,7 +356,10 @@
     private IReadOnlyList<MonthlyChartSeries> _monthlyIncomeVsExpenseSeries = Array.Empty<MonthlyChartSeries>();
     private IReadOnlyList<AnnualChartSeries> _annualIncomeVsExpenseSeries = Array.Empty<AnnualChartSeries>();
     private IReadOnlyList<AnnualChartSeries> _assetAnnualEvolutionSeries = Array.Empty<AnnualChartSeries>();
-    private IReadOnlyList<DashboardMonthlySummaryInsight> _monthlySummaryInsights = Array.Empty<DashboardMonthlySummaryInsight>();
+    private IReadOnlyList<MovementListItem> _latestExpenses = Array.Empty<MovementListItem>();
+    private string? _expenseKindExportError;
+    private string? _pinnedGroupsExportError;
+    private string? _latestExpensesExportError;
 
     protected override async Task OnInitializedAsync()
     {
@@ -341,7 +374,10 @@
         _monthlyIncomeVsExpenseSeries = Array.Empty<MonthlyChartSeries>();
         _annualIncomeVsExpenseSeries = Array.Empty<AnnualChartSeries>();
         _assetAnnualEvolutionSeries = Array.Empty<AnnualChartSeries>();
-        _monthlySummaryInsights = Array.Empty<DashboardMonthlySummaryInsight>();
+        _latestExpenses = Array.Empty<MovementListItem>();
+        _expenseKindExportError = null;
+        _pinnedGroupsExportError = null;
+        _latestExpensesExportError = null;
         StateHasChanged();
 
         try
@@ -352,7 +388,12 @@
 
             _monthlyIncomeVsExpenseSeries = BuildMonthlyIncomeExpenseSeries(_overview);
             _annualIncomeVsExpenseSeries = BuildAnnualIncomeExpenseSeries(_overview);
-            _monthlySummaryInsights = DashboardMonthlySummaryBuilder.Build(_overview);
+            _latestExpenses = (await ExecuteApiAsync(ct => TransactionsApi.GetLatestExpensesAsync(ct)) ?? [])
+                .Select(movement => new MovementListItem(
+                    movement.BookedOn,
+                    movement.Description,
+                    movement.AmountCents))
+                .ToList();
             await LoadAnnualEvolutionSeriesAsync(_overview.AsOf.Year);
             await CalculateYtdKpiAsync();
         }
@@ -466,20 +507,95 @@
         };
     }
 
-    private string GetMonthlySummaryInsightText(DashboardMonthlySummaryInsight insight)
+    private string GetSelectedPeriodBadge()
+        => L["Reports_BadgePeriod", $"{_overview!.AsOf.Month:00}-{_overview.AsOf.Year:D4}"];
+
+    private async Task ExportExpenseKindRankingCsvAsync()
     {
-        var amount = MoneyFormatter.FormatCentsWithSign(insight.AmountCents);
-        return insight.Kind switch
-        {
-            DashboardMonthlySummaryInsightKind.MonthlyResult => L["Dashboard_MonthlySummary_Result", amount],
-            DashboardMonthlySummaryInsightKind.PreviousMonthComparison => L["Dashboard_MonthlySummary_PreviousMonth", amount],
-            DashboardMonthlySummaryInsightKind.TopExpenseKind => L["Dashboard_MonthlySummary_TopExpense", insight.Label!, MoneyFormatter.FormatCents(insight.AmountCents)],
-            DashboardMonthlySummaryInsightKind.TopPinnedGroup => L["Dashboard_MonthlySummary_TopPinnedGroup", insight.Label!, amount],
-            DashboardMonthlySummaryInsightKind.AnnualAccumulation => L["Dashboard_MonthlySummary_AnnualAccumulation", amount],
-            DashboardMonthlySummaryInsightKind.NetWorth => L["Dashboard_MonthlySummary_NetWorth", amount],
-            _ => string.Empty
-        };
+        _expenseKindExportError = null;
+        var title = L["Dashboard_ExpenseKindRanking_Title"].Value;
+        var rows = (_overview?.ExpenseKindRanking ?? [])
+            .Select(row => (IReadOnlyList<string?>)[row.Label, MoneyFormatter.FormatCents(row.AmountCents)])
+            .ToList();
+
+        await DownloadDashboardCsvAsync(
+            title,
+            "dashboard-expense-kind-ranking",
+            [L["Transactions_TableDescription"], L["Transactions_TableAmount"]],
+            rows,
+            error => _expenseKindExportError = error);
     }
+
+    private async Task ExportPinnedGroupsCsvAsync()
+    {
+        _pinnedGroupsExportError = null;
+        var title = L["Dashboard_PinnedGroups_Title"].Value;
+        var rows = (_overview?.PinnedGroups ?? [])
+            .Select(group => (IReadOnlyList<string?>)
+            [
+                group.GroupName,
+                FormatPinnedGroupAmount(group.MonthOperationalResultCents, group.MetricKind),
+                FormatPinnedGroupAmount(group.YtdOperationalResultCents, group.MetricKind)
+            ])
+            .ToList();
+
+        await DownloadDashboardCsvAsync(
+            title,
+            "dashboard-pinned-groups",
+            [L["AccountGroups_Title"], L["Dashboard_PinnedGroups_Month"], L["Dashboard_PinnedGroups_Ytd"]],
+            rows,
+            error => _pinnedGroupsExportError = error);
+    }
+
+    private async Task ExportLatestExpensesCsvAsync()
+    {
+        _latestExpensesExportError = null;
+        var title = L["Dashboard_LatestExpenses_Title"].Value;
+        var rows = _latestExpenses
+            .Select(item => (IReadOnlyList<string?>)
+            [
+                item.BookedOn.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                item.Description,
+                MoneyFormatter.FormatCents(Math.Abs(item.AmountCents))
+            ])
+            .ToList();
+
+        await DownloadDashboardCsvAsync(
+            title,
+            "dashboard-latest-expenses",
+            [L["Transactions_TableDate"], L["Transactions_TableDescription"], L["Transactions_TableAmount"]],
+            rows,
+            error => _latestExpensesExportError = error);
+    }
+
+    private async Task DownloadDashboardCsvAsync(
+        string title,
+        string filePrefix,
+        IReadOnlyList<string> headers,
+        IReadOnlyList<IReadOnlyList<string?>> rows,
+        Action<string> setError)
+    {
+        var csv = ReportCsvBuilder.Build(
+            reportName: title,
+            context: new Dictionary<string, string?> { [L["Reports_SelectedPeriod"]] = GetSelectedPeriodBadge() },
+            headers: headers,
+            rows: rows);
+
+        try
+        {
+            var fileName = $"{ReportExportInterop.BuildFileName(filePrefix, _overview!.AsOf.Year, _overview.AsOf.Month.ToString("00", CultureInfo.InvariantCulture))}.csv";
+            await JS.DownloadCsvAsync(fileName, csv);
+        }
+        catch (Exception ex)
+        {
+            setError(L["Reports_Error_ExportCsvFailed", ex.Message]);
+        }
+    }
+
+    private static string FormatPinnedGroupAmount(long amountCents, DashboardPinnedGroupMetricKind metricKind)
+        => metricKind == DashboardPinnedGroupMetricKind.Expense
+            ? MoneyFormatter.FormatCents(Math.Abs(amountCents))
+            : MoneyFormatter.FormatCentsWithSign(amountCents);
 
     private async Task CalculateYtdKpiAsync()
     {

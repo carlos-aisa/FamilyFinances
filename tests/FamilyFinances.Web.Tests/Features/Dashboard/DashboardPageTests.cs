@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Bunit;
 using Bunit.TestDoubles;
+using FamilyFinances.Application.Ledger.Transactions.Dtos;
 using FamilyFinances.Application.Reporting.Dtos;
 using FamilyFinances.Web.Api;
 using FamilyFinances.Web.Auth;
@@ -32,7 +33,7 @@ public sealed class DashboardPageTests : WebTestContext
             cut.Find("[data-testid='dashboard-asset-evolution-chart']");
             cut.Find("[data-testid='dashboard-expense-kind-ranking']");
             cut.Find("[data-testid='dashboard-pinned-groups']");
-            cut.Find("[data-testid='dashboard-monthly-summary']");
+            cut.Find("[data-testid='dashboard-latest-expenses']");
             cut.Find("[data-testid='dashboard-open-quick-entry']");
 
             var secondRow = cut.Find(".ff-dashboard-analytics-row-2");
@@ -49,8 +50,21 @@ public sealed class DashboardPageTests : WebTestContext
                 column.ClassList.Contains("col-12") && column.ClassList.Contains("col-xxl-4"));
             thirdRow.QuerySelector("[data-testid='dashboard-expense-kind-ranking']").Should().NotBeNull();
             thirdRow.QuerySelector("[data-testid='dashboard-pinned-groups']").Should().NotBeNull();
-            thirdRow.QuerySelector("[data-testid='dashboard-monthly-summary']").Should().NotBeNull();
-            cut.FindAll("[data-testid='dashboard-monthly-summary-insight']").Count.Should().BeLessThanOrEqualTo(4);
+            thirdRow.QuerySelector("[data-testid='dashboard-latest-expenses']").Should().NotBeNull();
+            cut.FindAll("[data-testid='movement-list-item']").Should().HaveCount(1);
+            cut.Markup.Should().NotContain("dashboard-monthly-summary");
+
+            foreach (var card in new[]
+            {
+                thirdRow.QuerySelector("[data-testid='dashboard-expense-kind-ranking']")!,
+                thirdRow.QuerySelector("[data-testid='dashboard-pinned-groups']")!,
+                thirdRow.QuerySelector("[data-testid='dashboard-latest-expenses']")!
+            })
+            {
+                card.QuerySelectorAll(".badge").Count().Should().Be(1);
+                card.QuerySelector("button.report-export-button").Should().NotBeNull();
+                card.TextContent.Should().Contain("Export CSV").And.Contain("Period: 03-2026");
+            }
 
             cut.Markup.Should().NotContain("ff-premium-tabs");
             cut.Markup.Should().NotContain("report-card");
@@ -77,6 +91,45 @@ public sealed class DashboardPageTests : WebTestContext
         {
             var ranking = cut.Find("[data-testid='dashboard-expense-kind-ranking']");
             ranking.TextContent.Should().Contain("Housing").And.Contain("Food").And.Contain("Others");
+        });
+    }
+
+    [Fact]
+    public void Dashboard_ExportsLatestExpensesAsCsv()
+    {
+        var latestExpenses = new[]
+        {
+            new LatestExpenseMovementDto(Guid.NewGuid(), new DateOnly(2026, 3, 4), "Groceries", 5_412)
+        };
+        RegisterAuthorizedServices(BuildHttpClientFactory(CreateOverviewPayload(), latestExpenses: latestExpenses));
+        var download = JSInterop.SetupVoid("familyFinancesCharts.downloadCsv", _ => true);
+
+        var cut = RenderComponent<DashboardPage>();
+
+        cut.WaitForAssertion(() => cut.Find("[data-testid='dashboard-latest-expenses-export-csv']").Click());
+
+        download.Invocations.Should().ContainSingle();
+    }
+
+    [Fact]
+    public void Dashboard_Renders_LatestExpenses_AsPositiveNeutralMovements()
+    {
+        var latestExpenses = new[]
+        {
+            new LatestExpenseMovementDto(Guid.NewGuid(), new DateOnly(2026, 3, 4), "Groceries", -5_412),
+            new LatestExpenseMovementDto(Guid.NewGuid(), new DateOnly(2026, 3, 3), null, 7_800)
+        };
+        RegisterAuthorizedServices(BuildHttpClientFactory(CreateOverviewPayload(), latestExpenses: latestExpenses));
+
+        var cut = RenderComponent<DashboardPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var card = cut.Find("[data-testid='dashboard-latest-expenses']");
+            card.TextContent.Should().Contain("Latest expenses").And.Contain("Date").And.Contain("Description").And.Contain("Amount").And.Contain("Groceries");
+            cut.FindAll("[data-testid='movement-list-item']").Should().HaveCount(2);
+            cut.FindAll("[data-testid='movement-list-amount']").Select(amount => amount.TextContent).Should().OnlyContain(amount => !amount!.Contains('-'));
+            cut.FindAll("[data-testid='movement-list-amount']").Should().OnlyContain(amount => !amount.ClassList.Contains("text-danger"));
         });
     }
 
@@ -165,7 +218,7 @@ public sealed class DashboardPageTests : WebTestContext
         var pinnedGroups =
             new[]
             {
-                new DashboardPinnedGroupOperationalResultDto(Guid.NewGuid(), "Household", 15_000, 45_000)
+                new DashboardPinnedGroupOperationalResultDto(Guid.NewGuid(), "Household", 15_000, 45_000, DashboardPinnedGroupMetricKind.NetResult)
             };
         RegisterAuthorizedServices(BuildHttpClientFactory(CreateOverviewPayload(pinnedGroups: pinnedGroups)));
 
@@ -188,11 +241,13 @@ public sealed class DashboardPageTests : WebTestContext
         Services.AddSingleton<IApiTokenStore>(tokenStore);
         Services.AddSingleton(new JwtAuthStateProvider(tokenStore));
         Services.AddScoped<ReportsApi>();
+        Services.AddScoped<TransactionsApi>();
     }
 
     private static Mock<IHttpClientFactory> BuildHttpClientFactory(
         DashboardOverviewDto payload,
-        long previousYearAssetTotalCents = 1_220_000)
+        long previousYearAssetTotalCents = 1_220_000,
+        IReadOnlyList<LatestExpenseMovementDto>? latestExpenses = null)
     {
         var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
         var httpClient = new HttpClient(handlerMock.Object)
@@ -202,6 +257,7 @@ public sealed class DashboardPageTests : WebTestContext
 
         var assetEvolution = CreateAssetEvolutionPayload(payload.AsOf.Year);
         var groupEvolution = CreateGroupEvolutionPayload(payload.AsOf.Year);
+        latestExpenses ??= [new LatestExpenseMovementDto(Guid.NewGuid(), new DateOnly(2026, 3, 1), "Groceries", 5_000)];
 
         handlerMock
             .Protected()
@@ -217,6 +273,14 @@ public sealed class DashboardPageTests : WebTestContext
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
                     {
                         Content = JsonContent.Create(payload)
+                    });
+                }
+
+                if (uri.Contains("api/v1/transactions/latest-expenses", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(latestExpenses)
                     });
                 }
 

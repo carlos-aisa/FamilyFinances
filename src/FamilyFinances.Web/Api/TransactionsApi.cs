@@ -38,6 +38,26 @@ public sealed class TransactionsApi
         return items ?? [];
     }
 
+    public async Task<IReadOnlyList<LatestExpenseMovementDto>> GetLatestExpensesAsync(CancellationToken ct)
+    {
+        var token = _tokenStore.GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("No access token available.");
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "api/v1/transactions/latest-expenses");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _http.SendAsync(request, ct);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
+
+        response.EnsureSuccessStatusCode();
+
+        var items = await response.Content.ReadFromJsonAsync<IReadOnlyList<LatestExpenseMovementDto>>(cancellationToken: ct);
+        return items ?? [];
+    }
+
     public async Task<TransactionDto> CreateAsync(CreateTransactionRequest requestBody, CancellationToken ct)
     {
         var token = _tokenStore.GetAccessToken();

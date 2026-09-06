@@ -1005,6 +1005,27 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
+  /api/v1/transactions/latest-expenses:
+    get:
+      tags: [Transactions]
+      summary: List latest expense movements
+      operationId: Transactions_ListLatestExpenses
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The six latest movements with an Expense-nature split, ordered by booking date and identifier descending.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LatestExpenseMovementDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
   /api/v1/account-groups/{id}:
     get:
       tags: [AccountGroups]
@@ -1031,6 +1052,7 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+
     patch:
       tags: [AccountGroups]
       summary: Partially update account group dashboard settings
@@ -2058,6 +2080,24 @@ components:
         expenseAccountName:
           type: string
       required: [id, description, bookedOn, payeeName, amount, expenseAccountName]
+
+    LatestExpenseMovementDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        bookedOn:
+          type: string
+          format: date
+        description:
+          type: string
+          nullable: true
+        amountCents:
+          type: integer
+          format: int64
+          description: Absolute expense magnitude in cents.
+      required: [id, bookedOn, description, amountCents]
 
     CreateAccountGroupRequest:
       type: object

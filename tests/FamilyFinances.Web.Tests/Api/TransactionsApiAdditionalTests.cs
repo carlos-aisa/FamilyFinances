@@ -106,6 +106,34 @@ public sealed class TransactionsApiAdditionalTests
     }
 
     [Fact]
+    public async Task GetLatestExpensesAsync_ReturnsPayload_AndSetsBearerHeader()
+    {
+        HttpRequestMessage? captured = null;
+        var payload = new[]
+        {
+            new LatestExpenseMovementDto(Guid.NewGuid(), new DateOnly(2026, 2, 4), "Groceries", 5_412)
+        };
+
+        _httpMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>((request, _) => captured = request)
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create<IReadOnlyList<LatestExpenseMovementDto>>(payload)
+            });
+
+        var result = await _sut.GetLatestExpensesAsync(CancellationToken.None);
+
+        result.Should().ContainSingle().Which.AmountCents.Should().Be(5_412);
+        captured!.RequestUri!.ToString().Should().Contain("api/v1/transactions/latest-expenses");
+        captured.Headers.Authorization!.Parameter.Should().Be("valid-token");
+    }
+
+    [Fact]
     public async Task GetByIdAsync_ReturnsPayload_WhenSuccessful()
     {
         var transactionId = Guid.NewGuid();
