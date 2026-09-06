@@ -577,7 +577,10 @@
     {
         var csv = ReportCsvBuilder.Build(
             reportName: title,
-            context: new Dictionary<string, string?> { [L["Reports_SelectedPeriod"]] = GetSelectedPeriodBadge() },
+            context: new Dictionary<string, string?>
+            {
+                [L["Reports_PeriodLabel"]] = $"{_overview!.AsOf.Month:00}-{_overview.AsOf.Year:D4}"
+            },
             headers: headers,
             rows: rows);
 

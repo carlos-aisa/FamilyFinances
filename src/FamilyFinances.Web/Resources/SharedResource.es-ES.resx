@@ -1896,6 +1896,9 @@
   <data name="Reports_SelectedPeriod" xml:space="preserve">
     <value>Periodo: {0}</value>
   </data>
+  <data name="Reports_PeriodLabel" xml:space="preserve">
+    <value>Periodo</value>
+  </data>
   <data name="Reports_AssetMovement" xml:space="preserve">
     <value>Movimiento de activos</value>
   </data>

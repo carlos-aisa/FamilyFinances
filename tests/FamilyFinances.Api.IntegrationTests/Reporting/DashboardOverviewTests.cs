@@ -141,6 +141,45 @@ public sealed class DashboardOverviewTests
     }
 
     [Fact]
+    public async Task DashboardOverview_Orders_PinnedGroups_By_MonthlyOperationalResult()
+    {
+        var year = DateTime.UtcNow.Year - 1;
+
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var bank = await TestHelpers.CreateAccountAsync(client, "Main Bank", "Asset", "Checking");
+        var lowerExpense = await TestHelpers.CreateAccountAsync(client, "Lower expense", "Expense", "Other");
+        var higherExpense = await TestHelpers.CreateAccountAsync(client, "Higher expense", "Expense", "Other");
+
+        var lowerGroupId = await CreatePinnedGroupAsync(client, "Lower group", lowerExpense.Id);
+        var higherGroupId = await CreatePinnedGroupAsync(client, "Higher group", higherExpense.Id);
+
+        await PostTransactionAsync(
+            client,
+            new DateOnly(year, 2, 5),
+            "Lower expense",
+            new Split(bank.Id, -10_000, "Asset decrease"),
+            new Split(lowerExpense.Id, 10_000, "Expense debit"));
+        await PostTransactionAsync(
+            client,
+            new DateOnly(year, 2, 6),
+            "Higher expense",
+            new Split(bank.Id, -40_000, "Asset decrease"),
+            new Split(higherExpense.Id, 40_000, "Expense debit"));
+
+        var response = await client.GetAsync($"/api/v1/reports/dashboard-overview?year={year}&month=2");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var pinnedGroups = json.RootElement.GetProperty("pinnedGroups");
+
+        pinnedGroups.EnumerateArray()
+            .Select(group => group.GetProperty("groupId").GetGuid())
+            .Should().ContainInOrder(higherGroupId, lowerGroupId);
+    }
+
+    [Fact]
     public async Task DashboardOverview_Returns_YTD_Summary_WithMonthlyPoints()
     {
         var year = DateTime.UtcNow.Year - 1;
@@ -258,6 +297,25 @@ public sealed class DashboardOverviewTests
         });
 
         response.EnsureSuccessStatusCode();
+    }
+
+    private static async Task<Guid> CreatePinnedGroupAsync(HttpClient client, string name, Guid accountId)
+    {
+        var response = await client.PostAsJsonAsync("/api/v1/account-groups", new
+        {
+            name,
+            description = (string?)null
+        });
+        response.EnsureSuccessStatusCode();
+
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var groupId = json.RootElement.GetProperty("id").GetGuid();
+        (await client.PostAsync($"/api/v1/account-groups/{groupId}/accounts/{accountId}", null)).EnsureSuccessStatusCode();
+        (await client.PatchAsync(
+            $"/api/v1/account-groups/{groupId}",
+            JsonContent.Create(new { isDashboardPinned = true }))).EnsureSuccessStatusCode();
+
+        return groupId;
     }
 
     private sealed record Split(Guid AccountId, long AmountCents, string Memo);

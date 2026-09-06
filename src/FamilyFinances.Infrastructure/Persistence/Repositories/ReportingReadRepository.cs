@@ -612,6 +612,7 @@ public sealed class ReportingReadRepository : IReportingReadRepository
                     amounts?.Ytd ?? 0L,
                     metricKind);
             })
+            .OrderBy(group=> group.MonthOperationalResultCents)
             .ToList();
     }
 

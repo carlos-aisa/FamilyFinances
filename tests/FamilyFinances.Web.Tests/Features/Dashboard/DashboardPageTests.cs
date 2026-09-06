@@ -108,7 +108,43 @@ public sealed class DashboardPageTests : WebTestContext
 
         cut.WaitForAssertion(() => cut.Find("[data-testid='dashboard-latest-expenses-export-csv']").Click());
 
-        download.Invocations.Should().ContainSingle();
+        var invocation = download.Invocations["familyFinancesCharts.downloadCsv"].Should().ContainSingle().Subject;
+        invocation.Arguments[0].Should().Be("dashboard-latest-expenses-2026-03.csv");
+        invocation.Arguments[1].Should().BeOfType<string>().Which.Should().Contain("Date,Description,Amount").And.Contain("2026-03-04,Groceries");
+    }
+
+    [Fact]
+    public void Dashboard_ExportsExpenseKindRankingAsCsv()
+    {
+        RegisterAuthorizedServices(BuildHttpClientFactory(CreateOverviewPayload()));
+        var download = JSInterop.SetupVoid("familyFinancesCharts.downloadCsv", _ => true);
+
+        var cut = RenderComponent<DashboardPage>();
+
+        cut.WaitForAssertion(() => cut.Find("[data-testid='dashboard-expense-kind-ranking-export-csv']").Click());
+
+        var invocation = download.Invocations["familyFinancesCharts.downloadCsv"].Should().ContainSingle().Subject;
+        invocation.Arguments[0].Should().Be("dashboard-expense-kind-ranking-2026-03.csv");
+        invocation.Arguments[1].Should().BeOfType<string>().Which.Should().Contain("Description,Amount").And.Contain("Groceries");
+    }
+
+    [Fact]
+    public void Dashboard_ExportsPinnedGroupsAsCsv()
+    {
+        var pinnedGroups = new[]
+        {
+            new DashboardPinnedGroupOperationalResultDto(Guid.NewGuid(), "Household", -5_000, -12_000, DashboardPinnedGroupMetricKind.Expense)
+        };
+        RegisterAuthorizedServices(BuildHttpClientFactory(CreateOverviewPayload(pinnedGroups: pinnedGroups)));
+        var download = JSInterop.SetupVoid("familyFinancesCharts.downloadCsv", _ => true);
+
+        var cut = RenderComponent<DashboardPage>();
+
+        cut.WaitForAssertion(() => cut.Find("[data-testid='dashboard-pinned-groups-export-csv']").Click());
+
+        var invocation = download.Invocations["familyFinancesCharts.downloadCsv"].Should().ContainSingle().Subject;
+        invocation.Arguments[0].Should().Be("dashboard-pinned-groups-2026-03.csv");
+        invocation.Arguments[1].Should().BeOfType<string>().Which.Should().Contain("Account Groups,Month,Annual accumulation").And.Contain("Household");
     }
 
     [Fact]
