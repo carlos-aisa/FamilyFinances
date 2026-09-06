@@ -82,35 +82,48 @@ public sealed class GetDashboardOverviewHandler
     }
 
     private static IReadOnlyList<DashboardExpenseKindRankDto> BuildExpenseKindRanking(
-        IReadOnlyList<DashboardExpenseKindTotalDto> totals)
+     IReadOnlyList<DashboardExpenseKindTotalDto> totals)
     {
-        var ordered = totals
+        // Debe reconciliar exactamente con el gasto neto del periodo.
+        // Los importes negativos representan devoluciones/abonos.
+        var netExpenseTotal = totals.Sum(x => x.AmountCents);
+
+        if (netExpenseTotal <= 0L)
+            return Array.Empty<DashboardExpenseKindRankDto>();
+
+        var topKinds = totals
             .Where(x => x.AmountCents > 0L)
             .OrderByDescending(x => x.AmountCents)
             .ThenBy(x => x.KindName, StringComparer.OrdinalIgnoreCase)
+            .Take(ExpenseKindTopCount)
             .ToList();
 
-        var total = ordered.Sum(x => x.AmountCents);
-        if (total <= 0L)
-            return Array.Empty<DashboardExpenseKindRankDto>();
-
-        var rows = ordered.Take(ExpenseKindTopCount)
+        var rows = topKinds
             .Select(x => new DashboardExpenseKindRankDto(
                 x.KindId,
                 x.KindName,
                 x.AmountCents,
-                Math.Round(x.AmountCents * 100m / total, 2, MidpointRounding.AwayFromZero),
+                Math.Round(
+                    x.AmountCents * 100m / netExpenseTotal,
+                    2,
+                    MidpointRounding.AwayFromZero),
                 false))
             .ToList();
 
-        var others = ordered.Skip(ExpenseKindTopCount).Sum(x => x.AmountCents);
-        if (others > 0L)
+        // "Otros" es el residual NETO:
+        // tipos positivos no mostrados + devoluciones/abonos de tipos no mostrados.
+        var others = netExpenseTotal - topKinds.Sum(x => x.AmountCents);
+
+        if (others != 0L)
         {
             rows.Add(new DashboardExpenseKindRankDto(
                 null,
                 "Others",
                 others,
-                Math.Round(others * 100m / total, 2, MidpointRounding.AwayFromZero),
+                Math.Round(
+                    others * 100m / netExpenseTotal,
+                    2,
+                    MidpointRounding.AwayFromZero),
                 true));
         }
 

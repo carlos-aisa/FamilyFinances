@@ -1,0 +1,41 @@
+@using System.Globalization
+@using FamilyFinances.Web.Features.Reports
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<SharedResource> L
+
+@if (Items.Count == 0)
+{
+    <p class="text-muted mb-0" data-testid="movement-list-empty">@EmptyMessage</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0 ff-data-table" data-testid="movement-list">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">@L["Transactions_TableDate"]</th>
+                    <th>@L["Transactions_TableDescription"]</th>
+                    <th class="text-end pe-3">@L["Transactions_TableAmount"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Items)
+                {
+                    <tr data-testid="movement-list-item">
+                        <td class="ps-3 text-nowrap">@item.BookedOn.ToString("d", CultureInfo.CurrentCulture)</td>
+                        <td>@item.Description</td>
+                        <td class="text-end pe-3 text-nowrap" data-testid="movement-list-amount">@MoneyFormatter.FormatCents(Math.Abs(item.AmountCents))</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<MovementListItem> Items { get; set; } = Array.Empty<MovementListItem>();
+
+    [Parameter, EditorRequired]
+    public string EmptyMessage { get; set; } = string.Empty;
+}

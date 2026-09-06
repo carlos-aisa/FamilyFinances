@@ -15,22 +15,21 @@ The Dashboard MUST render an analytics-first household overview that prioritizes
   - annual `Income vs Expense vs Monthly Result` mixed chart;
   - asset-total evolution;
   - current-month expense-kind ranking with Top 6 + Others;
-  - user-pinned account-group operational-result table;
-  - deterministic monthly textual summary.
+  - user-pinned account-group operational-result table; and
+  - a latest Expense movement list.
 - **AND** it MUST NOT require report shortcut cards to reach a financial overview.
 
 #### Scenario: Dashboard uses balanced analytical rows
 
 - **WHEN** the dashboard renders at a wide desktop breakpoint
 - **THEN** the daily, annual, and asset-total evolutions MUST share the second row
-- **AND** the expense-kind ranking, pinned groups, and monthly textual summary MUST share the third row.
+- **AND** the expense-kind ranking, pinned groups, and latest Expense movements MUST share the third row.
 
-#### Scenario: Dashboard summary uses only reliable existing data
+#### Scenario: Dashboard latest expenses use dedicated movement data
 
-- **WHEN** the dashboard renders its monthly textual summary
-- **THEN** it MUST render no more than four deterministic insights from the overview payload
-- **AND** it MUST include a previous-month comparison only when historical sufficiency is complete
-- **AND** it MUST NOT use AI or request a new endpoint.
+- **WHEN** the Dashboard renders its latest Expense movements
+- **THEN** it MUST obtain them from the dedicated latest-expenses source
+- **AND** it MUST NOT derive them from monthly textual insight rows.
 
 #### Scenario: Dashboard preserves distinct monthly and annual questions
 
@@ -159,6 +158,17 @@ The Dashboard MUST show only account groups explicitly selected for monitoring b
 - **WHEN** one or more groups have `IsDashboardPinned = true`
 - **THEN** the Dashboard MUST display each pinned group’s current-month and YTD operational result
 - **AND** each result MUST include only Income and Expense member accounts.
+
+#### Scenario: Pinned groups order by current-month operational result
+
+- **WHEN** pinned group rows are returned for the Dashboard
+- **THEN** they MUST be ordered by monthly operational result ascending.
+
+#### Scenario: Expense group metrics use neutral magnitude display
+
+- **WHEN** a pinned group is classified as an Expense metric
+- **THEN** its current-month and YTD values MUST be shown as non-negative magnitudes
+- **AND** those values MUST NOT use unfavorable-result color semantics.
 
 #### Scenario: Balance-account natures are excluded from group operational result
 

@@ -50,6 +50,13 @@ public sealed class TransactionsController : ControllerBase
         CancellationToken ct)
     => Ok(await handler.HandleAsync(take, ct));
 
+    [HttpGet("latest-expenses")]
+    [Authorize(Policy = Policies.CanRead)]
+    public async Task<ActionResult<IReadOnlyList<LatestExpenseMovementDto>>> ListLatestExpenses(
+        [FromServices] ListLatestExpenseMovementsHandler handler,
+        CancellationToken ct)
+        => Ok(await handler.HandleAsync(ct));
+
     [HttpGet("search-expenses")]
     [Authorize(Policy = Policies.CanRead)]
     public async Task<ActionResult<IReadOnlyList<ExpenseSearchResultDto>>> SearchExpenses(

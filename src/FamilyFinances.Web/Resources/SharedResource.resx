@@ -1881,6 +1881,9 @@
   <data name="Reports_SelectedPeriod" xml:space="preserve">
     <value>Period: {0}</value>
   </data>
+  <data name="Reports_PeriodLabel" xml:space="preserve">
+    <value>Period</value>
+  </data>
   <data name="Reports_AssetMovement" xml:space="preserve">
     <value>Asset movement</value>
   </data>
@@ -2790,6 +2793,9 @@
   <data name="Dashboard_PinnedGroups_Month" xml:space="preserve"><value>Month</value></data>
   <data name="Dashboard_PinnedGroups_Ytd" xml:space="preserve"><value>Annual accumulation</value></data>
   <data name="Dashboard_MonthlySummary_Title" xml:space="preserve"><value>Monthly summary</value></data>
+  <data name="Dashboard_LatestExpenses_Title" xml:space="preserve"><value>Latest expenses</value></data>
+  <data name="Dashboard_LatestExpenses_Subtitle" xml:space="preserve"><value>Your six most recent expense movements.</value></data>
+  <data name="Dashboard_LatestExpenses_Empty" xml:space="preserve"><value>No recent expenses.</value></data>
   <data name="Dashboard_MonthlySummary_Subtitle" xml:space="preserve"><value>The most useful facts for the selected month.</value></data>
   <data name="Dashboard_MonthlySummary_Result" xml:space="preserve"><value>The monthly result is {0}.</value></data>
   <data name="Dashboard_MonthlySummary_PreviousMonth" xml:space="preserve"><value>Compared with the previous month: {0}.</value></data>
