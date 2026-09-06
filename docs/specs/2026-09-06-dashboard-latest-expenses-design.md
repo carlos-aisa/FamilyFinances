@@ -6,7 +6,7 @@ Replace the Dashboard's `Monthly Summary` card with `Latest expenses`. The card 
 
 ## Data flow
 
-The application exposes a focused read query and API endpoint for the six latest expense movements. It filters by account nature, orders by movement date descending and then transaction identifier descending, and projects only the data required by the card: date, optional description, optional payee, and amount.
+The application exposes a focused read query and API endpoint for the six latest expense movements. It filters by account nature, orders by movement date descending and then transaction identifier descending, and projects only the data required by the card: date, optional description, and amount.
 
 The Dashboard loads this collection separately from its existing overview payload. No forecasting, recurrence, configurable-widget, or generic-feed abstraction is introduced.
 
@@ -15,6 +15,8 @@ The Dashboard loads this collection separately from its existing overview payloa
 A reusable Razor movement-list component receives presentation-ready list items and has no knowledge of the query or source of its data. Following the compact table layout of the Dashboard's highlighted-groups card, each row renders only the date, description, and absolute monetary amount using neutral styling. Payee is deliberately omitted from this compact Dashboard presentation. The component remains suitable for a future `Upcoming planned expenses` card without alteration to its data-access boundary.
 
 When no expense movements exist, the card shows the existing localized no-data state.
+
+The three third-row Dashboard cards use the same compact header accessories as the chart cards in the second row: an export-labelled presentation badge and the localized selected-month period badge. They are visual metadata only; no export workflow is added for these table/list cards.
 
 ## Verification
 
