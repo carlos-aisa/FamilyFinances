@@ -33,4 +33,3 @@ The Dashboard MUST render its latest Expense movements with a reusable visual li
 - **WHEN** a latest Expense movement has no description
 - **THEN** the movement list MUST render the item without failing
 - **AND** it MUST preserve the date and amount columns
-

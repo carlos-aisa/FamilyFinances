@@ -32,4 +32,3 @@ Each third-row Dashboard CSV export MUST include the currently selected Dashboar
 
 - **WHEN** a third-row Dashboard CSV file is generated
 - **THEN** its metadata MUST include a localized period label and the Dashboard period in `MM-yyyy` form
-
