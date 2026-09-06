@@ -16,7 +16,7 @@ A reusable Razor movement-list component receives presentation-ready list items 
 
 When no expense movements exist, the card shows the existing localized no-data state.
 
-The three third-row Dashboard cards use the same compact header accessories as the chart cards in the second row: an export-labelled presentation badge and the localized selected-month period badge. They are visual metadata only; no export workflow is added for these table/list cards.
+The three third-row Dashboard cards use the same compact header accessories as the chart cards in the second row: a CSV export button and the localized selected-month period badge. Each export contains the visible columns of its card and the selected period as CSV context, using the existing report export utilities.
 
 ## Verification
 
