@@ -205,6 +205,35 @@ public sealed class ReportsApi
         return result ?? throw new InvalidOperationException("Failed to deserialize account group totals response.");
     }
 
+    public async Task<AccountGroupMovementsDto> GetAccountGroupMovementsAsync(
+        Guid groupId,
+        DateOnly fromInclusive,
+        DateOnly toExclusive,
+        AccountNature? nature = null,
+        CancellationToken ct = default)
+    {
+        var token = _tokenStore.GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("No access token available.");
+
+        var url = $"api/v1/reports/account-groups/{groupId}/movements?from={fromInclusive:yyyy-MM-dd}&to={toExclusive:yyyy-MM-dd}";
+        if (nature.HasValue)
+            url += $"&nature={nature.Value}";
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _http.SendAsync(request, ct);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException("API call unauthorized. Missing or invalid token.");
+
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<AccountGroupMovementsDto>(cancellationToken: ct);
+        return result ?? throw new InvalidOperationException("Failed to deserialize account group movements response.");
+    }
+
     public async Task<AssetTotalBalanceDto> GetAssetTotalBalanceAsync(
         DateOnly asOf,
         CancellationToken ct = default)

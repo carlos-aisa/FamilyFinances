@@ -2818,4 +2818,11 @@
   <data name="Dashboard_LatestExpenses_Title" xml:space="preserve"><value>Latest expenses</value></data>
   <data name="Dashboard_LatestExpenses_Subtitle" xml:space="preserve"><value>Your six most recent expense movements.</value></data>
   <data name="Dashboard_LatestExpenses_Empty" xml:space="preserve"><value>No recent expenses.</value></data>
+  <data name="AccountGroupTotals_Movements" xml:space="preserve"><value>Movements</value></data>
+  <data name="AccountGroupTotals_Movements_Loading" xml:space="preserve"><value>Loading movements...</value></data>
+  <data name="AccountGroupTotals_Movements_Empty" xml:space="preserve"><value>No movements were found for the selected filters.</value></data>
+  <data name="AccountGroupTotals_Table_Source" xml:space="preserve"><value>Source</value></data>
+  <data name="AccountGroupTotals_Table_Destination" xml:space="preserve"><value>Destination</value></data>
+  <data name="AccountGroupTotals_Table_Accumulated" xml:space="preserve"><value>Accumulated</value></data>
+  <data name="AccountGroupTotals_Movement_OpenTransaction" xml:space="preserve"><value>Open transaction: {0}</value></data>
 </root>

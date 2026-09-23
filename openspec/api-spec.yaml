@@ -1433,6 +1433,58 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /api/v1/reports/account-groups/{groupId}/movements:
+    get:
+      tags: [Reports]
+      summary: Get account-group movements
+      description: Returns each transaction associated with a group's member accounts for the selected period.
+      operationId: Reports_GetAccountGroupMovements
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: groupId
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: from
+          required: true
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: to
+          required: true
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: nature
+          required: false
+          schema:
+            $ref: '#/components/schemas/AccountNature'
+      responses:
+        '200':
+          description: Account-group movements ordered by booking date descending.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountGroupMovementsDto'
+        '404':
+          description: Group not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   /health:
     get:
       tags: [Health]
@@ -2376,3 +2428,57 @@ components:
           items:
             $ref: '#/components/schemas/AccountGroupTotalItemDto'
       required: [groupId, groupName, fromInclusive, toExclusive, nature, totalCents, transactionsCount, accountsCount, items]
+
+    AccountGroupMovementDto:
+      type: object
+      properties:
+        transactionId:
+          type: string
+          format: uuid
+        bookedOn:
+          type: string
+          format: date
+        description:
+          type: string
+        payeeName:
+          type: string
+          nullable: true
+        sourceAccountNames:
+          type: array
+          items:
+            type: string
+        destinationAccountNames:
+          type: array
+          items:
+            type: string
+        groupNetCents:
+          type: integer
+          format: int64
+        runningNetCents:
+          type: integer
+          format: int64
+      required: [transactionId, bookedOn, description, sourceAccountNames, destinationAccountNames, groupNetCents, runningNetCents]
+
+    AccountGroupMovementsDto:
+      type: object
+      properties:
+        groupId:
+          type: string
+          format: uuid
+        groupName:
+          type: string
+        fromInclusive:
+          type: string
+          format: date
+        toExclusive:
+          type: string
+          format: date
+        nature:
+          allOf:
+            - $ref: '#/components/schemas/AccountNature'
+          nullable: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountGroupMovementDto'
+      required: [groupId, groupName, fromInclusive, toExclusive, items]

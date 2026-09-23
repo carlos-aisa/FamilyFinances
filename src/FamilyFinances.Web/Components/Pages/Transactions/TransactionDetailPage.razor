@@ -267,6 +267,8 @@ else
                 => _originContext.BuildUri($"/accounts/{reportCategoryAccountId}/movements"),
             TransactionOrigin.ReportAccountTotals when _originContext.AccountId is Guid reportAccountId
                 => _originContext.BuildUri($"/accounts/{reportAccountId}/movements"),
+            TransactionOrigin.ReportAccountGroupTotals when _originContext.GroupId is not null
+                => _originContext.BuildUri("/reports/account-group-totals"),
             TransactionOrigin.HistoryTransactions => _originContext.BuildUri("/history/transactions", includeOrigin: false),
             TransactionOrigin.HistoryMovements => _originContext.BuildUri("/history/movements", includeOrigin: false),
             _ => "/transactions"
@@ -283,6 +285,8 @@ else
                 => _originContext.BuildUri($"/accounts/{reportCategoryAccountId}/movements"),
             TransactionOrigin.ReportAccountTotals when _originContext.AccountId is Guid reportAccountId
                 => _originContext.BuildUri($"/accounts/{reportAccountId}/movements"),
+            TransactionOrigin.ReportAccountGroupTotals when _originContext.GroupId is not null
+                => _originContext.BuildUri("/reports/account-group-totals"),
             TransactionOrigin.HistoryTransactions => _originContext.BuildUri("/history/transactions", includeOrigin: false),
             TransactionOrigin.HistoryMovements => _originContext.BuildUri("/history/movements", includeOrigin: false),
             _ => "/transactions"
@@ -296,6 +300,7 @@ else
             TransactionOrigin.AccountsMovements => L["Nav_Accounts"],
             TransactionOrigin.ReportCategoryTotals => L["Nav_Accounts"],
             TransactionOrigin.ReportAccountTotals => L["Nav_Accounts"],
+            TransactionOrigin.ReportAccountGroupTotals => L["AccountGroupTotals_Title"],
             TransactionOrigin.HistoryTransactions => L["TransactionDetail_BreadcrumbHistory"],
             TransactionOrigin.HistoryMovements => L["TransactionDetail_BreadcrumbHistory"],
             _ => L["TransactionDetail_BreadcrumbTransactions"]

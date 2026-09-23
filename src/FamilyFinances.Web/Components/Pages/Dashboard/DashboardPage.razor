@@ -231,7 +231,7 @@
                                                 @foreach (var group in _overview.PinnedGroups)
                                                 {
                                                     <tr>
-                                                        <td class="ps-3">@group.GroupName</td>
+                                                        <td class="ps-3"><a href="@BuildPinnedGroupReportUrl(group.GroupId)">@group.GroupName</a></td>
                                                         @if (group.MetricKind == DashboardPinnedGroupMetricKind.Expense)
                                                         {
                                                             <td class="text-end">@MoneyFormatter.FormatCents(Math.Abs(group.MonthOperationalResultCents))</td>
@@ -509,6 +509,9 @@
 
     private string GetSelectedPeriodBadge()
         => L["Reports_BadgePeriod", $"{_overview!.AsOf.Month:00}-{_overview.AsOf.Year:D4}"];
+
+    private string BuildPinnedGroupReportUrl(Guid groupId)
+        => $"/reports/account-group-totals?groupId={groupId}&year={_overview!.AsOf.Year:D4}&month={_overview.AsOf.Month:D2}";
 
     private async Task ExportExpenseKindRankingCsvAsync()
     {

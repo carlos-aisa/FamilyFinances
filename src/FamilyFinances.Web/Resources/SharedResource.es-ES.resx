@@ -2839,4 +2839,11 @@
   <data name="Dashboard_MonthlySummary_TopPinnedGroup" xml:space="preserve"><value>{0} fue el grupo destacado con mayor impacto: {1}.</value></data>
   <data name="Dashboard_MonthlySummary_AnnualAccumulation" xml:space="preserve"><value>El acumulado anual es {0}.</value></data>
   <data name="Dashboard_MonthlySummary_NetWorth" xml:space="preserve"><value>El patrimonio neto actual es {0}.</value></data>
+  <data name="AccountGroupTotals_Movements" xml:space="preserve"><value>Movimientos</value></data>
+  <data name="AccountGroupTotals_Movements_Loading" xml:space="preserve"><value>Cargando movimientos...</value></data>
+  <data name="AccountGroupTotals_Movements_Empty" xml:space="preserve"><value>No se han encontrado movimientos para los filtros seleccionados.</value></data>
+  <data name="AccountGroupTotals_Table_Source" xml:space="preserve"><value>Origen</value></data>
+  <data name="AccountGroupTotals_Table_Destination" xml:space="preserve"><value>Destino</value></data>
+  <data name="AccountGroupTotals_Table_Accumulated" xml:space="preserve"><value>Acumulado</value></data>
+  <data name="AccountGroupTotals_Movement_OpenTransaction" xml:space="preserve"><value>Abrir transacción: {0}</value></data>
 </root>
