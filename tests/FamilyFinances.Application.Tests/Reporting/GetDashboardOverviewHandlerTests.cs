@@ -29,7 +29,8 @@ public sealed class GetDashboardOverviewHandlerTests
                 new DashboardExpenseKindTotalDto(Guid.NewGuid(), "Health", 90_000),
                 new DashboardExpenseKindTotalDto(Guid.NewGuid(), "Education", 80_000),
                 new DashboardExpenseKindTotalDto(Guid.NewGuid(), "Leisure", 70_000),
-                new DashboardExpenseKindTotalDto(Guid.NewGuid(), "Personal care", 60_000)
+                new DashboardExpenseKindTotalDto(Guid.NewGuid(), "Personal care", 60_000),
+                new DashboardExpenseKindTotalDto(Guid.NewGuid(), "Other", 50_000)
             ]);
         repo.Setup(r => r.GetDashboardPinnedGroupOperationalResultsAsync(asOf, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<DashboardPinnedGroupOperationalResultDto>());
@@ -93,9 +94,9 @@ public sealed class GetDashboardOverviewHandlerTests
         result.CompactInsights.Take(5).Select(r => r.Kind).Should().OnlyContain(kind => kind == "top-expense");
         result.CompactInsights.Last().StatusCode.Should().Be("others");
         result.CompactInsights.Last().AmountCents.Should().Be(50_000);
-        result.ExpenseKindRanking.Should().HaveCount(7);
-        result.ExpenseKindRanking!.Take(6).Should().OnlyContain(row => !row.IsOthers);
-        result.ExpenseKindRanking.Last().Should().Match<DashboardExpenseKindRankDto>(row => row.IsOthers && row.AmountCents == 60_000);
+        result.ExpenseKindRanking.Should().HaveCount(8);
+        result.ExpenseKindRanking!.Take(7).Should().OnlyContain(row => !row.IsOthers);
+        result.ExpenseKindRanking.Last().Should().Match<DashboardExpenseKindRankDto>(row => row.IsOthers && row.AmountCents == 50_000);
 
         repo.VerifyAll();
         calculator.VerifyAll();
