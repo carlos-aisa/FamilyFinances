@@ -8,7 +8,7 @@ namespace FamilyFinances.Application.Reporting.Handlers;
 public sealed class GetDashboardOverviewHandler
 {
     private const int ParetoTopN = 8;
-    private const int ExpenseKindTopCount = 6;
+    private const int ExpenseKindTopCount = 7;
 
     private readonly IReportingReadRepository _repo;
     private readonly IReportingInsightsCalculator _insightsCalculator;
