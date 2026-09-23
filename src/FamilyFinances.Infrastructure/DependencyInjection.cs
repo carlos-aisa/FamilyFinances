@@ -122,6 +122,7 @@ public static class DependencyInjection
         services.AddScoped<SetAccountGroupDashboardPinnedHandler>();
         services.AddScoped<DeleteAccountGroupHandler>();
         services.AddScoped<GetAccountGroupTotalsHandler>();
+        services.AddScoped<GetAccountGroupMovementsHandler>();
         
         return services;
     }

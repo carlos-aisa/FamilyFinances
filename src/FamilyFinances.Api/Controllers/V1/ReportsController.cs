@@ -165,6 +165,23 @@ public sealed class ReportsController : ControllerBase
     }
 
     [Authorize(Policy = Policies.CanRead)]
+    [HttpGet("account-groups/{groupId:guid}/movements")]
+    public async Task<ActionResult<AccountGroupMovementsDto>> GetAccountGroupMovements(
+        [FromRoute] Guid groupId,
+        [FromQuery] DateOnly from,
+        [FromQuery] DateOnly to,
+        [FromQuery] AccountNature? nature,
+        [FromServices] GetAccountGroupMovementsHandler handler,
+        CancellationToken ct)
+    {
+        var dto = await handler.HandleAsync(
+            new GetAccountGroupMovementsQuery(groupId, from, to, nature),
+            ct);
+
+        return Ok(dto);
+    }
+
+    [Authorize(Policy = Policies.CanRead)]
     [HttpGet("asset-total-balance")]
     public async Task<ActionResult<AssetTotalBalanceDto>> GetAssetTotalBalance(
         [FromQuery] DateOnly? asOf,

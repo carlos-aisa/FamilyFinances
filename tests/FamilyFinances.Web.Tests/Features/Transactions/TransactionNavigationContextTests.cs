@@ -123,6 +123,34 @@ public sealed class TransactionNavigationContextTests : WebTestContext
     }
 
     [Fact]
+    public void AccountGroupReport_Origin_Returns_To_GroupTotals_WithReportContext()
+    {
+        var transactionId = Guid.Parse("99999999-9999-9999-9999-999999999999");
+        var accountId = Guid.Parse("88888888-8888-8888-8888-888888888888");
+        var groupId = Guid.Parse("77777777-7777-7777-7777-777777777777");
+        RegisterServices(transactionId, accountId);
+
+        var nav = Services.GetRequiredService<FakeNavigationManager>();
+        nav.NavigateTo($"/transactions/{transactionId}?origin=report-account-group-totals&groupId={groupId}&from=2026-02-01&to=2026-03-01&nature=Expense");
+
+        var cut = RenderComponent<TransactionDetailPage>(parameters => parameters.Add(x => x.Id, transactionId));
+
+        cut.WaitForAssertion(() => cut.Find("a.btn.btn-outline-secondary"));
+
+        var backHref = cut.Find("a.btn.btn-outline-secondary").GetAttribute("href");
+        var editHref = cut.Find("a.btn.btn-primary").GetAttribute("href");
+
+        backHref.Should().Contain("/reports/account-group-totals");
+        backHref.Should().Contain("origin=report-account-group-totals");
+        backHref.Should().Contain($"groupId={groupId}");
+        backHref.Should().Contain("from=2026-02-01");
+        backHref.Should().Contain("to=2026-03-01");
+        backHref.Should().Contain("nature=Expense");
+        editHref.Should().Contain("origin=report-account-group-totals");
+        editHref.Should().Contain($"groupId={groupId}");
+    }
+
+    [Fact]
     public void Unknown_Origin_Falls_Back_To_Transactions()
     {
         var transactionId = Guid.Parse("12121212-1212-1212-1212-121212121212");

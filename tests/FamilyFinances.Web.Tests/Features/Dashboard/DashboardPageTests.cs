@@ -148,6 +148,26 @@ public sealed class DashboardPageTests : WebTestContext
     }
 
     [Fact]
+    public void Dashboard_PinnedGroupLinks_ToItsSelectedMonthReport()
+    {
+        var groupId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        var pinnedGroups = new[]
+        {
+            new DashboardPinnedGroupOperationalResultDto(groupId, "Household", -5_000, -12_000, DashboardPinnedGroupMetricKind.Expense)
+        };
+        RegisterAuthorizedServices(BuildHttpClientFactory(CreateOverviewPayload(pinnedGroups: pinnedGroups)));
+
+        var cut = RenderComponent<DashboardPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var link = cut.Find("[data-testid='dashboard-pinned-groups'] a[href*='account-group-totals']");
+            link.TextContent.Should().Be("Household");
+            link.GetAttribute("href").Should().Contain($"groupId={groupId}").And.Contain("year=2026").And.Contain("month=03");
+        });
+    }
+
+    [Fact]
     public void Dashboard_Renders_LatestExpenses_AsPositiveNeutralMovements()
     {
         var latestExpenses = new[]

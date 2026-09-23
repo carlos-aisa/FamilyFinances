@@ -523,6 +523,75 @@ public sealed class AccountGroupTotalsPageTests : WebTestContext
     }
 
     [Fact]
+    public void Period_Totals_RendersMovements_AndPreservesReportContextInTransactionLink()
+    {
+        var groupId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        var reportDto = new AccountGroupTotalsDto(
+            groupId,
+            "Household",
+            new DateOnly(2026, 2, 1),
+            new DateOnly(2026, 3, 1),
+            AccountNature.Expense,
+            -12_345,
+            1,
+            1,
+            [new AccountGroupTotalItemDto(Guid.NewGuid(), "Groceries", -12_345, 1)]);
+        var movementsDto = new AccountGroupMovementsDto(
+            groupId,
+            "Household",
+            new DateOnly(2026, 2, 1),
+            new DateOnly(2026, 3, 1),
+            AccountNature.Expense,
+            [
+                new AccountGroupMovementDto(
+                    Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
+                    new DateOnly(2026, 2, 14),
+                    "Weekly shopping",
+                    "Market",
+                    ["Main Bank"],
+                    ["Groceries", "Transport"],
+                    -12_345,
+                    -12_345)
+            ]);
+        var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        var httpClient = CreateHttpClient(handlerMock);
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync((HttpRequestMessage request, CancellationToken _) =>
+            {
+                var uri = request.RequestUri!.ToString();
+                if (uri.Contains("api/v1/account-groups", StringComparison.OrdinalIgnoreCase) &&
+                    !uri.Contains("api/v1/reports", StringComparison.OrdinalIgnoreCase))
+                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(CreateGroupListPayload()) };
+                if (uri.Contains("/movements", StringComparison.OrdinalIgnoreCase))
+                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(movementsDto) };
+                if (uri.Contains("/totals", StringComparison.OrdinalIgnoreCase))
+                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(reportDto) };
+
+                return new HttpResponseMessage(HttpStatusCode.BadRequest);
+            });
+        RegisterAuthorizedServices(httpClient);
+
+        var navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo($"http://localhost/reports/account-group-totals?groupId={groupId}&from=2026-02-01&to=2026-03-01&nature=Expense");
+        var cut = RenderComponent<AccountGroupTotalsPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var row = cut.Find("[data-testid='account-group-totals-movement-row']");
+            row.TextContent.Should().Contain("Weekly shopping").And.Contain("Main Bank").And.Contain("Transport");
+
+            var href = row.QuerySelector("a")!.GetAttribute("href");
+            href.Should().Contain("origin=report-account-group-totals");
+            href.Should().Contain($"groupId={groupId}");
+            href.Should().Contain("from=2026-02-01");
+            href.Should().Contain("to=2026-03-01");
+            href.Should().Contain("nature=Expense");
+        });
+    }
+
+    [Fact]
     public void QueryContext_LoadsTheSelectedGroupForTheRequestedMonth()
     {
         var groupId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");

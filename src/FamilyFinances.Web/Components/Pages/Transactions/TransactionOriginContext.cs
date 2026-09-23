@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Primitives;
+using FamilyFinances.Domain.Ledger.Accounts;
 using System.Globalization;
 
 namespace FamilyFinances.Web.Components.Pages.Transactions;
@@ -13,7 +14,8 @@ internal enum TransactionOrigin
     HistoryTransactions,
     HistoryMovements,
     ReportCategoryTotals,
-    ReportAccountTotals
+    ReportAccountTotals,
+    ReportAccountGroupTotals
 }
 
 internal sealed record TransactionOriginContext(
@@ -21,13 +23,17 @@ internal sealed record TransactionOriginContext(
     Guid? AccountId = null,
     DateOnly? From = null,
     DateOnly? To = null,
-    int? Year = null)
+    int? Year = null,
+    Guid? GroupId = null,
+    AccountNature? Nature = null)
 {
     public const string OriginQueryKey = "origin";
     public const string AccountIdQueryKey = "accountId";
     public const string FromQueryKey = "from";
     public const string ToQueryKey = "to";
     public const string YearQueryKey = "year";
+    public const string GroupIdQueryKey = "groupId";
+    public const string NatureQueryKey = "nature";
 
     public static TransactionOriginContext FromNavigation(NavigationManager navigation)
         => FromUri(navigation.ToAbsoluteUri(navigation.Uri));
@@ -45,7 +51,9 @@ internal sealed record TransactionOriginContext(
             AccountId: ParseGuid(ReadValue(query, AccountIdQueryKey)),
             From: ParseDateOnly(ReadValue(query, FromQueryKey)),
             To: ParseDateOnly(ReadValue(query, ToQueryKey)),
-            Year: ParseInt(ReadValue(query, YearQueryKey)));
+            Year: ParseInt(ReadValue(query, YearQueryKey)),
+            GroupId: ParseGuid(ReadValue(query, GroupIdQueryKey)),
+            Nature: ParseNature(ReadValue(query, NatureQueryKey)));
     }
 
     public static TransactionOriginContext FromQuery(IReadOnlyDictionary<string, string?> query)
@@ -55,7 +63,9 @@ internal sealed record TransactionOriginContext(
             AccountId: ParseGuid(ReadValue(query, AccountIdQueryKey)),
             From: ParseDateOnly(ReadValue(query, FromQueryKey)),
             To: ParseDateOnly(ReadValue(query, ToQueryKey)),
-            Year: ParseInt(ReadValue(query, YearQueryKey)));
+            Year: ParseInt(ReadValue(query, YearQueryKey)),
+            GroupId: ParseGuid(ReadValue(query, GroupIdQueryKey)),
+            Nature: ParseNature(ReadValue(query, NatureQueryKey)));
     }
 
     public Dictionary<string, string?> ToQuery(bool includeOrigin = true)
@@ -75,6 +85,12 @@ internal sealed record TransactionOriginContext(
 
         if (Year is not null)
             values[YearQueryKey] = Year.Value.ToString(CultureInfo.InvariantCulture);
+
+        if (GroupId is not null)
+            values[GroupIdQueryKey] = GroupId.Value.ToString();
+
+        if (Nature is not null)
+            values[NatureQueryKey] = Nature.Value.ToString();
 
         return values;
     }
@@ -105,6 +121,7 @@ internal sealed record TransactionOriginContext(
             "history-movements" => TransactionOrigin.HistoryMovements,
             "report-category-totals" => TransactionOrigin.ReportCategoryTotals,
             "report-account-totals" => TransactionOrigin.ReportAccountTotals,
+            "report-account-group-totals" => TransactionOrigin.ReportAccountGroupTotals,
             _ => TransactionOrigin.Transactions
         };
     }
@@ -118,6 +135,7 @@ internal sealed record TransactionOriginContext(
             TransactionOrigin.HistoryMovements => "history-movements",
             TransactionOrigin.ReportCategoryTotals => "report-category-totals",
             TransactionOrigin.ReportAccountTotals => "report-account-totals",
+            TransactionOrigin.ReportAccountGroupTotals => "report-account-group-totals",
             _ => "transactions"
         };
     }
@@ -136,4 +154,7 @@ internal sealed record TransactionOriginContext(
 
     private static int? ParseInt(string? raw)
         => int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) ? parsed : null;
+
+    private static AccountNature? ParseNature(string? raw)
+        => Enum.TryParse<AccountNature>(raw, ignoreCase: true, out var parsed) ? parsed : null;
 }

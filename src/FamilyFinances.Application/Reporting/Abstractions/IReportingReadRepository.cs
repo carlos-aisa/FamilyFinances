@@ -91,6 +91,13 @@ public interface IReportingReadRepository
         AccountNature? nature,
         CancellationToken ct);
 
+    Task<AccountGroupMovementsDto> GetAccountGroupMovementsAsync(
+        Guid groupId,
+        DateOnly fromInclusive,
+        DateOnly toExclusive,
+        AccountNature? nature,
+        CancellationToken ct);
+
     /// <summary>
     /// Gets movements for a specific account within a date range.
     /// </summary>

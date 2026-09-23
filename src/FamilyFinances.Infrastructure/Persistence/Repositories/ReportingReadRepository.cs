@@ -23,6 +23,16 @@ public sealed class ReportingReadRepository : IReportingReadRepository
         string? PayeeName,
         Money SignedAmount);
 
+    private sealed record AccountGroupMovementRow(
+        TransactionId TransactionId,
+        DateOnly BookedOn,
+        DateTime CreatedAt,
+        string Description,
+        string? PayeeName,
+        IReadOnlyList<string> SourceAccountNames,
+        IReadOnlyList<string> DestinationAccountNames,
+        long GroupNetCents);
+
     private readonly LedgerDbContext _db;
     private readonly IFiscalYearGovernanceRepository _governance;
 
@@ -1573,6 +1583,163 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             accountsCount,
             items
         );
+    }
+
+    public async Task<AccountGroupMovementsDto> GetAccountGroupMovementsAsync(
+        Guid groupId,
+        DateOnly fromInclusive,
+        DateOnly toExclusive,
+        AccountNature? nature,
+        CancellationToken ct)
+    {
+        var groupIdVo = new AccountGroupId(groupId);
+        var group = await _db.AccountGroups
+            .AsNoTracking()
+            .FirstOrDefaultAsync(candidate => candidate.Id == groupIdVo, ct);
+
+        if (group is null)
+            throw new KeyNotFoundException("Account group not found.");
+
+        var accountIds = await _db.AccountGroupMembers
+            .AsNoTracking()
+            .Where(member => member.GroupId == groupIdVo)
+            .Select(member => member.AccountId)
+            .ToListAsync(ct);
+
+        if (accountIds.Count == 0)
+        {
+            return new AccountGroupMovementsDto(
+                groupId,
+                group.Name,
+                fromInclusive,
+                toExclusive,
+                nature,
+                Array.Empty<AccountGroupMovementDto>());
+        }
+
+        var matchingSplitsQuery =
+            from transaction in _db.Transactions.AsNoTracking()
+            join split in _db.TransactionSplits.AsNoTracking()
+                on transaction.Id equals EF.Property<TransactionId>(split, "TransactionId")
+            join account in _db.Accounts.AsNoTracking()
+                on split.AccountId equals account.Id
+            join payee in _db.Payees.AsNoTracking()
+                on transaction.PayeeId equals payee.Id into payees
+            from payee in payees.DefaultIfEmpty()
+            where transaction.BookedOn >= fromInclusive && transaction.BookedOn < toExclusive
+            where accountIds.Contains(split.AccountId)
+            select new
+            {
+                TransactionId = transaction.Id,
+                transaction.BookedOn,
+                transaction.CreatedAt,
+                transaction.Description,
+                PayeeName = payee != null ? payee.Name : null,
+                AccountNature = account.Nature,
+                AmountCents = split.Amount.Cents
+            };
+
+        if (nature.HasValue)
+            matchingSplitsQuery = matchingSplitsQuery.Where(split => split.AccountNature == nature.Value);
+
+        var matchingSplits = await matchingSplitsQuery.ToListAsync(ct);
+        if (matchingSplits.Count == 0)
+        {
+            return new AccountGroupMovementsDto(
+                groupId,
+                group.Name,
+                fromInclusive,
+                toExclusive,
+                nature,
+                Array.Empty<AccountGroupMovementDto>());
+        }
+
+        var transactionIds = matchingSplits
+            .Select(split => split.TransactionId)
+            .Distinct()
+            .ToList();
+
+        var transactionSplits = await (
+            from split in _db.TransactionSplits.AsNoTracking()
+            join account in _db.Accounts.AsNoTracking()
+                on split.AccountId equals account.Id
+            where transactionIds.Contains(EF.Property<TransactionId>(split, "TransactionId"))
+            select new
+            {
+                TransactionId = EF.Property<TransactionId>(split, "TransactionId"),
+                AccountName = account.Name,
+                AmountCents = split.Amount.Cents
+            }).ToListAsync(ct);
+
+        var splitsByTransaction = transactionSplits
+            .GroupBy(split => split.TransactionId)
+            .ToDictionary(grouping => grouping.Key, grouping => grouping.ToList());
+
+        var movementRows = matchingSplits
+            .GroupBy(split => new
+            {
+                split.TransactionId,
+                split.BookedOn,
+                split.CreatedAt,
+                split.Description,
+                split.PayeeName
+            })
+            .Select(grouping =>
+            {
+                var allSplits = splitsByTransaction[grouping.Key.TransactionId];
+                var sourceAccountNames = allSplits
+                    .Where(split => split.AmountCents < 0)
+                    .Select(split => split.AccountName)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                var destinationAccountNames = allSplits
+                    .Where(split => split.AmountCents > 0)
+                    .Select(split => split.AccountName)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                return new AccountGroupMovementRow(
+                    grouping.Key.TransactionId,
+                    grouping.Key.BookedOn,
+                    grouping.Key.CreatedAt,
+                    grouping.Key.Description,
+                    grouping.Key.PayeeName,
+                    sourceAccountNames,
+                    destinationAccountNames,
+                    -grouping.Sum(split => split.AmountCents));
+            })
+            .OrderBy(row => row.BookedOn)
+            .ThenBy(row => row.CreatedAt)
+            .ThenBy(row => row.TransactionId.Value)
+            .ToList();
+
+        long runningNetCents = 0;
+        var movementItems = new List<AccountGroupMovementDto>(movementRows.Count);
+        foreach (var row in movementRows)
+        {
+            runningNetCents += row.GroupNetCents;
+            movementItems.Add(new AccountGroupMovementDto(
+                row.TransactionId.Value,
+                row.BookedOn,
+                row.Description,
+                row.PayeeName,
+                row.SourceAccountNames,
+                row.DestinationAccountNames,
+                row.GroupNetCents,
+                runningNetCents));
+        }
+
+        movementItems.Reverse();
+
+        return new AccountGroupMovementsDto(
+            groupId,
+            group.Name,
+            fromInclusive,
+            toExclusive,
+            nature,
+            movementItems);
     }
 
     /// <summary>
