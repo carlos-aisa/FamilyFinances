@@ -62,4 +62,3 @@ The account-group totals report MUST display the selected group's filtered movem
 - **THEN** the movement card MUST expose the standard CSV export action
 - **AND** the generated CSV MUST contain the same newest-first rows shown in the table
 - **AND** it MUST identify the selected account group, reporting period, and active nature filter when one is applied.
-

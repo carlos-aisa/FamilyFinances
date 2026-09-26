@@ -18,4 +18,3 @@ The account-group totals report MUST render its account-breakdown table in a ded
 - **WHEN** a group totals report is displayed
 - **THEN** its summary header MUST show its reporting context
 - **AND** it MUST NOT show the account-breakdown CSV export action.
-

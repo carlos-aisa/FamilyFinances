@@ -26,4 +26,3 @@ When an account movement page was opened from an account-group report, its Back 
 - **WHEN** a user opens a transaction from contextually opened account movements and uses Back after viewing or editing it
 - **THEN** the target MUST be that account's movement page with the active date range
 - **AND** a subsequent Back action from that page MUST return to the original account-group report.
-
