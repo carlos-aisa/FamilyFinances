@@ -156,8 +156,14 @@ The Dashboard MUST show only account groups explicitly selected for monitoring b
 #### Scenario: Pinned group rows show operational result
 
 - **WHEN** one or more groups have `IsDashboardPinned = true`
-- **THEN** the Dashboard MUST display each pinned group’s current-month and YTD operational result
+- **THEN** the Dashboard MUST display each pinned group's current-month and YTD operational result
 - **AND** each result MUST include only Income and Expense member accounts.
+
+#### Scenario: Pinned group row links to its selected-period report
+
+- **WHEN** a user activates a pinned group name in the Dashboard
+- **THEN** the Dashboard MUST navigate to `/reports/account-group-totals`
+- **AND** the route MUST include that group's identifier and the Dashboard selected year and month.
 
 #### Scenario: Pinned groups order by current-month operational result
 
