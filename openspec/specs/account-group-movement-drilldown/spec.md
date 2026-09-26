@@ -54,4 +54,3 @@ The account-group totals report MUST display the selected group's filtered movem
 - **WHEN** the selected group has no matching movements
 - **THEN** the report MUST render localized empty-state feedback
 - **AND** it MUST retain the group totals report and its active filters.
-
