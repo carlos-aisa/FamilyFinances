@@ -423,6 +423,15 @@
     protected override async Task OnInitializedAsync()
     {
         _originContext = TransactionOriginContext.FromNavigation(Nav);
+        if (_originContext.From is DateOnly from &&
+            _originContext.To is DateOnly to &&
+            to > from)
+        {
+            _fromDate = from;
+            _toDate = to;
+            _activePreset = null;
+        }
+
         await LoadMovementsAsync();
     }
 
@@ -509,6 +518,18 @@
 
     private void GoBack()
     {
+        if (_originContext.GroupId is Guid groupId)
+        {
+            var reportContext = new TransactionOriginContext(
+                TransactionOrigin.ReportAccountGroupTotals,
+                From: _originContext.From,
+                To: _originContext.To,
+                GroupId: groupId,
+                Nature: _originContext.Nature);
+            Nav.NavigateTo(reportContext.BuildUri("/reports/account-group-totals"));
+            return;
+        }
+
         Nav.NavigateTo("/accounts");
     }
 
@@ -526,7 +547,9 @@
             AccountId: Id,
             From: _fromDate,
             To: _toDate,
-            Year: _originContext.Year);
+            Year: _originContext.Year,
+            GroupId: _originContext.GroupId,
+            Nature: _originContext.Nature);
 
         Nav.NavigateTo(context.BuildUri($"/transactions/{transactionId}"));
     }

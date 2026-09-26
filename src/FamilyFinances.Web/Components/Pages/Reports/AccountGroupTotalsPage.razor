@@ -167,20 +167,13 @@
         <!-- Report Results -->
         @if (_report is not null)
         {
-            <div class="card shadow-sm ff-panel">
-                <div class="card-header bg-light ff-panel-header">
+            <div class="card shadow-sm ff-panel" data-testid="account-group-totals-summary-card">
+                <div class="card-header bg-light ff-panel-header" data-testid="account-group-totals-summary-header">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">
                             <i class="bi bi-collection me-2"></i>@_report.GroupName
                         </h5>
                         <div class="d-flex align-items-center gap-2">
-                            <button type="button"
-                                    class="btn btn-sm btn-outline-secondary report-export-button"
-                                    @onclick="ExportCsvAsync"
-                                    data-testid="account-group-totals-export-csv"
-                                    aria-label="@L["Reports_AriaExportCsv"]">
-                                <i class="bi bi-download me-1"></i>@L["Reports_AriaExportCsv"]
-                            </button>
                             <span class="badge bg-secondary">
                                 @DateHelper.FormatShortDate(_report.FromInclusive) - @DateHelper.FormatShortDate(_report.ToExclusive.AddDays(-1))
                             </span>
@@ -240,51 +233,74 @@
 
                         <div class="row g-3 account-group-period-details-grid">
                             <div class="col-12 col-xxl-6">
-                                <h6 class="mb-3">
-                                    <i class="bi bi-wallet2 me-2"></i>@L["AccountGroupTotals_AccountBreakdown"]
-                                </h6>
+                                <section class="card shadow-sm ff-panel h-100" data-testid="account-group-totals-account-breakdown-card">
+                                    <div class="card-header bg-light ff-panel-header">
+                                        <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                                            <h5 class="card-title mb-0">
+                                                <i class="bi bi-wallet2 me-2"></i>@L["AccountGroupTotals_AccountBreakdown"]
+                                            </h5>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <button type="button"
+                                                        class="btn btn-sm btn-outline-secondary report-export-button"
+                                                        @onclick="ExportCsvAsync"
+                                                        data-testid="account-group-totals-export-csv"
+                                                        aria-label="@L["Reports_AriaExportCsv"]">
+                                                    <i class="bi bi-download me-1"></i>@L["Reports_AriaExportCsv"]
+                                                </button>
+                                                <span class="badge bg-secondary">
+                                                    @DateHelper.FormatShortDate(_report.FromInclusive) - @DateHelper.FormatShortDate(_report.ToExclusive.AddDays(-1))
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover ff-data-table mb-0" data-testid="account-group-totals-period-account-breakdown">
+                                                <thead>
+                                                    <tr>
+                                                        <th>@L["AccountGroupTotals_Table_Account"]</th>
+                                                        <th class="text-end">@L["AccountGroupTotals_Table_Amount"]</th>
+                                                        <th class="text-center">@L["AccountGroupTotals_Table_Transactions"]</th>
+                                                        <th class="text-end">@L["AccountGroupTotals_Table_Percentage"]</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var item in orderedItems)
+                                                    {
+                                                        var percentage = _report.TotalCents != 0 ? (Math.Abs(item.TotalCents) / (double)Math.Abs(_report.TotalCents)) * 100 : 0;
 
-                                <div class="table-responsive">
-                                    <table class="table table-hover ff-data-table" data-testid="account-group-totals-period-account-breakdown">
-                                        <thead>
-                                            <tr>
-                                                <th>@L["AccountGroupTotals_Table_Account"]</th>
-                                                <th class="text-end">@L["AccountGroupTotals_Table_Amount"]</th>
-                                                <th class="text-center">@L["AccountGroupTotals_Table_Transactions"]</th>
-                                                <th class="text-end">@L["AccountGroupTotals_Table_Percentage"]</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach (var item in orderedItems)
-                                            {
-                                                var percentage = _report.TotalCents != 0 ? (Math.Abs(item.TotalCents) / (double)Math.Abs(_report.TotalCents)) * 100 : 0;
-
-                                                <tr data-testid="account-group-totals-period-account-row">
-                                                    <td>
-                                                        <i class="bi bi-wallet2 me-2 text-muted"></i>
-                                                        <strong>@item.AccountName</strong>
-                                                    </td>
-                                                    <td class="text-end">
-                                                        <span class="@(item.TotalCents < 0 ? "text-danger" : "text-success")">
-                                                            @MoneyFormatter.FormatCents(item.TotalCents)
-                                                        </span>
-                                                    </td>
-                                                    <td class="text-center">
-                                                        <span class="badge bg-secondary">@item.TransactionsCount</span>
-                                                    </td>
-                                                    <td class="text-end">
-                                                        <div class="d-flex align-items-center justify-content-end">
-                                                            <div class="progress me-2 ff-progress-compact">
-                                                                <div class="progress-bar ff-progress-fill" role="progressbar" style="--ff-progress-width:@(percentage)%;"></div>
-                                                            </div>
-                                                            <span class="text-muted small">@percentage.ToString("F1")%</span>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            }
-                                        </tbody>
-                                    </table>
-                                </div>
+                                                        <tr data-testid="account-group-totals-period-account-row">
+                                                            <td>
+                                                                <a href="@BuildAccountMovementsUrl(item.AccountId)"
+                                                                   class="link-body-emphasis text-decoration-none"
+                                                                   data-testid="account-group-totals-period-account-link">
+                                                                    <i class="bi bi-wallet2 me-2 text-muted"></i>
+                                                                    <strong>@item.AccountName</strong>
+                                                                </a>
+                                                            </td>
+                                                            <td class="text-end">
+                                                                <span class="@(item.TotalCents < 0 ? "text-danger" : "text-success")">
+                                                                    @MoneyFormatter.FormatCents(item.TotalCents)
+                                                                </span>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <span class="badge bg-secondary">@item.TransactionsCount</span>
+                                                            </td>
+                                                            <td class="text-end">
+                                                                <div class="d-flex align-items-center justify-content-end">
+                                                                    <div class="progress me-2 ff-progress-compact">
+                                                                        <div class="progress-bar ff-progress-fill" role="progressbar" style="--ff-progress-width:@(percentage)%;"></div>
+                                                                    </div>
+                                                                    <span class="text-muted small">@percentage.ToString("F1")%</span>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </section>
                             </div>
 
                             <div class="col-12 col-xxl-6">
@@ -356,69 +372,104 @@
                         </div>
                     }
 
-                    <section class="mt-4 pt-4 border-top" data-testid="account-group-totals-movements">
-                        <h6 class="mb-3">
-                            <i class="bi bi-list-ul me-2"></i>@L["AccountGroupTotals_Movements"]
-                        </h6>
+                    <section class="card shadow-sm ff-panel mt-4" data-testid="account-group-totals-movements">
+                        <div class="card-header bg-light ff-panel-header">
+                            <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                                <h5 class="card-title mb-0">
+                                    <i class="bi bi-list-ul me-2"></i>@L["AccountGroupTotals_Movements"]
+                                </h5>
+                                <div class="d-flex align-items-center gap-2">
+                                    @if (_movements?.Items is { Count: > 0 })
+                                    {
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-secondary report-export-button"
+                                                @onclick="ExportMovementsCsvAsync"
+                                                data-testid="account-group-totals-movements-export-csv"
+                                                aria-label="@L["Reports_AriaExportCsv"]">
+                                            <i class="bi bi-download me-1"></i>@L["Reports_AriaExportCsv"]
+                                        </button>
+                                    }
+                                    <span class="badge bg-secondary" data-testid="account-group-totals-movements-period">
+                                        @DateHelper.FormatShortDate(_report.FromInclusive) - @DateHelper.FormatShortDate(_report.ToExclusive.AddDays(-1))
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
 
                         @if (_isMovementsLoading)
                         {
-                            <div class="text-muted small">
+                            <div class="card-body text-muted small">
                                 <span class="spinner-border spinner-border-sm me-2" role="status"></span>@L["AccountGroupTotals_Movements_Loading"]
                             </div>
                         }
                         else if (!string.IsNullOrWhiteSpace(_movementsError))
                         {
-                            <div class="alert alert-warning mb-0" role="alert">@_movementsError</div>
-                        }
-                        else if (_movements?.Items is { Count: > 0 })
-                        {
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle ff-data-table mb-0">
-                                    <thead>
-                                        <tr>
-                                            <th>@L["Transactions_TableDate"]</th>
-                                            <th>@L["Transactions_TableDescription"]</th>
-                                            <th>@L["AccountGroupTotals_Table_Source"]</th>
-                                            <th>@L["AccountGroupTotals_Table_Destination"]</th>
-                                            <th class="text-end">@L["AccountGroupTotals_Table_Amount"]</th>
-                                            <th class="text-end">@L["AccountGroupTotals_Table_Accumulated"]</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var movement in _movements.Items)
-                                        {
-                                            var detailUrl = BuildMovementDetailUrl(movement);
-                                            <tr data-testid="account-group-totals-movement-row">
-                                                <td>
-                                                    <a href="@detailUrl"
-                                                       class="fw-semibold link-body-emphasis text-decoration-none"
-                                                       aria-label="@L["AccountGroupTotals_Movement_OpenTransaction", movement.Description]">
-                                                        @DateHelper.FormatShortDate(movement.BookedOn)
-                                                    </a>
-                                                </td>
-                                                <td>
-                                                    <a href="@detailUrl" class="link-body-emphasis text-decoration-none">
-                                                        <span class="d-block fw-semibold">@movement.Description</span>
-                                                        @if (!string.IsNullOrWhiteSpace(movement.PayeeName))
-                                                        {
-                                                            <small class="text-muted">@movement.PayeeName</small>
-                                                        }
-                                                    </a>
-                                                </td>
-                                                <td>@FormatAccountNames(movement.SourceAccountNames)</td>
-                                                <td>@FormatAccountNames(movement.DestinationAccountNames)</td>
-                                                <td class="text-end @MoneyFormatter.GetColorClass(movement.GroupNetCents)">@MoneyFormatter.FormatCentsWithSign(movement.GroupNetCents)</td>
-                                                <td class="text-end @MoneyFormatter.GetColorClass(movement.RunningNetCents)">@MoneyFormatter.FormatCentsWithSign(movement.RunningNetCents)</td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
+                            <div class="card-body">
+                                <div class="alert alert-warning mb-0" role="alert">@_movementsError</div>
                             </div>
                         }
                         else
                         {
-                            <p class="text-muted mb-0">@L["AccountGroupTotals_Movements_Empty"]</p>
+                            @if (!string.IsNullOrWhiteSpace(_movementsExportError))
+                            {
+                                <div class="card-body pb-0">
+                                    <div class="alert alert-warning mb-0" role="alert">@_movementsExportError</div>
+                                </div>
+                            }
+
+                            @if (_movements?.Items is { Count: > 0 })
+                            {
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover align-middle ff-data-table mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>@L["Transactions_TableDate"]</th>
+                                                    <th>@L["Transactions_TableDescription"]</th>
+                                                    <th>@L["AccountGroupTotals_Table_Source"]</th>
+                                                    <th>@L["AccountGroupTotals_Table_Destination"]</th>
+                                                    <th class="text-end">@L["AccountGroupTotals_Table_Amount"]</th>
+                                                    <th class="text-end">@L["AccountGroupTotals_Table_Accumulated"]</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var movement in _movements.Items)
+                                                {
+                                                    var detailUrl = BuildMovementDetailUrl(movement);
+                                                    <tr data-testid="account-group-totals-movement-row">
+                                                        <td>
+                                                            <a href="@detailUrl"
+                                                               class="fw-semibold link-body-emphasis text-decoration-none"
+                                                               aria-label="@L["AccountGroupTotals_Movement_OpenTransaction", movement.Description]">
+                                                                @DateHelper.FormatShortDate(movement.BookedOn)
+                                                            </a>
+                                                        </td>
+                                                        <td>
+                                                            <a href="@detailUrl" class="link-body-emphasis text-decoration-none">
+                                                                <span class="d-block fw-semibold">@movement.Description</span>
+                                                                @if (!string.IsNullOrWhiteSpace(movement.PayeeName))
+                                                                {
+                                                                    <small class="text-muted">@movement.PayeeName</small>
+                                                                }
+                                                            </a>
+                                                        </td>
+                                                        <td>@FormatAccountNames(movement.SourceAccountNames)</td>
+                                                        <td>@FormatAccountNames(movement.DestinationAccountNames)</td>
+                                                        <td class="text-end @MoneyFormatter.GetColorClass(movement.GroupNetCents)">@MoneyFormatter.FormatCentsWithSign(movement.GroupNetCents)</td>
+                                                        <td class="text-end @MoneyFormatter.GetColorClass(movement.RunningNetCents)">@MoneyFormatter.FormatCentsWithSign(movement.RunningNetCents)</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="card-body">
+                                    <p class="text-muted mb-0">@L["AccountGroupTotals_Movements_Empty"]</p>
+                                </div>
+                            }
                         }
                     </section>
                 </div>
@@ -469,6 +520,7 @@
 
     private string? _error;
     private string? _movementsError;
+    private string? _movementsExportError;
     private bool _isBusy;
     private bool _isMovementsLoading;
     private AccountGroupReportTab _activeTab = AccountGroupReportTab.PeriodTotals;
@@ -587,6 +639,7 @@
         _report = null;
         _movements = null;
         _movementsError = null;
+        _movementsExportError = null;
         ResetGroupCharts();
 
         try
@@ -623,6 +676,7 @@
 
         _isMovementsLoading = true;
         _movementsError = null;
+        _movementsExportError = null;
         StateHasChanged();
 
         try
@@ -663,6 +717,81 @@
 
     private static string FormatAccountNames(IReadOnlyList<string>? accountNames)
         => accountNames is not { Count: > 0 } ? "-" : string.Join(" · ", accountNames);
+
+    private string BuildAccountMovementsUrl(Guid accountId)
+    {
+        if (_report is null)
+            return $"/accounts/{accountId}/movements";
+
+        AccountNature? nature = string.IsNullOrEmpty(_nature) ? null : Enum.Parse<AccountNature>(_nature);
+        var originContext = new TransactionOriginContext(
+            TransactionOrigin.ReportAccountGroupTotals,
+            AccountId: accountId,
+            From: _fromDate,
+            To: _toDate,
+            GroupId: _report.GroupId,
+            Nature: nature);
+
+        return originContext.BuildUri($"/accounts/{accountId}/movements");
+    }
+
+    private async Task ExportMovementsCsvAsync()
+    {
+        if (_movements?.Items is not { Count: > 0 })
+            return;
+
+        _movementsExportError = null;
+
+        var rows = _movements.Items
+            .Select(movement => (IReadOnlyList<string?>)
+            [
+                movement.BookedOn.ToString("yyyy-MM-dd"),
+                movement.Description,
+                movement.PayeeName,
+                FormatAccountNames(movement.SourceAccountNames),
+                FormatAccountNames(movement.DestinationAccountNames),
+                MoneyFormatter.FormatCentsWithSign(movement.GroupNetCents),
+                MoneyFormatter.FormatCentsWithSign(movement.RunningNetCents)
+            ])
+            .ToList();
+
+        var csv = ReportCsvBuilder.Build(
+            reportName: L["AccountGroupTotals_Movements"],
+            context: new Dictionary<string, string?>
+            {
+                [L["AccountGroupTotals_AccountGroup"]] = _movements.GroupName,
+                [L["Reports_FromDate"]] = _movements.FromInclusive.ToString("yyyy-MM-dd"),
+                [L["Reports_ToDateExclusive"]] = _movements.ToExclusive.ToString("yyyy-MM-dd"),
+                [L["Reports_Nature"]] = _movements.Nature is null
+                    ? "-"
+                    : GetNatureLabel(_movements.Nature.Value)
+            },
+            headers:
+            [
+                L["Transactions_TableDate"],
+                L["Transactions_TableDescription"],
+                L["Transactions_TablePayee"],
+                L["AccountGroupTotals_Table_Source"],
+                L["AccountGroupTotals_Table_Destination"],
+                L["AccountGroupTotals_Table_Amount"],
+                L["AccountGroupTotals_Table_Accumulated"]
+            ],
+            rows: rows);
+
+        try
+        {
+            var fileName = ReportExportInterop.BuildFileName(
+                "account-group-movements",
+                _movements.GroupName,
+                _movements.FromInclusive.ToString("yyyy-MM-dd"),
+                _movements.ToExclusive.ToString("yyyy-MM-dd")) + ".csv";
+            await JS.DownloadCsvAsync(fileName, csv);
+        }
+        catch (Exception ex)
+        {
+            _movementsExportError = L["Reports_Error_ExportCsvFailed", ex.Message];
+        }
+    }
 
     private async Task LoadGroupChartsAsync()
     {
