@@ -22,10 +22,11 @@ public sealed class TransactionNavigationContextTests : WebTestContext
     {
         var transactionId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
         var accountId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+        var groupId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc");
         RegisterServices(transactionId, accountId);
 
         var nav = Services.GetRequiredService<FakeNavigationManager>();
-        nav.NavigateTo($"/transactions/{transactionId}?origin=accounts-movements&accountId={accountId}&from=2026-02-01&to=2026-02-28");
+        nav.NavigateTo($"/transactions/{transactionId}?origin=accounts-movements&accountId={accountId}&groupId={groupId}&from=2026-02-01&to=2026-02-28&nature=Expense");
 
         var cut = RenderComponent<TransactionDetailPage>(parameters => parameters.Add(x => x.Id, transactionId));
 
@@ -41,14 +42,18 @@ public sealed class TransactionNavigationContextTests : WebTestContext
         backHref.Should().Contain($"/accounts/{accountId}/movements");
         backHref.Should().Contain("origin=accounts-movements");
         backHref.Should().Contain($"accountId={accountId}");
+        backHref.Should().Contain($"groupId={groupId}");
         backHref.Should().Contain("from=2026-02-01");
         backHref.Should().Contain("to=2026-02-28");
+        backHref.Should().Contain("nature=Expense");
 
         editHref.Should().Contain($"/transactions/{transactionId}/edit");
         editHref.Should().Contain("origin=accounts-movements");
         editHref.Should().Contain($"accountId={accountId}");
+        editHref.Should().Contain($"groupId={groupId}");
         editHref.Should().Contain("from=2026-02-01");
         editHref.Should().Contain("to=2026-02-28");
+        editHref.Should().Contain("nature=Expense");
     }
 
     [Fact]

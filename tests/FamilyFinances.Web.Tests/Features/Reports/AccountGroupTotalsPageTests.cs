@@ -498,6 +498,20 @@ public sealed class AccountGroupTotalsPageTests : WebTestContext
                     };
                 }
 
+                if (uri.Contains("/movements", StringComparison.OrdinalIgnoreCase))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = JsonContent.Create(new AccountGroupMovementsDto(
+                            groupId,
+                            "Household",
+                            new DateOnly(2026, 2, 1),
+                            new DateOnly(2026, 3, 1),
+                            AccountNature.Expense,
+                            []))
+                    };
+                }
+
                 return new HttpResponseMessage(HttpStatusCode.BadRequest);
             });
 
@@ -512,9 +526,15 @@ public sealed class AccountGroupTotalsPageTests : WebTestContext
 
         cut.WaitForAssertion(() =>
         {
-            cut.Find("[data-testid='account-group-totals-export-csv']");
+            var accountBreakdownCard = cut.Find("[data-testid='account-group-totals-account-breakdown-card']");
+            accountBreakdownCard.QuerySelector("[data-testid='account-group-totals-export-csv']").Should().NotBeNull();
+            accountBreakdownCard.TextContent.Should().Contain("01/02/2026").And.Contain("28/02/2026");
+            cut.Find("[data-testid='account-group-totals-summary-header']")
+                .QuerySelector("[data-testid='account-group-totals-export-csv']")
+                .Should().BeNull();
             cut.Markup.Should().Contain("Groceries");
             cut.Markup.Should().Contain(MoneyFormatter.FormatCents(123_456));
+            cut.FindAll("[data-testid='account-group-totals-movements-export-csv']").Should().BeEmpty();
         });
 
         cut.Find("[data-testid='account-group-totals-export-csv']").Click();
@@ -551,7 +571,16 @@ public sealed class AccountGroupTotalsPageTests : WebTestContext
                     ["Main Bank"],
                     ["Groceries", "Transport"],
                     -12_345,
-                    -12_345)
+                    -12_345),
+                new AccountGroupMovementDto(
+                    Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc"),
+                    new DateOnly(2026, 2, 7),
+                    "Monthly rent",
+                    null,
+                    ["Main Bank"],
+                    ["Rent"],
+                    -80_000,
+                    -92_345)
             ]);
         var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
         var httpClient = CreateHttpClient(handlerMock);
@@ -572,6 +601,7 @@ public sealed class AccountGroupTotalsPageTests : WebTestContext
                 return new HttpResponseMessage(HttpStatusCode.BadRequest);
             });
         RegisterAuthorizedServices(httpClient);
+        var download = JSInterop.SetupVoid("familyFinancesCharts.downloadCsv", _ => true);
 
         var navigation = Services.GetRequiredService<NavigationManager>();
         navigation.NavigateTo($"http://localhost/reports/account-group-totals?groupId={groupId}&from=2026-02-01&to=2026-03-01&nature=Expense");
@@ -579,8 +609,21 @@ public sealed class AccountGroupTotalsPageTests : WebTestContext
 
         cut.WaitForAssertion(() =>
         {
+            cut.Find("[data-testid='account-group-totals-movements-period']")
+                .TextContent.Should().Contain("01/02/2026").And.Contain("28/02/2026");
+            cut.Find("[data-testid='account-group-totals-movements-export-csv']");
+
             var row = cut.Find("[data-testid='account-group-totals-movement-row']");
             row.TextContent.Should().Contain("Weekly shopping").And.Contain("Main Bank").And.Contain("Transport");
+
+            var accountLink = cut.Find("[data-testid='account-group-totals-period-account-link']");
+            var accountHref = accountLink.GetAttribute("href");
+            accountHref.Should().Contain($"/accounts/{reportDto.Items[0].AccountId}/movements")
+                .And.Contain("origin=report-account-group-totals")
+                .And.Contain($"groupId={groupId}")
+                .And.Contain("from=2026-02-01")
+                .And.Contain("to=2026-03-01")
+                .And.Contain("nature=Expense");
 
             var href = row.QuerySelector("a")!.GetAttribute("href");
             href.Should().Contain("origin=report-account-group-totals");
@@ -589,6 +632,20 @@ public sealed class AccountGroupTotalsPageTests : WebTestContext
             href.Should().Contain("to=2026-03-01");
             href.Should().Contain("nature=Expense");
         });
+
+        cut.Find("[data-testid='account-group-totals-movements-export-csv']").Click();
+
+        var invocation = download.Invocations["familyFinancesCharts.downloadCsv"].Should().ContainSingle().Subject;
+        invocation.Arguments[0].Should().Be("account-group-movements-Household-2026-02-01-2026-03-01.csv");
+
+        var csv = invocation.Arguments[1].Should().BeOfType<string>().Subject;
+        csv.Should().Contain("# Account Group: Household")
+            .And.Contain("# From date: 2026-02-01")
+            .And.Contain("# To date (exclusive): 2026-03-01")
+            .And.Contain("# Nature: Expense")
+            .And.Contain("Date,Description,Payee,Source,Destination,Amount,Accumulated");
+        csv.IndexOf("2026-02-14,Weekly shopping,Market,Main Bank,Groceries · Transport", StringComparison.Ordinal)
+            .Should().BeLessThan(csv.IndexOf("2026-02-07,Monthly rent,,Main Bank,Rent", StringComparison.Ordinal));
     }
 
     [Fact]

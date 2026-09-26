@@ -200,6 +200,51 @@ public sealed class AccountMovementsPageTests : WebTestContext
         });
     }
 
+    [Fact]
+    public void Group_Report_Context_Applies_Period_And_Preserves_Parent_Navigation()
+    {
+        var accountId = Guid.Parse("f3f1a2d0-5ea3-4c73-896b-eaebf3277dbb");
+        var groupId = Guid.Parse("f8d28dc5-9cbe-4f5b-b397-0d74f2a1eb89");
+        var requests = new List<MovementsRequest>();
+        var accountsApiMock = CreateMovementsApiMock(
+            accountId,
+            (_, _, _) => 1,
+            requests);
+
+        RegisterAuthorizedServices(accountsApiMock.Object);
+        var navigation = Services.GetRequiredService<FakeNavigationManager>();
+        navigation.NavigateTo($"/accounts/{accountId}/movements?origin=report-account-group-totals&groupId={groupId}&from=2026-02-01&to=2026-03-01&nature=Expense");
+
+        var cut = RenderComponent<AccountMovementsPage>(parameters => parameters.Add(x => x.Id, accountId));
+
+        cut.WaitForAssertion(() =>
+        {
+            var initialRequest = requests.Should().ContainSingle().Subject;
+            initialRequest.From.Should().Be(new DateOnly(2026, 2, 1));
+            initialRequest.To.Should().Be(new DateOnly(2026, 3, 1));
+        });
+
+        cut.Find("tr.movement-row").Click();
+        navigation.Uri.Should().Contain($"/transactions/{CreateDeterministicGuid(1)}")
+            .And.Contain("origin=accounts-movements")
+            .And.Contain($"groupId={groupId}")
+            .And.Contain("nature=Expense")
+            .And.Contain("from=2026-02-01")
+            .And.Contain("to=2026-03-01");
+
+        navigation.NavigateTo($"/accounts/{accountId}/movements?origin=accounts-movements&groupId={groupId}&from=2026-02-01&to=2026-03-01&nature=Expense");
+        var returnCut = RenderComponent<AccountMovementsPage>(parameters => parameters.Add(x => x.Id, accountId));
+        returnCut.WaitForAssertion(() => returnCut.Find("button.btn.btn-outline-secondary"));
+        returnCut.Find("button.btn.btn-outline-secondary").Click();
+
+        navigation.Uri.Should().Contain("/reports/account-group-totals")
+            .And.Contain("origin=report-account-group-totals")
+            .And.Contain($"groupId={groupId}")
+            .And.Contain("from=2026-02-01")
+            .And.Contain("to=2026-03-01")
+            .And.Contain("nature=Expense");
+    }
+
     private static Mock<IAccountsApi> CreateMovementsApiMock(
         Guid accountId,
         Func<int, int, string?, int> totalCountResolver,
@@ -219,7 +264,7 @@ public sealed class AccountMovementsPageTests : WebTestContext
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((Guid _, DateOnly? from, DateOnly? to, string? query, decimal? minAmount, decimal? maxAmount, int page, int pageSize, CancellationToken _) =>
             {
-                requests.Add(new MovementsRequest(page, pageSize, query, minAmount, maxAmount));
+                requests.Add(new MovementsRequest(from, to, page, pageSize, query, minAmount, maxAmount));
                 var totalCount = totalCountResolver(page, pageSize, query);
                 return BuildPage(accountId, from, to, query, page, pageSize, totalCount);
             });
@@ -292,7 +337,14 @@ public sealed class AccountMovementsPageTests : WebTestContext
         return new Guid(bytes);
     }
 
-    private sealed record MovementsRequest(int Page, int PageSize, string? Query, decimal? MinAmount, decimal? MaxAmount);
+    private sealed record MovementsRequest(
+        DateOnly? From,
+        DateOnly? To,
+        int Page,
+        int PageSize,
+        string? Query,
+        decimal? MinAmount,
+        decimal? MaxAmount);
 
     private sealed class EmptyHttpClientFactory : IHttpClientFactory
     {
