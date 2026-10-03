@@ -41,7 +41,7 @@ public sealed class AccountsApiMoreTests
         HttpRequestMessage? captured = null;
         var payload = new[]
         {
-            new AccountBalanceDto(Guid.NewGuid(), 1000m, 200m)
+            new AccountBalanceDto(Guid.NewGuid(), 1000m, 200m, 600m)
         };
 
         _httpMessageHandlerMock

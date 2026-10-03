@@ -2044,6 +2044,7 @@ public sealed class ReportingReadRepository : IReportingReadRepository
     public async Task<IReadOnlyList<AccountBalanceDto>> GetAccountBalancesAsync(CancellationToken ct = default)
     {
         var today = DateOnly.FromDateTime(DateTime.Today);
+        var currentYearStart = new DateOnly(today.Year, 1, 1);
         var currentMonthStart = new DateOnly(today.Year, today.Month, 1);
         var currentMonthEndExclusive = currentMonthStart.AddMonths(1);
 
@@ -2069,6 +2070,18 @@ public sealed class ReportingReadRepository : IReportingReadRepository
             })
             .ToListAsync(ct);
 
+        var yearToDateSplitRows = await (
+            from split in _db.TransactionSplits.AsNoTracking()
+            join transaction in _db.Transactions.AsNoTracking()
+                on EF.Property<TransactionId>(split, "TransactionId") equals transaction.Id
+            where transaction.BookedOn >= currentYearStart && transaction.BookedOn < currentMonthEndExclusive
+            select new
+            {
+                split.AccountId,
+                AmountCents = split.Amount.Cents
+            })
+            .ToListAsync(ct);
+
         // Group and sum in memory
         var balances = allSplits
             .GroupBy(s => s.AccountId)
@@ -2076,6 +2089,9 @@ public sealed class ReportingReadRepository : IReportingReadRepository
                 g.Key.Value,
                 g.Sum(x => x.AmountCents) / 100m,
                 CurrentMonthBalance: currentMonthSplitRows
+                    .Where(row => row.AccountId == g.Key)
+                    .Sum(row => row.AmountCents) / 100m,
+                YearToDateBalance: yearToDateSplitRows
                     .Where(row => row.AccountId == g.Key)
                     .Sum(row => row.AmountCents) / 100m
             ))

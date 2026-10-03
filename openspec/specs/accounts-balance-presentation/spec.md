@@ -1,15 +1,19 @@
 # accounts-balance-presentation Specification
 
 ## Purpose
-TBD - created by archiving change dashboard-household-financial-overview. Update Purpose after archive.
+Define the balance perspectives shown for each account in the Accounts list.
 ## Requirements
-### Requirement: Accounts View SHALL Present Dual Balance Perspectives Per Account
-The Accounts list MUST display both accumulated balance and selected-period balance for each account row.
+### Requirement: Accounts View SHALL Present Current-Month And Year-To-Date Balances Per Account
+The Accounts list MUST display both the current-month balance and the current-calendar-year accumulated balance for each account row.
 
-#### Scenario: Accounts row renders accumulated and period balance
+#### Scenario: Accounts row renders current-month and year-to-date balance
 - **WHEN** an authenticated user opens the Accounts list view
-- **THEN** each account row MUST include accumulated balance and selected-period balance fields
+- **THEN** each account row MUST include current-month and year-to-date balance fields
 - **AND** both values MUST be formatted as monetary amounts with existing sign conventions
+
+#### Scenario: Year-to-date balance excludes prior-year movements
+- **WHEN** an account has movements from previous calendar years
+- **THEN** its accumulated balance in the Accounts list MUST include only movements from 1 January of the current calendar year through the current month
 
 #### Scenario: Dual-balance rendering does not remove existing account context
 - **WHEN** dual balances are introduced in the Accounts list

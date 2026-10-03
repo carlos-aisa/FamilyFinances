@@ -16,7 +16,7 @@ namespace FamilyFinances.Web.Tests.Features.Accounts;
 public sealed class AccountsListPageTests : WebTestContext
 {
     [Fact]
-    public void Accounts_List_Shows_Accumulated_And_CurrentMonth_Balance_Columns()
+    public void Accounts_List_Shows_YearToDate_And_CurrentMonth_Balance_InTheirColumns()
     {
         var accountId = Guid.Parse("11111111-1111-1111-1111-111111111111");
 
@@ -38,7 +38,7 @@ public sealed class AccountsListPageTests : WebTestContext
             .Setup(x => x.GetBalancesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(
             [
-                new AccountBalanceDto(accountId, 1234.56m, 345.67m)
+                new AccountBalanceDto(accountId, 9_999.99m, 345.67m, 1234.56m)
             ]);
         accountsApiMock
             .Setup(x => x.ListKindsAsync(true, It.IsAny<CancellationToken>()))
@@ -56,6 +56,7 @@ public sealed class AccountsListPageTests : WebTestContext
             cut.Markup.Should().Contain("Current month balance");
             cut.Markup.Should().Contain(MoneyFormatter.FormatEuros(1234.56m));
             cut.Markup.Should().Contain(MoneyFormatter.FormatEuros(345.67m));
+            cut.Markup.Should().NotContain(MoneyFormatter.FormatEuros(9_999.99m));
 
             var headers = cut.FindAll("thead th").Select(x => x.TextContent).ToList();
             var currentMonthHeaderIndex = headers.FindIndex(text => text.Contains("Current month balance", StringComparison.OrdinalIgnoreCase));
@@ -63,6 +64,10 @@ public sealed class AccountsListPageTests : WebTestContext
             currentMonthHeaderIndex.Should().BeGreaterThanOrEqualTo(0);
             accumulatedHeaderIndex.Should().BeGreaterThanOrEqualTo(0);
             currentMonthHeaderIndex.Should().BeLessThan(accumulatedHeaderIndex);
+
+            var cells = cut.FindAll("tbody tr").Single().Children;
+            cells[2].TextContent.Trim().Should().Be(MoneyFormatter.FormatEuros(345.67m));
+            cells[3].TextContent.Trim().Should().Be(MoneyFormatter.FormatEuros(1234.56m));
         });
 
         accountsApiMock.Verify(x => x.ListAsync(It.IsAny<CancellationToken>()), Times.Once);
@@ -93,8 +98,9 @@ public sealed class AccountsListPageTests : WebTestContext
             [
                 new AccountBalanceDto(
                     Guid.Parse("22222222-2222-2222-2222-222222222222"),
+                    500m,
                     50m,
-                    10m)
+                    100m)
             ]);
         accountsApiMock
             .Setup(x => x.ListKindsAsync(true, It.IsAny<CancellationToken>()))
