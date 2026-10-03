@@ -48,8 +48,13 @@ public sealed class TransactionsApi
             throw new UnauthorizedAccessException("No access token available.");
 
         var url = "api/v1/transactions/latest-expenses";
-        if (year is not null && month is not null)
+        if (year is not null || month is not null)
+        {
+            if (year is null || month is null)
+                throw new ArgumentException("Year and month must be provided together.");
+
             url += $"?year={year}&month={month}";
+        }
 
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);

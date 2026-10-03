@@ -96,6 +96,27 @@ public sealed class DashboardPageTests : WebTestContext
     }
 
     [Fact]
+    public void Dashboard_SelectionUpdatesPeriodInUrl()
+    {
+        RegisterAuthorizedServices(BuildHttpClientFactory(CreateOverviewPayload()));
+        var navigation = Services.GetRequiredService<FakeNavigationManager>();
+        var cut = RenderComponent<DashboardPage>();
+
+        cut.WaitForAssertion(() => cut.Find("[data-testid='dashboard-period-controls']"));
+        cut.Find("[data-testid='dashboard-period-controls'] select").Change("2025");
+
+        cut.WaitForAssertion(() =>
+        {
+            navigation.Uri.Should().EndWith($"/?year=2025&month={DateTime.Today.Month}");
+            var monthSelector = cut.FindAll("[data-testid='dashboard-period-controls'] select")[1];
+            monthSelector.QuerySelectorAll("option").Should().HaveCount(12);
+        });
+
+        cut.FindAll("[data-testid='dashboard-period-controls'] select")[1].Change("2");
+        cut.WaitForAssertion(() => navigation.Uri.Should().EndWith("/?year=2025&month=2"));
+    }
+
+    [Fact]
     public void Dashboard_Expense_Kind_Ranking_Renders_TopRows()
     {
         var rankingRows =

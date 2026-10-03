@@ -270,6 +270,26 @@ public sealed class TransactionsApiTests
     }
 
     [Fact]
+    public async Task ListLatestExpenses_RejectsInvalidOrFuturePeriod()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+        var nextMonth = DateTime.Today.AddMonths(1);
+
+        foreach (var path in new[]
+        {
+            "/api/v1/transactions/latest-expenses?year=1999&month=1",
+            "/api/v1/transactions/latest-expenses?year=2026&month=13",
+            $"/api/v1/transactions/latest-expenses?year={nextMonth.Year}&month={nextMonth.Month}"
+        })
+        {
+            var response = await client.GetAsync(path);
+
+            response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        }
+    }
+
+    [Fact]
     public async Task ListLatestExpenses_RequiresAuth()
     {
         using var factory = TestClient.CreateFactoryWithFreshDb(out _);

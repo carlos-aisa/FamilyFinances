@@ -134,6 +134,17 @@ public sealed class TransactionsApiAdditionalTests
         captured.Headers.Authorization!.Parameter.Should().Be("valid-token");
     }
 
+    [Theory]
+    [InlineData(2026, null)]
+    [InlineData(null, 2)]
+    public async Task GetLatestExpensesAsync_RejectsIncompletePeriod(int? year, int? month)
+    {
+        var act = () => _sut.GetLatestExpensesAsync(year, month, CancellationToken.None);
+
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithMessage("Year and month must be provided together.");
+    }
+
     [Fact]
     public async Task GetByIdAsync_ReturnsPayload_WhenSuccessful()
     {
