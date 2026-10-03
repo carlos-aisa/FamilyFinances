@@ -38,13 +38,20 @@ public sealed class TransactionsApi
         return items ?? [];
     }
 
-    public async Task<IReadOnlyList<LatestExpenseMovementDto>> GetLatestExpensesAsync(CancellationToken ct)
+    public async Task<IReadOnlyList<LatestExpenseMovementDto>> GetLatestExpensesAsync(
+        int? year = null,
+        int? month = null,
+        CancellationToken ct = default)
     {
         var token = _tokenStore.GetAccessToken();
         if (string.IsNullOrWhiteSpace(token))
             throw new UnauthorizedAccessException("No access token available.");
 
-        using var request = new HttpRequestMessage(HttpMethod.Get, "api/v1/transactions/latest-expenses");
+        var url = "api/v1/transactions/latest-expenses";
+        if (year is not null && month is not null)
+            url += $"?year={year}&month={month}";
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var response = await _http.SendAsync(request, ct);

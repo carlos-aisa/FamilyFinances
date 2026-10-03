@@ -27,7 +27,7 @@ None.
 - `DashboardPage` and its component tests.
 - Existing dashboard-overview API client usage and Dashboard URL state.
 - Latest-expenses API, application handler, repository query, OpenAPI contract, and integration tests.
-- Dashboard localization resources for the period controls.
+- Existing Dashboard period localization resources, which are reused for the controls.
 
 ## Non-Goals
 

@@ -35,6 +35,8 @@ public sealed class DashboardPageTests : WebTestContext
             cut.Find("[data-testid='dashboard-pinned-groups']");
             cut.Find("[data-testid='dashboard-latest-expenses']");
             cut.Find("[data-testid='dashboard-open-quick-entry']");
+            cut.Find("[data-testid='dashboard-period-controls']")
+                .QuerySelectorAll("select").Should().HaveCount(2);
 
             var secondRow = cut.Find(".ff-dashboard-analytics-row-2");
             secondRow.QuerySelectorAll(":scope > div").Should().HaveCount(3);
@@ -69,6 +71,27 @@ public sealed class DashboardPageTests : WebTestContext
             cut.Markup.Should().NotContain("ff-premium-tabs");
             cut.Markup.Should().NotContain("report-card");
             cut.Markup.Should().NotContain("dashboard-group-state-chart");
+        });
+    }
+
+    [Fact]
+    public void Dashboard_UsesPeriodFromQueryStringForPeriodControls()
+    {
+        var requestedUris = new List<string>();
+        RegisterAuthorizedServices(BuildHttpClientFactory(CreateOverviewPayload(), requestedUris: requestedUris));
+
+        var navigation = Services.GetRequiredService<FakeNavigationManager>();
+        navigation.NavigateTo("/?year=2025&month=2");
+
+        var cut = RenderComponent<DashboardPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var selectors = cut.Find("[data-testid='dashboard-period-controls']").QuerySelectorAll("select");
+            selectors[0].QuerySelector("option[selected]")!.GetAttribute("value").Should().Be("2025");
+            selectors[1].QuerySelector("option[selected]")!.GetAttribute("value").Should().Be("2");
+            requestedUris.Should().Contain(uri => uri.Contains("api/v1/reports/dashboard-overview?year=2025&month=2", StringComparison.OrdinalIgnoreCase));
+            requestedUris.Should().Contain(uri => uri.Contains("api/v1/transactions/latest-expenses?year=2025&month=2", StringComparison.OrdinalIgnoreCase));
         });
     }
 
@@ -303,7 +326,8 @@ public sealed class DashboardPageTests : WebTestContext
     private static Mock<IHttpClientFactory> BuildHttpClientFactory(
         DashboardOverviewDto payload,
         long previousYearAssetTotalCents = 1_220_000,
-        IReadOnlyList<LatestExpenseMovementDto>? latestExpenses = null)
+        IReadOnlyList<LatestExpenseMovementDto>? latestExpenses = null,
+        ICollection<string>? requestedUris = null)
     {
         var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
         var httpClient = new HttpClient(handlerMock.Object)
@@ -324,6 +348,7 @@ public sealed class DashboardPageTests : WebTestContext
             .Returns<HttpRequestMessage, CancellationToken>((req, _) =>
             {
                 var uri = req.RequestUri?.ToString() ?? string.Empty;
+                requestedUris?.Add(uri);
                 if (uri.Contains("api/v1/reports/dashboard-overview", StringComparison.OrdinalIgnoreCase))
                 {
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)

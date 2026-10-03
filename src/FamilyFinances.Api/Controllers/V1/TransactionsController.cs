@@ -54,8 +54,22 @@ public sealed class TransactionsController : ControllerBase
     [Authorize(Policy = Policies.CanRead)]
     public async Task<ActionResult<IReadOnlyList<LatestExpenseMovementDto>>> ListLatestExpenses(
         [FromServices] ListLatestExpenseMovementsHandler handler,
+        [FromQuery] int? year,
+        [FromQuery] int? month,
         CancellationToken ct)
-        => Ok(await handler.HandleAsync(ct));
+    {
+        if (year is null && month is null)
+            return Ok(await handler.HandleAsync(null, null, ct));
+
+        if (year is null || month is null || year < 2000 || year > DateTime.Today.Year || month is < 1 or > 12)
+            return BadRequest(new { error = "Query parameters 'year' and 'month' must be a valid calendar month." });
+
+        var fromInclusive = new DateOnly(year.Value, month.Value, 1);
+        if (fromInclusive > new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1))
+            return BadRequest(new { error = "Query parameters 'year' and 'month' cannot refer to a future month." });
+
+        return Ok(await handler.HandleAsync(fromInclusive, fromInclusive.AddMonths(1), ct));
+    }
 
     [HttpGet("search-expenses")]
     [Authorize(Policy = Policies.CanRead)]

@@ -36,11 +36,17 @@ public sealed class TransactionRepository : ITransactionRepository
             .Take(take)
             .ToListAsync(ct);
 
-    public async Task<IReadOnlyList<Transaction>> ListLatestExpensesAsync(int take, CancellationToken ct)
+    public async Task<IReadOnlyList<Transaction>> ListLatestExpensesAsync(
+        int take,
+        DateOnly? fromInclusive,
+        DateOnly? toExclusive,
+        CancellationToken ct)
         => await _db.Transactions
             .AsNoTracking()
             .Include(t => t.Splits).ThenInclude(s => s.Account)
             .Where(t => t.Splits.Any(s => s.Account.Nature == AccountNature.Expense))
+            .Where(t => !fromInclusive.HasValue || t.BookedOn >= fromInclusive.Value)
+            .Where(t => !toExclusive.HasValue || t.BookedOn < toExclusive.Value)
             .OrderByDescending(t => t.BookedOn)
             .ThenByDescending(t => t.Id)
             .Take(take)

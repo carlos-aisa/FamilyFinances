@@ -43,6 +43,10 @@ Filtering in the client was rejected because the current endpoint only returns s
 
 Dashboard links to account-group totals will use the selected year and month. Any future Dashboard navigation that targets a period-aware report must use the same query parameters. Operational navigation, such as Quick Entry, remains outside the reporting context.
 
+### 5. Reuse existing localized period labels
+
+The selectors use the existing localized `Reports_Year` and `Reports_Month` labels, together with the existing localized month-name helper. No resource keys are added because the reporting vocabulary is already available and consistent with the rest of the application.
+
 ## Risks / Trade-offs
 
 - [Historical months with no movements] → Render existing empty states and export an empty CSV with the selected period metadata.
