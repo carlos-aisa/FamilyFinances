@@ -53,6 +53,14 @@ The Dashboard MUST provide one year and month selection that applies to every an
 - **WHEN** a user selects a previous year
 - **THEN** the Dashboard MUST offer all twelve calendar months.
 
+#### Scenario: Dashboard period controls share the data context row
+
+- **WHEN** the Dashboard renders a data-sufficiency notice
+- **THEN** the year and month selectors MUST render in the same context row as the notice
+- **AND** the controls MUST align to the notice's right side on wide layouts.
+- **WHEN** the Dashboard renders at a narrow breakpoint
+- **THEN** the controls MUST stack below the notice without horizontal overflow.
+
 #### Scenario: Dashboard period is shareable and reloadable
 
 - **WHEN** a user changes the Dashboard selected year or month

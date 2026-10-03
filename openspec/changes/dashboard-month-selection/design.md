@@ -19,11 +19,13 @@ The Dashboard is an at-a-glance view, but its Blazor page calls the dashboard-ov
 
 ## Decisions
 
-### 1. Use Dashboard-wide year and month selectors with URL state
+### 1. Use Dashboard-wide year and month selectors beside the data-sufficiency notice
+
+The Dashboard will place compact year and month selectors in the same horizontal row as the data-sufficiency notice, aligned to its right edge. At narrow breakpoints, the controls will move below the notice rather than compress the alert text or create horizontal overflow. When no data-sufficiency notice is needed, the controls will retain that dedicated context row below the page header.
 
 The Dashboard will read and write `year` and `month` query parameters. The initial state is the current year and month when parameters are absent or invalid. The current year offers months through today; previous years offer all twelve months.
 
-This is preferred over local, card-specific controls because Dashboard cards answer one shared financial question. URL state makes refresh, browser history, sharing, and navigation context deterministic.
+This is preferred over local, card-specific controls because Dashboard cards answer one shared financial question. The context row keeps the period visible before the KPI strip without competing with the title or Quick Entry action. URL state makes refresh, browser history, sharing, and navigation context deterministic.
 
 ### 2. Reuse the existing dashboard-overview period contract
 
