@@ -80,7 +80,7 @@ FamilyFinances/
 
 ## Product Surface (Current)
 
-- Dashboard: KPI strip, monthly trends, group-state charts, compact insights.
+- Dashboard: selectable month/year context, KPI strip, monthly trends, group-state charts, compact insights.
 - Quick Entry: dedicated workspace for expense/income/transfer/refund flows.
 - Reporting Suite: Economic State, Period Summary, Account Totals, Account Group Totals.
 - Backup & Restore: admin-only deterministic backup package with restore precheck/apply flow.
