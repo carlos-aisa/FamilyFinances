@@ -77,6 +77,53 @@ public sealed class AccountBalancesApiTests
     }
 
     [Fact]
+    public async Task GetBalances_Returns_CurrentMonth_And_YearToDate_Balances()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var account = await TestHelpers.CreateAccountAsync(client, "Current Account", "Asset", "Checking");
+        var counterparty = await TestHelpers.CreateAccountAsync(client, "Counterparty", "Equity", "Other");
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var previousYearDate = new DateOnly(today.Year - 1, 12, 1);
+        var currentMonthDate = today;
+        var priorYearToDateDate = today.Month == 1
+            ? (DateOnly?)null
+            : new DateOnly(today.Year, today.Month - 1, 1);
+
+        await CreateTransactionAsync(client, previousYearDate.ToString("yyyy-MM-dd"), "Previous year movement", new[]
+        {
+            new { accountId = account.Id, amountCents = -100_00, memo = "Previous year" },
+            new { accountId = counterparty.Id, amountCents = 100_00, memo = "Previous year" }
+        });
+
+        if (priorYearToDateDate is not null)
+        {
+            await CreateTransactionAsync(client, priorYearToDateDate.Value.ToString("yyyy-MM-dd"), "Year-to-date movement", new[]
+            {
+                new { accountId = account.Id, amountCents = -40_00, memo = "Year to date" },
+                new { accountId = counterparty.Id, amountCents = 40_00, memo = "Year to date" }
+            });
+        }
+
+        await CreateTransactionAsync(client, currentMonthDate.ToString("yyyy-MM-dd"), "Current month movement", new[]
+        {
+            new { accountId = account.Id, amountCents = -25_00, memo = "Current month" },
+            new { accountId = counterparty.Id, amountCents = 25_00, memo = "Current month" }
+        });
+
+        var response = await client.GetAsync("/api/v1/accounts/balances");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var balances = await response.Content.ReadFromJsonAsync<List<AccountBalanceDto>>();
+        var accountBalance = balances!.Single(balance => balance.AccountId == account.Id);
+
+        accountBalance.Balance.Should().Be(priorYearToDateDate is null ? -125m : -165m);
+        accountBalance.CurrentMonthBalance.Should().Be(-25m);
+        accountBalance.YearToDateBalance.Should().Be(priorYearToDateDate is null ? -25m : -65m);
+    }
+
+    [Fact]
     public async Task GetBalances_RequiresAuth()
     {
         using var factory = TestClient.CreateFactoryWithFreshDb(out _);
@@ -99,5 +146,9 @@ public sealed class AccountBalancesApiTests
         response.EnsureSuccessStatusCode();
     }
 
-    public sealed record AccountBalanceDto(Guid AccountId, decimal Balance);
+    public sealed record AccountBalanceDto(
+        Guid AccountId,
+        decimal Balance,
+        decimal CurrentMonthBalance,
+        decimal YearToDateBalance);
 }

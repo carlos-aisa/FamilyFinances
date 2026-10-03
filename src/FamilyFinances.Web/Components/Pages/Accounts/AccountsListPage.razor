@@ -290,7 +290,7 @@
                             <tbody>
                                 @foreach (var a in items)
                                 {
-                                    var accumulatedBalanceText = GetAccumulatedBalanceText(a.Id);
+                                    var yearToDateBalanceText = GetYearToDateBalanceText(a.Id);
                                     var currentMonthBalanceText = GetCurrentMonthBalanceText(a.Id);
                                     <tr class="account-row">
                                         <td class="ps-3">
@@ -313,13 +313,13 @@
                                             }
                                         </td>
                                         <td class="text-end">
-                                            @if (accumulatedBalanceText is null)
+                                            @if (yearToDateBalanceText is null)
                                             {
                                                 <span class="text-muted">&mdash;</span>
                                             }
                                             else
                                             {
-                                                <span class="fw-semibold">@accumulatedBalanceText</span>
+                                                <span class="fw-semibold">@yearToDateBalanceText</span>
                                             }
                                         </td>
                                         <td>
@@ -966,10 +966,10 @@
         return await JS.InvokeAsync<bool>("confirm", message);
     }
 
-    private string? GetAccumulatedBalanceText(Guid accountId)
+    private string? GetYearToDateBalanceText(Guid accountId)
     {
         if (_balances.TryGetValue(accountId, out var balance))
-            return MoneyFormatter.FormatEuros(balance.Balance);
+            return MoneyFormatter.FormatEuros(balance.YearToDateBalance);
 
         return null;
     }

@@ -1878,7 +1878,14 @@ components:
           format: uuid
         balance:
           type: number
-      required: [accountId, balance]
+          description: Lifetime balance across all booked account movements.
+        currentMonthBalance:
+          type: number
+          description: Net balance change for the current calendar month.
+        yearToDateBalance:
+          type: number
+          description: Net balance change from the start of the current calendar year through the current month.
+      required: [accountId, balance, currentMonthBalance, yearToDateBalance]
 
     AccountMovementDto:
       type: object
