@@ -1012,15 +1012,33 @@ paths:
       operationId: Transactions_ListLatestExpenses
       security:
         - bearerAuth: []
+      parameters:
+        - name: year
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 2000
+          description: Calendar year. Must be provided with month.
+        - name: month
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+          description: Calendar month. Must be provided with year.
       responses:
         '200':
-          description: The six latest movements with an Expense-nature split, ordered by booking date and identifier descending.
+          description: The six latest movements with an Expense-nature split, optionally restricted to the requested calendar month, ordered by booking date and identifier descending.
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/LatestExpenseMovementDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':

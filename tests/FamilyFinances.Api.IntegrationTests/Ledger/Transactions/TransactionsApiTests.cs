@@ -235,6 +235,61 @@ public sealed class TransactionsApiTests
     }
 
     [Fact]
+    public async Task ListLatestExpenses_ReturnsOnlyExpensesFromRequestedMonth()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var bank = await TestHelpers.CreateAccountAsync(client, "Main Bank", "Asset", "Checking");
+        var groceries = await TestHelpers.CreateAccountAsync(client, "Groceries", "Expense", "Other");
+
+        await CreateTwoSplitTransactionAsync(client, "2026-01-31", "January expense", bank.Id, groceries.Id, -5_000, 5_000);
+        await CreateTwoSplitTransactionAsync(client, "2026-02-01", "February expense", bank.Id, groceries.Id, -6_000, 6_000);
+        await CreateTwoSplitTransactionAsync(client, "2026-02-28", "Latest February expense", bank.Id, groceries.Id, -7_000, 7_000);
+        await CreateTwoSplitTransactionAsync(client, "2026-03-01", "March expense", bank.Id, groceries.Id, -8_000, 8_000);
+
+        var response = await client.GetAsync("/api/v1/transactions/latest-expenses?year=2026&month=2");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var expenses = await response.Content.ReadFromJsonAsync<List<LatestExpenseMovementResponse>>();
+
+        expenses.Should().NotBeNull().And.HaveCount(2);
+        expenses!.Select(item => item.Description).Should().Equal("Latest February expense", "February expense");
+        expenses.Select(item => item.BookedOn).Should().OnlyContain(bookedOn => bookedOn.Month == 2 && bookedOn.Year == 2026);
+    }
+
+    [Fact]
+    public async Task ListLatestExpenses_RejectsIncompletePeriod()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+
+        var response = await client.GetAsync("/api/v1/transactions/latest-expenses?year=2026");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task ListLatestExpenses_RejectsInvalidOrFuturePeriod()
+    {
+        using var factory = TestClient.CreateFactoryWithFreshDb(out _);
+        using var client = await TestClient.CreateAuthorizedClientAsync(factory);
+        var nextMonth = DateTime.Today.AddMonths(1);
+
+        foreach (var path in new[]
+        {
+            "/api/v1/transactions/latest-expenses?year=1999&month=1",
+            "/api/v1/transactions/latest-expenses?year=2026&month=13",
+            $"/api/v1/transactions/latest-expenses?year={nextMonth.Year}&month={nextMonth.Month}"
+        })
+        {
+            var response = await client.GetAsync(path);
+
+            response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        }
+    }
+
+    [Fact]
     public async Task ListLatestExpenses_RequiresAuth()
     {
         using var factory = TestClient.CreateFactoryWithFreshDb(out _);

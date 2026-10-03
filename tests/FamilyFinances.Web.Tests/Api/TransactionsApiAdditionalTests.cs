@@ -126,11 +126,23 @@ public sealed class TransactionsApiAdditionalTests
                 Content = JsonContent.Create<IReadOnlyList<LatestExpenseMovementDto>>(payload)
             });
 
-        var result = await _sut.GetLatestExpensesAsync(CancellationToken.None);
+        var result = await _sut.GetLatestExpensesAsync(2026, 2, CancellationToken.None);
 
         result.Should().ContainSingle().Which.AmountCents.Should().Be(5_412);
         captured!.RequestUri!.ToString().Should().Contain("api/v1/transactions/latest-expenses");
+        captured.RequestUri!.Query.Should().Contain("year=2026").And.Contain("month=2");
         captured.Headers.Authorization!.Parameter.Should().Be("valid-token");
+    }
+
+    [Theory]
+    [InlineData(2026, null)]
+    [InlineData(null, 2)]
+    public async Task GetLatestExpensesAsync_RejectsIncompletePeriod(int? year, int? month)
+    {
+        var act = () => _sut.GetLatestExpensesAsync(year, month, CancellationToken.None);
+
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithMessage("Year and month must be provided together.");
     }
 
     [Fact]

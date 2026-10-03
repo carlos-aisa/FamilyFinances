@@ -15,9 +15,16 @@ public sealed class ListLatestExpenseMovementsHandler
         _transactions = transactions;
     }
 
-    public async Task<IReadOnlyList<LatestExpenseMovementDto>> HandleAsync(CancellationToken ct)
+    public async Task<IReadOnlyList<LatestExpenseMovementDto>> HandleAsync(
+        DateOnly? fromInclusive,
+        DateOnly? toExclusive,
+        CancellationToken ct)
     {
-        var transactions = await _transactions.ListLatestExpensesAsync(LatestExpensesCount, ct);
+        var transactions = await _transactions.ListLatestExpensesAsync(
+            LatestExpensesCount,
+            fromInclusive,
+            toExclusive,
+            ct);
 
         return transactions
             .Select(transaction => new LatestExpenseMovementDto(
