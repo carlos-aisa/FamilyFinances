@@ -269,10 +269,10 @@
                         <table class="table table-hover align-middle mb-0 ff-data-table">
                             <thead class="table-light">
                                 <tr>
-                                    <th class="border-0 ps-3 ff-w-35p">
+                                    <th class="border-0 ps-3 ff-w-25p">
                                         <i class="bi bi-tag me-1"></i>@L["Accounts_Table_Name"]
                                     </th>
-                                    <th class="border-0 ff-w-15p">
+                                    <th class="border-0 ff-w-10p">
                                         <i class="bi bi-bookmark me-1"></i>@L["Accounts_Table_Kind"]
                                     </th>
                                     <th class="border-0 text-end ff-w-15p">
@@ -280,6 +280,9 @@
                                     </th>
                                     <th class="border-0 text-end ff-w-15p">
                                         <i class="bi bi-currency-euro me-1"></i>@L["Accounts_Table_AccumulatedBalance"]
+                                    </th>
+                                    <th class="border-0 text-end ff-w-15p">
+                                        <i class="bi bi-wallet2 me-1"></i>@L["Accounts_Table_CurrentBalance"]
                                     </th>
                                     <th class="border-0 ff-w-10p">
                                         <i class="bi bi-info-circle me-1"></i>@L["Accounts_Table_Status"]
@@ -292,6 +295,7 @@
                                 {
                                     var yearToDateBalanceText = GetYearToDateBalanceText(a.Id);
                                     var currentMonthBalanceText = GetCurrentMonthBalanceText(a.Id);
+                                    var currentBalanceText = GetCurrentBalanceText(a.Id);
                                     <tr class="account-row">
                                         <td class="ps-3">
                                             <div class="d-flex align-items-center">
@@ -320,6 +324,16 @@
                                             else
                                             {
                                                 <span class="fw-semibold">@yearToDateBalanceText</span>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            @if (currentBalanceText is null)
+                                            {
+                                                <span class="text-muted">&mdash;</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="fw-semibold">@currentBalanceText</span>
                                             }
                                         </td>
                                         <td>
@@ -978,6 +992,14 @@
     {
         if (_balances.TryGetValue(accountId, out var balance))
             return MoneyFormatter.FormatEuros(balance.CurrentMonthBalance);
+
+        return null;
+    }
+
+    private string? GetCurrentBalanceText(Guid accountId)
+    {
+        if (_balances.TryGetValue(accountId, out var balance))
+            return MoneyFormatter.FormatEuros(balance.Balance);
 
         return null;
     }

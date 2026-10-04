@@ -2631,6 +2631,9 @@
   <data name="Accounts_Table_CurrentMonthBalance" xml:space="preserve">
     <value>Current month balance</value>
   </data>
+  <data name="Accounts_Table_CurrentBalance" xml:space="preserve">
+    <value>Current balance</value>
+  </data>
   <data name="Dashboard_CompactInsights_Column_Amount" xml:space="preserve">
     <value>Amount</value>
   </data>

@@ -16,7 +16,7 @@ namespace FamilyFinances.Web.Tests.Features.Accounts;
 public sealed class AccountsListPageTests : WebTestContext
 {
     [Fact]
-    public void Accounts_List_Shows_YearToDate_And_CurrentMonth_Balance_InTheirColumns()
+    public void Accounts_List_Shows_CurrentMonth_YearToDate_And_Current_Balances_InTheirColumns()
     {
         var accountId = Guid.Parse("11111111-1111-1111-1111-111111111111");
 
@@ -54,20 +54,25 @@ public sealed class AccountsListPageTests : WebTestContext
         {
             cut.Markup.Should().Contain("Accumulated balance");
             cut.Markup.Should().Contain("Current month balance");
+            cut.Markup.Should().Contain("Current balance");
             cut.Markup.Should().Contain(MoneyFormatter.FormatEuros(1234.56m));
             cut.Markup.Should().Contain(MoneyFormatter.FormatEuros(345.67m));
-            cut.Markup.Should().NotContain(MoneyFormatter.FormatEuros(9_999.99m));
+            cut.Markup.Should().Contain(MoneyFormatter.FormatEuros(9_999.99m));
 
             var headers = cut.FindAll("thead th").Select(x => x.TextContent).ToList();
             var currentMonthHeaderIndex = headers.FindIndex(text => text.Contains("Current month balance", StringComparison.OrdinalIgnoreCase));
             var accumulatedHeaderIndex = headers.FindIndex(text => text.Contains("Accumulated balance", StringComparison.OrdinalIgnoreCase));
+            var currentBalanceHeaderIndex = headers.FindIndex(text => text.Contains("Current balance", StringComparison.OrdinalIgnoreCase));
             currentMonthHeaderIndex.Should().BeGreaterThanOrEqualTo(0);
             accumulatedHeaderIndex.Should().BeGreaterThanOrEqualTo(0);
+            currentBalanceHeaderIndex.Should().BeGreaterThanOrEqualTo(0);
             currentMonthHeaderIndex.Should().BeLessThan(accumulatedHeaderIndex);
+            accumulatedHeaderIndex.Should().BeLessThan(currentBalanceHeaderIndex);
 
             var cells = cut.FindAll("tbody tr").Single().Children;
             cells[2].TextContent.Trim().Should().Be(MoneyFormatter.FormatEuros(345.67m));
             cells[3].TextContent.Trim().Should().Be(MoneyFormatter.FormatEuros(1234.56m));
+            cells[4].TextContent.Trim().Should().Be(MoneyFormatter.FormatEuros(9_999.99m));
         });
 
         accountsApiMock.Verify(x => x.ListAsync(It.IsAny<CancellationToken>()), Times.Once);
@@ -116,6 +121,25 @@ public sealed class AccountsListPageTests : WebTestContext
         {
             cut.Markup.Should().Contain("Accounts updated as of");
             cut.Markup.Should().Contain(DateTime.Today.ToString("yyyy-MM-dd"));
+        });
+    }
+
+    [Fact]
+    public void Accounts_List_ShowsMutedDashForAllBalanceColumns_WhenAccountHasNoBalance()
+    {
+        var accountsApiMock = CreateAccountsApiMock(
+            CreateAccounts(AccountNature.Asset),
+            CreateKinds());
+        RegisterAuthorizedServices(accountsApiMock.Object);
+
+        var cut = RenderComponent<AccountsListPage>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var cells = cut.FindAll("tbody tr").Single().Children;
+            cells[2].TextContent.Trim().Should().Be("—");
+            cells[3].TextContent.Trim().Should().Be("—");
+            cells[4].TextContent.Trim().Should().Be("—");
         });
     }
 
